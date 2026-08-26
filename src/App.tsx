@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import {
   Activity, AppWindow, BadgeCheck, BarChart3, Bell, BookOpen, BriefcaseBusiness, Building2,
   CalendarDays, ChevronRight, CircleDollarSign, ClipboardCheck, Code2, ContactRound, Copy,
-  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, Install, KeyRound,
+  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, Download, KeyRound,
   LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, MonitorCog, Network, PackageCheck,
   Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
   UserCog, UserPlus, Users, Wrench
@@ -98,7 +98,7 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Install size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
       <div className="content">
         {section==='overview'&&<Overview setSection={setSection}/>} 
         {section==='crm'&&<CRM/>}
