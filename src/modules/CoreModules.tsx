@@ -16,11 +16,8 @@ export function SupportModule(){
       'Hello RideArrivo Support, I need assistance.'
     )
 
-    window.open(
-      `https://wa.me/${whatsappNumber}?text=${message}`,
-      '_blank',
-      'noopener,noreferrer'
-    )
+    window.location.href =
+      `https://wa.me/${whatsappNumber}?text=${message}`
   }
 
   const callSupport = () => {

@@ -565,3 +565,66 @@
     justify-content:center;
   }
 }
+
+.providusBanking{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:28px;
+  margin-bottom:18px;
+  padding:22px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.76),
+      rgba(244,247,252,.62)
+    );
+}
+
+.providusBankingCopy{
+  max-width:760px;
+}
+
+.providusBankingCopy h3{
+  margin:7px 0 8px;
+  font-size:21px;
+}
+
+.providusBankingCopy p{
+  margin:0;
+  color:#68778a;
+  line-height:1.55;
+}
+
+.providusNotice{
+  margin-top:13px;
+  padding:11px 13px;
+  border-radius:12px;
+  background:rgba(7,26,56,.05);
+  color:#627083;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.providusActions{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  flex:0 0 auto;
+}
+
+@media(max-width:760px){
+  .providusBanking{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .providusActions{
+    width:100%;
+  }
+
+  .providusActions button{
+    width:100%;
+    justify-content:center;
+  }
+}

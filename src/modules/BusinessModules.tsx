@@ -1,3 +1,6 @@
+
+const PROVIDUS_URL = 'https://ibank.providusbank.com/provipay#/login'
+
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { BarChart3, BookOpenCheck, Building2, CalendarClock, CheckCircle2, CircleDollarSign, Handshake, Landmark, Megaphone, Percent, PieChart, ReceiptText, RefreshCw, Search, Target, TrendingUp, Users, WalletCards } from 'lucide-react'
@@ -20,7 +23,47 @@ function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:st
 function KPI({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}
 function Tabs({items,active,onChange}:{items:string[];active:string;onChange:(v:string)=>void}){return <div className="moduleTabs">{items.map(i=><button key={i} className={i===active?'active':''} onClick={()=>onChange(i)}>{i}</button>)}</div>}
 
-export function FinanceModule(){const [tab,setTab]=useState('Dashboard');const tabs=['Dashboard','Invoices','Bills','Expenses','Journals','Budgets','Assets','Tax & Close'];return <section><Title eyebrow="FINANCE & ACCOUNTING" title="Finance Control Centre" subtitle="Receivables, payables, journals, expenses, budgets, assets, tax and period close under finance-grade controls."/><div className="stats"><KPI icon={<CircleDollarSign/>} label="Revenue control" value="AR" hint="Invoices, balances and aging"/><KPI icon={<ReceiptText/>} label="Payables" value="AP" hint="Bills, approvals and due dates"/><KPI icon={<WalletCards/>} label="Spend control" value="OPEX" hint="Expenses and reimbursements"/><KPI icon={<PieChart/>} label="Planning" value="Budget" hint="Budgets and variance readiness"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
+export function FinanceModule(){const [tab,setTab]=useState('Dashboard');const tabs=['Dashboard','Invoices','Bills','Expenses','Journals','Budgets','Assets','Tax & Close'];return <section>
+      <div className="providusBanking glassCard">
+        <div className="providusBankingCopy">
+          <span className="eyebrow">BANKING</span>
+          <h3>Providus Corporate Banking</h3>
+          <p>
+            Access RideArrivo's Providus banking portal for account operations,
+            transfers, statements and reconciliation.
+          </p>
+
+          <div className="providusNotice">
+            Banking credentials are entered only on the secure Providus Bank
+            website and are never stored by RideArrivo Workspace.
+          </div>
+        </div>
+
+        <div className="providusActions">
+          <button
+            className="primaryButton"
+            onClick={() => {
+              window.location.href = PROVIDUS_URL
+            }}
+          >
+            Open Providus Banking
+          </button>
+
+          <button
+            className="glassButton"
+            onClick={() => {
+              window.open(
+                PROVIDUS_URL,
+                'ridearrivo-providus',
+                'width=1280,height=900'
+              )
+            }}
+          >
+            Open Banking Window
+          </button>
+        </div>
+      </div>
+<Title eyebrow="FINANCE & ACCOUNTING" title="Finance Control Centre" subtitle="Receivables, payables, journals, expenses, budgets, assets, tax and period close under finance-grade controls."/><div className="stats"><KPI icon={<CircleDollarSign/>} label="Revenue control" value="AR" hint="Invoices, balances and aging"/><KPI icon={<ReceiptText/>} label="Payables" value="AP" hint="Bills, approvals and due dates"/><KPI icon={<WalletCards/>} label="Spend control" value="OPEX" hint="Expenses and reimbursements"/><KPI icon={<PieChart/>} label="Planning" value="Budget" hint="Budgets and variance readiness"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
 {tab==='Dashboard'&&<div className="grid3"><Feature icon={<Landmark/>} title="Cash & banking" text="Bank accounts, settlement records and reconciliation readiness."/><Feature icon={<BookOpenCheck/>} title="General ledger" text="Chart of accounts, journals and double-entry lines."/><Feature icon={<BarChart3/>} title="Reporting" text="Trial balance, P&L, balance sheet, cash flow and aging-ready data."/><Feature icon={<Percent/>} title="Tax" text="VAT, WHT and statutory obligations with due-date control."/><Feature icon={<CheckCircle2/>} title="Close" text="Month-end tasks, ownership and completion status."/><Feature icon={<CircleDollarSign/>} title="Ride economics" text="Booking revenue, refunds, corporate AR and partner/driver settlement support."/></div>}
 {tab==='Invoices'&&<DataWorkbench table="finance_invoices" title="Customer invoices" description="Corporate and partner receivables." createLabel="New invoice" fields={[{key:'invoice_number',label:'Invoice number',required:true},{key:'customer_name',label:'Customer',required:true},{key:'issue_date',label:'Issue date',type:'date',required:true},{key:'due_date',label:'Due date',type:'date',required:true},{key:'total_amount',label:'Amount (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['draft','sent','part_paid','paid','overdue','void'],required:true}]} columns={[{key:'invoice_number',label:'Invoice'},{key:'customer_name',label:'Customer'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'total_amount',label:'Total',render:r=>money(r.total_amount)},{key:'balance_due',label:'Balance',render:r=>money(r.balance_due)},{key:'status',label:'Status'}]}/>} 
 {tab==='Bills'&&<DataWorkbench table="finance_bills" title="Vendor bills" description="Vendor and operating obligations." createLabel="New bill" fields={[{key:'bill_number',label:'Bill number',required:true},{key:'vendor_name',label:'Vendor',required:true},{key:'bill_date',label:'Bill date',type:'date',required:true},{key:'due_date',label:'Due date',type:'date'},{key:'total_amount',label:'Amount (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['draft','pending_approval','approved','part_paid','paid','overdue','void'],required:true}]} columns={[{key:'bill_number',label:'Bill'},{key:'vendor_name',label:'Vendor'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'total_amount',label:'Total',render:r=>money(r.total_amount)},{key:'balance_due',label:'Balance',render:r=>money(r.balance_due)},{key:'status',label:'Status'}]}/>} 
