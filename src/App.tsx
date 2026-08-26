@@ -10,14 +10,31 @@ import {
   UserCog, UserPlus, Users, Wrench
 } from 'lucide-react'
 import { supabase, supabaseConfigured } from './lib/supabase'
+import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/BusinessModules'
+import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
+import { SocialModule } from './modules/SocialModule'
 
-type Section = 'overview'|'crm'|'support'|'engineering'|'people'|'operations'|'legal'|'admin'|'apps'|'workspace'
-type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'admin'
+type Section = 'overview'|'social'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = { full_name:string; email:string; role:Role; department:string; job_title:string }
 
 const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearrivo.com')
   .toLowerCase().split(',').map((v:string)=>v.trim()).filter(Boolean)
+
+const sectionAccess:Partial<Record<Section,Role[]>>={
+  social:['employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'],
+  crm:['support','operations','marketing','partnerships','manager','admin'],
+  support:['support','operations','manager','admin'],
+  engineering:['engineer','manager','admin'],
+  operations:['operations','manager','admin'],
+  finance:['finance','manager','admin'],
+  marketing:['marketing','partnerships','manager','admin'],
+  partnerships:['partnerships','marketing','operations','finance','legal','manager','admin'],
+  legal:['legal','manager','admin'],
+  admin:['admin']
+}
+const canAccess=(role:Role,section:Section)=>!sectionAccess[section]||sectionAccess[section]!.includes(role)
 
 const applications = [
   {name:'Rider Web', desc:'Customer booking, account and trip experience', url:'https://ridearrivo.com', audience:'Support & Operations'},
@@ -48,89 +65,6 @@ const engineers = [
   {name:'Android Studio', purpose:'Android SDK, emulator and native debugging', mac:'brew install --cask android-studio', windows:'winget install Google.AndroidStudio'},
   {name:'Expo / EAS', purpose:'Mobile builds, signing and releases', mac:'npm install -g eas-cli', windows:'npm install -g eas-cli'},
 ]
-
-
-function TransparentRideArrivoLogo({className=''}:{className?:string}){
-  const [src,setSrc]=useState('/ridearrivo-wordmark.png')
-
-  useEffect(()=>{
-    const image=new Image()
-    image.src='/ridearrivo-wordmark.png'
-
-    image.onload=()=>{
-      const canvas=document.createElement('canvas')
-      canvas.width=image.naturalWidth
-      canvas.height=image.naturalHeight
-
-      const ctx=canvas.getContext('2d')
-      if(!ctx) return
-
-      ctx.drawImage(image,0,0)
-
-      const imageData=ctx.getImageData(0,0,canvas.width,canvas.height)
-      const data=imageData.data
-
-      for(let i=0;i<data.length;i+=4){
-        const r=data[i]
-        const g=data[i+1]
-        const b=data[i+2]
-
-        const brightness=(r+g+b)/3
-
-        if(brightness>245){
-          data[i+3]=0
-        }else if(brightness>225){
-          data[i+3]=Math.round((245-brightness)/20*255)
-        }
-      }
-
-      ctx.putImageData(imageData,0,0)
-      const transparent=canvas.toDataURL('image/png')
-      setSrc(transparent)
-
-      let favicon=document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-
-      if(!favicon){
-        favicon=document.createElement('link')
-        favicon.rel='icon'
-        document.head.appendChild(favicon)
-      }
-
-      const faviconCanvas=document.createElement('canvas')
-      faviconCanvas.width=256
-      faviconCanvas.height=256
-
-      const faviconCtx=faviconCanvas.getContext('2d')
-
-      if(faviconCtx){
-        const scale=Math.min(
-          faviconCanvas.width/canvas.width,
-          faviconCanvas.height/canvas.height
-        )
-
-        const w=canvas.width*scale
-        const h=canvas.height*scale
-
-        faviconCtx.clearRect(0,0,256,256)
-        faviconCtx.drawImage(
-          canvas,
-          (256-w)/2,
-          (256-h)/2,
-          w,
-          h
-        )
-
-        favicon.href=faviconCanvas.toDataURL('image/png')
-      }
-    }
-  },[])
-
-  return <img
-    src={src}
-    className={`ridearrivoLogo ${className}`}
-    alt="RideArrivo"
-  />
-}
 
 
 function BrandLogo({className=''}:{className?:string}){
@@ -193,35 +127,42 @@ function App(){
     })
   },[session])
 
-  const nav = useMemo(()=>[
-    ['overview','Overview',Home],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
-  ] as const,[])
+  const nav = useMemo(()=>{
+    const items = [
+      ['overview','Overview',Home],['social','Pulse',Bell],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+    ] as const
+    return items.filter(([id])=>canAccess(profile.role,id))
+  },[profile.role])
 
   const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
   const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
   const signOut=()=>supabase?.auth.signOut()
 
-  if(!authReady) return <div className="splash"><div className="brandWordmark splashWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><div className="spinner"/></div>
+  if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
   if(!session) return <AuthGate/>
 
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
-      <div className="brand"><TransparentRideArrivoLogo className="sidebarLogo"/><span>Internal Workspace</span></div>
+      <div className="brand"><BrandLogo className="sidebarLogo"/><span>Internal Workspace</span></div>
       <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
       <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
       <div className="content">
-        {section==='overview'&&<Overview setSection={setSection}/>} 
-        {section==='crm'&&<CRM/>}
-        {section==='support'&&<Support/>}
+        {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>} 
+        {section==='social'&&<SocialModule/>}
+        {section==='crm'&&<CRMModule/>}
+        {section==='support'&&<SupportModule/>}
         {section==='engineering'&&<Engineering openWorkspace={openWorkspace}/>} 
-        {section==='people'&&<People/>}
-        {section==='operations'&&<Operations/>}
-        {section==='legal'&&<Legal/>}
-        {section==='admin'&&<Admin/>}
+        {section==='people'&&<PeopleModule/>}
+        {section==='operations'&&<OperationsModule/>}
+        {section==='finance'&&<FinanceModule/>}
+        {section==='marketing'&&<MarketingModule/>}
+        {section==='partnerships'&&<PartnershipsModule/>}
+        {section==='legal'&&<LegalModule/>}
+        {section==='admin'&&<AdminModule/>}
         {section==='apps'&&<Applications openWorkspace={openWorkspace}/>} 
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
       </div>
@@ -509,11 +450,18 @@ function AuthGate(){
   </div>
 }
 
-function Overview({setSection}:{setSection:(s:Section)=>void}){
+function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
   const stats=[['Open bookings','24','Support queue',Headphones],['Active rides','8','Live operations',Route],['CRM pipeline','₦5.5m','Open opportunities',CircleDollarSign],['Open HR requests','3','People operations',Users]] as const
-  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions"><button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button><button className="glassButton" onClick={()=>setSection('crm')}>View CRM</button></div></div><img src="/ridearrivo-mark.png"/></section><div className="stats">{stats.map(([a,b,c,Icon])=><Metric key={a} icon={<Icon/>} label={a} value={b} hint={c}/>)}</div><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Each team gets the tools, queues and information needed for its work."/><div className="grid3"><Launch title="Support Station" text="Bookings, riders, drivers, live trips, safety and escalations." icon={<Headphones/>} onClick={()=>setSection('support')}/><Launch title="Engineering Station" text="Repos, deployments, mobile tooling, device bootstrap and APIs." icon={<Code2/>} onClick={()=>setSection('engineering')}/><Launch title="CRM" text="Leads, riders, corporate accounts, partners, opportunities and activity." icon={<ContactRound/>} onClick={()=>setSection('crm')}/></div></section></>
+  const launchers=[
+    ['support','Support Station','Bookings, riders, drivers, live trips, safety and escalations.',Headphones],
+    ['engineering','Engineering Station','Repos, deployments, mobile tooling, device bootstrap and APIs.',Code2],
+    ['crm','CRM','Leads, riders, corporate accounts and opportunities.',ContactRound],
+    ['finance','Finance','Accounting, receivables, payables, budgets, tax and close.',CircleDollarSign],
+    ['marketing','Marketing','Campaigns, content, attribution, experiments and assets.',BarChart3],
+    ['partnerships','Partnerships','Partners, agreements, pipeline, referrals and onboarding.',Building2]
+  ] as const
+  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><div className="stats">{stats.map(([a,b,c,Icon])=><Metric key={a} icon={<Icon/>} label={a} value={b} hint={c}/>)}</div><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
 }
-
 function CRM(){return <section><SectionTitle eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint." actions={<button className="primaryButton"><UserPlus size={16}/>New lead</button>}/><div className="stats"><Metric icon={<Users/>} label="Contacts" value="2,184" hint="Riders and stakeholders"/><Metric icon={<Building2/>} label="Corporate accounts" value="38" hint="Hotels, travel and companies"/><Metric icon={<CircleDollarSign/>} label="Open pipeline" value="₦5.5m" hint="14 opportunities"/><Metric icon={<CalendarDays/>} label="Follow-ups due" value="12" hint="Today"/></div><div className="glassCard tableCard"><div className="tableToolbar"><div><h3>Relationship pipeline</h3><p>Sales, partnership and recovery work in one queue.</p></div><button className="glassButton"><ListChecks size={16}/>Activities</button></div><div className="dataTable"><div className="tr th"><span>Name / Account</span><span>Type</span><span>Status</span><span>Value</span><span>Last activity</span></div>{crmRows.map(r=><div className="tr" key={r.name}><span><strong>{r.name}</strong></span><span>{r.type}</span><span><StatusPill value={r.status}/></span><span>{r.value}</span><span>{r.last}</span></div>)}</div></div><div className="grid3"><Feature icon={<TicketCheck/>} title="Customer 360" text="Bookings, support cases, notes, payments and communications tied to one profile."/><Feature icon={<CircleDollarSign/>} title="Corporate sales" text="Track hotel, corporate and travel-agent opportunities from lead to signed account."/><Feature icon={<Activity/>} title="Activity timeline" text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."/></div></section>}
 
 function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
