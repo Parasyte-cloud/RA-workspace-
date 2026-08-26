@@ -932,3 +932,25 @@
     margin:16px 0;
   }
 }
+
+
+/* Finance banking v1 */
+.bankingHero{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:22px;margin-bottom:16px}
+.bankingHero h3{margin:6px 0 8px}
+.bankingHero p{margin:0;max-width:760px;color:#697686;line-height:1.55}
+.bankingHeroActions{display:flex;gap:9px;flex-wrap:wrap}
+.fileButton{position:relative;overflow:hidden}
+.fileButton input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.bankingToolbar{display:flex;align-items:center;gap:12px;padding:12px;margin:16px 0}
+.bankingFilters{display:flex;gap:6px;flex-wrap:wrap}
+.bankingFilters button{border:0;background:rgba(7,26,56,.05);padding:8px 11px;border-radius:10px;cursor:pointer;color:#5d6978;font-weight:700}
+.bankingFilters button.active{background:rgba(244,163,0,.16);color:#12123b}
+.bankingSearch{min-width:220px;flex:1;border:1px solid rgba(7,26,56,.1);background:rgba(255,255,255,.72);padding:10px 12px;border-radius:11px;outline:0}
+.bankingTableWrap{padding:0;overflow:auto}
+.bankingTable{min-width:1100px}
+.bankingCellInput{width:100%;min-width:125px;border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 8px;font:inherit;color:inherit}
+.bankingCellInput:focus{outline:0;border-color:rgba(244,163,0,.42);background:#fff}
+.bankingSub{display:block;margin-top:4px;color:#7b8795}
+.bankingApiNote{display:flex;align-items:flex-start;gap:12px;padding:17px;margin-top:16px}
+.bankingApiNote p{margin:4px 0 0;color:#6a7787;line-height:1.5}
+@media(max-width:800px){.bankingHero,.bankingToolbar{flex-direction:column;align-items:stretch}.bankingHeroActions,.bankingToolbar .buttonRow{width:100%}.bankingHeroActions>*{flex:1;justify-content:center}.bankingSearch{width:100%;min-width:0}}
