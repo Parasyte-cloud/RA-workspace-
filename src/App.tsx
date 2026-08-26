@@ -49,6 +49,89 @@ const engineers = [
   {name:'Expo / EAS', purpose:'Mobile builds, signing and releases', mac:'npm install -g eas-cli', windows:'npm install -g eas-cli'},
 ]
 
+
+function TransparentRideArrivoLogo({className=''}:{className?:string}){
+  const [src,setSrc]=useState('/ridearrivo-wordmark.png')
+
+  useEffect(()=>{
+    const image=new Image()
+    image.src='/ridearrivo-wordmark.png'
+
+    image.onload=()=>{
+      const canvas=document.createElement('canvas')
+      canvas.width=image.naturalWidth
+      canvas.height=image.naturalHeight
+
+      const ctx=canvas.getContext('2d')
+      if(!ctx) return
+
+      ctx.drawImage(image,0,0)
+
+      const imageData=ctx.getImageData(0,0,canvas.width,canvas.height)
+      const data=imageData.data
+
+      for(let i=0;i<data.length;i+=4){
+        const r=data[i]
+        const g=data[i+1]
+        const b=data[i+2]
+
+        const brightness=(r+g+b)/3
+
+        if(brightness>245){
+          data[i+3]=0
+        }else if(brightness>225){
+          data[i+3]=Math.round((245-brightness)/20*255)
+        }
+      }
+
+      ctx.putImageData(imageData,0,0)
+      const transparent=canvas.toDataURL('image/png')
+      setSrc(transparent)
+
+      let favicon=document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+
+      if(!favicon){
+        favicon=document.createElement('link')
+        favicon.rel='icon'
+        document.head.appendChild(favicon)
+      }
+
+      const faviconCanvas=document.createElement('canvas')
+      faviconCanvas.width=256
+      faviconCanvas.height=256
+
+      const faviconCtx=faviconCanvas.getContext('2d')
+
+      if(faviconCtx){
+        const scale=Math.min(
+          faviconCanvas.width/canvas.width,
+          faviconCanvas.height/canvas.height
+        )
+
+        const w=canvas.width*scale
+        const h=canvas.height*scale
+
+        faviconCtx.clearRect(0,0,256,256)
+        faviconCtx.drawImage(
+          canvas,
+          (256-w)/2,
+          (256-h)/2,
+          w,
+          h
+        )
+
+        favicon.href=faviconCanvas.toDataURL('image/png')
+      }
+    }
+  },[])
+
+  return <img
+    src={src}
+    className={`ridearrivoLogo ${className}`}
+    alt="RideArrivo"
+  />
+}
+
 function App(){
   const [session,setSession]=useState<Session|null>(null)
   const [profile,setProfile]=useState<Profile>({full_name:'',email:'',role:'employee',department:'',job_title:''})
@@ -113,7 +196,7 @@ function App(){
 
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
-      <div className="brand"><div className="brandWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><span>Internal Workspace</span></div>
+      <div className="brand"><TransparentRideArrivoLogo className="sidebarLogo"/><span>Internal Workspace</span></div>
       <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
@@ -158,29 +241,230 @@ function SetupRequired(){
 
 function AuthGate(){
   const [mode,setMode]=useState<'signin'|'signup'>('signin')
+  const [step,setStep]=useState<'form'|'verify'>('form')
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
   const [name,setName]=useState('')
+  const [code,setCode]=useState('')
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
-  const validDomain=(value:string)=>allowedDomains.some((d: string)=>value.trim().toLowerCase().endsWith(`@${d}`))
+
+  const validDomain=(value:string)=>
+    allowedDomains.some((d:string)=>
+      value.trim().toLowerCase().endsWith(`@${d}`)
+    )
+
   const submit=async(e:FormEvent)=>{
-    e.preventDefault();setMessage('')
-    if(!validDomain(email)){setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d: string)=>'@'+d).join(', ')}).`);return}
+    e.preventDefault()
+    setMessage('')
+
+    const cleanEmail=email.trim().toLowerCase()
+
+    if(!validDomain(cleanEmail)){
+      setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d:string)=>'@'+d).join(', ')}).`)
+      return
+    }
+
     if(!supabase) return
+
     setBusy(true)
-    const result = mode==='signin'
-      ? await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password})
-      : await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{full_name:name}}})
+
+    if(mode==='signin'){
+      const result=await supabase.auth.signInWithPassword({
+        email:cleanEmail,
+        password
+      })
+
+      setBusy(false)
+
+      if(result.error){
+        setMessage(result.error.message)
+      }
+      return
+    }
+
+    const result=await supabase.auth.signUp({
+      email:cleanEmail,
+      password,
+      options:{
+        data:{full_name:name}
+      }
+    })
+
     setBusy(false)
-    if(result.error) setMessage(result.error.message)
-    else if(mode==='signup') setMessage('Account created. Check your RideArrivo email for the verification message.')
+
+    if(result.error){
+      setMessage(result.error.message)
+      return
+    }
+
+    setStep('verify')
   }
-  return <div className="authPage"><div className="authGlass">
-    <div className="authBrand"><div className="brandWordmark authWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><span>Internal Workspace</span></div>
-    <div className="authCopy"><span className="eyebrow">SECURE EMPLOYEE ACCESS</span><h1>Run RideArrivo from one workspace.</h1><p>Support, CRM, engineering, people, operations, legal and administration, secured behind company identity.</p><div className="trustRow"><BadgeCheck/>RideArrivo email required</div></div>
-    <form onSubmit={submit}><div className="authTabs"><button type="button" className={mode==='signin'?'active':''} onClick={()=>setMode('signin')}>Sign in</button><button type="button" className={mode==='signup'?'active':''} onClick={()=>setMode('signup')}>Create account</button></div>{mode==='signup'&&<label>Full name<input value={name} onChange={e=>setName(e.target.value)} required/></label>}<label>RideArrivo email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder={`name@${allowedDomains[0]}`} required/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required/></label>{message&&<div className="authMessage">{message}</div>}<button className="primaryButton" disabled={busy}>{busy?'Please wait…':mode==='signin'?'Sign in securely':'Create employee account'}</button></form>
-  </div></div>
+
+  const verifyCode=async(e:FormEvent)=>{
+    e.preventDefault()
+    setMessage('')
+
+    if(!supabase) return
+
+    if(code.trim().length<6){
+      setMessage('Enter the verification code sent to your RideArrivo email.')
+      return
+    }
+
+    setBusy(true)
+
+    const result=await supabase.auth.verifyOtp({
+      email:email.trim().toLowerCase(),
+      token:code.trim(),
+      type:'signup'
+    })
+
+    setBusy(false)
+
+    if(result.error){
+      setMessage(result.error.message)
+      return
+    }
+  }
+
+  if(step==='verify'){
+    return <div className="authPage">
+      <div className="authGlass verifyLayout">
+        <div className="authBrand">
+          <TransparentRideArrivoLogo className="authLogo"/>
+          <span>Internal Workspace</span>
+        </div>
+
+        <div className="verifyPanel">
+          <span className="eyebrow">EMAIL VERIFICATION</span>
+          <h1>Verify your RideArrivo email.</h1>
+          <p>
+            We sent a verification code to
+            <strong> {email.trim().toLowerCase()}</strong>.
+          </p>
+
+          <form onSubmit={verifyCode}>
+            <label>
+              Verification code
+              <input
+                value={code}
+                onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,8))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Enter code"
+              />
+            </label>
+
+            {message&&<div className="authMessage">{message}</div>}
+
+            <button className="primaryButton" disabled={busy}>
+              {busy?'Verifying...':'Verify email'}
+            </button>
+
+            <button
+              type="button"
+              className="textButton"
+              onClick={()=>{
+                setStep('form')
+                setMessage('')
+              }}
+            >
+              Back to sign in
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+
+  return <div className="authPage">
+    <div className="authGlass">
+      <div className="authBrand">
+        <TransparentRideArrivoLogo className="authLogo"/>
+        <span>Internal Workspace</span>
+      </div>
+
+      <div className="authCopy">
+        <span className="eyebrow">SECURE EMPLOYEE ACCESS</span>
+        <h1>Run RideArrivo from one workspace.</h1>
+        <p>
+          Support, CRM, engineering, people, operations, legal and administration,
+          secured behind company identity.
+        </p>
+        <div className="trustRow">
+          <BadgeCheck size={20}/>
+          <strong>RideArrivo email required</strong>
+        </div>
+      </div>
+
+      <form onSubmit={submit}>
+        <div className="authTabs">
+          <button
+            type="button"
+            className={mode==='signin'?'active':''}
+            onClick={()=>{setMode('signin');setMessage('')}}
+          >
+            Sign in
+          </button>
+
+          <button
+            type="button"
+            className={mode==='signup'?'active':''}
+            onClick={()=>{setMode('signup');setMessage('')}}
+          >
+            Create account
+          </button>
+        </div>
+
+        {mode==='signup'&&
+          <label>
+            Full name
+            <input
+              value={name}
+              onChange={e=>setName(e.target.value)}
+              required
+              autoComplete="name"
+            />
+          </label>
+        }
+
+        <label>
+          RideArrivo email
+          <input
+            type="email"
+            value={email}
+            onChange={e=>setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </label>
+
+        <label>
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            required
+            minLength={8}
+            autoComplete={mode==='signin'?'current-password':'new-password'}
+          />
+        </label>
+
+        {message&&<div className="authMessage">{message}</div>}
+
+        <button className="primaryButton" disabled={busy}>
+          {busy
+            ? 'Please wait...'
+            : mode==='signin'
+              ? 'Sign in'
+              : 'Create employee account'
+          }
+        </button>
+      </form>
+    </div>
+  </div>
 }
 
 function Overview({setSection}:{setSection:(s:Section)=>void}){

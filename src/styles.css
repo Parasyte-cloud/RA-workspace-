@@ -82,3 +82,64 @@
   border:1px solid rgba(255,255,255,.12);
   color:#ffd18a;
 }
+
+.ridearrivoLogo{
+  display:block;
+  object-fit:contain;
+  object-position:left center;
+}
+
+.sidebarLogo{
+  width:190px;
+  max-height:60px;
+}
+
+.authLogo{
+  width:240px;
+  max-height:85px;
+}
+
+.verifyLayout{
+  display:block;
+  max-width:760px;
+  min-height:auto;
+}
+
+.verifyPanel{
+  width:min(520px,100%);
+  margin:70px auto 30px;
+}
+
+.verifyPanel h1{
+  font-size:42px;
+  line-height:1.05;
+  margin:12px 0 14px;
+}
+
+.verifyPanel p{
+  color:#cbd7e7;
+  line-height:1.6;
+  margin-bottom:24px;
+}
+
+.verifyPanel form{
+  background:rgba(255,255,255,.94);
+  color:var(--navy);
+  padding:26px;
+  border-radius:24px;
+}
+
+.textButton{
+  width:100%;
+  margin-top:10px;
+  border:0;
+  background:transparent;
+  color:#536173;
+  cursor:pointer;
+  padding:10px;
+  font-weight:700;
+}
+
+.textButton:hover{
+  color:var(--navy);
+}
