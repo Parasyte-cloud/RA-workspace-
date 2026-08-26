@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import {
   Activity, AppWindow, BadgeCheck, BarChart3, Bell, BookOpen, BriefcaseBusiness, Building2,
   CalendarDays, ChevronRight, CircleDollarSign, ClipboardCheck, Code2, ContactRound, Copy,
-  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, Download, KeyRound,
+  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, KeyRound,
   LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, MonitorCog, Network, PackageCheck,
   Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
   UserCog, UserPlus, Users, Wrench
@@ -122,10 +122,10 @@ function AuthGate(){
   const [name,setName]=useState('')
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
-  const validDomain=(value:string)=>allowedDomains.some(d=>value.trim().toLowerCase().endsWith(`@${d}`))
+  const validDomain=(value:string)=>allowedDomains.some((d: string)=>value.trim().toLowerCase().endsWith(`@${d}`))
   const submit=async(e:FormEvent)=>{
     e.preventDefault();setMessage('')
-    if(!validDomain(email)){setMessage(`Use an authorised RideArrivo email (${allowedDomains.map(d=>'@'+d).join(', ')}).`);return}
+    if(!validDomain(email)){setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d: string)=>'@'+d).join(', ')}).`);return}
     if(!supabase) return
     setBusy(true)
     const result = mode==='signin'
