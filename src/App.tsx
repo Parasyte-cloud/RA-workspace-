@@ -51,8 +51,8 @@ const engineers = [
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
-  const [profile,setProfile]=useState<Profile>({full_name:'Workspace Preview',email:'preview@ridearrivo.com',role:'admin',department:'Administration',job_title:'Workspace Administrator'})
-  const [authReady,setAuthReady]=useState(!supabaseConfigured)
+  const [profile,setProfile]=useState<Profile>({full_name:'',email:'',role:'employee',department:'',job_title:''})
+  const [authReady,setAuthReady]=useState(false)
   const [section,setSection]=useState<Section>('overview')
   const [workspace,setWorkspace]=useState<Workspace|null>(null)
   const [deferredPrompt,setDeferredPrompt]=useState<any>(null)
@@ -64,12 +64,31 @@ function App(){
     window.addEventListener('beforeinstallprompt',before)
     window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
     if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
-    if(supabase){
-      supabase.auth.getSession().then(({data})=>{setSession(data.session);setAuthReady(true)})
-      const {data} = supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)})
-      return()=>{data.subscription.unsubscribe();window.removeEventListener('beforeinstallprompt',before);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity)}
+    if(!supabase){
+      setAuthReady(true)
+      return()=>{
+        window.removeEventListener('beforeinstallprompt',before)
+        window.removeEventListener('online',connectivity)
+        window.removeEventListener('offline',connectivity)
+      }
     }
-    return()=>{window.removeEventListener('beforeinstallprompt',before);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity)}
+
+    supabase.auth.getSession().then(({data})=>{
+      setSession(data.session)
+      setAuthReady(true)
+    })
+
+    const {data} = supabase.auth.onAuthStateChange((_event,next)=>{
+      setSession(next)
+      setAuthReady(true)
+    })
+
+    return()=>{
+      data.subscription.unsubscribe()
+      window.removeEventListener('beforeinstallprompt',before)
+      window.removeEventListener('online',connectivity)
+      window.removeEventListener('offline',connectivity)
+    }
   },[])
 
   useEffect(()=>{
@@ -88,12 +107,13 @@ function App(){
   const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
   const signOut=()=>supabase?.auth.signOut()
 
-  if(!authReady) return <div className="splash"><img src="/ridearrivo-mark.png"/><div className="spinner"/></div>
-  if(supabaseConfigured && !session) return <AuthGate/>
+  if(!authReady) return <div className="splash"><div className="brandWordmark splashWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><div className="spinner"/></div>
+  if(!supabaseConfigured) return <SetupRequired/>
+  if(!session) return <AuthGate/>
 
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
-      <div className="brand"><img src="/ridearrivo-wordmark.png"/><span>Internal Workspace</span></div>
+      <div className="brand"><div className="brandWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><span>Internal Workspace</span></div>
       <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
@@ -113,6 +133,27 @@ function App(){
       </div>
     </main>
   </div></div>
+}
+
+
+function SetupRequired(){
+  return <div className="authPage">
+    <div className="setupCard">
+      <div className="brandWordmark setupWordmark">
+        <span className="rideText">Ride</span><span className="arrivoText">Arrivo</span>
+      </div>
+      <span className="eyebrow">INTERNAL WORKSPACE</span>
+      <h1>Workspace authentication is not configured.</h1>
+      <p>
+        Connect the RideArrivo Supabase project before employees can access this workspace.
+      </p>
+      <div className="setupVariables">
+        <code>VITE_SUPABASE_URL</code>
+        <code>VITE_SUPABASE_ANON_KEY</code>
+        <code>VITE_ALLOWED_EMAIL_DOMAINS=ridearrivo.com</code>
+      </div>
+    </div>
+  </div>
 }
 
 function AuthGate(){
@@ -136,7 +177,7 @@ function AuthGate(){
     else if(mode==='signup') setMessage('Account created. Check your RideArrivo email for the verification message.')
   }
   return <div className="authPage"><div className="authGlass">
-    <div className="authBrand"><img src="/ridearrivo-wordmark.png"/><span>Internal Workspace</span></div>
+    <div className="authBrand"><div className="brandWordmark authWordmark"><span className="rideText">Ride</span><span className="arrivoText">Arrivo</span></div><span>Internal Workspace</span></div>
     <div className="authCopy"><span className="eyebrow">SECURE EMPLOYEE ACCESS</span><h1>Run RideArrivo from one workspace.</h1><p>Support, CRM, engineering, people, operations, legal and administration, secured behind company identity.</p><div className="trustRow"><BadgeCheck/>RideArrivo email required</div></div>
     <form onSubmit={submit}><div className="authTabs"><button type="button" className={mode==='signin'?'active':''} onClick={()=>setMode('signin')}>Sign in</button><button type="button" className={mode==='signup'?'active':''} onClick={()=>setMode('signup')}>Create account</button></div>{mode==='signup'&&<label>Full name<input value={name} onChange={e=>setName(e.target.value)} required/></label>}<label>RideArrivo email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder={`name@${allowedDomains[0]}`} required/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required/></label>{message&&<div className="authMessage">{message}</div>}<button className="primaryButton" disabled={busy}>{busy?'Please wait…':mode==='signin'?'Sign in securely':'Create employee account'}</button></form>
   </div></div>
