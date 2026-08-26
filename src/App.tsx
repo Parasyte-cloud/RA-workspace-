@@ -1,0 +1,177 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
+import type { Session } from '@supabase/supabase-js'
+import {
+  Activity, AppWindow, BadgeCheck, BarChart3, Bell, BookOpen, BriefcaseBusiness, Building2,
+  CalendarDays, ChevronRight, CircleDollarSign, ClipboardCheck, Code2, ContactRound, Copy,
+  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, Install, KeyRound,
+  LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, MonitorCog, Network, PackageCheck,
+  Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
+  UserCog, UserPlus, Users, Wrench
+} from 'lucide-react'
+import { supabase, supabaseConfigured } from './lib/supabase'
+
+type Section = 'overview'|'crm'|'support'|'engineering'|'people'|'operations'|'legal'|'admin'|'apps'|'workspace'
+type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'admin'
+type Workspace = { title:string; url:string; note?:string }
+type Profile = { full_name:string; email:string; role:Role; department:string; job_title:string }
+
+const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearrivo.com')
+  .toLowerCase().split(',').map((v:string)=>v.trim()).filter(Boolean)
+
+const applications = [
+  {name:'Rider Web', desc:'Customer booking, account and trip experience', url:'https://ridearrivo.com', audience:'Support & Operations'},
+  {name:'Driver Portal', desc:'Driver onboarding and driver-facing web experience', url:'https://ridearrivo.com/driver.html', audience:'Operations'},
+  {name:'Admin Console', desc:'Riders, drivers, trips, safety and operational controls', url:'https://admin.ridearrivo.com', audience:'Operations & Admin'},
+  {name:'Engineering Hub', desc:'Repositories, pull requests and release workflows', url:'https://github.com/Parasyte-cloud', audience:'Engineering'}
+]
+
+const crmRows = [
+  {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
+  {name:'Vista Hotels Lagos', type:'Corporate', status:'Opportunity', value:'₦2.4m', last:'Proposal sent · Today'},
+  {name:'Daniel Okafor', type:'Rider', status:'Follow-up', value:'₦96,000', last:'Support recovery · Yesterday'},
+  {name:'Northpoint Travel', type:'Partner', status:'Negotiation', value:'₦3.1m', last:'Corporate rate review · Today'},
+]
+
+const supportQueue = [
+  {id:'RA-20491', rider:'M. Chen', route:'LOS → Ikoyi', state:'Awaiting driver', priority:'High'},
+  {id:'RA-20488', rider:'T. Adeyemi', route:'VI → LOS', state:'Driver assigned', priority:'Normal'},
+  {id:'RA-20485', rider:'A. Johnson', route:'LOS → Lekki', state:'Flight delayed', priority:'Normal'},
+]
+
+const engineers = [
+  {name:'VS Code', purpose:'Primary source-code editor', mac:'brew install --cask visual-studio-code', windows:'winget install Microsoft.VisualStudioCode'},
+  {name:'Git + GitHub CLI', purpose:'Version control, PR and issue workflows', mac:'brew install git gh', windows:'winget install Git.Git; winget install GitHub.cli'},
+  {name:'Node.js LTS', purpose:'Web, backend and build tooling', mac:'brew install node', windows:'winget install OpenJS.NodeJS.LTS'},
+  {name:'Docker Desktop', purpose:'Containers and local services', mac:'brew install --cask docker', windows:'winget install Docker.DockerDesktop'},
+  {name:'Postman', purpose:'API testing and collections', mac:'brew install --cask postman', windows:'winget install Postman.Postman'},
+  {name:'Android Studio', purpose:'Android SDK, emulator and native debugging', mac:'brew install --cask android-studio', windows:'winget install Google.AndroidStudio'},
+  {name:'Expo / EAS', purpose:'Mobile builds, signing and releases', mac:'npm install -g eas-cli', windows:'npm install -g eas-cli'},
+]
+
+function App(){
+  const [session,setSession]=useState<Session|null>(null)
+  const [profile,setProfile]=useState<Profile>({full_name:'Workspace Preview',email:'preview@ridearrivo.com',role:'admin',department:'Administration',job_title:'Workspace Administrator'})
+  const [authReady,setAuthReady]=useState(!supabaseConfigured)
+  const [section,setSection]=useState<Section>('overview')
+  const [workspace,setWorkspace]=useState<Workspace|null>(null)
+  const [deferredPrompt,setDeferredPrompt]=useState<any>(null)
+  const [online,setOnline]=useState(navigator.onLine)
+
+  useEffect(()=>{
+    const before=(e:any)=>{e.preventDefault();setDeferredPrompt(e)}
+    const connectivity=()=>setOnline(navigator.onLine)
+    window.addEventListener('beforeinstallprompt',before)
+    window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
+    if(supabase){
+      supabase.auth.getSession().then(({data})=>{setSession(data.session);setAuthReady(true)})
+      const {data} = supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)})
+      return()=>{data.subscription.unsubscribe();window.removeEventListener('beforeinstallprompt',before);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity)}
+    }
+    return()=>{window.removeEventListener('beforeinstallprompt',before);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity)}
+  },[])
+
+  useEffect(()=>{
+    if(!supabase || !session?.user) return
+    supabase.from('employee_profiles').select('full_name,email,role,department,job_title').eq('id',session.user.id).maybeSingle().then(({data})=>{
+      if(data) setProfile(data as Profile)
+      else setProfile({full_name:session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Employee', email:session.user.email || '', role:'employee', department:'Unassigned', job_title:''})
+    })
+  },[session])
+
+  const nav = useMemo(()=>[
+    ['overview','Overview',Home],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+  ] as const,[])
+
+  const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
+  const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
+  const signOut=()=>supabase?.auth.signOut()
+
+  if(!authReady) return <div className="splash"><img src="/ridearrivo-mark.png"/><div className="spinner"/></div>
+  if(supabaseConfigured && !session) return <AuthGate/>
+
+  return <div className="appBackground"><div className="shell glassFrame">
+    <aside className="sidebar glassPanel">
+      <div className="brand"><img src="/ridearrivo-wordmark.png"/><span>Internal Workspace</span></div>
+      <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
+      <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
+    </aside>
+    <main>
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Install size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
+      <div className="content">
+        {section==='overview'&&<Overview setSection={setSection}/>} 
+        {section==='crm'&&<CRM/>}
+        {section==='support'&&<Support/>}
+        {section==='engineering'&&<Engineering openWorkspace={openWorkspace}/>} 
+        {section==='people'&&<People/>}
+        {section==='operations'&&<Operations/>}
+        {section==='legal'&&<Legal/>}
+        {section==='admin'&&<Admin/>}
+        {section==='apps'&&<Applications openWorkspace={openWorkspace}/>} 
+        {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
+      </div>
+    </main>
+  </div></div>
+}
+
+function AuthGate(){
+  const [mode,setMode]=useState<'signin'|'signup'>('signin')
+  const [email,setEmail]=useState('')
+  const [password,setPassword]=useState('')
+  const [name,setName]=useState('')
+  const [message,setMessage]=useState('')
+  const [busy,setBusy]=useState(false)
+  const validDomain=(value:string)=>allowedDomains.some(d=>value.trim().toLowerCase().endsWith(`@${d}`))
+  const submit=async(e:FormEvent)=>{
+    e.preventDefault();setMessage('')
+    if(!validDomain(email)){setMessage(`Use an authorised RideArrivo email (${allowedDomains.map(d=>'@'+d).join(', ')}).`);return}
+    if(!supabase) return
+    setBusy(true)
+    const result = mode==='signin'
+      ? await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password})
+      : await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{full_name:name}}})
+    setBusy(false)
+    if(result.error) setMessage(result.error.message)
+    else if(mode==='signup') setMessage('Account created. Check your RideArrivo email for the verification message.')
+  }
+  return <div className="authPage"><div className="authGlass">
+    <div className="authBrand"><img src="/ridearrivo-wordmark.png"/><span>Internal Workspace</span></div>
+    <div className="authCopy"><span className="eyebrow">SECURE EMPLOYEE ACCESS</span><h1>Run RideArrivo from one workspace.</h1><p>Support, CRM, engineering, people, operations, legal and administration, secured behind company identity.</p><div className="trustRow"><BadgeCheck/>RideArrivo email required</div></div>
+    <form onSubmit={submit}><div className="authTabs"><button type="button" className={mode==='signin'?'active':''} onClick={()=>setMode('signin')}>Sign in</button><button type="button" className={mode==='signup'?'active':''} onClick={()=>setMode('signup')}>Create account</button></div>{mode==='signup'&&<label>Full name<input value={name} onChange={e=>setName(e.target.value)} required/></label>}<label>RideArrivo email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder={`name@${allowedDomains[0]}`} required/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required/></label>{message&&<div className="authMessage">{message}</div>}<button className="primaryButton" disabled={busy}>{busy?'Please wait…':mode==='signin'?'Sign in securely':'Create employee account'}</button></form>
+  </div></div>
+}
+
+function Overview({setSection}:{setSection:(s:Section)=>void}){
+  const stats=[['Open bookings','24','Support queue',Headphones],['Active rides','8','Live operations',Route],['CRM pipeline','₦5.5m','Open opportunities',CircleDollarSign],['Open HR requests','3','People operations',Users]] as const
+  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions"><button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button><button className="glassButton" onClick={()=>setSection('crm')}>View CRM</button></div></div><img src="/ridearrivo-mark.png"/></section><div className="stats">{stats.map(([a,b,c,Icon])=><Metric key={a} icon={<Icon/>} label={a} value={b} hint={c}/>)}</div><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Each team gets the tools, queues and information needed for its work."/><div className="grid3"><Launch title="Support Station" text="Bookings, riders, drivers, live trips, safety and escalations." icon={<Headphones/>} onClick={()=>setSection('support')}/><Launch title="Engineering Station" text="Repos, deployments, mobile tooling, device bootstrap and APIs." icon={<Code2/>} onClick={()=>setSection('engineering')}/><Launch title="CRM" text="Leads, riders, corporate accounts, partners, opportunities and activity." icon={<ContactRound/>} onClick={()=>setSection('crm')}/></div></section></>
+}
+
+function CRM(){return <section><SectionTitle eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint." actions={<button className="primaryButton"><UserPlus size={16}/>New lead</button>}/><div className="stats"><Metric icon={<Users/>} label="Contacts" value="2,184" hint="Riders and stakeholders"/><Metric icon={<Building2/>} label="Corporate accounts" value="38" hint="Hotels, travel and companies"/><Metric icon={<CircleDollarSign/>} label="Open pipeline" value="₦5.5m" hint="14 opportunities"/><Metric icon={<CalendarDays/>} label="Follow-ups due" value="12" hint="Today"/></div><div className="glassCard tableCard"><div className="tableToolbar"><div><h3>Relationship pipeline</h3><p>Sales, partnership and recovery work in one queue.</p></div><button className="glassButton"><ListChecks size={16}/>Activities</button></div><div className="dataTable"><div className="tr th"><span>Name / Account</span><span>Type</span><span>Status</span><span>Value</span><span>Last activity</span></div>{crmRows.map(r=><div className="tr" key={r.name}><span><strong>{r.name}</strong></span><span>{r.type}</span><span><StatusPill value={r.status}/></span><span>{r.value}</span><span>{r.last}</span></div>)}</div></div><div className="grid3"><Feature icon={<TicketCheck/>} title="Customer 360" text="Bookings, support cases, notes, payments and communications tied to one profile."/><Feature icon={<CircleDollarSign/>} title="Corporate sales" text="Track hotel, corporate and travel-agent opportunities from lead to signed account."/><Feature icon={<Activity/>} title="Activity timeline" text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."/></div></section>}
+
+function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
+
+function Engineering({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){
+  const copy=(text:string)=>navigator.clipboard?.writeText(text)
+  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
+
+function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+
+function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch, driver readiness, fleet, airport pickup execution, incidents and operating performance."/><div className="grid3"><Feature icon={<Route/>} title="Dispatch Board" text="Unassigned bookings, driver matching, trip state and operational ownership."/><Feature icon={<BadgeCheck/>} title="Driver readiness" text="Verification, availability, documentation and compliance status."/><Feature icon={<PackageCheck/>} title="Fleet readiness" text="Vehicles, maintenance, papers, inspections and capacity."/><Feature icon={<Activity/>} title="Live operations" text="Active trips, location health, delayed flights and exceptions."/><Feature icon={<ShieldAlert/>} title="Incident management" text="Safety, service incidents, owners, severity and corrective actions."/><Feature icon={<BarChart3/>} title="Operations KPIs" text="Assignment time, completion, cancellation, utilisation and service quality."/></div></section>}
+
+function Legal(){return <section><SectionTitle eyebrow="LEGAL & COMPLIANCE" title="Legal workspace" subtitle="Contracts, policies, privacy, renewals, approvals and controlled corporate records."/><div className="grid3"><Feature icon={<Scale/>} title="Contract Register" text="Counterparties, owners, status, renewal dates and approved versions."/><Feature icon={<FileCheck2/>} title="Policy Library" text="Privacy, terms, refunds, employment and operating policies."/><Feature icon={<ShieldCheck/>} title="Compliance Register" text="Obligations, evidence, due dates, owners and status."/><Feature icon={<Users/>} title="Driver & owner agreements" text="Executed agreements tied to verified people and vehicles."/><Feature icon={<CalendarDays/>} title="Renewal calendar" text="Contracts, licences, insurance and statutory deadlines."/><Feature icon={<FileText/>} title="Legal requests" text="Review queue for contracts, incidents, claims and internal advice."/></div></section>}
+
+function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+
+function Applications({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){return <section><SectionTitle eyebrow="APP LAUNCHER" title="RideArrivo applications" subtitle="Applications stay inside the workspace. Where a third party blocks framing, replace the iframe with a native API integration rather than opening a new tab."/><div className="grid2">{applications.map(a=><div className="glassCard" key={a.name}><div className="cardHeader"><div className="iconBox"><AppWindow/></div><span className="pill">{a.audience}</span></div><h3>{a.name}</h3><p>{a.desc}</p><button className="primaryButton" onClick={()=>openWorkspace(a.name,a.url,'This application is kept inside the workspace shell. If the destination blocks framing with CSP/X-Frame-Options, build a native API view for it instead of forcing a new tab.')}><MonitorCog size={16}/>Open in workspace</button></div>)}</div></section>}
+
+function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads" referrerPolicy="strict-origin-when-cross-origin"/></section>}
+
+function SectionTitle({eyebrow,title,subtitle,actions}:{eyebrow:string;title:string;subtitle:string;actions?:ReactNode}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div>{actions}</div>}
+function Metric({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}
+function Feature({icon,title,text}:{icon:ReactNode;title:string;text:string}){return <div className="glassCard feature"><div className="iconBox">{icon}</div><h3>{title}</h3><p>{text}</p></div>}
+function Launch({title,text,icon,onClick}:{title:string;text:string;icon:ReactNode;onClick:()=>void}){return <button className="launch glassCard" onClick={onClick}><div className="iconBox">{icon}</div><div><strong>{title}</strong><p>{text}</p></div><ChevronRight/></button>}
+function StatusPill({value}:{value:string}){return <span className={`statusPill ${value.toLowerCase().replace(/\s+/g,'-')}`}>{value}</span>}
+function initials(name:string){return name.split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]?.toUpperCase()).join('') || 'RA'}
+
+export default App
