@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { BadgeCheck, CalendarDays, FileCheck2, Headphones, MessageCircle, Phone, Route, ShieldAlert, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DataWorkbench } from './BusinessModules'
+import SupportOperationsPanel from './SupportOperationsPanel'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -31,6 +32,8 @@ export function SupportModule(){
         title="Support Station"
         subtitle="Case intake, WhatsApp support, booking context, priority and resolution workflow."
       />
+
+      <SupportOperationsPanel />
 
       <div className="supportActions glassCard">
         <div>
@@ -126,4 +129,104 @@ export function LegalModule(){return <section><Title eyebrow="LEGAL & COMPLIANCE
 
 export function PeopleModule(){const [employees,setEmployees]=useState<Record<string,unknown>[]>([]),[leave,setLeave]=useState({leave_type:'Annual',start_date:'',end_date:'',reason:''}),[message,setMessage]=useState('');useEffect(()=>{if(!supabase)return;void supabase.from('employee_profiles').select('id,full_name,email,department,job_title,role').order('full_name').then(({data})=>setEmployees((data||[]) as Record<string,unknown>[]))},[]);const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})};return <section><Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee directory and secure employee self-service."/><div className="grid2"><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div></div></section>}
 
-export function AdminModule(){return <section><Title eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Application registry and security controls. Admin mutations are enforced by RLS."/><div className="grid2"><DataWorkbench table="workspace_apps" title="Application registry" description="Native, API and embedded workspace applications." createLabel="Register app" fields={[{key:'name',label:'Name',required:true},{key:'slug',label:'Slug',required:true},{key:'url',label:'URL'},{key:'mode',label:'Mode',type:'select',options:['native','embed','api','download'],required:true}]} columns={[{key:'name',label:'Application'},{key:'slug',label:'Slug'},{key:'mode',label:'Mode'},{key:'url',label:'URL'}]}/><div className="glassCard feature"><FileCheck2/><h3>Security posture</h3><p>Role access is enforced at Supabase RLS. Service-role keys must never be exposed in Vite or Cloudflare frontend variables.</p><div className="miniChecklist"><span><BadgeCheck size={15}/>RideArrivo-only email authentication</span><span><BadgeCheck size={15}/>RLS on business tables</span><span><BadgeCheck size={15}/>Anon table access revoked</span></div></div></div></section>}
+export function AdminModule(){
+  const adminUrl = 'https://admin.ridearrivo.com'
+
+  return (
+    <section>
+      <Title
+        eyebrow="ADMINISTRATION"
+        title="RideArrivo Admin"
+        subtitle="Operational admin console, workspace applications and security controls."
+      />
+
+      <div className="adminConsoleCard glassCard">
+        <div className="adminConsoleHeader">
+          <div>
+            <span className="eyebrow">OPERATIONS CONSOLE</span>
+            <h3>RideArrivo Admin Console</h3>
+            <p>
+              Manage riders, drivers, trips, bookings, safety and operational
+              controls from the RideArrivo Admin Console.
+            </p>
+          </div>
+
+          <button
+            className="primaryButton"
+            onClick={() => {
+              window.location.href = adminUrl
+            }}
+          >
+            Open Full Admin Console
+          </button>
+        </div>
+
+        <div className="adminConsoleFrameWrap">
+          <iframe
+            src={adminUrl}
+            title="RideArrivo Admin Console"
+            className="adminConsoleFrame"
+            allow="clipboard-read; clipboard-write"
+          />
+        </div>
+
+        <div className="adminConsoleHint">
+          If the console does not load inside this panel, the Admin Console
+          security policy is blocking iframe embedding. Use the full console
+          button above while we connect the Admin API natively.
+        </div>
+      </div>
+
+      <div className="grid2">
+        <DataWorkbench
+          table="workspace_apps"
+          title="Application registry"
+          description="Native, API and embedded workspace applications."
+          createLabel="Register app"
+          fields={[
+            {key:'name',label:'Name',required:true},
+            {key:'slug',label:'Slug',required:true},
+            {key:'url',label:'URL'},
+            {
+              key:'mode',
+              label:'Mode',
+              type:'select',
+              options:['native','embed','api','download'],
+              required:true
+            }
+          ]}
+          columns={[
+            {key:'name',label:'Application'},
+            {key:'slug',label:'Slug'},
+            {key:'mode',label:'Mode'},
+            {key:'url',label:'URL'}
+          ]}
+        />
+
+        <div className="glassCard feature">
+          <FileCheck2/>
+          <h3>Security posture</h3>
+          <p>
+            Role access is enforced at Supabase RLS. Service-role keys must
+            never be exposed in Vite or Cloudflare frontend variables.
+          </p>
+
+          <div className="miniChecklist">
+            <span>
+              <BadgeCheck size={15}/>
+              RideArrivo-only email authentication
+            </span>
+            <span>
+              <BadgeCheck size={15}/>
+              RLS on business tables
+            </span>
+            <span>
+              <BadgeCheck size={15}/>
+              Anon table access revoked
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

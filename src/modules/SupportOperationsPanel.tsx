@@ -1,0 +1,339 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
+  Car,
+  Headphones,
+  RefreshCw,
+  Search,
+  UserRound,
+  Users,
+} from 'lucide-react'
+import {
+  getRideArrivoSupportData,
+  type SupportResource,
+} from '../lib/ridearrivoSupport'
+
+type Tab = {
+  key: SupportResource
+  label: string
+}
+
+const tabs: Tab[] = [
+  { key: 'tickets', label: 'Support Queue' },
+  { key: 'rides', label: 'Bookings & Rides' },
+  { key: 'onTheGo', label: 'On the Go' },
+  { key: 'riders', label: 'Riders' },
+  { key: 'drivers', label: 'Drivers' },
+]
+
+function asArray(value: any): any[] {
+  if (Array.isArray(value)) return value
+
+  const candidates = [
+    value?.data,
+    value?.tickets,
+    value?.rides,
+    value?.riders,
+    value?.drivers,
+    value?.requests,
+    value?.items,
+    value?.results,
+  ]
+
+  for (const item of candidates) {
+    if (Array.isArray(item)) return item
+  }
+
+  return []
+}
+
+function firstValue(row: any, keys: string[]) {
+  for (const key of keys) {
+    const value = row?.[key]
+    if (value !== undefined && value !== null && value !== '') {
+      return value
+    }
+  }
+  return null
+}
+
+function titleFor(row: any, resource: SupportResource) {
+  if (resource === 'tickets') {
+    return (
+      firstValue(row, ['subject', 'title']) ||
+      `Support ticket #${firstValue(row, ['id']) ?? '—'}`
+    )
+  }
+
+  if (resource === 'rides' || resource === 'liveRides') {
+    return (
+      firstValue(row, [
+        'booking_reference',
+        'reference',
+        'ride_reference',
+      ]) ||
+      `Ride #${firstValue(row, ['id']) ?? '—'}`
+    )
+  }
+
+  if (resource === 'riders' || resource === 'drivers') {
+    return (
+      firstValue(row, ['name', 'full_name', 'email']) ||
+      `${resource === 'drivers' ? 'Driver' : 'Rider'} #${
+        firstValue(row, ['id']) ?? '—'
+      }`
+    )
+  }
+
+  return (
+    firstValue(row, ['reference', 'name', 'customer_name']) ||
+    `Request #${firstValue(row, ['id']) ?? '—'}`
+  )
+}
+
+function detailRows(row: any, resource: SupportResource) {
+  if (resource === 'tickets') {
+    return [
+      ['Type', firstValue(row, ['type', 'category'])],
+      ['Status', firstValue(row, ['status'])],
+      ['Rider', firstValue(row, ['rider_name', 'user_name', 'name'])],
+      ['Email', firstValue(row, ['rider_email', 'email'])],
+      ['Phone', firstValue(row, ['rider_phone', 'phone'])],
+      ['Booking', firstValue(row, ['booking_reference', 'ride_id'])],
+    ]
+  }
+
+  if (resource === 'rides' || resource === 'liveRides') {
+    return [
+      ['Status', firstValue(row, ['status', 'ride_status'])],
+      ['Rider', firstValue(row, ['rider_name', 'customer_name', 'name'])],
+      ['Driver', firstValue(row, ['driver_name'])],
+      ['Pickup', firstValue(row, ['pickup_address', 'pickup', 'origin'])],
+      ['Destination', firstValue(row, ['dropoff_address', 'destination', 'dropoff'])],
+      ['Payment', firstValue(row, ['payment_status', 'paid'])],
+    ]
+  }
+
+  if (resource === 'riders') {
+    return [
+      ['Email', firstValue(row, ['email'])],
+      ['Phone', firstValue(row, ['phone'])],
+      ['WhatsApp', firstValue(row, ['whatsapp_number', 'whatsapp'])],
+      ['Status', firstValue(row, ['status', 'verification_status'])],
+    ]
+  }
+
+  if (resource === 'drivers') {
+    return [
+      ['Email', firstValue(row, ['email'])],
+      ['Phone', firstValue(row, ['phone'])],
+      ['Status', firstValue(row, ['status'])],
+      ['Verified', firstValue(row, ['verified', 'is_verified'])],
+      ['Vehicle', firstValue(row, ['vehicle', 'vehicle_name', 'vehicle_model'])],
+    ]
+  }
+
+  return [
+    ['Status', firstValue(row, ['status'])],
+    ['Rider', firstValue(row, ['rider_name', 'customer_name', 'name'])],
+    ['Phone', firstValue(row, ['phone'])],
+    ['Pickup', firstValue(row, ['pickup', 'pickup_address'])],
+    ['Destination', firstValue(row, ['destination', 'dropoff_address'])],
+  ]
+}
+
+export default function SupportOperationsPanel() {
+  const [active, setActive] = useState<SupportResource>('tickets')
+  const [records, setRecords] = useState<any[]>([])
+  const [raw, setRaw] = useState<any>(null)
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  async function load(resource = active) {
+    setLoading(true)
+    setError('')
+
+    try {
+      const result = await getRideArrivoSupportData(resource)
+      setRaw(result)
+      setRecords(asArray(result))
+    } catch (err) {
+      setRaw(null)
+      setRecords([])
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load Support Operations.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load(active)
+  }, [active])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return records
+
+    return records.filter((row) =>
+      JSON.stringify(row).toLowerCase().includes(q)
+    )
+  }, [records, query])
+
+  return (
+    <div className="supportOps">
+      <div className="supportOpsHeader glassCard">
+        <div>
+          <span className="eyebrow">LIVE OPERATIONS</span>
+          <h3>RideArrivo Support Operations</h3>
+          <p>
+            Read-only access to customer support, bookings, riders and drivers
+            from the RideArrivo operational backend.
+          </p>
+        </div>
+
+        <button
+          className="glassButton"
+          onClick={() => load()}
+          disabled={loading}
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
+      </div>
+
+      <div className="supportMetrics">
+        <div className="glassCard supportMetric">
+          <Headphones size={18} />
+          <span>Current view</span>
+          <strong>{records.length}</strong>
+        </div>
+
+        <div className="glassCard supportMetric">
+          <Car size={18} />
+          <span>Access</span>
+          <strong>Read only</strong>
+        </div>
+
+        <div className="glassCard supportMetric">
+          <Users size={18} />
+          <span>Source</span>
+          <strong>Live backend</strong>
+        </div>
+      </div>
+
+      <div className="supportOpsToolbar glassCard">
+        <div className="supportTabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={active === tab.key ? 'supportTab active' : 'supportTab'}
+              onClick={() => setActive(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="supportSearch">
+          <Search size={16} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search reference, rider, phone, driver..."
+          />
+        </label>
+      </div>
+
+      {error && (
+        <div className="glassCard supportOpsError">
+          <AlertCircle size={18} />
+          <div>
+            <strong>Unable to load live Support data</strong>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+
+      {!error && loading && (
+        <div className="glassCard supportOpsState">
+          Loading RideArrivo operations…
+        </div>
+      )}
+
+      {!error && !loading && filtered.length === 0 && (
+        <div className="glassCard supportOpsState">
+          <UserRound size={22} />
+          <strong>No records found</strong>
+          <span>
+            {records.length === 0
+              ? 'The backend returned no records for this view.'
+              : 'Try another search.'}
+          </span>
+
+          {records.length === 0 && raw && (
+            <small>Connection succeeded.</small>
+          )}
+        </div>
+      )}
+
+      {!error && !loading && filtered.length > 0 && (
+        <div className="supportOpsList">
+          {filtered.map((row, index) => (
+            <article
+              className="glassCard supportRecord"
+              key={String(row?.id ?? row?.reference ?? index)}
+            >
+              <div className="supportRecordHeader">
+                <div>
+                  <span className="eyebrow">
+                    {active === 'tickets'
+                      ? 'SUPPORT'
+                      : active === 'rides'
+                        ? 'BOOKING'
+                        : active.toUpperCase()}
+                  </span>
+                  <h4>{titleFor(row, active)}</h4>
+                </div>
+
+                {firstValue(row, ['status']) && (
+                  <span className="supportStatus">
+                    {String(firstValue(row, ['status']))}
+                  </span>
+                )}
+              </div>
+
+              <div className="supportRecordGrid">
+                {detailRows(row, active)
+                  .filter(([, value]) => value !== null)
+                  .map(([label, value]) => (
+                    <div key={String(label)}>
+                      <span>{label}</span>
+                      <strong>
+                        {typeof value === 'boolean'
+                          ? value
+                            ? 'Yes'
+                            : 'No'
+                          : String(value)}
+                      </strong>
+                    </div>
+                  ))}
+              </div>
+
+              {active === 'tickets' &&
+                firstValue(row, ['description', 'message']) && (
+                  <p className="supportRecordMessage">
+                    {String(firstValue(row, ['description', 'message']))}
+                  </p>
+                )}
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

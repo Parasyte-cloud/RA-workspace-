@@ -954,3 +954,251 @@
 .bankingApiNote{display:flex;align-items:flex-start;gap:12px;padding:17px;margin-top:16px}
 .bankingApiNote p{margin:4px 0 0;color:#6a7787;line-height:1.5}
 @media(max-width:800px){.bankingHero,.bankingToolbar{flex-direction:column;align-items:stretch}.bankingHeroActions,.bankingToolbar .buttonRow{width:100%}.bankingHeroActions>*{flex:1;justify-content:center}.bankingSearch{width:100%;min-width:0}}
+
+.adminConsoleCard{
+  margin-bottom:18px;
+  padding:20px;
+}
+
+.adminConsoleHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:16px;
+}
+
+.adminConsoleHeader h3{
+  margin:7px 0 7px;
+}
+
+.adminConsoleHeader p{
+  margin:0;
+  color:#687689;
+  line-height:1.55;
+}
+
+.adminConsoleFrameWrap{
+  width:100%;
+  min-height:700px;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid rgba(7,26,56,.08);
+}
+
+.adminConsoleFrame{
+  display:block;
+  width:100%;
+  height:700px;
+  border:0;
+  background:#fff;
+}
+
+.adminConsoleHint{
+  margin-top:12px;
+  color:#7a8796;
+  font-size:12px;
+  line-height:1.5;
+}
+
+@media(max-width:760px){
+  .adminConsoleHeader{
+    flex-direction:column;
+  }
+
+  .adminConsoleHeader .primaryButton{
+    width:100%;
+    justify-content:center;
+  }
+
+  .adminConsoleFrameWrap,
+  .adminConsoleFrame{
+    min-height:600px;
+    height:600px;
+  }
+}
+
+/* RideArrivo Support Operations */
+
+.supportOps {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.supportOpsHeader,
+.supportOpsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+}
+
+.supportOpsHeader h3 {
+  margin: 5px 0 6px;
+}
+
+.supportOpsHeader p {
+  margin: 0;
+  opacity: .72;
+  max-width: 760px;
+}
+
+.supportMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.supportMetric {
+  padding: 17px;
+  display: grid;
+  gap: 7px;
+}
+
+.supportMetric span {
+  font-size: .78rem;
+  opacity: .65;
+}
+
+.supportMetric strong {
+  font-size: 1.05rem;
+}
+
+.supportTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supportTab {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 13px;
+  cursor: pointer;
+  background: rgba(255,255,255,.06);
+  color: inherit;
+}
+
+.supportTab.active {
+  background: rgba(255,176,0,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,176,0,.28);
+}
+
+.supportSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 280px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.05);
+}
+
+.supportSearch input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.supportOpsList {
+  display: grid;
+  gap: 12px;
+}
+
+.supportRecord {
+  padding: 18px;
+}
+
+.supportRecordHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.supportRecordHeader h4 {
+  margin: 5px 0 0;
+}
+
+.supportStatus {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: .75rem;
+  background: rgba(255,255,255,.07);
+}
+
+.supportRecordGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.supportRecordGrid div {
+  display: grid;
+  gap: 4px;
+}
+
+.supportRecordGrid span {
+  font-size: .72rem;
+  opacity: .58;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.supportRecordGrid strong {
+  overflow-wrap: anywhere;
+}
+
+.supportRecordMessage {
+  margin: 16px 0 0;
+  line-height: 1.55;
+  opacity: .82;
+}
+
+.supportOpsState,
+.supportOpsError {
+  padding: 22px;
+}
+
+.supportOpsState {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.supportOpsError {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.supportOpsError p {
+  margin: 5px 0 0;
+}
+
+@media (max-width: 800px) {
+  .supportOpsHeader,
+  .supportOpsToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .supportMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .supportSearch {
+    min-width: 0;
+  }
+
+  .supportRecordGrid {
+    grid-template-columns: 1fr;
+  }
+}
