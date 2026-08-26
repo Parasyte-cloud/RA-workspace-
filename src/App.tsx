@@ -132,6 +132,17 @@ function TransparentRideArrivoLogo({className=''}:{className?:string}){
   />
 }
 
+
+function BrandLogo({className=''}:{className?:string}){
+  return (
+    <img
+      src="/ridearrivo-wordmark-transparent.png"
+      alt="RideArrivo"
+      className={`brandLogo ${className}`}
+    />
+  )
+}
+
 function App(){
   const [session,setSession]=useState<Session|null>(null)
   const [profile,setProfile]=useState<Profile>({full_name:'',email:'',role:'employee',department:'',job_title:''})
@@ -241,7 +252,7 @@ function SetupRequired(){
 
 function AuthGate(){
   const [mode,setMode]=useState<'signin'|'signup'>('signin')
-  const [step,setStep]=useState<'form'|'verify'>('form')
+  const [step,setStep]=useState<'auth'|'verify'>('auth')
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
   const [name,setName]=useState('')
@@ -249,41 +260,40 @@ function AuthGate(){
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
 
+  const cleanEmail=email.trim().toLowerCase()
+
   const validDomain=(value:string)=>
-    allowedDomains.some((d:string)=>
-      value.trim().toLowerCase().endsWith(`@${d}`)
-    )
+    allowedDomains.some((d:string)=>value.endsWith(`@${d}`))
 
   const submit=async(e:FormEvent)=>{
     e.preventDefault()
     setMessage('')
 
-    const cleanEmail=email.trim().toLowerCase()
-
-    if(!validDomain(cleanEmail)){
-      setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d:string)=>'@'+d).join(', ')}).`)
+    if(!supabase){
+      setMessage('Authentication service is unavailable.')
       return
     }
 
-    if(!supabase) return
+    if(!validDomain(cleanEmail)){
+      setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d:string)=>`@${d}`).join(', ')}).`)
+      return
+    }
 
     setBusy(true)
 
     if(mode==='signin'){
-      const result=await supabase.auth.signInWithPassword({
+      const {error}=await supabase.auth.signInWithPassword({
         email:cleanEmail,
         password
       })
 
       setBusy(false)
 
-      if(result.error){
-        setMessage(result.error.message)
-      }
+      if(error) setMessage(error.message)
       return
     }
 
-    const result=await supabase.auth.signUp({
+    const {data,error}=await supabase.auth.signUp({
       email:cleanEmail,
       password,
       options:{
@@ -293,95 +303,126 @@ function AuthGate(){
 
     setBusy(false)
 
-    if(result.error){
-      setMessage(result.error.message)
+    if(error){
+      setMessage(error.message)
       return
     }
 
+    if(data.session){
+      return
+    }
+
+    setCode('')
     setStep('verify')
   }
 
-  const verifyCode=async(e:FormEvent)=>{
+  const verify=async(e:FormEvent)=>{
     e.preventDefault()
     setMessage('')
 
     if(!supabase) return
 
-    if(code.trim().length<6){
-      setMessage('Enter the verification code sent to your RideArrivo email.')
+    if(code.trim().length!==6){
+      setMessage('Enter the 6-digit verification code.')
       return
     }
 
     setBusy(true)
 
-    const result=await supabase.auth.verifyOtp({
-      email:email.trim().toLowerCase(),
+    const {error}=await supabase.auth.verifyOtp({
+      email:cleanEmail,
       token:code.trim(),
-      type:'signup'
+      type:'email'
     })
 
     setBusy(false)
 
-    if(result.error){
-      setMessage(result.error.message)
-      return
+    if(error){
+      setMessage(error.message)
     }
+  }
+
+  const resend=async()=>{
+    if(!supabase) return
+
+    setMessage('')
+    setBusy(true)
+
+    const {error}=await supabase.auth.resend({
+      type:'signup',
+      email:cleanEmail
+    })
+
+    setBusy(false)
+
+    setMessage(
+      error
+        ? error.message
+        : 'A new verification code has been sent.'
+    )
   }
 
   if(step==='verify'){
     return <div className="authPage">
-      <div className="authGlass verifyLayout">
-        <div className="authBrand">
-          <TransparentRideArrivoLogo className="authLogo"/>
-          <span>Internal Workspace</span>
-        </div>
+      <div className="verifyCard glassPanel">
+        <BrandLogo className="verifyLogo"/>
 
-        <div className="verifyPanel">
-          <span className="eyebrow">EMAIL VERIFICATION</span>
-          <h1>Verify your RideArrivo email.</h1>
-          <p>
-            We sent a verification code to
-            <strong> {email.trim().toLowerCase()}</strong>.
-          </p>
+        <span className="eyebrow">VERIFY EMPLOYEE EMAIL</span>
 
-          <form onSubmit={verifyCode}>
-            <label>
-              Verification code
-              <input
-                value={code}
-                onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,8))}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="Enter code"
-              />
-            </label>
+        <h1>Check your RideArrivo inbox</h1>
 
-            {message&&<div className="authMessage">{message}</div>}
+        <p>
+          Enter the 6-digit verification code sent to
+          <strong> {cleanEmail}</strong>.
+        </p>
 
-            <button className="primaryButton" disabled={busy}>
-              {busy?'Verifying...':'Verify email'}
+        <form onSubmit={verify}>
+          <label>
+            Verification code
+            <input
+              className="otpInput"
+              value={code}
+              onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              autoFocus
+            />
+          </label>
+
+          {message&&<div className="authMessage">{message}</div>}
+
+          <button className="primaryButton" disabled={busy}>
+            {busy?'Verifying...':'Verify and continue'}
+          </button>
+
+          <div className="verifyActions">
+            <button type="button" className="textButton" onClick={resend} disabled={busy}>
+              Resend code
             </button>
 
             <button
               type="button"
               className="textButton"
               onClick={()=>{
-                setStep('form')
+                setStep('auth')
+                setMode('signin')
                 setMessage('')
               }}
             >
               Back to sign in
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   }
 
   return <div className="authPage">
     <div className="authGlass">
+
       <div className="authBrand">
-        <TransparentRideArrivoLogo className="authLogo"/>
+        <BrandLogo className="authLogo"/>
         <span>Internal Workspace</span>
       </div>
 
@@ -392,6 +433,7 @@ function AuthGate(){
           Support, CRM, engineering, people, operations, legal and administration,
           secured behind company identity.
         </p>
+
         <div className="trustRow">
           <BadgeCheck size={20}/>
           <strong>RideArrivo email required</strong>
@@ -423,8 +465,8 @@ function AuthGate(){
             <input
               value={name}
               onChange={e=>setName(e.target.value)}
-              required
               autoComplete="name"
+              required
             />
           </label>
         }
@@ -435,8 +477,8 @@ function AuthGate(){
             type="email"
             value={email}
             onChange={e=>setEmail(e.target.value)}
-            required
             autoComplete="email"
+            required
           />
         </label>
 
@@ -446,9 +488,9 @@ function AuthGate(){
             type="password"
             value={password}
             onChange={e=>setPassword(e.target.value)}
-            required
-            minLength={8}
             autoComplete={mode==='signin'?'current-password':'new-password'}
+            minLength={8}
+            required
           />
         </label>
 
