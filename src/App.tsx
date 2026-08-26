@@ -5,7 +5,7 @@ import {
   Activity, AppWindow, BadgeCheck, BarChart3, Bell, BookOpen, BriefcaseBusiness, Building2,
   CalendarDays, ChevronRight, CircleDollarSign, ClipboardCheck, Code2, ContactRound, Copy,
   Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, KeyRound,
-  LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, MonitorCog, Network, PackageCheck,
+  LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, Mail, MonitorCog, Network, PackageCheck,
   Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
   UserCog, UserPlus, Users, Wrench
 } from 'lucide-react'
@@ -13,8 +13,9 @@ import { supabase, supabaseConfigured } from './lib/supabase'
 import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/BusinessModules'
 import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
 import { SocialModule } from './modules/SocialModule'
+import { MailModule } from './modules/MailModule'
 
-type Section = 'overview'|'social'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+type Section = 'overview'|'social'|'mail'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = { full_name:string; email:string; role:Role; department:string; job_title:string }
@@ -24,6 +25,7 @@ const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearriv
 
 const sectionAccess:Partial<Record<Section,Role[]>>={
   social:['employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'],
+  mail:['employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'],
   crm:['support','operations','marketing','partnerships','manager','admin'],
   support:['support','operations','manager','admin'],
   engineering:['engineer','manager','admin'],
@@ -129,7 +131,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['social','Pulse',Bell],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['social','Pulse',Bell],['mail','Mail',Mail],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -152,6 +154,7 @@ function App(){
       <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
       <div className="content">
         {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>} 
+        {section==='mail'&&<MailModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
         {section==='support'&&<SupportModule/>}
