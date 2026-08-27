@@ -3795,3 +3795,9 @@ textarea {
     flex-direction: column;
   }
 }
+
+.mailFolderLoading {
+  padding: 14px;
+  color: #7a8796;
+  font-size: 13px;
+}

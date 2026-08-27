@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  Archive,
   ArrowLeft,
   CheckCircle2,
   Inbox,
@@ -10,8 +11,10 @@ import {
   Reply,
   Search,
   Send,
+  ShieldAlert,
   Star,
   Bell,
+  Trash2,
   Settings,
   X
 } from 'lucide-react'
@@ -35,6 +38,14 @@ type MailContent = MailMessage & {
   content?:string
 }
 
+type MailFolder = {
+  folderId:string
+  name:string
+  type:string
+  unreadCount:number
+  messageCount:number
+}
+
 export function MailModule(){
   const [connected,setConnected]=
     useState<boolean|null>(null)
@@ -49,6 +60,15 @@ export function MailModule(){
   const [sending,setSending]=useState(false)
   const [message,setMessage]=useState('')
   const [search,setSearch]=useState('')
+
+  const [folders,setFolders]=
+    useState<MailFolder[]>([])
+
+  const [activeFolder,setActiveFolder]=
+    useState<MailFolder|null>(null)
+
+  const [folderLoading,setFolderLoading]=
+    useState(false)
 
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
@@ -134,6 +154,86 @@ export function MailModule(){
         error?.message ||
         'Unable to check Zoho Mail connection.'
       )
+    }
+  }
+
+  const loadFolders=async()=>{
+    try{
+      const data=
+        await invoke('zoho-mail-folders')
+
+      const rows:MailFolder[] =
+        Array.isArray(data?.folders)
+          ? data.folders
+          : []
+
+      setFolders(rows)
+
+      const inbox=
+        rows.find(folder =>
+          folder.name
+            .trim()
+            .toLowerCase()==='inbox'
+        ) || null
+
+      if(
+        inbox &&
+        !activeFolder
+      ){
+        setActiveFolder(inbox)
+      }
+
+    }catch(error:any){
+      setMessage(
+        error?.message ||
+        'Unable to load mail folders.'
+      )
+    }
+  }
+
+  const loadFolder=async(
+    folder:MailFolder
+  )=>{
+    if(folderLoading) return
+
+    setFolderLoading(true)
+    setMessage('')
+    setSelected(null)
+    setActiveFolder(folder)
+
+    try{
+      const data=
+        await invoke(
+          'zoho-mail-folder-messages',
+          {
+            folderId:folder.folderId
+          }
+        )
+
+      const raw=
+        Array.isArray(data?.messages)
+          ? data.messages
+          : []
+
+      setMessages(
+        raw.map((item:any)=>({
+          ...item,
+          folderId:
+            item?.folderId ||
+            folder.folderId
+        }))
+      )
+
+    }catch(error:any){
+      setMessages([])
+
+      setMessage(
+        error?.message ||
+        `Unable to load ${folder.name}.`
+      )
+
+    }finally{
+      setFolderLoading(false)
     }
   }
 
@@ -381,7 +481,9 @@ export function MailModule(){
             <span className="eyebrow">
               RIDEARRIVO MAIL
             </span>
-            <h2>Company Mail</h2>
+            <h2>
+            {activeFolder?.name || 'Company Mail'}
+          </h2>
             <p>
               Secure access to your RideArrivo
               Zoho mailbox.
@@ -472,7 +574,15 @@ export function MailModule(){
         <div className="buttonRow">
           <button
             className="glassButton"
-            onClick={()=>void loadInbox()}
+            onClick={()=>{
+              if(activeFolder){
+                void loadFolder(activeFolder)
+              }else{
+                void loadInbox()
+              }
+
+              void loadFolders()
+            }}
             disabled={loading}
           >
             <RefreshCw size={16}/>
@@ -503,33 +613,76 @@ export function MailModule(){
             <span>MAILBOX</span>
           </div>
 
-          <button className="active">
-            <Inbox size={18}/>
-            <strong>Inbox</strong>
-            <span>{messages.length}</span>
-          </button>
+          {folders.length===0 ? (
+            <div className="mailFolderLoading">
+              {folderLoading
+                ? 'Loading folders…'
+                : 'Inbox'
+              }
+            </div>
+          ) : (
+            folders.map(folder=>{
+
+              const name=
+                folder.name.toLowerCase()
+
+              const Icon=
+                name.includes('inbox')
+                  ? Inbox
+                  : name.includes('sent')
+                    ? Send
+                    : name.includes('draft')
+                      ? PenSquare
+                      : name.includes('spam') ||
+                        name.includes('junk')
+                        ? ShieldAlert
+                        : name.includes('trash') ||
+                          name.includes('deleted')
+                          ? Trash2
+                          : name.includes('archive')
+                            ? Archive
+                            : Mail
+
+              return (
+                <button
+                  key={folder.folderId}
+                  className={
+                    activeFolder?.folderId===
+                    folder.folderId
+                      ? 'active'
+                      : ''
+                  }
+                  onClick={()=>
+                    void loadFolder(folder)
+                  }
+                  disabled={folderLoading}
+                >
+                  <Icon size={18}/>
+
+                  <strong>
+                    {folder.name}
+                  </strong>
+
+                  {(folder.unreadCount > 0 ||
+                    folder.messageCount > 0) &&
+                    <span>
+                      {folder.unreadCount > 0
+                        ? folder.unreadCount
+                        : folder.messageCount
+                      }
+                    </span>
+                  }
+                </button>
+              )
+            })
+          )}
+
+          <div className="mailFolderDivider"/>
 
           <button disabled>
             <Star size={18}/>
             <span>Starred</span>
           </button>
-
-          <button disabled>
-            <Send size={18}/>
-            <span>Sent</span>
-          </button>
-
-          <button disabled>
-            <PenSquare size={18}/>
-            <span>Drafts</span>
-          </button>
-
-          <button disabled>
-            <Bell size={18}/>
-            <span>Notifications</span>
-          </button>
-
-          <div className="mailFolderDivider"/>
 
           <button disabled>
             <Settings size={18}/>

@@ -48,18 +48,39 @@ serve(async (req) => {
         }
       )
 
-    const data =
-      await response.json()
+    const raw =
+      await response.text()
+
+    let data:any = {}
+
+    try {
+      data = raw
+        ? JSON.parse(raw)
+        : {}
+    } catch {
+      return jsonResponse(
+        {
+          error:
+            "Zoho returned an invalid folder response.",
+        },
+        502
+      )
+    }
 
     if (!response.ok) {
       console.error(
-        "Unable to load Zoho folders",
-        data
+        "Zoho folders failed",
+        {
+          status: response.status,
+          data,
+        }
       )
 
       return jsonResponse(
         {
           error:
+            data?.data?.errorCode ||
+            data?.status?.description ||
             "Unable to load mailbox folders.",
         },
         response.status
@@ -68,38 +89,42 @@ serve(async (req) => {
 
     const folders =
       Array.isArray(data?.data)
-        ? data.data.map((folder:any)=>({
+        ? data.data.map((folder:any) => ({
             folderId:
               String(folder.folderId || ''),
-            folderName:
+
+            name:
               String(
                 folder.folderDisplayName ||
                 folder.folderName ||
                 'Folder'
               ),
-            folderType:
+
+            type:
               String(
                 folder.folderType ||
                 folder.folderName ||
                 ''
               ).toLowerCase(),
+
             unreadCount:
               Number(
-                folder.unreadCount ||
-                folder.unreadMessageCount ||
+                folder.unreadCount ??
+                folder.unreadMessageCount ??
                 0
               ),
+
             messageCount:
               Number(
-                folder.messageCount ||
-                folder.totalMessageCount ||
+                folder.messageCount ??
+                folder.totalMessageCount ??
                 0
               ),
           }))
         : []
 
     return jsonResponse({
-      success:true,
+      success: true,
       folders,
     })
   } catch (error) {

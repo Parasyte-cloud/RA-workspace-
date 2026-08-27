@@ -20,11 +20,16 @@ serve(async (req) => {
       await req.json().catch(() => ({}))
 
     const folderId =
-      String(payload?.folderId || '').trim()
+      String(
+        payload?.folderId || ''
+      ).trim()
 
     if (!folderId) {
       return jsonResponse(
-        { error: "folderId is required." },
+        {
+          error:
+            "folderId is required.",
+        },
         400
       )
     }
@@ -38,7 +43,7 @@ serve(async (req) => {
         user.id
       )
 
-    const token =
+    const accessToken =
       await getZohoAccessToken(connection)
 
     const apiBase =
@@ -47,35 +52,56 @@ serve(async (req) => {
         "https://mail.zoho.com/api"
       ).replace(/\/$/, "")
 
-    const url =
-      `${apiBase}/accounts/` +
-      `${encodeURIComponent(
-        connection.zoho_account_id
-      )}/messages/view?folderId=` +
-      `${encodeURIComponent(folderId)}` +
-      `&limit=50`
-
     const response =
-      await fetch(url, {
-        headers: {
-          Authorization:
-            `Zoho-oauthtoken ${token}`,
-          Accept: "application/json",
-        },
-      })
+      await fetch(
+        `${apiBase}/accounts/${encodeURIComponent(
+          connection.zoho_account_id
+        )}/messages/view?folderId=${encodeURIComponent(
+          folderId
+        )}&limit=50`,
+        {
+          headers: {
+            Authorization:
+              `Zoho-oauthtoken ${accessToken}`,
+            Accept: "application/json",
+          },
+        }
+      )
 
-    const data =
-      await response.json()
+    const raw =
+      await response.text()
+
+    let data:any = {}
+
+    try {
+      data = raw
+        ? JSON.parse(raw)
+        : {}
+    } catch {
+      return jsonResponse(
+        {
+          error:
+            "Zoho returned an invalid message-list response.",
+        },
+        502
+      )
+    }
 
     if (!response.ok) {
       console.error(
-        "Folder messages failed",
-        data
+        "Zoho folder messages failed",
+        {
+          status: response.status,
+          folderId,
+          data,
+        }
       )
 
       return jsonResponse(
         {
           error:
+            data?.data?.errorCode ||
+            data?.status?.description ||
             "Unable to load this mail folder.",
         },
         response.status
@@ -83,7 +109,7 @@ serve(async (req) => {
     }
 
     return jsonResponse({
-      success:true,
+      success: true,
       folderId,
       messages:
         Array.isArray(data?.data)
@@ -91,12 +117,17 @@ serve(async (req) => {
           : [],
     })
   } catch (error) {
+    console.error(
+      "zoho-mail-folder-messages failure",
+      error
+    )
+
     return jsonResponse(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load folder.",
+            : "Unable to load mail folder.",
       },
       500
     )
