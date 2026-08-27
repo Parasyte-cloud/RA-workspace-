@@ -1,0 +1,893 @@
+/* =========================================================
+   RIDEARRIVO WORKSPACE
+   AUTHORITATIVE RESPONSIVE / PWA SHELL
+   Keep this file imported AFTER styles.css.
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   GLOBAL BOX MODEL
+   --------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  overflow: hidden;
+
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  overflow: hidden;
+}
+
+
+/* ---------------------------------------------------------
+   MEDIA / FORM ELEMENT SAFETY
+   --------------------------------------------------------- */
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+
+/* =========================================================
+   APPLICATION VIEWPORT
+   ========================================================= */
+
+.appBackground {
+  width: 100%;
+  max-width: 100%;
+
+  height: 100vh;
+  height: 100dvh;
+
+  min-height: 0;
+
+  margin: 0;
+
+  overflow: hidden;
+
+  display: flex;
+}
+
+
+/* =========================================================
+   WORKSPACE FRAME
+   ========================================================= */
+
+.shell,
+.glassFrame {
+  flex: 1 1 auto;
+
+  width: 100%;
+  max-width: 100%;
+
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+
+  margin: 0;
+
+  overflow: hidden;
+}
+
+
+/*
+ * Main desktop application layout.
+ *
+ * Column 1 = sidebar
+ * Column 2 = application body
+ */
+.shell {
+  display: grid;
+
+  grid-template-columns:
+    clamp(220px, 17vw, 260px)
+    minmax(0, 1fr);
+
+  grid-template-rows: minmax(0, 1fr);
+
+  align-items: stretch;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar {
+  position: relative;
+
+  width: 100%;
+  max-width: 100%;
+
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+
+  align-self: stretch;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+}
+
+
+/*
+ * Prevent long labels from widening the application.
+ */
+.sidebar nav,
+.sidebar nav button {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sidebar nav button {
+  flex-shrink: 0;
+}
+
+.sidebar nav button span {
+  min-width: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/*
+ * Push online/department indicator to bottom when space exists.
+ */
+.sidebarFooter {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MAIN APPLICATION COLUMN
+   ========================================================= */
+
+.shell > main,
+main {
+  width: 100%;
+  max-width: 100%;
+
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-rows:
+    auto
+    minmax(0, 1fr);
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
+.topbar {
+  position: relative;
+  z-index: 20;
+
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+
+  flex-shrink: 0;
+
+  overflow: visible;
+}
+
+.topbar > div,
+.headerActions {
+  min-width: 0;
+}
+
+.topbar > div:first-child {
+  flex: 1 1 auto;
+}
+
+.headerActions {
+  flex: 0 1 auto;
+}
+
+.topbar h1,
+.topbar p {
+  max-width: 100%;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   CONTENT SCROLLER
+   This is intentionally the primary scrolling region.
+   ========================================================= */
+
+.content {
+  width: 100%;
+  max-width: 100%;
+
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/*
+ * Do not allow any module to expand the main grid column.
+ */
+.content > *,
+.content section,
+.content article,
+.content div {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.hero,
+.glassHero {
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+
+  overflow: hidden;
+}
+
+.hero > div {
+  min-width: 0;
+}
+
+.hero h1,
+.hero h2,
+.hero h3,
+.hero p {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.hero img {
+  max-width: min(260px, 28%);
+  height: auto;
+
+  object-fit: contain;
+
+  flex-shrink: 1;
+}
+
+
+/* =========================================================
+   GRID HARDENING
+   ========================================================= */
+
+.stats,
+.grid2,
+.grid3,
+.appGrid,
+.appFeatured,
+.phase2Grid,
+.toolGrid,
+.quickFormGrid {
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+}
+
+.stats > *,
+.grid2 > *,
+.grid3 > *,
+.appGrid > *,
+.appFeatured > *,
+.phase2Grid > *,
+.toolGrid > *,
+.quickFormGrid > * {
+  min-width: 0;
+}
+
+
+/* Full desktop */
+
+.stats {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+.grid3 {
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+}
+
+.grid2 {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+
+/* =========================================================
+   CARD HARDENING
+   ========================================================= */
+
+.glassCard,
+.metric,
+.launch,
+.feature,
+.appCard,
+.phase2Record,
+.workbench,
+.tableCard,
+.adminConsoleCard {
+  width: auto;
+  max-width: 100%;
+
+  min-width: 0;
+
+  overflow-wrap: break-word;
+}
+
+.metric > *,
+.launch > *,
+.feature > *,
+.appCard > *,
+.phase2Record > * {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   TABLES
+   Tables scroll internally instead of widening the PWA.
+   ========================================================= */
+
+.tableCard,
+.moduleTableWrap {
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+
+  overflow-x: auto;
+}
+
+.dataTable,
+.moduleTable {
+  width: 100%;
+}
+
+
+/* =========================================================
+   MAIL
+   ========================================================= */
+
+.mailLayout,
+.mailWorkspace,
+.mailShell {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mailList,
+.mailReader {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   APPLICATION HUB
+   ========================================================= */
+
+.applicationsHub,
+.appHubToolbar,
+.appHubSearch {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.appHubSearch input {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   PHASE 2 MODULES
+   ========================================================= */
+
+.phase2Module,
+.phase2Header,
+.phase2Search,
+.phase2Record,
+.companyFilesNotice,
+.knowledgeArticle {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.phase2Search input {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   EMBEDDED WORKSPACE
+   ========================================================= */
+
+.workspace {
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+
+  overflow: hidden;
+}
+
+.workspace iframe {
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
+
+  height: clamp(480px, 72dvh, 900px);
+
+  border: 0;
+}
+
+
+/* =========================================================
+   LARGE / MEDIUM DESKTOP
+   ========================================================= */
+
+@media (max-width: 1280px) {
+
+  .shell {
+    grid-template-columns:
+      220px
+      minmax(0, 1fr);
+  }
+
+  .stats {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .grid3,
+  .appGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================================================
+   SMALL DESKTOP / SMALL PWA WINDOW
+   Icon sidebar.
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+  .shell {
+    grid-template-columns:
+      74px
+      minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .sidebar .brand {
+    justify-content: center;
+  }
+
+  .sidebar .brand span,
+  .sidebar nav button span,
+  .sidebarFooter small {
+    display: none;
+  }
+
+  .sidebar nav button {
+    justify-content: center;
+  }
+
+  .sidebar nav button svg {
+    flex: 0 0 auto;
+  }
+
+  .profileButton span {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero img {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 820px) {
+
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .topbar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .grid2,
+  .grid3,
+  .appGrid,
+  .phase2Grid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .stats {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .sectionTitle {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* =========================================================
+   PHONE / VERY NARROW APP WINDOW
+   Sidebar becomes top application navigation.
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  html,
+  body,
+  #root,
+  .appBackground {
+    overflow: hidden;
+  }
+
+  .shell {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr);
+
+    grid-template-rows:
+      auto
+      minmax(0, 1fr);
+  }
+
+  .sidebar {
+    width: 100%;
+
+    height: auto;
+    min-height: 0;
+
+    overflow: hidden;
+
+    padding: 8px 10px;
+  }
+
+  .sidebar .brand {
+    justify-content: flex-start;
+
+    margin-bottom: 8px;
+  }
+
+  .sidebar .brand span {
+    display: inline;
+  }
+
+  .sidebar nav {
+    display: flex;
+
+    width: 100%;
+
+    gap: 6px;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding-bottom: 3px;
+
+    scrollbar-width: none;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar nav button {
+    width: auto;
+
+    min-width: max-content;
+
+    flex: 0 0 auto;
+
+    padding: 8px 10px;
+  }
+
+  .sidebar nav button span {
+    display: inline;
+
+    overflow: visible;
+  }
+
+  .sidebarFooter {
+    display: none;
+  }
+
+  main {
+    min-height: 0;
+  }
+
+  .topbar {
+    gap: 8px;
+
+    padding: 10px 12px;
+  }
+
+  .topbar p {
+    display: none;
+  }
+
+  .topbar h1 {
+    font-size: 1.05rem;
+  }
+
+  .headerActions {
+    gap: 5px;
+  }
+
+  .profileButton span {
+    display: none;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  .stats,
+  .grid2,
+  .grid3,
+  .appGrid,
+  .appFeatured,
+  .phase2Grid {
+    grid-template-columns:
+      minmax(0, 1fr);
+  }
+
+  .hero,
+  .glassHero {
+    padding: 20px;
+  }
+
+  .hero h2 {
+    font-size:
+      clamp(1.55rem, 8vw, 2.2rem);
+
+    line-height: 1.08;
+  }
+
+  .heroActions,
+  .buttonRow,
+  .phase2Filters,
+  .appCategories {
+    flex-wrap: wrap;
+  }
+
+  .sectionTitle {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .phase2Meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mailLayout,
+  .mailWorkspace {
+    grid-template-columns:
+      minmax(0, 1fr);
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL WINDOWS
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .content {
+    padding: 9px;
+  }
+
+  .topbar {
+    padding: 9px;
+  }
+
+  .hero,
+  .glassHero {
+    padding: 16px;
+  }
+
+  .glassCard {
+    max-width: 100%;
+  }
+
+  .headerActions .iconButton:first-child {
+    display: none;
+  }
+
+  .appCategories,
+  .phase2Filters {
+    overflow-x: auto;
+
+    flex-wrap: nowrap;
+
+    scrollbar-width: none;
+  }
+
+  .appCategories::-webkit-scrollbar,
+  .phase2Filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .appCategory {
+    flex: 0 0 auto;
+  }
+}
+
+
+/* =========================================================
+   SHORT LAPTOP / SHORT PWA WINDOWS
+   Important for resized installed apps.
+   ========================================================= */
+
+@media (max-height: 700px) and (min-width: 641px) {
+
+  .sidebar {
+    overflow-y: auto;
+  }
+
+  .brand {
+    margin-bottom: 10px;
+  }
+
+  .sidebar nav button {
+    min-height: 35px;
+  }
+
+  .content {
+    overflow-y: auto;
+  }
+}
+
+
+/* =========================================================
+   SAFE AREA SUPPORT
+   ========================================================= */
+
+@supports (padding: env(safe-area-inset-top)) {
+
+  @media (max-width: 640px) {
+
+    .sidebar {
+      padding-top:
+        max(8px, env(safe-area-inset-top));
+
+      padding-left:
+        max(10px, env(safe-area-inset-left));
+
+      padding-right:
+        max(10px, env(safe-area-inset-right));
+    }
+
+    .content {
+      padding-bottom:
+        max(12px, env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY / SYSTEM PREFERENCES
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.01ms !important;
+  }
+}
+
