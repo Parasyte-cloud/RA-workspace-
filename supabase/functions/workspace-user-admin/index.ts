@@ -1,18 +1,16 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const allowedOrigin =
-  "https://intranet.ridearrivo.com"
-
 const corsHeaders = {
-  "Access-Control-Allow-Origin": allowedOrigin,
+  "Access-Control-Allow-Origin":
+    "https://intranet.ridearrivo.com",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods":
     "POST, OPTIONS",
 }
 
-const roles = [
+const VALID_ROLES = new Set([
   "employee",
   "support",
   "engineer",
@@ -24,152 +22,257 @@ const roles = [
   "marketing",
   "partnerships",
   "admin",
-]
+])
 
 function json(
-  data: unknown,
-  status = 200
-) {
+  body:unknown,
+  status=200
+){
   return new Response(
-    JSON.stringify(data),
+    JSON.stringify(body),
     {
       status,
-      headers: {
+      headers:{
         ...corsHeaders,
-        "Content-Type": "application/json",
+        "Content-Type":"application/json",
       },
     }
   )
 }
 
-serve(async req => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: corsHeaders,
-    })
+function errorMessage(error:any){
+  return (
+    error?.message ||
+    error?.details ||
+    error?.hint ||
+    error?.error_description ||
+    "Administrator request failed."
+  )
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS"){
+    return new Response(
+      "ok",
+      {headers:corsHeaders}
+    )
   }
 
-  try {
-    const authHeader =
+  if(req.method!=="POST"){
+    return json(
+      {error:"Method not allowed."},
+      405
+    )
+  }
+
+  try{
+    const authorization =
       req.headers.get("Authorization")
 
-    if (!authHeader) {
+    if(!authorization){
       return json(
-        { error: "Unauthorized" },
+        {error:"Missing administrator session."},
         401
       )
     }
 
     const supabaseUrl =
-      Deno.env.get("SUPABASE_URL")!
+      Deno.env.get("SUPABASE_URL")
 
-    const serviceRoleKey =
+    const serviceKey =
       Deno.env.get(
         "SUPABASE_SERVICE_ROLE_KEY"
-      )!
+      )
 
-    const admin = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
+    if(!supabaseUrl || !serviceKey){
+      console.error(
+        "workspace-user-admin: missing Supabase environment"
+      )
+
+      return json(
+        {
+          error:
+            "Administrator service is not configured.",
         },
-      }
-    )
+        500
+      )
+    }
+
+    const admin =
+      createClient(
+        supabaseUrl,
+        serviceKey,
+        {
+          auth:{
+            persistSession:false,
+            autoRefreshToken:false,
+          },
+        }
+      )
 
     const token =
-      authHeader.replace("Bearer ", "")
+      authorization.replace(
+        /^Bearer\s+/i,
+        ""
+      )
 
     const {
-      data: { user },
-      error: userError,
-    } = await admin.auth.getUser(token)
+      data:userData,
+      error:userError,
+    } =
+      await admin.auth.getUser(token)
 
-    if (
+    if(
       userError ||
-      !user
-    ) {
+      !userData?.user
+    ){
+      console.error(
+        "workspace-user-admin auth",
+        userError
+      )
+
       return json(
-        { error: "Unauthorized" },
+        {error:"Administrator session is invalid."},
         401
       )
     }
 
-    const {
-      data: administrator,
-      error: administratorError,
-    } = await admin
-      .from("employee_profiles")
-      .select("id,role,active")
-      .eq("id", user.id)
-      .maybeSingle()
+    const administratorId =
+      userData.user.id
 
-    if (
-      administratorError ||
-      !administrator ||
-      administrator.role !== "admin" ||
-      administrator.active !== true
-    ) {
+    const {
+      data:administrator,
+      error:administratorError,
+    } =
+      await admin
+        .from("employee_profiles")
+        .select(
+          "id,email,role,active"
+        )
+        .eq(
+          "id",
+          administratorId
+        )
+        .maybeSingle()
+
+    if(administratorError){
+      console.error(
+        "workspace-user-admin administrator profile",
+        administratorError
+      )
+
       return json(
         {
           error:
-            "Administrator access required.",
+            `Unable to verify administrator: ${errorMessage(administratorError)}`,
+        },
+        500
+      )
+    }
+
+    if(
+      !administrator ||
+      administrator.active !== true ||
+      String(
+        administrator.role
+      ).toLowerCase() !== "admin"
+    ){
+      return json(
+        {
+          error:
+            "Active administrator access is required.",
         },
         403
       )
     }
 
     const body =
-      req.method === "POST"
-        ? await req.json().catch(() => ({}))
-        : {}
+      await req.json().catch(
+        ()=>({})
+      )
 
     const action =
-      String(body?.action || "list")
+      String(
+        body?.action || "list"
+      )
+        .trim()
+        .toLowerCase()
 
     /*
-     * LIST USERS
+     * LIST
      */
-    if (action === "list") {
+    if(action==="list"){
       const {
-        data: authData,
-        error: authError,
+        data:authResult,
+        error:authError,
       } =
         await admin.auth.admin.listUsers({
-          page: 1,
-          perPage: 200,
+          page:1,
+          perPage:200,
         })
 
-      if (authError) {
-        throw authError
+      if(authError){
+        console.error(
+          "workspace-user-admin listUsers",
+          authError
+        )
+
+        return json(
+          {
+            error:
+              `Unable to list Auth users: ${errorMessage(authError)}`,
+          },
+          500
+        )
       }
 
       const authUsers =
-        authData?.users || []
+        authResult?.users || []
 
       const ids =
-        authUsers.map(item => item.id)
-
-      const {
-        data: profiles,
-        error: profileError,
-      } = await admin
-        .from("employee_profiles")
-        .select(
-          "id,email,full_name,role,department,job_title,active,created_at,updated_at"
+        authUsers.map(
+          user=>user.id
         )
-        .in("id", ids)
 
-      if (profileError) {
-        throw profileError
+      let profiles:any[] = []
+
+      if(ids.length){
+        const {
+          data,
+          error,
+        } =
+          await admin
+            .from("employee_profiles")
+            .select(
+              "id,email,full_name,role,department,job_title,active,created_at,updated_at"
+            )
+            .in("id",ids)
+
+        if(error){
+          console.error(
+            "workspace-user-admin profiles",
+            error
+          )
+
+          return json(
+            {
+              error:
+                `Unable to read employee profiles: ${errorMessage(error)}`,
+            },
+            500
+          )
+        }
+
+        profiles =
+          Array.isArray(data)
+            ? data
+            : []
       }
 
       const profileMap =
         new Map(
-          (profiles || []).map(
-            profile => [
+          profiles.map(
+            profile=>[
               profile.id,
               profile,
             ]
@@ -178,54 +281,75 @@ serve(async req => {
 
       const users =
         authUsers
-          .filter(item =>
+          .filter(user=>
             String(
-              item.email || ""
+              user.email || ""
             )
               .toLowerCase()
               .endsWith(
                 "@ridearrivo.com"
               )
           )
-          .map(item => {
+          .map(user=>{
             const profile =
-              profileMap.get(item.id)
+              profileMap.get(
+                user.id
+              )
 
             return {
-              id: item.id,
+              id:user.id,
+
               email:
-                item.email || "",
+                String(
+                  user.email || ""
+                ),
+
               full_name:
-                profile?.full_name ||
-                item.user_metadata
-                  ?.full_name ||
-                "",
-              role:
-                profile?.role ||
-                "employee",
+                String(
+                  profile?.full_name ||
+                  user.user_metadata
+                    ?.full_name ||
+                  ""
+                ),
+
               department:
-                profile?.department ||
-                "Unassigned",
+                String(
+                  profile?.department ||
+                  "Unassigned"
+                ),
+
+              role:
+                String(
+                  profile?.role ||
+                  "employee"
+                ),
+
               job_title:
-                profile?.job_title ||
-                "",
+                String(
+                  profile?.job_title ||
+                  ""
+                ),
+
               active:
                 profile?.active === true,
+
               created_at:
-                item.created_at,
+                user.created_at,
+
               last_sign_in_at:
-                item.last_sign_in_at ||
+                user.last_sign_in_at ||
                 null,
+
               email_confirmed:
                 Boolean(
-                  item.email_confirmed_at
+                  user.email_confirmed_at
                 ),
             }
           })
-          .sort((a, b) => {
-            if (
+          .sort((a,b)=>{
+            if(
               a.active !== b.active
-            ) {
+            ){
               return a.active
                 ? 1
                 : -1
@@ -242,22 +366,30 @@ serve(async req => {
           })
 
       return json({
-        success: true,
+        success:true,
         users,
       })
     }
 
     /*
-     * APPROVE USER
+     * APPROVE / UPDATE
      */
-    if (action === "approve") {
+    if(
+      action==="approve" ||
+      action==="update"
+    ){
       const userId =
-        String(body?.userId || "")
+        String(
+          body?.userId || ""
+        ).trim()
 
       const role =
         String(
-          body?.role || "employee"
-        ).toLowerCase()
+          body?.role ||
+          "employee"
+        )
+          .trim()
+          .toLowerCase()
 
       const department =
         String(
@@ -267,46 +399,54 @@ serve(async req => {
 
       const jobTitle =
         String(
-          body?.jobTitle || ""
+          body?.jobTitle ||
+          ""
         ).trim()
 
       const suppliedName =
         String(
-          body?.fullName || ""
+          body?.fullName ||
+          ""
         ).trim()
 
-      if (!userId) {
+      if(!userId){
         return json(
           {
             error:
-              "User ID is required.",
+              "Employee user ID is required.",
           },
           400
         )
       }
 
-      if (!roles.includes(role)) {
+      if(
+        !VALID_ROLES.has(role)
+      ){
         return json(
           {
             error:
-              "Invalid workspace role.",
+              `Invalid role: ${role}`,
           },
           400
         )
       }
 
       const {
-        data: targetData,
-        error: targetError,
+        data:targetResult,
+        error:targetError,
       } =
-        await admin.auth.admin.getUserById(
-          userId
+        await admin.auth.admin
+          .getUserById(userId)
+
+      if(
+        targetError ||
+        !targetResult?.user
+      ){
+        console.error(
+          "workspace-user-admin target user",
+          targetError
         )
 
-      if (
-        targetError ||
-        !targetData?.user
-      ) {
         return json(
           {
             error:
@@ -317,22 +457,24 @@ serve(async req => {
       }
 
       const target =
-        targetData.user
+        targetResult.user
 
       const email =
         String(
           target.email || ""
-        ).toLowerCase()
+        )
+          .trim()
+          .toLowerCase()
 
-      if (
+      if(
         !email.endsWith(
           "@ridearrivo.com"
         )
-      ) {
+      ){
         return json(
           {
             error:
-              "Only RideArrivo employees can be approved.",
+              "Only @ridearrivo.com accounts may be approved.",
           },
           400
         )
@@ -343,54 +485,88 @@ serve(async req => {
         String(
           target.user_metadata
             ?.full_name || ""
-        ) ||
+        ).trim() ||
         email.split("@")[0]
 
       const {
-        error: upsertError,
-      } = await admin
-        .from("employee_profiles")
-        .upsert(
-          {
-            id: target.id,
-            email,
-            full_name: fullName,
-            role,
-            department:
-              department ||
-              "Unassigned",
-            job_title: jobTitle,
-            active: true,
-            updated_at:
-              new Date().toISOString(),
-          },
-          {
-            onConflict: "id",
-          }
+        error:profileError,
+      } =
+        await admin
+          .from(
+            "employee_profiles"
+          )
+          .upsert(
+            {
+              id:userId,
+              email,
+              full_name:fullName,
+              role,
+              department:
+                department ||
+                "Unassigned",
+              job_title:jobTitle,
+              active:true,
+              updated_at:
+                new Date()
+                  .toISOString(),
+            },
+            {
+              onConflict:"id",
+            }
+          )
+
+      if(profileError){
+        console.error(
+          "workspace-user-admin approve/update",
+          profileError
         )
 
-      if (upsertError) {
-        throw upsertError
+        return json(
+          {
+            error:
+              `Unable to save employee access: ${errorMessage(profileError)}`,
+          },
+          500
+        )
       }
 
       return json({
-        success: true,
-        message:
-          `${fullName} approved.`,
+        success:true,
+        user:{
+          id:userId,
+          email,
+          full_name:fullName,
+          role,
+          department,
+          job_title:jobTitle,
+          active:true,
+        },
       })
     }
 
     /*
-     * REVOKE USER
+     * REVOKE
      */
-    if (action === "revoke") {
+    if(action==="revoke"){
       const userId =
-        String(body?.userId || "")
+        String(
+          body?.userId || ""
+        ).trim()
 
-      if (
-        !userId ||
-        userId === user.id
-      ) {
+      if(!userId){
+        return json(
+          {
+            error:
+              "Employee user ID is required.",
+          },
+          400
+        )
+      }
+
+      if(
+        userId ===
+        administratorId
+      ){
         return json(
           {
             error:
@@ -401,44 +577,71 @@ serve(async req => {
       }
 
       const {
-        error,
-      } = await admin
-        .from("employee_profiles")
-        .update({
-          active: false,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", userId)
+        data:updated,
+        error:updateError,
+      } =
+        await admin
+          .from(
+            "employee_profiles"
+          )
+          .update({
+            active:false,
+            updated_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq("id",userId)
+          .select("id")
+          .maybeSingle()
 
-      if (error) {
-        throw error
+      if(updateError){
+        console.error(
+          "workspace-user-admin revoke",
+          updateError
+        )
+
+        return json(
+          {
+            error:
+              `Unable to revoke employee access: ${errorMessage(updateError)}`,
+          },
+          500
+        )
+      }
+
+      if(!updated){
+        return json(
+          {
+            error:
+              "Employee profile was not found.",
+          },
+          404
+        )
       }
 
       return json({
-        success: true,
+        success:true,
+        userId,
       })
     }
 
     return json(
       {
         error:
-          "Unsupported action.",
+          `Unsupported administrator action: ${action}`,
       },
       400
     )
-  } catch (error) {
+
+  }catch(error){
     console.error(
-      "workspace-user-admin",
+      "workspace-user-admin fatal",
       error
     )
 
     return json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Administrator request failed.",
+        error:errorMessage(error),
       },
       500
     )

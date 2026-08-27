@@ -65,50 +65,70 @@ async function invokeAdmin(
   }
 
   const {
-    data,
-    error,
+    data:{session},
+    error:sessionError,
   } =
-    await supabase.functions.invoke(
-      'workspace-user-admin',
+    await supabase.auth.getSession()
+
+  if(
+    sessionError ||
+    !session?.access_token
+  ){
+    throw new Error(
+      'Your administrator session has expired. Sign in again.'
+    )
+  }
+
+  const endpoint =
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-user-admin`
+
+  const response =
+    await fetch(
+      endpoint,
       {
-        body:payload,
+        method:'POST',
+
+        headers:{
+          'Content-Type':
+            'application/json',
+
+          'Authorization':
+            `Bearer ${session.access_token}`,
+
+          'apikey':
+            import.meta.env
+              .VITE_SUPABASE_ANON_KEY,
+        },
+
+        body:
+          JSON.stringify(payload),
       }
     )
 
-  if(error){
-    let message =
-      error.message ||
-      'Administrator request failed.'
+  let result:any = null
 
-    try{
-      const context =
-        (error as any).context
-
-      if(
-        context &&
-        typeof context.json ===
-          'function'
-      ){
-        const body =
-          await context.json()
-
-        message =
-          body?.error ||
-          body?.message ||
-          message
-      }
-    }catch{
-      // preserve original error
-    }
-
-    throw new Error(message)
+  try{
+    result =
+      await response.json()
+  }catch{
+    result = null
   }
 
-  if(data?.error){
-    throw new Error(data.error)
+  if(!response.ok){
+    throw new Error(
+      result?.error ||
+      result?.message ||
+      `Administrator request failed (${response.status}).`
+    )
   }
 
-  return data
+  if(result?.error){
+    throw new Error(
+      result.error
+    )
+  }
+
+  return result
 }
 
 export default function AdminAccessManager(){

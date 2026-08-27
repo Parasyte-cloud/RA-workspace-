@@ -112,6 +112,9 @@ function BrandLogo({className=''}:{className?:string}){
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
+  const [accessReady,setAccessReady]=useState(true)
+  const [accessApproved,setAccessApproved]=useState(true)
+
   const [profile,setProfile]=useState<Profile>({
     id:'',
     full_name:'',
@@ -226,6 +229,90 @@ function App(){
   useEffect(()=>{
     void loadProfile()
   },[session])
+
+
+  // approval-poll
+  useEffect(()=>{
+    const client=supabase
+
+    if(
+      !client ||
+      !session?.user ||
+      !accessReady ||
+      accessApproved
+    ){
+      return
+    }
+
+    let cancelled=false
+
+    const checkApproval=async()=>{
+      const userId=session.user.id
+
+      const {
+        data,
+        error,
+      }=await client
+        .from('employee_profiles')
+        .select(
+          'id,full_name,email,role,department,job_title,active'
+        )
+        .eq('id',userId)
+        .maybeSingle()
+
+      if(
+        cancelled ||
+        error ||
+        !data
+      ){
+        return
+      }
+
+      if(data.active===true){
+        setProfile({
+          ...data,
+          id:String(data.id),
+          full_name:String(data.full_name || ''),
+          email:String(
+            data.email ||
+            session.user.email ||
+            ''
+          ),
+          role:data.role as Role,
+          department:String(
+            data.department ||
+            'Unassigned'
+          ),
+          job_title:String(
+            data.job_title ||
+            ''
+          ),
+          active:true,
+        } as Profile)
+
+        setAccessApproved(true)
+      }
+    }
+
+    void checkApproval()
+
+    const timer=
+      window.setInterval(
+        ()=>{
+          void checkApproval()
+        },
+        5000
+      )
+
+    return()=>{
+      cancelled=true
+      window.clearInterval(timer)
+    }
+  },[
+    session?.user?.id,
+    accessReady,
+    accessApproved
+  ])
 
   const nav = useMemo(()=>{
     const items = [
