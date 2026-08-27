@@ -46,15 +46,46 @@ export function MailModule(){
   const [body,setBody]=useState('')
 
   const invoke=async(name:string,body?:Record<string,unknown>)=>{
+
     if(!supabase) throw new Error('Supabase is not configured.')
 
     const {data,error}=await supabase.functions.invoke(name,{
       body:body || {}
     })
 
-    if(error) throw error
+    if(error){
+      let errorMessage =
+        error.message ||
+        'The mail service request failed.'
+
+      try{
+        const context=(error as any).context
+
+        if(
+          context &&
+          typeof context.json === 'function'
+        ){
+          const payload=await context.json()
+
+          errorMessage =
+            payload?.error ||
+            payload?.message ||
+            errorMessage
+        }
+      }catch{
+        // Keep the original Supabase error message.
+      }
+
+      throw new Error(errorMessage)
+    }
+
+    if(data?.error){
+      throw new Error(data.error)
+    }
+
     return data
   }
+
 
   const checkConnection=async()=>{
     try{
