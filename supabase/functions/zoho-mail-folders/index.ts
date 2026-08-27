@@ -34,17 +34,21 @@ serve(async (req) => {
         "https://mail.zoho.com/api"
       ).replace(/\/$/, "")
 
+    const accountId =
+      encodeURIComponent(
+        String(connection.zoho_account_id)
+      )
+
     const response =
       await fetch(
-        `${apiBase}/accounts/${encodeURIComponent(
-          connection.zoho_account_id
-        )}/folders`,
+        `${apiBase}/accounts/${accountId}/folders`,
         {
           method: "GET",
           headers: {
             Authorization:
               `Zoho-oauthtoken ${token}`,
             Accept: "application/json",
+            "Content-Type": "application/json",
           },
         }
       )
@@ -52,7 +56,7 @@ serve(async (req) => {
     const raw =
       await response.text()
 
-    let payload:any = {}
+    let payload:any
 
     try {
       payload =
@@ -61,10 +65,10 @@ serve(async (req) => {
           : {}
     } catch {
       console.error(
-        "Zoho folders non-JSON response",
+        "Zoho folders invalid JSON",
         {
           status: response.status,
-          preview: raw.slice(0,300),
+          body: raw.slice(0, 500),
         }
       )
 
@@ -79,7 +83,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error(
-        "Zoho folders request failed",
+        "Zoho folder request failed",
         {
           status: response.status,
           payload,
@@ -101,74 +105,70 @@ serve(async (req) => {
     const rawFolders =
       Array.isArray(payload?.data)
         ? payload.data
-        : Array.isArray(payload?.folders)
-          ? payload.folders
-          : Array.isArray(payload)
-            ? payload
-            : []
+        : []
 
     console.log(
-      "Zoho raw folders",
-      rawFolders
+      "Zoho folders received",
+      rawFolders.map((folder:any) => ({
+        folderId: folder?.folderId,
+        folderName: folder?.folderName,
+        folderType: folder?.folderType,
+        path: folder?.path,
+        isArchived: folder?.isArchived,
+      }))
     )
 
     const folders =
       rawFolders
-        .map((folder:any) => {
-          const folderId =
-            folder?.folderId ??
-            folder?.folderID ??
-            folder?.id ??
-            ''
+        .map((folder:any) => ({
+          folderId:
+            String(folder?.folderId || ''),
 
-          const name =
-            folder?.folderDisplayName ??
-            folder?.folderName ??
-            folder?.displayName ??
-            folder?.name ??
-            folder?.path ??
-            ''
+          name:
+            String(
+              folder?.folderName ||
+              folder?.folderDisplayName ||
+              folder?.path ||
+              'Folder'
+            ).replace(/^\//, ''),
 
-          const type =
-            folder?.folderType ??
-            folder?.type ??
-            folder?.folderName ??
-            name
+          type:
+            String(
+              folder?.folderType ||
+              folder?.folderName ||
+              ''
+            ),
 
-          const unreadCount =
+          path:
+            String(folder?.path || ''),
+
+          isArchived:
+            Number(folder?.isArchived || 0),
+
+          unreadCount:
             Number(
               folder?.unreadCount ??
               folder?.unreadMessageCount ??
-              folder?.unread ??
               0
-            ) || 0
+            ) || 0,
 
-          const messageCount =
+          messageCount:
             Number(
               folder?.messageCount ??
               folder?.totalMessageCount ??
-              folder?.total ??
               0
-            ) || 0
-
-          return {
-            folderId:String(folderId),
-            name:String(name),
-            type:String(type),
-            unreadCount,
-            messageCount,
-          }
-        })
+            ) || 0,
+        }))
         .filter((folder:any) =>
-          folder.folderId &&
-          folder.name
+          Boolean(folder.folderId)
         )
 
     return jsonResponse({
-      success:true,
+      success: true,
+      count: folders.length,
       folders,
-      count:folders.length,
     })
+
   } catch (error) {
     console.error(
       "zoho-mail-folders failure",

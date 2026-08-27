@@ -42,6 +42,8 @@ type MailFolder = {
   folderId:string
   name:string
   type:string
+  path?:string
+  isArchived?:number
   unreadCount:number
   messageCount:number
 }
@@ -173,64 +175,129 @@ export function MailModule(){
     value
       .trim()
       .toLowerCase()
+      .replace(/^\/+/, '')
       .replace(/[^a-z0-9]+/g,'')
 
   const folderMatches=(
     folder:MailFolder,
     key:MailFolderKey
   )=>{
-    const name=normaliseFolderName(folder.name)
-    const type=normaliseFolderName(folder.type)
-
-    const haystack=`${name} ${type}`
-
-    if(key==='inbox'){
-      return (
-        haystack.includes('inbox') ||
-        haystack.includes('incoming')
+    const name=
+      normaliseFolderName(
+        folder.name || ''
       )
-    }
 
-    if(key==='sent'){
-      return (
-        haystack.includes('sent') ||
-        haystack.includes('sentitems')
+    const type=
+      normaliseFolderName(
+        folder.type || ''
       )
-    }
 
-    if(key==='drafts'){
-      return (
-        haystack.includes('draft') ||
-        haystack.includes('drafts')
+    const path=
+      normaliseFolderName(
+        folder.path || ''
       )
-    }
 
-    if(key==='spam'){
-      return (
-        haystack.includes('spam') ||
-        haystack.includes('junk')
+    const values=[
+      name,
+      type,
+      path
+    ]
+
+    const has=(term:string)=>
+      values.some(value=>
+        value===term ||
+        value.includes(term)
       )
-    }
 
-    if(key==='trash'){
-      return (
-        haystack.includes('trash') ||
-        haystack.includes('deleted') ||
-        haystack.includes('bin')
-      )
-    }
+    switch(key){
+      case 'inbox':
+        return has('inbox')
 
-    if(key==='archive'){
-      return haystack.includes('archive')
-    }
+      case 'sent':
+        return (
+          has('sent') ||
+          has('sentitems')
+        )
 
-    return false
+      case 'drafts':
+        return (
+          has('draft') ||
+          has('drafts')
+        )
+
+      case 'spam':
+        return (
+          has('spam') ||
+          has('junk')
+        )
+
+      case 'trash':
+        return (
+          has('trash') ||
+          has('deleted') ||
+          has('bin')
+        )
+
+      case 'archive':
+        return (
+          has('archive') ||
+          folder.isArchived===1
+        )
+
+      default:
+        return false
+    }
   }
 
   const getFolder=(key:MailFolderKey)=>
     folders.find(folder=>
       folderMatches(folder,key)
     ) || null
+
+  const loadVirtualView=async(
+    key:'starred'|'archive'
+  )=>{
+    if(folderLoading) return
+
+    setFolderLoading(true)
+    setMessage('')
+    setSelected(null)
+    setActiveFolder(null)
+    setActiveFolderKey(key)
+
+    try{
+      const data=
+        await invoke(
+          'zoho-mail-folder-messages',
+          {
+            view:key
+          }
+        )
+
+      const raw=
+        Array.isArray(data?.messages)
+          ? data.messages
+          : []
+
+      setMessages(
+        raw.map((item:any)=>({
+          ...item,
+          folderId:
+            item?.folderId ||
+            undefined
+        }))
+      )
+    }catch(error:any){
+      setMessages([])
+
+      setMessage(
+        error?.message ||
+        `Unable to load ${key}.`
+      )
+    }finally{
+      setFolderLoading(false)
+    }
+  }
 
   const loadCanonicalFolder=async(
     key:MailFolderKey
@@ -240,29 +307,38 @@ export function MailModule(){
     setMessage('')
 
     if(key==='starred'){
-      setMessages(prev=>
-        prev.filter((item:any)=>
-          Boolean(
-            item?.isFlagged ||
-            item?.flagged ||
-            item?.isStarred ||
-            item?.starred
-          )
-        )
-      )
+      await loadVirtualView('starred')
       return
     }
 
-    const folder=getFolder(key)
+    if(key==='archive'){
+      const archiveFolder=
+        getFolder('archive')
+
+      if(archiveFolder){
+        await loadFolder(
+          archiveFolder
+        )
+      }else{
+        await loadVirtualView(
+          'archive'
+        )
+      }
+
+      return
+    }
+
+    const folder=
+      getFolder(key)
 
     if(!folder){
       setMessages([])
 
       setMessage(
-        `${
+        `Unable to locate the ${
           key.charAt(0).toUpperCase()+
           key.slice(1)
-        } folder is not available from Zoho yet.`
+        } folder in Zoho Mail.`
       )
 
       return
@@ -899,7 +975,15 @@ export function MailModule(){
 
           <div className="mailFolderDivider"/>
 
-          <button disabled>
+          <button
+            onClick={()=>
+              window.open(
+                'https://mail.zoho.com/zm/#settings',
+                '_blank',
+                'noopener,noreferrer'
+              )
+            }
+          >
             <Settings size={18}/>
             <strong>Mail settings</strong>
           </button>

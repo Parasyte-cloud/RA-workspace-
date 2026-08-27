@@ -24,15 +24,12 @@ serve(async (req) => {
         payload?.folderId || ''
       ).trim()
 
-    if (!folderId) {
-      return jsonResponse(
-        {
-          error:
-            "folderId is required.",
-        },
-        400
+    const view =
+      String(
+        payload?.view || ''
       )
-    }
+        .trim()
+        .toLowerCase()
 
     const { user, admin } =
       await getAuthenticatedUser(req)
@@ -43,7 +40,7 @@ serve(async (req) => {
         user.id
       )
 
-    const accessToken =
+    const token =
       await getZohoAccessToken(connection)
 
     const apiBase =
@@ -52,17 +49,54 @@ serve(async (req) => {
         "https://mail.zoho.com/api"
       ).replace(/\/$/, "")
 
+    const accountId =
+      encodeURIComponent(
+        String(connection.zoho_account_id)
+      )
+
+    const params =
+      new URLSearchParams()
+
+    params.set("limit", "50")
+
+    if (folderId) {
+      params.set("folderId", folderId)
+    }
+
+    if (view === "starred") {
+      params.set(
+        "flaggedMails",
+        "true"
+      )
+    }
+
+    if (view === "archive") {
+      params.set(
+        "includearchive",
+        "true"
+      )
+    }
+
+    if (!folderId &&
+        view !== "starred" &&
+        view !== "archive") {
+      return jsonResponse(
+        {
+          error:
+            "folderId or supported view is required.",
+        },
+        400
+      )
+    }
+
     const response =
       await fetch(
-        `${apiBase}/accounts/${encodeURIComponent(
-          connection.zoho_account_id
-        )}/messages/view?folderId=${encodeURIComponent(
-          folderId
-        )}&limit=50`,
+        `${apiBase}/accounts/${accountId}/messages/view?${params.toString()}`,
         {
+          method: "GET",
           headers: {
             Authorization:
-              `Zoho-oauthtoken ${accessToken}`,
+              `Zoho-oauthtoken ${token}`,
             Accept: "application/json",
           },
         }
@@ -71,12 +105,13 @@ serve(async (req) => {
     const raw =
       await response.text()
 
-    let data:any = {}
+    let data:any
 
     try {
-      data = raw
-        ? JSON.parse(raw)
-        : {}
+      data =
+        raw
+          ? JSON.parse(raw)
+          : {}
     } catch {
       return jsonResponse(
         {
@@ -89,10 +124,11 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error(
-        "Zoho folder messages failed",
+        "Zoho folder/view messages failed",
         {
           status: response.status,
           folderId,
+          view,
           data,
         }
       )
@@ -100,9 +136,9 @@ serve(async (req) => {
       return jsonResponse(
         {
           error:
-            data?.data?.errorCode ||
             data?.status?.description ||
-            "Unable to load this mail folder.",
+            data?.data?.errorCode ||
+            "Unable to load this mailbox view.",
         },
         response.status
       )
@@ -110,12 +146,16 @@ serve(async (req) => {
 
     return jsonResponse({
       success: true,
-      folderId,
+      folderId:
+        folderId || null,
+      view:
+        view || null,
       messages:
         Array.isArray(data?.data)
           ? data.data
           : [],
     })
+
   } catch (error) {
     console.error(
       "zoho-mail-folder-messages failure",
@@ -127,7 +167,7 @@ serve(async (req) => {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load mail folder.",
+            : "Unable to load mailbox view.",
       },
       500
     )
