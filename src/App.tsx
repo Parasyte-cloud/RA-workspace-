@@ -209,19 +209,18 @@ function SetupRequired(){
 }
 
 function AuthGate(){
-  const [mode,setMode]=useState<'signin'|'signup'>('signin')
-  const [step,setStep]=useState<'auth'|'verify'>('auth')
+
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
-  const [name,setName]=useState('')
-  const [code,setCode]=useState('')
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
 
   const cleanEmail=email.trim().toLowerCase()
 
   const validDomain=(value:string)=>
-    allowedDomains.some((d:string)=>value.endsWith(`@${d}`))
+    allowedDomains.some((d:string)=>
+      value.endsWith(`@${d}`)
+    )
 
   const submit=async(e:FormEvent)=>{
     e.preventDefault()
@@ -232,239 +231,142 @@ function AuthGate(){
       return
     }
 
+    if(!cleanEmail){
+      setMessage('Enter your RideArrivo work email.')
+      return
+    }
+
     if(!validDomain(cleanEmail)){
-      setMessage(`Use an authorised RideArrivo email (${allowedDomains.map((d:string)=>`@${d}`).join(', ')}).`)
+      setMessage(
+        `Use an authorised RideArrivo email (${allowedDomains
+          .map((d:string)=>`@${d}`)
+          .join(', ')}).`
+      )
+      return
+    }
+
+    if(!password){
+      setMessage('Enter your password.')
       return
     }
 
     setBusy(true)
 
-    if(mode==='signin'){
+    try{
       const {error}=await supabase.auth.signInWithPassword({
         email:cleanEmail,
         password
       })
 
-      setBusy(false)
-
-      if(error) setMessage(error.message)
-      return
-    }
-
-    const {data,error}=await supabase.auth.signUp({
-      email:cleanEmail,
-      password,
-      options:{
-        data:{full_name:name}
+      if(error){
+        setMessage(
+          error.message === 'Invalid login credentials'
+            ? 'Invalid email or password, or this account is not authorised.'
+            : error.message
+        )
       }
-    })
-
-    setBusy(false)
-
-    if(error){
-      setMessage(error.message)
-      return
-    }
-
-    if(data.session){
-      return
-    }
-
-    setCode('')
-    setStep('verify')
-  }
-
-  const verify=async(e:FormEvent)=>{
-    e.preventDefault()
-    setMessage('')
-
-    if(!supabase) return
-
-    if(code.trim().length!==6){
-      setMessage('Enter the 6-digit verification code.')
-      return
-    }
-
-    setBusy(true)
-
-    const {error}=await supabase.auth.verifyOtp({
-      email:cleanEmail,
-      token:code.trim(),
-      type:'email'
-    })
-
-    setBusy(false)
-
-    if(error){
-      setMessage(error.message)
+    }catch(error){
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to sign in.'
+      )
+    }finally{
+      setBusy(false)
     }
   }
 
-  const resend=async()=>{
-    if(!supabase) return
+  return (
+    <div className="authPage">
+      <div className="authGlass glassPanel">
 
-    setMessage('')
-    setBusy(true)
+        <div className="authBrand">
+          <BrandLogo/>
+          <span>RideArrivo Internal Workspace</span>
+        </div>
 
-    const {error}=await supabase.auth.resend({
-      type:'signup',
-      email:cleanEmail
-    })
+        <div className="authCopy">
+          <span className="eyebrow">
+            SECURE COMPANY WORKSPACE
+          </span>
 
-    setBusy(false)
+          <h1>
+            Everything your RideArrivo team needs, in one place.
+          </h1>
 
-    setMessage(
-      error
-        ? error.message
-        : 'A new verification code has been sent.'
-    )
-  }
+          <p>
+            Sign in with your approved RideArrivo employee account.
+          </p>
 
-  if(step==='verify'){
-    return <div className="authPage">
-      <div className="verifyCard glassPanel">
-        <BrandLogo className="verifyLogo"/>
+          <div className="trustRow">
+            Access is restricted to approved RideArrivo employees.
+          </div>
+        </div>
 
-        <span className="eyebrow">VERIFY EMPLOYEE EMAIL</span>
+        <form onSubmit={submit}>
 
-        <h1>Check your RideArrivo inbox</h1>
-
-        <p>
-          Enter the 6-digit verification code sent to
-          <strong> {cleanEmail}</strong>.
-        </p>
-
-        <form onSubmit={verify}>
-          <label>
-            Verification code
-            <input
-              className="otpInput"
-              value={code}
-              onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="000000"
-              autoFocus
-            />
-          </label>
-
-          {message&&<div className="authMessage">{message}</div>}
-
-          <button className="primaryButton" disabled={busy}>
-            {busy?'Verifying...':'Verify and continue'}
-          </button>
-
-          <div className="verifyActions">
-            <button type="button" className="textButton" onClick={resend} disabled={busy}>
-              Resend code
-            </button>
-
+          <div className="authTabs">
             <button
               type="button"
-              className="textButton"
-              onClick={()=>{
-                setStep('auth')
-                setMode('signin')
-                setMessage('')
-              }}
+              className="active"
+              disabled
             >
-              Back to sign in
+              Employee sign in
             </button>
           </div>
-        </form>
-      </div>
-    </div>
-  }
 
-  return <div className="authPage">
-    <div className="authGlass">
-
-      <div className="authBrand">
-        <BrandLogo className="authLogo"/>
-        <span>Internal Workspace</span>
-      </div>
-
-      <div className="authCopy">
-        <span className="eyebrow">SECURE EMPLOYEE ACCESS</span>
-        <h1>Run RideArrivo from one workspace.</h1>
-        <p>
-          Support, CRM, engineering, people, operations, legal and administration,
-          secured behind company identity.
-        </p>
-
-        <div className="trustRow">
-          <BadgeCheck size={20}/>
-          <strong>RideArrivo email required</strong>
-        </div>
-      </div>
-
-      <form onSubmit={submit}>
-        <div className="authTabs">
-          <button
-            type="button"
-            className={mode==='signin'?'active':''}
-            onClick={()=>{setMode('signin');setMessage('')}}
-          >
-            Sign in
-          </button>
-
-          <button
-            type="button"
-            className={mode==='signup'?'active':''}
-            onClick={()=>{setMode('signup');setMessage('')}}
-          >
-            Create account
-          </button>
-        </div>
-
-        {mode==='signup'&&
           <label>
-            Full name
+            Work email
             <input
-              value={name}
-              onChange={e=>setName(e.target.value)}
-              autoComplete="name"
+              type="email"
+              value={email}
+              onChange={e=>setEmail(e.target.value)}
+              placeholder="name@ridearrivo.com"
+              autoComplete="email"
               required
             />
           </label>
-        }
 
-        <label>
-          RideArrivo email
-          <input
-            type="email"
-            value={email}
-            onChange={e=>setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-        </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={e=>setPassword(e.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={e=>setPassword(e.target.value)}
-            autoComplete={mode==='signin'?'current-password':'new-password'}
-            minLength={8}
-            required
-          />
-        </label>
-
-        {message&&<div className="authMessage">{message}</div>}
-
-        <button className="primaryButton" disabled={busy}>
-          {busy
-            ? 'Please wait...'
-            : mode==='signin'
-              ? 'Sign in'
-              : 'Create employee account'
+          {message&&
+            <div className="authMessage">
+              {message}
+            </div>
           }
-        </button>
-      </form>
+
+          <button
+            className="primaryButton"
+            disabled={busy}
+          >
+            {busy?'Signing in...':'Sign in'}
+          </button>
+
+          <p
+            style={{
+              marginTop:'16px',
+              fontSize:'11px',
+              textAlign:'center'
+            }}
+          >
+            Need access? Contact RideArrivo Administration.
+          </p>
+
+        </form>
+
+      </div>
     </div>
-  </div>
+  )
 }
 
 function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
