@@ -2846,3 +2846,320 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   RIDEARRIVO MAIL — THREE PANE WORKSPACE
+   ========================================================= */
+
+.mailModule {
+  display: grid;
+  gap: 20px;
+}
+
+.mailWorkspace {
+  min-height: calc(100vh - 190px);
+  display: grid;
+  grid-template-columns: 210px minmax(360px, 0.9fr) minmax(420px, 1.2fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 159, 10, 0.2);
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.9),
+      rgba(246,250,255,.72)
+    );
+  box-shadow:
+    0 24px 70px rgba(8,31,60,.08),
+    inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(28px);
+}
+
+.mailFolders {
+  padding: 18px 12px;
+  border-right: 1px solid rgba(11,35,66,.08);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,252,246,.9),
+      rgba(255,255,255,.62)
+    );
+}
+
+.mailFolders button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 15px;
+  background: transparent;
+  color: #59697c;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background .18s ease,
+    color .18s ease,
+    transform .18s ease;
+}
+
+.mailFolders button:hover {
+  background: rgba(255,255,255,.82);
+  color: #0a2344;
+}
+
+.mailFolders button.active {
+  color: #082343;
+  font-weight: 800;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,166,0,.22),
+      rgba(255,255,255,.76)
+    );
+  box-shadow:
+    inset 3px 0 0 #ff9f0a;
+}
+
+.mailFolders button span {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mailListPane {
+  min-width: 0;
+  border-right: 1px solid rgba(11,35,66,.08);
+  background: rgba(255,255,255,.48);
+}
+
+.mailListPane > div:first-child {
+  padding: 18px;
+  border-bottom: 1px solid rgba(11,35,66,.08);
+}
+
+.mailListPane input {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  border: 1px solid rgba(11,35,66,.1);
+  border-radius: 15px;
+  padding: 0 14px;
+  background: rgba(255,255,255,.86);
+  color: #082343;
+  outline: none;
+}
+
+.mailListPane input:focus {
+  border-color: rgba(255,159,10,.55);
+  box-shadow: 0 0 0 3px rgba(255,159,10,.08);
+}
+
+.mailMessageRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 140px minmax(0,1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 17px 18px;
+  border: 0;
+  border-bottom: 1px solid rgba(11,35,66,.07);
+  background: transparent;
+  color: #0a2344;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mailMessageRow:hover {
+  background: rgba(246,249,253,.92);
+}
+
+.mailMessageRow.active {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,159,10,.10),
+      rgba(235,243,252,.85)
+    );
+}
+
+.mailSender {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mailMessageSummary {
+  min-width: 0;
+}
+
+.mailMessageSummary strong,
+.mailMessageSummary span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mailMessageSummary strong {
+  color: #0a2344;
+}
+
+.mailMessageSummary span {
+  margin-top: 4px;
+  color: #7e8b9c;
+  font-size: 13px;
+}
+
+.mailMessageTime {
+  color: #98a2af;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.mailReader {
+  min-width: 0;
+  padding: 26px;
+  overflow: auto;
+  background:
+    radial-gradient(
+      circle at 88% 8%,
+      rgba(179,215,255,.2),
+      transparent 34%
+    ),
+    rgba(255,255,255,.6);
+}
+
+.mailReaderHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(11,35,66,.08);
+}
+
+.mailReaderHeader h3 {
+  margin: 0;
+  color: #082343;
+  font-size: 24px;
+}
+
+.mailReaderHeader span {
+  color: #7c8998;
+}
+
+.mailEmpty {
+  min-height: 440px;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  color: #8793a1;
+}
+
+.mailEmpty svg {
+  margin: 0 auto;
+}
+
+.mailComposer {
+  position: fixed;
+  right: 32px;
+  bottom: 28px;
+  z-index: 120;
+  width: min(620px, calc(100vw - 64px));
+  overflow: hidden;
+  border: 1px solid rgba(255,159,10,.28);
+  border-radius: 24px;
+  background: rgba(252,253,255,.97);
+  box-shadow: 0 28px 90px rgba(7,31,61,.22);
+  backdrop-filter: blur(30px);
+}
+
+.mailComposerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 20px;
+  background: #0b2445;
+  color: #fff;
+}
+
+.mailComposerBody {
+  display: grid;
+}
+
+.mailComposerBody input,
+.mailComposerBody textarea {
+  border: 0;
+  border-bottom: 1px solid rgba(11,35,66,.09);
+  border-radius: 0;
+  padding: 15px 20px;
+  background: transparent;
+  color: #082343;
+  font: inherit;
+  outline: 0;
+}
+
+.mailComposerBody textarea {
+  min-height: 260px;
+  resize: vertical;
+}
+
+.mailComposerFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 18px;
+}
+
+@media (max-width: 1180px) {
+  .mailWorkspace {
+    grid-template-columns: 180px 1fr;
+  }
+
+  .mailReader {
+    grid-column: 1 / -1;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 760px) {
+  .mailWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .mailFolders {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(11,35,66,.08);
+  }
+
+  .mailFolders button {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .mailListPane {
+    border-right: 0;
+  }
+
+  .mailMessageRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .mailSender {
+    grid-column: 1 / 2;
+  }
+
+  .mailMessageSummary {
+    grid-column: 1 / -1;
+  }
+}
