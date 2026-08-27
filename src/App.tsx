@@ -14,6 +14,7 @@ import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/Bu
 import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
 import { SocialModule } from './modules/SocialModule'
 import { MailModule } from './modules/MailModule'
+import ApplicationsHub from './modules/ApplicationsHub'
 
 type Section = 'overview'|'social'|'mail'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
@@ -37,13 +38,6 @@ const sectionAccess:Partial<Record<Section,Role[]>>={
   admin:['admin']
 }
 const canAccess=(role:Role,section:Section)=>!sectionAccess[section]||sectionAccess[section]!.includes(role)
-
-const applications = [
-  {name:'Rider Web', desc:'Customer booking, account and trip experience', url:'https://ridearrivo.com', audience:'Support & Operations'},
-  {name:'Driver Portal', desc:'Driver onboarding and driver-facing web experience', url:'https://ridearrivo.com/driver.html', audience:'Operations'},
-  {name:'Admin Console', desc:'Riders, drivers, trips, safety and operational controls', url:'https://admin.ridearrivo.com', audience:'Operations & Admin'},
-  {name:'Engineering Hub', desc:'Repositories, pull requests and release workflows', url:'https://github.com/Parasyte-cloud', audience:'Engineering'}
-]
 
 const crmRows = [
   {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
@@ -166,7 +160,7 @@ function App(){
         {section==='partnerships'&&<PartnershipsModule/>}
         {section==='legal'&&<LegalModule/>}
         {section==='admin'&&<AdminModule/>}
-        {section==='apps'&&<Applications openWorkspace={openWorkspace}/>} 
+        {section==='apps'&&<ApplicationsHub/>} 
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
       </div>
     </main>
@@ -480,8 +474,6 @@ function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="
 function Legal(){return <section><SectionTitle eyebrow="LEGAL & COMPLIANCE" title="Legal workspace" subtitle="Contracts, policies, privacy, renewals, approvals and controlled corporate records."/><div className="grid3"><Feature icon={<Scale/>} title="Contract Register" text="Counterparties, owners, status, renewal dates and approved versions."/><Feature icon={<FileCheck2/>} title="Policy Library" text="Privacy, terms, refunds, employment and operating policies."/><Feature icon={<ShieldCheck/>} title="Compliance Register" text="Obligations, evidence, due dates, owners and status."/><Feature icon={<Users/>} title="Driver & owner agreements" text="Executed agreements tied to verified people and vehicles."/><Feature icon={<CalendarDays/>} title="Renewal calendar" text="Contracts, licences, insurance and statutory deadlines."/><Feature icon={<FileText/>} title="Legal requests" text="Review queue for contracts, incidents, claims and internal advice."/></div></section>}
 
 function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
-
-function Applications({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){return <section><SectionTitle eyebrow="APP LAUNCHER" title="RideArrivo applications" subtitle="Applications stay inside the workspace. Where a third party blocks framing, replace the iframe with a native API integration rather than opening a new tab."/><div className="grid2">{applications.map(a=><div className="glassCard" key={a.name}><div className="cardHeader"><div className="iconBox"><AppWindow/></div><span className="pill">{a.audience}</span></div><h3>{a.name}</h3><p>{a.desc}</p><button className="primaryButton" onClick={()=>openWorkspace(a.name,a.url,'This application is kept inside the workspace shell. If the destination blocks framing with CSP/X-Frame-Options, build a native API view for it instead of forcing a new tab.')}><MonitorCog size={16}/>Open in workspace</button></div>)}</div></section>}
 
 function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads" referrerPolicy="strict-origin-when-cross-origin"/></section>}
 

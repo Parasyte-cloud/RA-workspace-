@@ -1202,3 +1202,172 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* RideArrivo Applications Hub */
+
+.applicationsHub {
+  display: grid;
+  gap: 18px;
+}
+
+.appFeatured {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.appFeaturedCard {
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.appFeaturedCard div {
+  display: grid;
+  gap: 3px;
+}
+
+.appFeaturedCard span {
+  font-size: .75rem;
+  opacity: .55;
+}
+
+.appHubToolbar {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.appHubSearch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.05);
+}
+
+.appHubSearch input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+}
+
+.appCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.appCategory {
+  border: 0;
+  color: inherit;
+  background: rgba(255,255,255,.05);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.appCategory.active {
+  background: rgba(255,176,0,.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,176,0,.28);
+}
+
+.appGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.appCard {
+  padding: 18px;
+  display: grid;
+  gap: 15px;
+  min-height: 230px;
+}
+
+.appCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.06);
+}
+
+.appFavorite {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  opacity: .6;
+}
+
+.appFavorite.active {
+  opacity: 1;
+}
+
+.appCardBody {
+  flex: 1;
+}
+
+.appCardBody h3 {
+  margin: 5px 0 8px;
+}
+
+.appCardBody p {
+  margin: 0;
+  line-height: 1.5;
+  opacity: .65;
+  font-size: .88rem;
+}
+
+.appLaunch {
+  justify-self: stretch;
+  justify-content: center;
+}
+
+.appHubState,
+.appHubError {
+  padding: 22px;
+  text-align: center;
+}
+
+@media (max-width: 1050px) {
+  .appGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .appFeatured {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .appGrid,
+  .appFeatured {
+    grid-template-columns: 1fr;
+  }
+}
