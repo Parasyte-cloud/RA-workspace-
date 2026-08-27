@@ -1,0 +1,397 @@
+.virtualCardOverlay{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(2,11,28,.72);
+  backdrop-filter:blur(18px);
+  overflow:auto;
+}
+
+.virtualCardModal{
+  width:min(1040px,100%);
+  min-width:0;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:30px;
+  padding:24px;
+  background:
+    linear-gradient(145deg,rgba(12,39,72,.94),rgba(5,20,43,.97));
+  box-shadow:0 32px 90px rgba(0,0,0,.45);
+}
+
+.virtualCardTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+  color:white;
+  margin-bottom:22px;
+}
+
+.virtualCardTop h2{
+  margin:5px 0;
+}
+
+.virtualCardTop p{
+  margin:0;
+  opacity:.68;
+}
+
+.virtualCardStage{
+  display:grid;
+  place-items:center;
+  perspective:1800px;
+}
+
+.virtualCardPhone{
+  width:min(400px,100%);
+  min-height:690px;
+  perspective:1800px;
+}
+
+.virtualCardFaces{
+  position:relative;
+  width:100%;
+  min-height:690px;
+  transform-style:preserve-3d;
+  transition:transform .6s cubic-bezier(.2,.75,.2,1);
+}
+
+.virtualCardPhone.showBack .virtualCardFaces{
+  transform:rotateY(180deg);
+}
+
+.virtualCardFace{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border-radius:42px;
+  padding:28px 24px;
+  color:#fff;
+  backface-visibility:hidden;
+  border:1px solid rgba(190,220,255,.38);
+  background:
+    radial-gradient(circle at 15% 10%,rgba(67,165,255,.25),transparent 34%),
+    radial-gradient(circle at 90% 93%,rgba(255,126,0,.18),transparent 27%),
+    linear-gradient(150deg,#12355c 0%,#071d3b 43%,#07172e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 -1px 0 rgba(255,132,0,.3),
+    0 28px 80px rgba(0,0,0,.42);
+}
+
+.virtualCardFace::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      125deg,
+      rgba(255,255,255,.14),
+      transparent 23%,
+      transparent 71%,
+      rgba(34,143,255,.08)
+    );
+}
+
+.virtualCardFace>*{
+  position:relative;
+  z-index:1;
+}
+
+.virtualCardBack{
+  transform:rotateY(180deg);
+  text-align:center;
+}
+
+.virtualCardBrand{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:24px;
+}
+
+.virtualCardBrand strong{
+  font-size:27px;
+  font-weight:600;
+  letter-spacing:-1.5px;
+}
+
+.virtualCardBrand strong b{
+  color:#ff7a00;
+  font-weight:600;
+}
+
+.virtualCardBrand>span{
+  font-size:10px;
+  letter-spacing:.15em;
+  opacity:.58;
+}
+
+.virtualCardIdentity{
+  text-align:center;
+}
+
+.virtualCardAvatar{
+  width:132px;
+  height:132px;
+  margin:0 auto 17px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:3px solid #ff7a00;
+  background:#0c294c;
+  box-shadow:
+    0 0 0 6px rgba(255,122,0,.08),
+    0 12px 40px rgba(0,0,0,.35);
+}
+
+.virtualCardAvatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.virtualCardAvatar span{
+  font-size:38px;
+  font-weight:700;
+}
+
+.virtualCardIdentity h1{
+  margin:0;
+  font-size:25px;
+  line-height:1.15;
+}
+
+.virtualCardTitle{
+  display:block;
+  color:#ff8a1c;
+  margin-top:7px;
+  font-size:15px;
+}
+
+.virtualCardDepartment{
+  display:inline-flex;
+  margin-top:7px;
+  padding:5px 10px;
+  border-radius:100px;
+  background:rgba(255,255,255,.08);
+  font-size:11px;
+  opacity:.82;
+}
+
+.virtualCardActions{
+  display:grid;
+  gap:9px;
+  margin-top:25px;
+}
+
+.virtualCardActions a,
+.virtualCardActions>div{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  min-height:46px;
+  padding:9px 13px;
+  color:inherit;
+  text-decoration:none;
+  text-align:left;
+  border:1px solid rgba(170,213,255,.18);
+  border-radius:18px;
+  background:rgba(12,54,91,.55);
+  backdrop-filter:blur(16px);
+}
+
+.virtualCardActions span{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.virtualCardSocial{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top:22px;
+}
+
+.virtualCardSocial a,
+.virtualCardSocial button,
+.virtualCardFlipBack{
+  min-height:40px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+  color:white;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 13px;
+  cursor:pointer;
+  text-decoration:none;
+}
+
+.virtualCardBackLogo{
+  width:86px;
+  height:86px;
+  display:grid;
+  place-items:center;
+  margin:3px auto 12px;
+  color:#ff7a00;
+}
+
+.virtualCardBack h2{
+  margin:0;
+  color:#ff8514;
+}
+
+.virtualCardBio{
+  line-height:1.55;
+  opacity:.83;
+  min-height:72px;
+}
+
+.virtualCardDivider{
+  height:1px;
+  margin:19px 0;
+  background:linear-gradient(
+    90deg,
+    transparent,
+    #ff7a00,
+    transparent
+  );
+}
+
+.virtualCardFacts{
+  display:grid;
+  gap:9px;
+  text-align:left;
+}
+
+.virtualCardFacts>div{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  min-height:58px;
+  padding:10px 15px;
+  border-radius:21px;
+  border:1px solid rgba(173,213,255,.19);
+  background:rgba(23,69,110,.48);
+}
+
+.virtualCardFacts svg{
+  color:#ff8a1c;
+  flex-shrink:0;
+}
+
+.virtualCardFacts span{
+  display:grid;
+  min-width:0;
+}
+
+.virtualCardFacts small{
+  color:#ff8a1c;
+  font-size:10px;
+}
+
+.virtualCardFacts strong{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:13px;
+}
+
+.virtualCardQR{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  margin:17px 0;
+}
+
+.virtualCardQR>div{
+  background:white;
+  border-radius:12px;
+  padding:4px;
+  line-height:0;
+}
+
+.virtualCardQR span{
+  font-size:12px;
+  opacity:.75;
+}
+
+.virtualCardSave{
+  width:100%;
+  min-height:48px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  border:1px solid #ff7a00;
+  border-radius:20px;
+  color:white;
+  background:rgba(255,122,0,.08);
+  cursor:pointer;
+  font-weight:700;
+}
+
+.virtualCardFlipBack{
+  margin-top:10px;
+}
+
+.employeeProfileButton{
+  display:inline-flex;
+  gap:7px;
+  align-items:center;
+  border:1px solid rgba(9,49,84,.12);
+  background:#fff;
+  border-radius:10px;
+  padding:7px 10px;
+  cursor:pointer;
+  font:inherit;
+}
+
+@media(max-width:640px){
+  .virtualCardOverlay{
+    padding:0;
+    align-items:start;
+  }
+
+  .virtualCardModal{
+    min-height:100dvh;
+    border-radius:0;
+    padding:14px;
+  }
+
+  .virtualCardTop{
+    margin-bottom:14px;
+  }
+
+  .virtualCardPhone,
+  .virtualCardFaces{
+    min-height:660px;
+  }
+
+  .virtualCardFace{
+    border-radius:32px;
+    padding:22px 18px;
+  }
+
+  .virtualCardAvatar{
+    width:110px;
+    height:110px;
+  }
+
+  .virtualCardIdentity h1{
+    font-size:21px;
+  }
+}

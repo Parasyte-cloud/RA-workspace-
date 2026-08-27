@@ -7,3 +7,12 @@ dist/
 *.log
 *.zip
 *.tsbuildinfo
+
+# Local audit and recovery copies
+*.pre-pwa-audit
+*.before-auth-hardening
+*.before-final-authgate
+*.before-responsive-fix
+*.before-audit
+*.backup
+*.bak

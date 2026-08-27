@@ -103,8 +103,8 @@ serve(async (req) => {
     if (
       profileError ||
       !profile ||
-      !["support", "manager", "admin"].includes(
-        String(profile.role).toLowerCase()
+      !["support", "operations", "manager", "admin"].includes(
+        String(profile.role).trim().toLowerCase()
       )
     ) {
       return json(

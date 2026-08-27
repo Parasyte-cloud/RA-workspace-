@@ -377,25 +377,7 @@ export function MailModule(){
             <span>{messages.length}</span>
           </button>
 
-          <button>
-            <Star size={18}/>
-            Starred
-          </button>
 
-          <button>
-            <Send size={18}/>
-            Sent
-          </button>
-
-          <button>
-            <Bell size={18}/>
-            Notifications
-          </button>
-
-          <button>
-            <Settings size={18}/>
-            Mail settings
-          </button>
         </aside>
 
         <div className="mailList">
