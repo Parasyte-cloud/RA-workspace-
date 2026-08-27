@@ -18,12 +18,22 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
 
-    const messageId = String(body?.messageId || "").trim()
-    const folderId = String(body?.folderId || "").trim()
+    const messageId =
+      String(body?.messageId || "").trim()
+
+    const folderId =
+      String(body?.folderId || "").trim()
 
     if (!messageId) {
       return jsonResponse(
         { error: "messageId is required." },
+        400
+      )
+    }
+
+    if (!folderId) {
+      return jsonResponse(
+        { error: "folderId is required to open this email." },
         400
       )
     }
@@ -46,80 +56,86 @@ serve(async (req) => {
         "https://mail.zoho.com/api"
       ).replace(/\/$/, "")
 
-    const url = new URL(
-      `${apiBase}/accounts/${encodeURIComponent(
-        connection.zoho_account_id
-      )}/messages/${encodeURIComponent(messageId)}/content`
-    )
+    const url =
+      `${apiBase}` +
+      `/accounts/${encodeURIComponent(connection.zoho_account_id)}` +
+      `/folders/${encodeURIComponent(folderId)}` +
+      `/messages/${encodeURIComponent(messageId)}` +
+      `/content`
 
-    /*
-     * Some Zoho mailbox/message contexts need the folder
-     * associated with the message. Preserve it whenever the
-     * inbox endpoint supplied it.
-     */
-    if (folderId) {
-      url.searchParams.set("folderId", folderId)
-    }
+    console.log("Loading Zoho message content", {
+      userId: user.id,
+      folderId,
+      messageId,
+    })
 
-    const response = await fetch(
-      url.toString(),
-      {
-        method: "GET",
-        headers: {
-          Authorization:
-            `Zoho-oauthtoken ${accessToken}`,
-          Accept: "application/json",
-        },
-      }
-    )
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization:
+          `Zoho-oauthtoken ${accessToken}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
 
     const raw = await response.text()
 
     let data: any = null
 
     try {
-      data = raw ? JSON.parse(raw) : null
+      data = raw ? JSON.parse(raw) : {}
     } catch {
-      data = {
-        raw,
-      }
+      console.error(
+        "Zoho returned non-JSON response",
+        {
+          status: response.status,
+          preview: raw.slice(0, 300),
+        }
+      )
+
+      return jsonResponse(
+        {
+          error:
+            "Zoho returned an invalid response while opening this email.",
+        },
+        502
+      )
     }
 
     if (!response.ok) {
       console.error(
-        "Zoho message content request failed",
+        "Zoho message request failed",
         {
           status: response.status,
-          messageId,
-          folderId: folderId || null,
-          zohoStatus: data?.status || null,
+          zohoStatus: data?.status,
+          zohoErrorCode:
+            data?.data?.errorCode ||
+            data?.errorCode ||
+            null,
         }
       )
 
       const description =
         data?.status?.description ||
         data?.data?.errorCode ||
-        data?.error?.message ||
-        null
+        data?.error ||
+        "Unable to load email content."
 
       return jsonResponse(
         {
-          error:
-            description
-              ? `Unable to load email content: ${description}`
-              : "Unable to load email content.",
+          error: `Unable to load email content: ${description}`,
         },
         response.status >= 400 &&
         response.status < 600
           ? response.status
-          : 500
+          : 502
       )
     }
 
     return jsonResponse({
       message:
         data?.data ||
-        data ||
         {},
     })
   } catch (error) {
