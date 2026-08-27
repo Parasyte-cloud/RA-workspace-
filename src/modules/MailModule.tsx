@@ -10,6 +10,9 @@ import {
   Reply,
   Search,
   Send,
+  Star,
+  Bell,
+  Settings,
   X
 } from 'lucide-react'
 import DOMPurify from 'dompurify'
@@ -461,8 +464,8 @@ export function MailModule(){
           <h2>Company Mail</h2>
 
           <p>
-            Inbox, compose and reply from your
-            connected RideArrivo mailbox.
+            Your RideArrivo inbox, compose, reply
+            and notifications.
           </p>
         </div>
 
@@ -487,31 +490,219 @@ export function MailModule(){
       </div>
 
       {message &&
-        <div
-          className="glassCard"
-          style={{padding:14,marginBottom:14}}
-        >
+        <div className="mailNotice">
           {message}
         </div>
       }
 
-      {compose &&
-        <div
-          className="glassCard"
-          style={{
-            padding:20,
-            marginBottom:18,
-            display:'grid',
-            gap:12
-          }}
-        >
-          <div
-            style={{
-              display:'flex',
-              justifyContent:'space-between',
-              alignItems:'center'
-            }}
+      <div className="mailWorkspace">
+
+        <aside className="mailFolders">
+
+          <div className="mailFolderTitle">
+            <span>MAILBOX</span>
+          </div>
+
+          <button className="active">
+            <Inbox size={18}/>
+            <strong>Inbox</strong>
+            <span>{messages.length}</span>
+          </button>
+
+          <button disabled>
+            <Star size={18}/>
+            <span>Starred</span>
+          </button>
+
+          <button disabled>
+            <Send size={18}/>
+            <span>Sent</span>
+          </button>
+
+          <button disabled>
+            <PenSquare size={18}/>
+            <span>Drafts</span>
+          </button>
+
+          <button disabled>
+            <Bell size={18}/>
+            <span>Notifications</span>
+          </button>
+
+          <div className="mailFolderDivider"/>
+
+          <button disabled>
+            <Settings size={18}/>
+            <span>Mail settings</span>
+          </button>
+
+          <button
+            className="mailTrayCompose"
+            onClick={startCompose}
           >
+            <PenSquare size={18}/>
+            Compose
+          </button>
+
+        </aside>
+
+        <div className="mailListPane">
+
+          <div className="mailSearchBar">
+            <div className="mailSearchBarInner">
+              <Search size={18}/>
+
+              <input
+                value={search}
+                onChange={e=>
+                  setSearch(e.target.value)
+                }
+                placeholder="Search mail"
+              />
+            </div>
+          </div>
+
+          <div className="mailListScroller">
+
+            {loading &&
+              <div className="mailLoadingState">
+                <Loader2 size={18}/>
+                Loading messages…
+              </div>
+            }
+
+            {!loading &&
+              filtered.length===0 &&
+              <div className="mailLoadingState">
+                <Inbox size={24}/>
+                <p>No messages found.</p>
+              </div>
+            }
+
+            {!loading &&
+              filtered.map(item=>(
+                <button
+                  key={item.messageId}
+                  className={
+                    selected?.messageId===item.messageId
+                      ? 'mailMessageRow active'
+                      : 'mailMessageRow'
+                  }
+                  onClick={()=>
+                    void openMessage(item)
+                  }
+                >
+
+                  <div className="mailSender">
+                    {item.sender ||
+                     item.fromAddress ||
+                     'Unknown sender'}
+                  </div>
+
+                  <div className="mailMessageSummary">
+                    <strong>
+                      {item.subject ||
+                       '(No subject)'}
+                    </strong>
+
+                    {item.summary &&
+                      <span>
+                        {item.summary}
+                      </span>
+                    }
+                  </div>
+
+                  <span className="mailMessageTime">
+                    {item.receivedTime ||
+                     item.sentDateInGMT ||
+                     ''}
+                  </span>
+
+                </button>
+              ))
+            }
+
+          </div>
+        </div>
+
+        <article className="mailReader">
+
+          {!selected ? (
+            <div className="mailEmpty">
+              <Mail size={52}/>
+
+              <h3>Select an email</h3>
+
+              <p>
+                Choose a message to read it here.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mailReaderHeader">
+
+                <div>
+                  <span className="eyebrow">
+                    MESSAGE
+                  </span>
+
+                  <h3>
+                    {selected.subject ||
+                     '(No subject)'}
+                  </h3>
+
+                  <span>
+                    From:{' '}
+                    {selected.fromAddress ||
+                     selected.sender ||
+                     'Unknown sender'}
+                  </span>
+                </div>
+
+                <div className="buttonRow">
+
+                  <button
+                    className="glassButton"
+                    onClick={()=>
+                      setSelected(null)
+                    }
+                  >
+                    <ArrowLeft size={16}/>
+                    Back
+                  </button>
+
+                  <button
+                    className="primaryButton"
+                    onClick={startReply}
+                  >
+                    <Reply size={16}/>
+                    Reply
+                  </button>
+
+                </div>
+              </div>
+
+              <div
+                className="mailReaderBody"
+                dangerouslySetInnerHTML={{
+                  __html:DOMPurify.sanitize(
+                    selected.content ||
+                    selected.summary ||
+                    ''
+                  )
+                }}
+              />
+            </>
+          )}
+
+        </article>
+
+      </div>
+
+      {compose &&
+        <div className="mailComposer">
+
+          <div className="mailComposerHeader">
             <strong>
               {selected
                 ? 'Reply'
@@ -521,40 +712,53 @@ export function MailModule(){
 
             <button
               className="iconButton"
-              onClick={()=>setCompose(false)}
+              onClick={()=>
+                setCompose(false)
+              }
               aria-label="Close composer"
             >
               <X size={18}/>
             </button>
           </div>
 
-          <input
-            type="email"
-            value={to}
-            onChange={e=>setTo(e.target.value)}
-            placeholder="Recipient email"
-            autoComplete="off"
-          />
+          <div className="mailComposerBody">
 
-          <input
-            value={subject}
-            onChange={e=>
-              setSubject(e.target.value)
-            }
-            placeholder="Subject"
-          />
+            <input
+              type="email"
+              value={to}
+              onChange={e=>
+                setTo(e.target.value)
+              }
+              placeholder="Recipient email"
+              autoComplete="off"
+            />
 
-          <textarea
-            value={body}
-            onChange={e=>setBody(e.target.value)}
-            placeholder="Write your message..."
-            rows={10}
-          />
+            <input
+              value={subject}
+              onChange={e=>
+                setSubject(e.target.value)
+              }
+              placeholder="Subject"
+            />
 
-          <div className="buttonRow">
+            <textarea
+              value={body}
+              onChange={e=>
+                setBody(e.target.value)
+              }
+              placeholder="Write your message..."
+              rows={10}
+            />
+
+          </div>
+
+          <div className="mailComposerFooter">
+
             <button
               className="primaryButton"
-              onClick={()=>void sendMail()}
+              onClick={()=>
+                void sendMail()
+              }
               disabled={sending}
             >
               {sending
@@ -567,146 +771,10 @@ export function MailModule(){
                 : 'Send'
               }
             </button>
+
           </div>
         </div>
       }
 
-      <div
-        style={{
-          display:'grid',
-          gridTemplateColumns:
-            selected
-              ? 'minmax(280px,.8fr) minmax(360px,1.2fr)'
-              : '1fr',
-          gap:18
-        }}
-      >
-        <div className="glassCard">
-          <div
-            style={{
-              padding:16,
-              display:'flex',
-              gap:10,
-              alignItems:'center'
-            }}
-          >
-            <Search size={17}/>
-
-            <input
-              value={search}
-              onChange={e=>
-                setSearch(e.target.value)
-              }
-              placeholder="Search mail"
-              style={{width:'100%'}}
-            />
-          </div>
-
-          {loading &&
-            <div style={{padding:18}}>
-              <Loader2 size={18}/>
-              Loading…
-            </div>
-          }
-
-          {!loading &&
-            filtered.length===0 &&
-            <div style={{padding:22}}>
-              <Inbox size={24}/>
-              <p>No messages found.</p>
-            </div>
-          }
-
-          {filtered.map(item=>(
-            <button
-              key={item.messageId}
-              onClick={()=>
-                void openMessage(item)
-              }
-              style={{
-                width:'100%',
-                textAlign:'left',
-                padding:16,
-                border:0,
-                borderTop:
-                  '1px solid rgba(0,0,0,.08)',
-                background:'transparent',
-                cursor:'pointer'
-              }}
-            >
-              <strong>
-                {item.sender ||
-                 item.fromAddress ||
-                 'Unknown sender'}
-              </strong>
-
-              <div>
-                {item.subject ||
-                 '(No subject)'}
-              </div>
-
-              {item.summary &&
-                <small>
-                  {item.summary}
-                </small>
-              }
-            </button>
-          ))}
-        </div>
-
-        {selected &&
-          <article
-            className="glassCard"
-            style={{padding:20}}
-          >
-            <div className="buttonRow">
-              <button
-                className="glassButton"
-                onClick={()=>
-                  setSelected(null)
-                }
-              >
-                <ArrowLeft size={16}/>
-                Back
-              </button>
-
-              <button
-                className="primaryButton"
-                onClick={startReply}
-              >
-                <Reply size={16}/>
-                Reply
-              </button>
-            </div>
-
-            <h2>
-              {selected.subject ||
-               '(No subject)'}
-            </h2>
-
-            <p>
-              From:{' '}
-              {selected.fromAddress ||
-               selected.sender ||
-               'Unknown'}
-            </p>
-
-            <div
-              style={{
-                marginTop:20,
-                lineHeight:1.6
-              }}
-              dangerouslySetInnerHTML={{
-                __html:DOMPurify.sanitize(
-                  selected.content ||
-                  selected.summary ||
-                  ''
-                )
-              }}
-            />
-          </article>
-        }
-      </div>
     </section>
-  )
-}
+  )}
