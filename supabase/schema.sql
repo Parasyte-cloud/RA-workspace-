@@ -727,3 +727,7 @@ create index if not exists idx_social_reactions_post on public.social_post_react
 create index if not exists idx_social_reposts_post on public.social_reposts(post_id);
 create index if not exists idx_social_notifications_user on public.social_notifications(user_id,created_at desc);
 create index if not exists idx_social_messages_conversation on public.social_messages(conversation_id,created_at desc) where deleted_at is null;
+
+grant select
+on table public.employee_profiles
+to service_role;
