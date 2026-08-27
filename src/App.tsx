@@ -15,8 +15,15 @@ import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, Su
 import { SocialModule } from './modules/SocialModule'
 import { MailModule } from './modules/MailModule'
 import ApplicationsHub from './modules/ApplicationsHub'
+import {
+  AnnouncementsModule,
+  CalendarModule,
+  TasksModule,
+  KnowledgeBaseModule,
+  CompanyFilesModule,
+} from './modules/Phase2Modules'
 
-type Section = 'overview'|'social'|'mail'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+type Section = 'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = { full_name:string; email:string; role:Role; department:string; job_title:string }
@@ -25,16 +32,24 @@ const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearriv
   .toLowerCase().split(',').map((v:string)=>v.trim()).filter(Boolean)
 
 const sectionAccess:Partial<Record<Section,Role[]>>={
-  social:['employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'],
-  mail:['employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'],
+  overview:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  social:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  mail:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
   crm:['support','operations','marketing','partnerships','manager','admin'],
   support:['support','operations','manager','admin'],
   engineering:['engineer','manager','admin'],
-  operations:['operations','manager','admin'],
+  people:['hr','manager','admin'],
+  operations:['operations','support','manager','admin'],
   finance:['finance','manager','admin'],
   marketing:['marketing','partnerships','manager','admin'],
   partnerships:['partnerships','marketing','operations','finance','legal','manager','admin'],
   legal:['legal','manager','admin'],
+  announcements:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  calendar:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  tasks:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  files:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  knowledge:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+  apps:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
   admin:['admin']
 }
 const canAccess=(role:Role,section:Section)=>!sectionAccess[section]||sectionAccess[section]!.includes(role)
@@ -125,7 +140,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['social','Pulse',Bell],['mail','Mail',Mail],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -149,6 +164,11 @@ function App(){
       <div className="content">
         {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>} 
         {section==='mail'&&<MailModule/>}
+        {section==='calendar'&&<CalendarModule/>}
+        {section==='tasks'&&<TasksModule/>}
+        {section==='announcements'&&<AnnouncementsModule/>}
+        {section==='files'&&<CompanyFilesModule/>}
+        {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
         {section==='support'&&<SupportModule/>}

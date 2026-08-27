@@ -1371,3 +1371,161 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* RideArrivo Workspace Phase 2 */
+
+.phase2Module {
+  display: grid;
+  gap: 18px;
+}
+
+.phase2Header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.phase2Header h2 {
+  margin: 6px 0 7px;
+}
+
+.phase2Header p {
+  margin: 0;
+  opacity: .65;
+  max-width: 760px;
+}
+
+.phase2Stack {
+  display: grid;
+  gap: 12px;
+}
+
+.phase2Grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.phase2Record {
+  padding: 18px;
+}
+
+.phase2RecordTop {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+
+.phase2RecordTop > div:nth-child(2) {
+  flex: 1;
+}
+
+.phase2RecordTop h3 {
+  margin: 4px 0 0;
+}
+
+.phase2Record > p {
+  line-height: 1.55;
+  opacity: .72;
+}
+
+.phase2Icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,.06);
+}
+
+.phase2Meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: .8rem;
+  opacity: .68;
+}
+
+.phase2Meta a {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: inherit;
+}
+
+.phase2Filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.phase2Search {
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.phase2Search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.phase2Empty {
+  padding: 26px;
+  text-align: center;
+  opacity: .7;
+}
+
+.knowledgeCard {
+  border: 0;
+  color: inherit;
+  padding: 18px;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.knowledgeCard p {
+  margin: 0;
+  opacity: .65;
+}
+
+.knowledgeArticle {
+  padding: 25px;
+}
+
+.knowledgeContent {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  margin-top: 22px;
+}
+
+.companyFilesNotice {
+  padding: 17px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+
+.companyFilesNotice p {
+  margin: 5px 0 0;
+  opacity: .65;
+}
+
+@media (max-width: 900px) {
+  .phase2Grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .phase2Grid {
+    grid-template-columns: 1fr;
+  }
+}
