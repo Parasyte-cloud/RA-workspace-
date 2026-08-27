@@ -93,49 +93,87 @@ serve(async (req) => {
       return json({ error: "Unauthorized" }, 401)
     }
 
-    const { data: profile, error: profileError } =
-      await admin
+    let profile:any = null
+
+    const {
+      data: profileById,
+      error: profileByIdError,
+    } = await admin
+      .from("employee_profiles")
+      .select("id,role,email,full_name")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (!profileByIdError && profileById) {
+      profile = profileById
+    }
+
+    if (!profile && user.email) {
+      const {
+        data: profileByEmail,
+        error: profileByEmailError,
+      } = await admin
         .from("employee_profiles")
-        .select("role,email,full_name")
-        .eq("id", user.id)
+        .select("id,role,email,full_name")
+        .ilike("email", user.email)
         .maybeSingle()
 
-    if (profileError) {
-      console.error("Support profile lookup failed", {
-        userId: user.id,
-        error: profileError,
-      })
-
-      return json(
-        { error: "Unable to verify your Workspace profile." },
-        500
-      )
+      if (profileByEmailError) {
+        console.error(
+          "Support profile email lookup failed",
+          {
+            userId: user.id,
+            email: user.email,
+            error: profileByEmailError,
+          }
+        )
+      } else {
+        profile = profileByEmail
+      }
     }
 
     if (!profile) {
-      console.error("Support profile missing", {
-        userId: user.id,
-        email: user.email,
-      })
+      console.error(
+        "Support Workspace profile not found",
+        {
+          authUserId: user.id,
+          authEmail: user.email,
+          idLookupError: profileByIdError,
+        }
+      )
 
       return json(
-        { error: "Your Workspace employee profile could not be found." },
+        {
+          error:
+            "Your Workspace employee profile could not be found.",
+        },
         403
       )
     }
 
-    const role = String(profile.role || "")
-      .trim()
-      .toLowerCase()
+    const role =
+      String(profile.role || "")
+        .trim()
+        .toLowerCase()
 
-    if (
-      !["support", "operations", "manager", "admin"].includes(role)
-    ) {
-      console.error("Support access denied", {
-        userId: user.id,
-        email: profile.email,
-        role,
-      })
+    const allowedRoles = [
+      "support",
+      "operations",
+      "manager",
+      "admin",
+    ]
+
+    if (!allowedRoles.includes(role)) {
+      console.error(
+        "Support role rejected",
+        {
+          authUserId: user.id,
+          authEmail: user.email,
+          profileId: profile.id,
+          profileEmail: profile.email,
+          role,
+        }
+      )
 
       return json(
         {

@@ -2300,3 +2300,549 @@ textarea {
   box-sizing: border-box;
 }
 
+
+/* =========================================================
+   RIDEARRIVO MAIL WORKSPACE
+   ========================================================= */
+
+.mailWorkspace {
+  min-height: calc(100vh - 170px);
+  display: grid;
+  grid-template-columns: 210px minmax(340px, 0.9fr) minmax(420px, 1.2fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 166, 0, 0.24);
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.86),
+      rgba(245,249,255,.72)
+    );
+  box-shadow:
+    0 24px 60px rgba(12, 34, 65, .08),
+    inset 0 1px 0 rgba(255,255,255,.92);
+  backdrop-filter: blur(28px);
+}
+
+.mailFolders {
+  padding: 18px 12px;
+  border-right: 1px solid rgba(11,35,66,.08);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,252,246,.86),
+      rgba(255,255,255,.58)
+    );
+}
+
+.mailFolderButton {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 15px;
+  padding: 0 13px;
+  background: transparent;
+  color: #536174;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background .18s ease,
+    color .18s ease,
+    transform .18s ease;
+}
+
+.mailFolderButton:hover {
+  background: rgba(255,255,255,.82);
+  color: #0b2445;
+}
+
+.mailFolderButton.active {
+  color: #092346;
+  font-weight: 800;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,174,43,.22),
+      rgba(255,255,255,.72)
+    );
+  box-shadow:
+    inset 3px 0 0 #ff9f0a;
+}
+
+.mailFolderButton .mailCount {
+  margin-left: auto;
+  min-width: 25px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.mailListPane {
+  min-width: 0;
+  border-right: 1px solid rgba(11,35,66,.08);
+  background: rgba(255,255,255,.45);
+}
+
+.mailSearchBar {
+  padding: 18px;
+  border-bottom: 1px solid rgba(11,35,66,.08);
+}
+
+.mailSearchBarInner {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  border: 1px solid rgba(11,35,66,.10);
+  border-radius: 15px;
+  background: rgba(255,255,255,.82);
+}
+
+.mailSearchBarInner input {
+  width: 100%;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.mailMessageRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 135px minmax(0,1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 17px 18px;
+  border: 0;
+  border-bottom: 1px solid rgba(11,35,66,.07);
+  background: transparent;
+  color: #0a2344;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mailMessageRow:hover {
+  background: rgba(244,248,253,.92);
+}
+
+.mailMessageRow.active {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,169,27,.10),
+      rgba(233,242,252,.82)
+    );
+}
+
+.mailSender {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mailMessageSummary {
+  min-width: 0;
+}
+
+.mailMessageSummary strong,
+.mailMessageSummary span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mailMessageSummary span {
+  margin-top: 4px;
+  color: #7c899b;
+  font-size: 13px;
+}
+
+.mailMessageTime {
+  color: #98a2af;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.mailReader {
+  min-width: 0;
+  padding: 26px;
+  overflow: auto;
+  background:
+    radial-gradient(
+      circle at 85% 10%,
+      rgba(178,215,255,.18),
+      transparent 34%
+    ),
+    rgba(255,255,255,.58);
+}
+
+.mailEmptyReader {
+  min-height: 440px;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  color: #8793a1;
+}
+
+.mailComposer {
+  position: fixed;
+  right: 32px;
+  bottom: 28px;
+  z-index: 120;
+  width: min(620px, calc(100vw - 64px));
+  border: 1px solid rgba(255,166,0,.28);
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(252,253,255,.96);
+  box-shadow: 0 28px 90px rgba(7,31,61,.22);
+  backdrop-filter: blur(30px);
+}
+
+.mailComposerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 20px;
+  background: #0b2445;
+  color: white;
+}
+
+.mailComposerBody {
+  display: grid;
+  gap: 0;
+}
+
+.mailComposerBody input,
+.mailComposerBody textarea {
+  border: 0 !important;
+  border-bottom: 1px solid rgba(11,35,66,.09) !important;
+  border-radius: 0 !important;
+  padding: 15px 20px !important;
+  background: transparent !important;
+  outline: 0;
+}
+
+.mailComposerBody textarea {
+  min-height: 260px;
+  resize: vertical;
+}
+
+.mailComposerFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 18px;
+}
+
+@media (max-width: 1100px) {
+  .mailWorkspace {
+    grid-template-columns: 175px 1fr;
+  }
+
+  .mailReader {
+    grid-column: 1 / -1;
+  }
+}
+
+/* =========================================================
+   EMPLOYEE PROFILE
+   ========================================================= */
+
+.employeeProfilePage {
+  display: grid;
+  gap: 22px;
+}
+
+.profileHero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.profileHero h2 {
+  margin: 6px 0;
+  font-size: clamp(30px,4vw,46px);
+  color: #092346;
+}
+
+.profileHero p {
+  margin: 0;
+  color: #6b798d;
+}
+
+.profileShell {
+  display: grid;
+  grid-template-columns: 310px minmax(0,1fr);
+  gap: 20px;
+}
+
+.profileIdentityCard,
+.profileDetailsCard {
+  position: relative;
+  border: 1px solid rgba(255,164,20,.23);
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.88),
+      rgba(246,250,255,.68)
+    );
+  box-shadow:
+    0 24px 70px rgba(8,31,60,.08),
+    inset 0 1px 0 rgba(255,255,255,.96);
+  backdrop-filter: blur(30px);
+}
+
+.profileIdentityCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 34px 26px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.profileIdentityCard::before {
+  content: '';
+  position: absolute;
+  inset: -35% -40% auto;
+  height: 260px;
+  background:
+    radial-gradient(
+      circle,
+      rgba(255,160,0,.21),
+      transparent 64%
+    );
+  pointer-events: none;
+}
+
+.profileHeadshot {
+  position: relative;
+  z-index: 1;
+  width: 142px;
+  height: 142px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 4px solid rgba(255,255,255,.9);
+  border-radius: 50%;
+  background: #eef3f8;
+  color: #092346;
+  box-shadow:
+    0 0 0 2px rgba(255,159,10,.76),
+    0 16px 35px rgba(9,35,70,.15);
+}
+
+.profileHeadshot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profilePhotoAction {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #526276;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profileIdentityCard h2 {
+  position: relative;
+  z-index: 1;
+  margin: 20px 0 4px;
+  color: #082343;
+  font-size: 25px;
+}
+
+.profileIdentityCard > strong {
+  color: #ff9700;
+}
+
+.profileIdentityCard > span {
+  margin-top: 5px;
+  color: #718096;
+}
+
+.profileIdentityEmail {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: 23px 0;
+  padding: 13px;
+  border-radius: 14px;
+  background: rgba(9,35,70,.045);
+  color: #526277;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.profileDetailsCard {
+  padding: 28px;
+}
+
+.profileDetailGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap: 14px;
+}
+
+.profileInfo {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 17px;
+  border: 1px solid rgba(9,35,70,.07);
+  border-radius: 18px;
+  background: rgba(255,255,255,.66);
+}
+
+.profileInfoIcon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #ff9700;
+  background: rgba(255,151,0,.10);
+}
+
+.profileInfoIcon svg {
+  width: 19px;
+}
+
+.profileInfo small,
+.profileInfo strong {
+  display: block;
+}
+
+.profileInfo small {
+  margin-bottom: 4px;
+  color: #8b97a5;
+}
+
+.profileInfo strong {
+  color: #0b2445;
+  overflow-wrap: anywhere;
+}
+
+.profileBio {
+  margin-top: 20px;
+  padding: 23px;
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(9,35,70,.045),
+      rgba(255,157,0,.045)
+    );
+}
+
+.profileBio p {
+  margin: 10px 0 0;
+  color: #55667a;
+  line-height: 1.75;
+}
+
+.profileEditForm {
+  display: grid;
+  gap: 22px;
+}
+
+.profileEditHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.profileEditHeader h3 {
+  margin: 4px 0 0;
+  color: #092346;
+  font-size: 23px;
+}
+
+.profileFieldGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap: 16px;
+}
+
+.profileField,
+.profileTextareaField {
+  display: grid;
+  gap: 7px;
+  color: #4d5e72;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profileField input,
+.profileTextareaField textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(9,35,70,.11);
+  border-radius: 14px;
+  background: rgba(255,255,255,.78);
+  padding: 13px 14px;
+  color: #092346;
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+
+.profileField input:focus,
+.profileTextareaField textarea:focus {
+  border-color: rgba(255,151,0,.65);
+  box-shadow:
+    0 0 0 3px rgba(255,151,0,.10);
+}
+
+.profileTextareaField textarea {
+  min-height: 125px;
+  resize: vertical;
+}
+
+.profileEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.profileMessage {
+  margin-top: 18px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: rgba(28,177,102,.09);
+  color: #167849;
+}
+
+@media (max-width: 900px) {
+  .profileShell {
+    grid-template-columns: 1fr;
+  }
+
+  .profileDetailGrid,
+  .profileFieldGrid {
+    grid-template-columns: 1fr;
+  }
+}
