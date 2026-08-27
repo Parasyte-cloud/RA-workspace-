@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
-  Bell,
   CheckCircle2,
   Inbox,
   Loader2,
@@ -11,11 +10,10 @@ import {
   Reply,
   Search,
   Send,
-  Settings,
-  Star
+  X
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import DOMPurify from 'dompurify'
+import { supabase } from '../lib/supabase'
 
 type MailMessage = {
   messageId:string
@@ -27,7 +25,7 @@ type MailMessage = {
   summary?:string
   receivedTime?:string
   sentDateInGMT?:string
-  isRead?:boolean | string
+  isRead?:boolean|string
 }
 
 type MailContent = MailMessage & {
@@ -35,47 +33,78 @@ type MailContent = MailMessage & {
 }
 
 export function MailModule(){
-  const [connected,setConnected]=useState<boolean|null>(null)
-  const [messages,setMessages]=useState<MailMessage[]>([])
-  const [selected,setSelected]=useState<MailContent|null>(null)
+  const [connected,setConnected]=
+    useState<boolean|null>(null)
+
+  const [messages,setMessages]=
+    useState<MailMessage[]>([])
+
+  const [selected,setSelected]=
+    useState<MailContent|null>(null)
+
   const [loading,setLoading]=useState(false)
+  const [sending,setSending]=useState(false)
   const [message,setMessage]=useState('')
   const [search,setSearch]=useState('')
+
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
   const [subject,setSubject]=useState('')
   const [body,setBody]=useState('')
-  const [sending,setSending]=useState(false)
 
-  const invoke=async(name:string,body?:Record<string,unknown>)=>{
+  const invoke=async(
+    name:string,
+    body?:Record<string,unknown>
+  )=>{
+    if(!supabase){
+      throw new Error(
+        'Supabase is not configured.'
+      )
+    }
 
-    if(!supabase) throw new Error('Supabase is not configured.')
+    const {
+      data:{ session }
+    } = await supabase.auth.getSession()
 
-    const {data,error}=await supabase.functions.invoke(name,{
-      body:body || {}
-    })
+    if(!session){
+      throw new Error(
+        'Your Workspace session has expired. Sign in again.'
+      )
+    }
+
+    const {data,error}=
+      await supabase.functions.invoke(
+        name,
+        {
+          body:body || {},
+          headers:{
+            Authorization:
+              `Bearer ${session.access_token}`
+          }
+        }
+      )
 
     if(error){
-      let errorMessage =
+      let errorMessage=
         error.message ||
-        'The mail service request failed.'
+        'Mail service request failed.'
 
       try{
         const context=(error as any).context
 
         if(
           context &&
-          typeof context.json === 'function'
+          typeof context.json==='function'
         ){
           const payload=await context.json()
 
-          errorMessage =
+          errorMessage=
             payload?.error ||
             payload?.message ||
             errorMessage
         }
       }catch{
-        // Keep the original Supabase error message.
+        // Use Supabase error.
       }
 
       throw new Error(errorMessage)
@@ -88,62 +117,61 @@ export function MailModule(){
     return data
   }
 
-
   const checkConnection=async()=>{
+    setMessage('')
+
     try{
-      const data=await invoke('zoho-mail-status')
+      const data=
+        await invoke('zoho-mail-status')
+
       setConnected(Boolean(data?.connected))
-    }catch{
+    }catch(error:any){
       setConnected(false)
+      setMessage(
+        error?.message ||
+        'Unable to check Zoho Mail connection.'
+      )
     }
   }
 
   const loadInbox=async()=>{
-
     setLoading(true)
     setMessage('')
 
     try{
+      const data=
+        await invoke('zoho-mail-inbox')
 
-      const data=await invoke('zoho-mail-inbox')
-
-      const rawRows =
+      const raw=
         Array.isArray(data?.messages)
           ? data.messages
           : Array.isArray(data?.data)
             ? data.data
             : []
 
-      const defaultFolderId =
+      const defaultFolderId=
         data?.folderId
           ? String(data.folderId)
           : ''
 
-      const rows:MailMessage[] =
-        rawRows.map((item:any)=>({
+      setMessages(
+        raw.map((item:any)=>({
           ...item,
           folderId:
             item?.folderId ||
             defaultFolderId ||
             undefined
         }))
-
-      setMessages(rows)
-
+      )
     }catch(error:any){
-
       setMessages([])
       setMessage(
         error?.message ||
         'Unable to load mailbox.'
       )
-
     }finally{
-
       setLoading(false)
-
     }
-
   }
 
   const connect=async()=>{
@@ -151,40 +179,91 @@ export function MailModule(){
     setMessage('')
 
     try{
-      const data=await invoke('zoho-mail-auth-url')
+      const data=
+        await invoke('zoho-mail-auth-url')
 
-      if(!data?.url) throw new Error('Zoho authorization URL was not returned.')
+      if(!data?.url){
+        throw new Error(
+          'Zoho authorization URL was not returned.'
+        )
+      }
 
-      window.location.href=data.url
+      window.location.assign(data.url)
     }catch(error:any){
-      setMessage(error?.message || 'Unable to connect Zoho Mail.')
+      setMessage(
+        error?.message ||
+        'Unable to connect Zoho Mail.'
+      )
       setLoading(false)
     }
   }
 
-  const openMessage=async(item:MailMessage)=>{
+  const openMessage=async(
+    item:MailMessage
+  )=>{
     setLoading(true)
     setMessage('')
 
     try{
-      const data=await invoke('zoho-mail-message',{
-        messageId:item.messageId,
-        folderId:item.folderId
-      })
+      const data=
+        await invoke(
+          'zoho-mail-message',
+          {
+            messageId:item.messageId,
+            folderId:item.folderId
+          }
+        )
 
       setSelected({
         ...item,
-        ...(data?.message || data?.data || {})
+        ...(data?.message ||
+          data?.data ||
+          {})
       })
     }catch(error:any){
-      setMessage(error?.message || 'Unable to open email.')
+      setMessage(
+        error?.message ||
+        'Unable to open email.'
+      )
     }finally{
       setLoading(false)
     }
   }
 
-  const sendMail=async()=>{
+  const startCompose=()=>{
+    setSelected(null)
+    setTo('')
+    setSubject('')
+    setBody('')
+    setMessage('')
+    setCompose(true)
+  }
 
+  const startReply=()=>{
+    if(!selected) return
+
+    const recipient=
+      selected.fromAddress ||
+      selected.sender ||
+      ''
+
+    setTo(recipient)
+
+    const current=
+      String(selected.subject || '').trim()
+
+    setSubject(
+      current.toLowerCase().startsWith('re:')
+        ? current
+        : `Re: ${current}`
+    )
+
+    setBody('')
+    setMessage('')
+    setCompose(true)
+  }
+
+  const sendMail=async()=>{
     const recipient=to.trim()
     const cleanSubject=subject.trim()
     const cleanBody=body.trim()
@@ -192,14 +271,19 @@ export function MailModule(){
     setMessage('')
 
     if(!recipient){
-      setMessage('Enter a recipient email address.')
+      setMessage(
+        'Enter a recipient email address.'
+      )
       return
     }
 
     if(
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient)
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        .test(recipient)
     ){
-      setMessage('Enter a valid recipient email address.')
+      setMessage(
+        'Enter a valid recipient email address.'
+      )
       return
     }
 
@@ -209,7 +293,9 @@ export function MailModule(){
     }
 
     if(!cleanBody){
-      setMessage('Enter a message before sending.')
+      setMessage(
+        'Enter a message before sending.'
+      )
       return
     }
 
@@ -218,17 +304,33 @@ export function MailModule(){
     setSending(true)
 
     try{
+      const htmlContent=
+        cleanBody
+          .split('\n')
+          .map(line=>
+            line
+              ? `<p>${line
+                  .replace(/&/g,'&amp;')
+                  .replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;')}</p>`
+              : '<br>'
+          )
+          .join('')
 
-      const result=await invoke('zoho-mail-send',{
-        toAddress:recipient,
-        subject:cleanSubject,
-        content:cleanBody
-      })
+      const result=
+        await invoke(
+          'zoho-mail-send',
+          {
+            toAddress:recipient,
+            subject:cleanSubject,
+            content:htmlContent
+          }
+        )
 
       if(!result?.success){
         throw new Error(
           result?.error ||
-          'Zoho did not confirm that the email was sent.'
+          'Zoho did not confirm the email was sent.'
         )
       }
 
@@ -236,44 +338,27 @@ export function MailModule(){
       setTo('')
       setSubject('')
       setBody('')
-
       setMessage('Email sent successfully.')
 
+      await loadInbox()
     }catch(error:any){
-
-      const errorMessage =
+      setMessage(
         error?.message ||
         'Unable to send email.'
-
-      setMessage(errorMessage)
-
+      )
     }finally{
-
       setSending(false)
-
     }
-
-  }
-
-  const reply=()=>{
-    if(!selected) return
-
-    setTo(selected.fromAddress || '')
-    setSubject(
-      selected.subject?.toLowerCase().startsWith('re:')
-        ? selected.subject
-        : `Re: ${selected.subject || ''}`
-    )
-    setBody('')
-    setCompose(true)
   }
 
   useEffect(()=>{
-    checkConnection()
+    void checkConnection()
   },[])
 
   useEffect(()=>{
-    if(connected) loadInbox()
+    if(connected){
+      void loadInbox()
+    }
   },[connected])
 
   if(connected===null){
@@ -290,26 +375,32 @@ export function MailModule(){
       <section>
         <div className="sectionTitle">
           <div>
-            <span className="eyebrow">RIDEARRIVO MAIL</span>
+            <span className="eyebrow">
+              RIDEARRIVO MAIL
+            </span>
             <h2>Company Mail</h2>
             <p>
-              Access your RideArrivo Zoho mailbox securely from the internal workspace.
+              Secure access to your RideArrivo
+              Zoho mailbox.
             </p>
           </div>
         </div>
 
         <div className="mailConnect glassCard">
-          <div className="mailConnectIcon">
-            <Mail size={34}/>
-          </div>
+          <Mail size={34}/>
 
           <div>
-            <span className="eyebrow">ZOHO MAIL</span>
-            <h2>Connect your RideArrivo mailbox</h2>
+            <span className="eyebrow">
+              ZOHO MAIL
+            </span>
+
+            <h2>
+              Connect your RideArrivo mailbox
+            </h2>
 
             <p>
-              Connect your company Zoho Mail account once. RideArrivo Workspace
-              never stores your Zoho password.
+              Authorize your company mailbox
+              using Zoho OAuth.
             </p>
 
             <div className="mailSecurity">
@@ -323,209 +414,299 @@ export function MailModule(){
               disabled={loading}
             >
               {loading
-                ? <><Loader2 size={16}/>Connecting...</>
-                : <><Mail size={16}/>Connect Zoho Mail</>
+                ? <Loader2 size={16}/>
+                : <Mail size={16}/>
               }
+              Connect Zoho Mail
             </button>
 
-            {message&&<div className="authMessage">{message}</div>}
+            {message &&
+              <div className="authMessage">
+                {message}
+              </div>
+            }
           </div>
         </div>
       </section>
     )
   }
 
-  const filtered=messages.filter(item=>{
-    const q=search.toLowerCase()
+  const filtered=
+    messages.filter(item=>{
+      const q=search.trim().toLowerCase()
 
-    return (
-      (item.subject || '').toLowerCase().includes(q) ||
-      (item.fromAddress || '').toLowerCase().includes(q) ||
-      (item.sender || '').toLowerCase().includes(q)
-    )
-  })
+      if(!q) return true
+
+      return (
+        String(item.subject || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(item.fromAddress || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(item.sender || '')
+          .toLowerCase()
+          .includes(q)
+      )
+    })
 
   return (
     <section className="mailModule">
       <div className="sectionTitle">
         <div>
-          <span className="eyebrow">RIDEARRIVO MAIL</span>
+          <span className="eyebrow">
+            RIDEARRIVO MAIL
+          </span>
+
           <h2>Company Mail</h2>
-          <p>Your RideArrivo inbox, compose, reply and notifications.</p>
+
+          <p>
+            Inbox, compose and reply from your
+            connected RideArrivo mailbox.
+          </p>
         </div>
 
         <div className="buttonRow">
-          <button className="glassButton" onClick={loadInbox}>
+          <button
+            className="glassButton"
+            onClick={()=>void loadInbox()}
+            disabled={loading}
+          >
             <RefreshCw size={16}/>
             Refresh
           </button>
 
-          <button className="primaryButton" onClick={()=>setCompose(true)}>
+          <button
+            className="primaryButton"
+            onClick={startCompose}
+          >
             <PenSquare size={16}/>
             Compose
           </button>
         </div>
       </div>
 
-      {message&&<div className="mailNotice">{message}</div>}
+      {message &&
+        <div
+          className="glassCard"
+          style={{padding:14,marginBottom:14}}
+        >
+          {message}
+        </div>
+      }
 
-      <div className="mailShell glassCard">
-        <aside className="mailFolders">
-          <button className="active">
-            <Inbox size={18}/>
-            Inbox
-            <span>{messages.length}</span>
-          </button>
+      {compose &&
+        <div
+          className="glassCard"
+          style={{
+            padding:20,
+            marginBottom:18,
+            display:'grid',
+            gap:12
+          }}
+        >
+          <div
+            style={{
+              display:'flex',
+              justifyContent:'space-between',
+              alignItems:'center'
+            }}
+          >
+            <strong>
+              {selected
+                ? 'Reply'
+                : 'New message'
+              }
+            </strong>
 
+            <button
+              className="iconButton"
+              onClick={()=>setCompose(false)}
+              aria-label="Close composer"
+            >
+              <X size={18}/>
+            </button>
+          </div>
 
-        </aside>
+          <input
+            type="email"
+            value={to}
+            onChange={e=>setTo(e.target.value)}
+            placeholder="Recipient email"
+            autoComplete="off"
+          />
 
-        <div className="mailList">
-          <div className="mailSearch">
+          <input
+            value={subject}
+            onChange={e=>
+              setSubject(e.target.value)
+            }
+            placeholder="Subject"
+          />
+
+          <textarea
+            value={body}
+            onChange={e=>setBody(e.target.value)}
+            placeholder="Write your message..."
+            rows={10}
+          />
+
+          <div className="buttonRow">
+            <button
+              className="primaryButton"
+              onClick={()=>void sendMail()}
+              disabled={sending}
+            >
+              {sending
+                ? <Loader2 size={16}/>
+                : <Send size={16}/>
+              }
+
+              {sending
+                ? 'Sending...'
+                : 'Send'
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <div
+        style={{
+          display:'grid',
+          gridTemplateColumns:
+            selected
+              ? 'minmax(280px,.8fr) minmax(360px,1.2fr)'
+              : '1fr',
+          gap:18
+        }}
+      >
+        <div className="glassCard">
+          <div
+            style={{
+              padding:16,
+              display:'flex',
+              gap:10,
+              alignItems:'center'
+            }}
+          >
             <Search size={17}/>
+
             <input
-              placeholder="Search mail"
               value={search}
-              onChange={e=>setSearch(e.target.value)}
+              onChange={e=>
+                setSearch(e.target.value)
+              }
+              placeholder="Search mail"
+              style={{width:'100%'}}
             />
           </div>
 
-          {loading&&
-            <div className="mailEmpty">
-              <Loader2 className="mailSpinner"/>
-              Loading mail...
+          {loading &&
+            <div style={{padding:18}}>
+              <Loader2 size={18}/>
+              Loading…
             </div>
           }
 
-          {!loading&&filtered.length===0&&
-            <div className="mailEmpty">
-              <Mail size={28}/>
-              <strong>No emails found</strong>
+          {!loading &&
+            filtered.length===0 &&
+            <div style={{padding:22}}>
+              <Inbox size={24}/>
+              <p>No messages found.</p>
             </div>
           }
 
-          {!loading&&filtered.map(item=>(
+          {filtered.map(item=>(
             <button
               key={item.messageId}
-              className={`mailRow ${item.isRead===false || item.isRead==='false'?'unread':''}`}
-              onClick={()=>openMessage(item)}
+              onClick={()=>
+                void openMessage(item)
+              }
+              style={{
+                width:'100%',
+                textAlign:'left',
+                padding:16,
+                border:0,
+                borderTop:
+                  '1px solid rgba(0,0,0,.08)',
+                background:'transparent',
+                cursor:'pointer'
+              }}
             >
-              <div className="mailSender">
-                {item.sender || item.fromAddress || 'Unknown sender'}
+              <strong>
+                {item.sender ||
+                 item.fromAddress ||
+                 'Unknown sender'}
+              </strong>
+
+              <div>
+                {item.subject ||
+                 '(No subject)'}
               </div>
 
-              <div className="mailSubject">
-                <strong>{item.subject || '(No subject)'}</strong>
-                <span>{item.summary || ''}</span>
-              </div>
-
-              <time>
-                {item.receivedTime || item.sentDateInGMT || ''}
-              </time>
+              {item.summary &&
+                <small>
+                  {item.summary}
+                </small>
+              }
             </button>
           ))}
         </div>
 
-        <div className="mailReader">
-          {!selected&&
-            <div className="mailEmpty">
-              <Mail size={34}/>
-              <strong>Select an email</strong>
-              <span>Choose a message to read it here.</span>
-            </div>
-          }
-
-          {selected&&
-            <>
-              <div className="mailReaderHeader">
-                <button className="iconButton" onClick={()=>setSelected(null)}>
-                  <ArrowLeft size={17}/>
-                </button>
-
-                <div>
-                  <h3>{selected.subject || '(No subject)'}</h3>
-                  <span>
-                    {selected.sender || selected.fromAddress}
-                  </span>
-                </div>
-
-                <button className="glassButton" onClick={reply}>
-                  <Reply size={16}/>
-                  Reply
-                </button>
-              </div>
-
-              <div
-                className="mailBody"
-                dangerouslySetInnerHTML={{
-                  __html:DOMPurify.sanitize(
-                    selected.content ||
-                    selected.summary ||
-                    ''
-                  )
-                }}
-              />
-            </>
-          }
-        </div>
-      </div>
-
-      {compose&&
-        <div className="modalBackdrop">
-          <div className="mailCompose glassCard">
-            <div className="cardHeader">
-              <h3>New email</h3>
-              <button className="iconButton" onClick={()=>setCompose(false)}>
-                ×
-              </button>
-            </div>
-
-            <label>
-              To
-              <input
-                type="email"
-                value={to}
-                onChange={e=>setTo(e.target.value)}
-                placeholder="recipient@example.com"
-              />
-            </label>
-
-            <label>
-              Subject
-              <input
-                value={subject}
-                onChange={e=>setSubject(e.target.value)}
-                placeholder="Email subject"
-              />
-            </label>
-
-            <label>
-              Message
-              <textarea
-                rows={10}
-                value={body}
-                onChange={e=>setBody(e.target.value)}
-                placeholder="Write your message..."
-              />
-            </label>
-
+        {selected &&
+          <article
+            className="glassCard"
+            style={{padding:20}}
+          >
             <div className="buttonRow">
-              <button className="glassButton" onClick={()=>setCompose(false)}>
-                Cancel
+              <button
+                className="glassButton"
+                onClick={()=>
+                  setSelected(null)
+                }
+              >
+                <ArrowLeft size={16}/>
+                Back
               </button>
 
               <button
                 className="primaryButton"
-                onClick={sendMail}
-                disabled={loading || sending}
+                onClick={startReply}
               >
-                <Send size={16}/>
-                Send
+                <Reply size={16}/>
+                Reply
               </button>
             </div>
-          </div>
-        </div>
-      }
+
+            <h2>
+              {selected.subject ||
+               '(No subject)'}
+            </h2>
+
+            <p>
+              From:{' '}
+              {selected.fromAddress ||
+               selected.sender ||
+               'Unknown'}
+            </p>
+
+            <div
+              style={{
+                marginTop:20,
+                lineHeight:1.6
+              }}
+              dangerouslySetInnerHTML={{
+                __html:DOMPurify.sanitize(
+                  selected.content ||
+                  selected.summary ||
+                  ''
+                )
+              }}
+            />
+          </article>
+        }
+      </div>
     </section>
   )
 }

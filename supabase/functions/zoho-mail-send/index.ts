@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
-
 import {
   corsHeaders,
   getAuthenticatedUser,
@@ -16,17 +15,26 @@ serve(async (req) => {
   }
 
   try {
-    const {
-      toAddress,
-      subject,
-      content,
-    } = await req.json()
+    if (req.method !== "POST") {
+      return jsonResponse(
+        { error: "Method not allowed." },
+        405
+      )
+    }
 
-    if (
-      !toAddress ||
-      !subject ||
-      !content
-    ) {
+    const payload =
+      await req.json().catch(() => ({}))
+
+    const toAddress =
+      String(payload?.toAddress || "").trim()
+
+    const subject =
+      String(payload?.subject || "").trim()
+
+    const content =
+      String(payload?.content || "").trim()
+
+    if (!toAddress || !subject || !content) {
       return jsonResponse(
         {
           error:
@@ -49,46 +57,110 @@ serve(async (req) => {
       await getZohoAccessToken(connection)
 
     const apiBase =
-      connection.mail_api_base ||
-      "https://mail.zoho.com/api"
+      String(
+        connection.mail_api_base ||
+        "https://mail.zoho.com/api"
+      ).replace(/\/$/, "")
 
-    const response = await fetch(
-      `${apiBase}/accounts/${connection.zoho_account_id}/messages`,
-      {
+    const url =
+      `${apiBase}/accounts/` +
+      `${encodeURIComponent(
+        connection.zoho_account_id
+      )}/messages`
+
+    const response =
+      await fetch(url, {
         method: "POST",
         headers: {
           Authorization:
             `Zoho-oauthtoken ${accessToken}`,
+          Accept: "application/json",
           "Content-Type":
             "application/json",
         },
         body: JSON.stringify({
-          fromAddress: connection.email,
+          fromAddress:connection.email,
           toAddress,
           subject,
           content,
-          mailFormat: "html",
+          mailFormat:"html",
         }),
-      }
-    )
+      })
 
-    const data = await response.json()
+    const raw = await response.text()
 
-    if (!response.ok) {
-      console.error(data)
-      throw new Error(
-        data?.data?.errorCode ||
-        data?.message ||
-        "Unable to send email."
+    let data:any={}
+
+    try {
+      data = raw ? JSON.parse(raw) : {}
+    } catch {
+      console.error(
+        "Zoho send returned non-JSON",
+        {
+          status:response.status,
+          preview:raw.slice(0,300),
+        }
+      )
+
+      return jsonResponse(
+        {
+          error:
+            "Zoho returned an invalid response while sending.",
+        },
+        502
+      )
+    }
+
+    const zohoCode =
+      data?.status?.code
+
+    const zohoDescription =
+      data?.status?.description
+
+    const zohoError =
+      data?.data?.errorCode ||
+      data?.errorCode
+
+    if (
+      !response.ok ||
+      (zohoCode &&
+       Number(zohoCode) >= 400)
+    ) {
+      console.error(
+        "Zoho Mail send failed",
+        {
+          userId:user.id,
+          mailbox:connection.email,
+          status:response.status,
+          zohoCode,
+          zohoDescription,
+          zohoError,
+        }
+      )
+
+      return jsonResponse(
+        {
+          error:
+            zohoError ||
+            zohoDescription ||
+            "Zoho rejected the email.",
+        },
+        response.status >= 400
+          ? response.status
+          : 502
       )
     }
 
     return jsonResponse({
-      success: true,
-      data: data?.data || data,
+      success:true,
+      message:"Email sent successfully.",
+      data:data?.data || data,
     })
   } catch (error) {
-    console.error(error)
+    console.error(
+      "zoho-mail-send failure",
+      error
+    )
 
     return jsonResponse(
       {

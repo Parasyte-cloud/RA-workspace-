@@ -14,6 +14,7 @@ import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/Bu
 import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
 import { SocialModule } from './modules/SocialModule'
 import { MailModule } from './modules/MailModule'
+import { ProfileModule } from './modules/ProfileModule'
 import ApplicationsHub from './modules/ApplicationsHub'
 import {
   AnnouncementsModule,
@@ -23,15 +24,36 @@ import {
   CompanyFilesModule,
 } from './modules/Phase2Modules'
 
-type Section = 'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
-type Profile = { full_name:string; email:string; role:Role; department:string; job_title:string }
+type Profile = {
+  id:string
+  full_name:string
+  email:string
+  role:Role
+  department:string
+  job_title:string
+  phone?:string|null
+  whatsapp?:string|null
+  avatar_path?:string|null
+  avatar_url?:string|null
+  office_address?:string|null
+  website?:string|null
+  linkedin_url?:string|null
+  x_url?:string|null
+  instagram_url?:string|null
+  bio?:string|null
+  working_hours?:string|null
+  virtual_card_enabled?:boolean|null
+  public_card_enabled?:boolean|null
+}
 
 const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearrivo.com')
   .toLowerCase().split(',').map((v:string)=>v.trim()).filter(Boolean)
 
 const sectionAccess:Partial<Record<Section,Role[]>>={
+  profile:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
   overview:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
   social:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
   mail:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
@@ -90,7 +112,14 @@ function BrandLogo({className=''}:{className?:string}){
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
-  const [profile,setProfile]=useState<Profile>({full_name:'',email:'',role:'employee',department:'',job_title:''})
+  const [profile,setProfile]=useState<Profile>({
+    id:'',
+    full_name:'',
+    email:'',
+    role:'employee',
+    department:'',
+    job_title:''
+  })
   const [authReady,setAuthReady]=useState(false)
   const [section,setSection]=useState<Section>('overview')
   const [workspace,setWorkspace]=useState<Workspace|null>(null)
@@ -130,17 +159,77 @@ function App(){
     }
   },[])
 
-  useEffect(()=>{
+  const loadProfile=async()=>{
     if(!supabase || !session?.user) return
-    supabase.from('employee_profiles').select('full_name,email,role,department,job_title').eq('id',session.user.id).maybeSingle().then(({data})=>{
-      if(data) setProfile(data as Profile)
-      else setProfile({full_name:session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Employee', email:session.user.email || '', role:'employee', department:'Unassigned', job_title:''})
+
+    const {data,error}=await supabase
+      .from('employee_profiles')
+      .select(`
+        id,
+        full_name,
+        email,
+        role,
+        department,
+        job_title,
+        phone,
+        whatsapp,
+        avatar_path,
+        office_address,
+        website,
+        linkedin_url,
+        x_url,
+        instagram_url,
+        bio,
+        working_hours,
+        virtual_card_enabled,
+        public_card_enabled
+      `)
+      .eq('id',session.user.id)
+      .maybeSingle()
+
+    if(error){
+      console.error('Unable to load employee profile',error)
+      return
+    }
+
+    if(!data){
+      setProfile({
+        id:session.user.id,
+        full_name:
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split('@')[0] ||
+          'Employee',
+        email:session.user.email || '',
+        role:'employee',
+        department:'Unassigned',
+        job_title:''
+      })
+      return
+    }
+
+    let avatar_url:string|null=null
+
+    if(data.avatar_path){
+      const {data:signed}=await supabase.storage
+        .from('employee-headshots')
+        .createSignedUrl(data.avatar_path,3600)
+
+      avatar_url=signed?.signedUrl || null
+    }
+
+    setProfile({
+      ...(data as Profile),
+      avatar_url
     })
+  }
+
+  useEffect(()=>{
+    void loadProfile()
   },[session])
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -160,9 +249,38 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button className="profileButton" onClick={signOut}><div className="avatar">{initials(profile.full_name)}</div><span><strong>{profile.full_name}</strong><small>{profile.role}</small></span></button></div></header>
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button
+  className="profileButton"
+  onClick={()=>setSection('profile')}
+>
+  <div className="avatar">
+    {profile.avatar_url
+      ? <img
+          src={profile.avatar_url}
+          alt=""
+          style={{
+            width:'100%',
+            height:'100%',
+            objectFit:'cover',
+            borderRadius:'50%'
+          }}
+        />
+      : initials(profile.full_name)
+    }
+  </div>
+  <span>
+    <strong>{profile.full_name}</strong>
+    <small>{profile.role}</small>
+  </span>
+</button></div></header>
       <div className="content">
-        {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>} 
+        {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>}
+        {section==='profile'&&
+          <ProfileModule
+            profile={profile}
+            onProfileUpdated={loadProfile}
+          />
+        } 
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<TasksModule/>}
