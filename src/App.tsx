@@ -17,12 +17,15 @@ import { MailModule } from './modules/MailModule'
 import { ProfileModule } from './modules/ProfileModule'
 import ApplicationsHub from './modules/ApplicationsHub'
 import {
+
   AnnouncementsModule,
   CalendarModule,
   TasksModule,
   KnowledgeBaseModule,
   CompanyFilesModule,
 } from './modules/Phase2Modules'
+
+import { useSessionKeeper } from './lib/useSessionKeeper'
 
 type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
@@ -112,6 +115,13 @@ function BrandLogo({className=''}:{className?:string}){
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
+
+
+  useSessionKeeper(
+    supabase,
+    session,
+    setSession
+  )
   const [accessReady,setAccessReady]=useState(true)
   const [accessApproved,setAccessApproved]=useState(true)
 
@@ -149,10 +159,27 @@ function App(){
       setAuthReady(true)
     })
 
-    const {data} = supabase.auth.onAuthStateChange((_event,next)=>{
-      setSession(next)
-      setAuthReady(true)
-    })
+    const {data} =
+      supabase.auth.onAuthStateChange(
+        (event,next)=>{
+          console.info(
+            '[RideArrivo Auth]',
+            event,
+            next?.user?.email ||
+            'no session'
+          )
+
+          if(next){
+            setSession(next)
+          }else if(
+            event==='SIGNED_OUT'
+          ){
+            setSession(null)
+          }
+
+          setAuthReady(true)
+        }
+      )
 
     return()=>{
       data.subscription.unsubscribe()
