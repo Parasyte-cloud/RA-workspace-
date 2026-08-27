@@ -4,6 +4,7 @@ import { BadgeCheck, CalendarDays, FileCheck2, Headphones, MessageCircle, Phone,
 import { supabase } from '../lib/supabase'
 import { DataWorkbench } from './BusinessModules'
 import SupportOperationsPanel from './SupportOperationsPanel'
+import AdminAccessManager from './AdminAccessManager'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -139,6 +140,8 @@ export function AdminModule(){
         title="RideArrivo Admin"
         subtitle="Operational admin console, workspace applications and security controls."
       />
+
+      <AdminAccessManager/>
 
       <div className="adminConsoleCard glassCard">
         <div className="adminConsoleHeader">
