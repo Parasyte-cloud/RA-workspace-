@@ -27,7 +27,27 @@ export async function getRideArrivoSupportData(
   )
 
   if (error) {
-    throw new Error(error.message || 'Unable to load RideArrivo support data.')
+    let message = error.message || 'Unable to load RideArrivo support data.'
+
+    try {
+      const context = (error as any).context
+
+      if (context && typeof context.json === 'function') {
+        const body = await context.json()
+
+        if (body?.error) {
+          message = body.error
+        } else if (body?.message) {
+          message = body.message
+        } else {
+          message = JSON.stringify(body)
+        }
+      }
+    } catch {
+      // Keep original Supabase error message.
+    }
+
+    throw new Error(message)
   }
 
   if (data?.error) {
