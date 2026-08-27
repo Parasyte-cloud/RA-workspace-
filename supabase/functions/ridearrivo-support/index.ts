@@ -96,7 +96,7 @@ serve(async (req) => {
     const { data: profile, error: profileError } =
       await admin
         .from("employee_profiles")
-        .select("role,email,full_name,active")
+        .select("role,email,full_name")
         .eq("id", user.id)
         .maybeSingle()
 
@@ -129,14 +129,12 @@ serve(async (req) => {
       .toLowerCase()
 
     if (
-      profile.active === false ||
       !["support", "operations", "manager", "admin"].includes(role)
     ) {
       console.error("Support access denied", {
         userId: user.id,
         email: profile.email,
         role,
-        active: profile.active,
       })
 
       return json(
