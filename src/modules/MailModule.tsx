@@ -15,6 +15,7 @@ import {
   Star
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import DOMPurify from 'dompurify'
 
 type MailMessage = {
   messageId:string
@@ -44,6 +45,7 @@ export function MailModule(){
   const [to,setTo]=useState('')
   const [subject,setSubject]=useState('')
   const [body,setBody]=useState('')
+  const [sending,setSending]=useState(false)
 
   const invoke=async(name:string,body?:Record<string,unknown>)=>{
 
@@ -97,25 +99,51 @@ export function MailModule(){
   }
 
   const loadInbox=async()=>{
+
     setLoading(true)
     setMessage('')
 
     try{
+
       const data=await invoke('zoho-mail-inbox')
 
-      const rows =
+      const rawRows =
         Array.isArray(data?.messages)
           ? data.messages
           : Array.isArray(data?.data)
             ? data.data
             : []
 
+      const defaultFolderId =
+        data?.folderId
+          ? String(data.folderId)
+          : ''
+
+      const rows:MailMessage[] =
+        rawRows.map((item:any)=>({
+          ...item,
+          folderId:
+            item?.folderId ||
+            defaultFolderId ||
+            undefined
+        }))
+
       setMessages(rows)
+
     }catch(error:any){
-      setMessage(error?.message || 'Unable to load mailbox.')
+
+      setMessages([])
+      setMessage(
+        error?.message ||
+        'Unable to load mailbox.'
+      )
+
     }finally{
+
       setLoading(false)
+
     }
+
   }
 
   const connect=async()=>{
@@ -156,29 +184,75 @@ export function MailModule(){
   }
 
   const sendMail=async()=>{
-    if(!to.trim() || !subject.trim()) return
 
-    setLoading(true)
+    const recipient=to.trim()
+    const cleanSubject=subject.trim()
+    const cleanBody=body.trim()
+
     setMessage('')
 
+    if(!recipient){
+      setMessage('Enter a recipient email address.')
+      return
+    }
+
+    if(
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient)
+    ){
+      setMessage('Enter a valid recipient email address.')
+      return
+    }
+
+    if(!cleanSubject){
+      setMessage('Enter an email subject.')
+      return
+    }
+
+    if(!cleanBody){
+      setMessage('Enter a message before sending.')
+      return
+    }
+
+    if(sending) return
+
+    setSending(true)
+
     try{
-      await invoke('zoho-mail-send',{
-        toAddress:to.trim(),
-        subject:subject.trim(),
-        content:body
+
+      const result=await invoke('zoho-mail-send',{
+        toAddress:recipient,
+        subject:cleanSubject,
+        content:cleanBody
       })
+
+      if(!result?.success){
+        throw new Error(
+          result?.error ||
+          'Zoho did not confirm that the email was sent.'
+        )
+      }
 
       setCompose(false)
       setTo('')
       setSubject('')
       setBody('')
+
       setMessage('Email sent successfully.')
-      await loadInbox()
+
     }catch(error:any){
-      setMessage(error?.message || 'Unable to send email.')
+
+      const errorMessage =
+        error?.message ||
+        'Unable to send email.'
+
+      setMessage(errorMessage)
+
     }finally{
-      setLoading(false)
+
+      setSending(false)
+
     }
+
   }
 
   const reply=()=>{
@@ -402,7 +476,11 @@ export function MailModule(){
               <div
                 className="mailBody"
                 dangerouslySetInnerHTML={{
-                  __html:selected.content || selected.summary || ''
+                  __html:DOMPurify.sanitize(
+                    selected.content ||
+                    selected.summary ||
+                    ''
+                  )
                 }}
               />
             </>
@@ -457,7 +535,7 @@ export function MailModule(){
               <button
                 className="primaryButton"
                 onClick={sendMail}
-                disabled={loading}
+                disabled={loading || sending}
               >
                 <Send size={16}/>
                 Send
