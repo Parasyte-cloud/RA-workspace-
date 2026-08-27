@@ -25,7 +25,7 @@ serve(async (req) => {
         user.id
       )
 
-    const accessToken =
+    const token =
       await getZohoAccessToken(connection)
 
     const apiBase =
@@ -40,9 +40,10 @@ serve(async (req) => {
           connection.zoho_account_id
         )}/folders`,
         {
+          method: "GET",
           headers: {
             Authorization:
-              `Zoho-oauthtoken ${accessToken}`,
+              `Zoho-oauthtoken ${token}`,
             Accept: "application/json",
           },
         }
@@ -51,17 +52,26 @@ serve(async (req) => {
     const raw =
       await response.text()
 
-    let data:any = {}
+    let payload:any = {}
 
     try {
-      data = raw
-        ? JSON.parse(raw)
-        : {}
+      payload =
+        raw
+          ? JSON.parse(raw)
+          : {}
     } catch {
+      console.error(
+        "Zoho folders non-JSON response",
+        {
+          status: response.status,
+          preview: raw.slice(0,300),
+        }
+      )
+
       return jsonResponse(
         {
           error:
-            "Zoho returned an invalid folder response.",
+            "Zoho returned an invalid folders response.",
         },
         502
       )
@@ -69,63 +79,95 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error(
-        "Zoho folders failed",
+        "Zoho folders request failed",
         {
           status: response.status,
-          data,
+          payload,
         }
       )
 
       return jsonResponse(
         {
           error:
-            data?.data?.errorCode ||
-            data?.status?.description ||
-            "Unable to load mailbox folders.",
+            payload?.status?.description ||
+            payload?.data?.errorCode ||
+            payload?.errorCode ||
+            "Unable to load Zoho folders.",
         },
         response.status
       )
     }
 
+    const rawFolders =
+      Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.folders)
+          ? payload.folders
+          : Array.isArray(payload)
+            ? payload
+            : []
+
+    console.log(
+      "Zoho raw folders",
+      rawFolders
+    )
+
     const folders =
-      Array.isArray(data?.data)
-        ? data.data.map((folder:any) => ({
-            folderId:
-              String(folder.folderId || ''),
+      rawFolders
+        .map((folder:any) => {
+          const folderId =
+            folder?.folderId ??
+            folder?.folderID ??
+            folder?.id ??
+            ''
 
-            name:
-              String(
-                folder.folderDisplayName ||
-                folder.folderName ||
-                'Folder'
-              ),
+          const name =
+            folder?.folderDisplayName ??
+            folder?.folderName ??
+            folder?.displayName ??
+            folder?.name ??
+            folder?.path ??
+            ''
 
-            type:
-              String(
-                folder.folderType ||
-                folder.folderName ||
-                ''
-              ).toLowerCase(),
+          const type =
+            folder?.folderType ??
+            folder?.type ??
+            folder?.folderName ??
+            name
 
-            unreadCount:
-              Number(
-                folder.unreadCount ??
-                folder.unreadMessageCount ??
-                0
-              ),
+          const unreadCount =
+            Number(
+              folder?.unreadCount ??
+              folder?.unreadMessageCount ??
+              folder?.unread ??
+              0
+            ) || 0
 
-            messageCount:
-              Number(
-                folder.messageCount ??
-                folder.totalMessageCount ??
-                0
-              ),
-          }))
-        : []
+          const messageCount =
+            Number(
+              folder?.messageCount ??
+              folder?.totalMessageCount ??
+              folder?.total ??
+              0
+            ) || 0
+
+          return {
+            folderId:String(folderId),
+            name:String(name),
+            type:String(type),
+            unreadCount,
+            messageCount,
+          }
+        })
+        .filter((folder:any) =>
+          folder.folderId &&
+          folder.name
+        )
 
     return jsonResponse({
-      success: true,
+      success:true,
       folders,
+      count:folders.length,
     })
   } catch (error) {
     console.error(
@@ -138,7 +180,7 @@ serve(async (req) => {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load mailbox folders.",
+            : "Unable to load Zoho folders.",
       },
       500
     )

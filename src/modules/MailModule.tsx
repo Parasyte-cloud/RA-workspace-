@@ -46,6 +46,15 @@ type MailFolder = {
   messageCount:number
 }
 
+type MailFolderKey =
+  | 'inbox'
+  | 'starred'
+  | 'sent'
+  | 'drafts'
+  | 'spam'
+  | 'trash'
+  | 'archive'
+
 export function MailModule(){
   const [connected,setConnected]=
     useState<boolean|null>(null)
@@ -69,6 +78,9 @@ export function MailModule(){
 
   const [folderLoading,setFolderLoading]=
     useState(false)
+
+  const [activeFolderKey,setActiveFolderKey]=
+    useState<MailFolderKey>('inbox')
 
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
@@ -155,6 +167,108 @@ export function MailModule(){
         'Unable to check Zoho Mail connection.'
       )
     }
+  }
+
+  const normaliseFolderName=(value:string)=>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g,'')
+
+  const folderMatches=(
+    folder:MailFolder,
+    key:MailFolderKey
+  )=>{
+    const name=normaliseFolderName(folder.name)
+    const type=normaliseFolderName(folder.type)
+
+    const haystack=`${name} ${type}`
+
+    if(key==='inbox'){
+      return (
+        haystack.includes('inbox') ||
+        haystack.includes('incoming')
+      )
+    }
+
+    if(key==='sent'){
+      return (
+        haystack.includes('sent') ||
+        haystack.includes('sentitems')
+      )
+    }
+
+    if(key==='drafts'){
+      return (
+        haystack.includes('draft') ||
+        haystack.includes('drafts')
+      )
+    }
+
+    if(key==='spam'){
+      return (
+        haystack.includes('spam') ||
+        haystack.includes('junk')
+      )
+    }
+
+    if(key==='trash'){
+      return (
+        haystack.includes('trash') ||
+        haystack.includes('deleted') ||
+        haystack.includes('bin')
+      )
+    }
+
+    if(key==='archive'){
+      return haystack.includes('archive')
+    }
+
+    return false
+  }
+
+  const getFolder=(key:MailFolderKey)=>
+    folders.find(folder=>
+      folderMatches(folder,key)
+    ) || null
+
+  const loadCanonicalFolder=async(
+    key:MailFolderKey
+  )=>{
+    setActiveFolderKey(key)
+    setSelected(null)
+    setMessage('')
+
+    if(key==='starred'){
+      setMessages(prev=>
+        prev.filter((item:any)=>
+          Boolean(
+            item?.isFlagged ||
+            item?.flagged ||
+            item?.isStarred ||
+            item?.starred
+          )
+        )
+      )
+      return
+    }
+
+    const folder=getFolder(key)
+
+    if(!folder){
+      setMessages([])
+
+      setMessage(
+        `${
+          key.charAt(0).toUpperCase()+
+          key.slice(1)
+        } folder is not available from Zoho yet.`
+      )
+
+      return
+    }
+
+    await loadFolder(folder)
   }
 
   const loadFolders=async()=>{
@@ -482,7 +596,10 @@ export function MailModule(){
               RIDEARRIVO MAIL
             </span>
             <h2>
-            {activeFolder?.name || 'Company Mail'}
+            {activeFolder?.name ||
+             activeFolderKey.charAt(0).toUpperCase()+
+             activeFolderKey.slice(1) ||
+             'Company Mail'}
           </h2>
             <p>
               Secure access to your RideArrivo
@@ -613,80 +730,178 @@ export function MailModule(){
             <span>MAILBOX</span>
           </div>
 
-          {folders.length===0 ? (
-            <div className="mailFolderLoading">
-              {folderLoading
-                ? 'Loading folders…'
-                : 'Inbox'
-              }
-            </div>
-          ) : (
-            folders.map(folder=>{
+          <button
+            className={
+              activeFolderKey==='inbox'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('inbox')
+            }
+          >
+            <Inbox size={18}/>
+            <strong>Inbox</strong>
 
-              const name=
-                folder.name.toLowerCase()
+            <span>
+              {getFolder('inbox')?.unreadCount ||
+               getFolder('inbox')?.messageCount ||
+               messages.length}
+            </span>
+          </button>
 
-              const Icon=
-                name.includes('inbox')
-                  ? Inbox
-                  : name.includes('sent')
-                    ? Send
-                    : name.includes('draft')
-                      ? PenSquare
-                      : name.includes('spam') ||
-                        name.includes('junk')
-                        ? ShieldAlert
-                        : name.includes('trash') ||
-                          name.includes('deleted')
-                          ? Trash2
-                          : name.includes('archive')
-                            ? Archive
-                            : Mail
+          <button
+            className={
+              activeFolderKey==='starred'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('starred')
+            }
+          >
+            <Star size={18}/>
+            <strong>Starred</strong>
+          </button>
 
-              return (
-                <button
-                  key={folder.folderId}
-                  className={
-                    activeFolder?.folderId===
-                    folder.folderId
-                      ? 'active'
-                      : ''
-                  }
-                  onClick={()=>
-                    void loadFolder(folder)
-                  }
-                  disabled={folderLoading}
-                >
-                  <Icon size={18}/>
+          <button
+            className={
+              activeFolderKey==='sent'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('sent')
+            }
+          >
+            <Send size={18}/>
+            <strong>Sent</strong>
 
-                  <strong>
-                    {folder.name}
-                  </strong>
+            {getFolder('sent') &&
+              <span>
+                {getFolder('sent')?.messageCount || ''}
+              </span>
+            }
+          </button>
 
-                  {(folder.unreadCount > 0 ||
-                    folder.messageCount > 0) &&
-                    <span>
-                      {folder.unreadCount > 0
-                        ? folder.unreadCount
-                        : folder.messageCount
-                      }
-                    </span>
-                  }
-                </button>
+          <button
+            className={
+              activeFolderKey==='drafts'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('drafts')
+            }
+          >
+            <PenSquare size={18}/>
+            <strong>Drafts</strong>
+
+            {getFolder('drafts') &&
+              <span>
+                {getFolder('drafts')?.messageCount || ''}
+              </span>
+            }
+          </button>
+
+          <button
+            className={
+              activeFolderKey==='spam'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('spam')
+            }
+          >
+            <ShieldAlert size={18}/>
+            <strong>Spam / Junk</strong>
+
+            {getFolder('spam') &&
+              <span>
+                {getFolder('spam')?.unreadCount ||
+                 getFolder('spam')?.messageCount ||
+                 ''}
+              </span>
+            }
+          </button>
+
+          <button
+            className={
+              activeFolderKey==='trash'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('trash')
+            }
+          >
+            <Trash2 size={18}/>
+            <strong>Trash</strong>
+
+            {getFolder('trash') &&
+              <span>
+                {getFolder('trash')?.messageCount || ''}
+              </span>
+            }
+          </button>
+
+          <button
+            className={
+              activeFolderKey==='archive'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              void loadCanonicalFolder('archive')
+            }
+          >
+            <Archive size={18}/>
+            <strong>Archive</strong>
+          </button>
+
+          <div className="mailFolderDivider"/>
+
+          {folders
+            .filter(folder=>
+              !(
+                folderMatches(folder,'inbox') ||
+                folderMatches(folder,'sent') ||
+                folderMatches(folder,'drafts') ||
+                folderMatches(folder,'spam') ||
+                folderMatches(folder,'trash') ||
+                folderMatches(folder,'archive')
               )
-            })
-          )}
+            )
+            .map(folder=>(
+              <button
+                key={folder.folderId}
+                onClick={()=>
+                  void loadFolder(folder)
+                }
+              >
+                <Mail size={18}/>
+
+                <strong>
+                  {folder.name}
+                </strong>
+
+                {(folder.unreadCount > 0 ||
+                  folder.messageCount > 0) &&
+                  <span>
+                    {folder.unreadCount ||
+                     folder.messageCount}
+                  </span>
+                }
+              </button>
+            ))
+          }
 
           <div className="mailFolderDivider"/>
 
           <button disabled>
-            <Star size={18}/>
-            <span>Starred</span>
-          </button>
-
-          <button disabled>
             <Settings size={18}/>
-            <span>Mail settings</span>
+            <strong>Mail settings</strong>
           </button>
 
           <button
