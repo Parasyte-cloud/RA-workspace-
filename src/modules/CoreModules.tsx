@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { BadgeCheck, CalendarDays, FileCheck2, Headphones, MessageCircle, Phone, Route, ShieldAlert, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { DataWorkbench } from './BusinessModules'
+import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
 import AdminAccessManager from './AdminAccessManager'
 

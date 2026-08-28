@@ -1,18 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import ExcelJS from 'exceljs'
-import {
-  AlignmentType,
-  Document,
-  HeadingLevel,
-  Packer,
-  Paragraph,
-  Table,
-  TableCell,
-  TableRow,
-  TextRun,
-  WidthType,
-} from 'docx'
 import { Download, ExternalLink, FileSpreadsheet, FileText, Landmark, RefreshCw, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -141,6 +128,10 @@ async function parseStatement(file: File): Promise<BankTransaction[]> {
   if (lower.endsWith('.csv')) {
     rows = csvRows(await file.text())
   } else if (lower.endsWith('.xlsx')) {
+    const {
+      default: ExcelJS
+    } = await import('exceljs')
+
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.load(await file.arrayBuffer())
     const sheet = workbook.worksheets[0]
@@ -314,6 +305,10 @@ export function FinanceBanking() {
   }
 
   const exportExcel = async () => {
+    const {
+      default: ExcelJS
+    } = await import('exceljs')
+
     const workbook = new ExcelJS.Workbook()
     workbook.creator = 'RideArrivo Limited'
     workbook.created = new Date()
@@ -392,6 +387,19 @@ export function FinanceBanking() {
   }
 
   const exportWord = async () => {
+    const {
+      AlignmentType,
+      Document,
+      HeadingLevel,
+      Packer,
+      Paragraph,
+      Table,
+      TableCell,
+      TableRow,
+      TextRun,
+      WidthType,
+    } = await import('docx')
+
     const rowsForDoc = visible.slice(0, 500)
     const table = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },

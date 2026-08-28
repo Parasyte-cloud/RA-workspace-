@@ -1,51 +1,116 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import {
+  Suspense } from 'react'
+import { useEffect,
+  useMemo,
+  useState } from 'react'
+import type { FormEvent,
+  ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
-  Activity, AppWindow, BadgeCheck, BarChart3, Bell, BookOpen, BriefcaseBusiness, Building2,
-  CalendarDays, ChevronRight, CircleDollarSign, ClipboardCheck, Code2, ContactRound, Copy,
-  Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, KeyRound,
-  LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, Mail, MonitorCog, Network, PackageCheck,
-  Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
-  UserCog, UserPlus, Users, Wrench, Images,
+  Activity,
+  AppWindow,
+  BadgeCheck,
+  BarChart3,
+  Bell,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardCheck,
+  Code2,
+  ContactRound,
+  Copy,
+  Download,
+  ExternalLink,
+  FileCheck2,
+  FileText,
+  Gauge,
+  Headphones,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  LifeBuoy,
+  ListChecks,
+  LockKeyhole,
+  Mail,
+  MonitorCog,
+  Network,
+  PackageCheck,
+  Route,
+  Scale,
+  Search,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  TicketCheck,
+  UserCog,
+  UserPlus,
+  Users,
+  Wrench,
+  Images,
   Globe2
 } from 'lucide-react'
-import { supabase, supabaseConfigured } from './lib/supabase'
-import { FinanceModule, PartnershipsModule } from './modules/BusinessModules'
-import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
-import { SocialModule } from './modules/SocialModule'
-import { MailModule } from './modules/MailModule'
-import { ProfileModule } from './modules/ProfileModule'
-import ApplicationsHub from './modules/ApplicationsHub'
-import { WorkDesk } from './modules/WorkDesk'
-import { NotificationCenter } from './components/NotificationCenter'
-import {
+import { supabase,
+  supabaseConfigured } from './lib/supabase'
 
-  AnnouncementsModule,
-  CalendarModule,
-  KnowledgeBaseModule,
-  CompanyFilesModule,
-} from './modules/Phase2Modules'
+
+
+
+
+
+import { NotificationCenter } from './components/NotificationCenter'
 import { useIdleSignOut } from './lib/useIdleSignOut'
-import { OverviewMetrics } from './modules/OverviewMetrics'
+
 import { HeaderAvatar } from './components/HeaderAvatar'
 
-import { HeadshotGallery } from './modules/HeadshotGallery'
+
 import { WorkspaceClock } from './components/WorkspaceClock'
-import { MarketingTeamWorkspace } from './modules/MarketingTeamWorkspace'
+
+
+
+import { applyStoredAppearance } from './lib/appearance'
+
+import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
+import type { ParasyteOpenDetail } from './lib/parasyte'
 import {
+  MarketingTeamWorkspace,
+  ParasyteBrowser,
   SupportTeamWorkspace,
   OperationsTeamWorkspace,
   PeopleTeamWorkspace,
   EngineeringTeamWorkspace,
   FinanceTeamWorkspace,
   PartnershipsTeamWorkspace,
-  LegalTeamWorkspace
-} from './modules/DepartmentTeamWorkspace'
-import ParasyteBrowser from './modules/ParasyteBrowser'
-import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
-import type { ParasyteOpenDetail } from './lib/parasyte'
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'workspace'
+  LegalTeamWorkspace,
+  SupportModule,
+  PeopleModule,
+  OperationsModule,
+  FinanceModule,
+  PartnershipsModule,
+  LegalModule,
+  MailModule,
+  CRMModule,
+  AdminModule,
+  SocialModule,
+  ProfileModule,
+  ApplicationsHub,
+  WorkDesk,
+  AnnouncementsModule,
+  CalendarModule,
+  KnowledgeBaseModule,
+  CompanyFilesModule,
+  OverviewMetrics,
+  HeadshotGallery,
+  AppearanceSettings
+} from './lazy-routes'
+
+applyStoredAppearance()
+
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -175,6 +240,20 @@ const sectionAccess:Record<Section,Role[]>={
   ],
 
   admin:[
+    'admin'
+  ],
+  settings:[
+    'employee',
+    'support',
+    'engineer',
+    'cto',
+    'manager',
+    'hr',
+    'legal',
+    'operations',
+    'finance',
+    'marketing',
+    'partnerships',
     'admin'
   ]
 }
@@ -512,7 +591,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -628,6 +707,17 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
+        {/* ridearrivo-route-suspense */}
+        <Suspense
+          fallback={
+            <div className="routeLoading glassCard">
+              <span className="routeLoadingSpinner"/>
+              <strong>Opening workspace...</strong>
+              <small>Loading only the tools required for this section.</small>
+            </div>
+          }
+        >
+
       <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><button className="iconButton"><Search size={17}/></button><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
@@ -721,12 +811,15 @@ function App(){
         {section==='marketing'&&<MarketingTeamWorkspace/>}
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>}/>}
+        {section==='settings'&&<AppearanceSettings/>}
         {section==='admin'&&<AdminModule/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>} 
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
       </div>
-    </main>
+    
+        </Suspense>
+</main>
   </div></div>
 }
 

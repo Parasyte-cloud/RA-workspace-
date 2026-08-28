@@ -1,0 +1,977 @@
+/*
+ * RideArrivo central appearance system
+ * -------------------------------------
+ * Controls:
+ * - application theme
+ * - outer workspace environment
+ * - workstation frame integrity
+ * - ring-light strength
+ */
+
+:root {
+  --ra-outer-base: #edf2f7;
+  --ra-outer-deep-a: #dce5f0;
+  --ra-outer-deep-b: #f6f7f9;
+
+  --ra-main-bg: #f5f7fa;
+  --ra-surface: #ffffff;
+  --ra-surface-soft: rgba(255,255,255,.78);
+  --ra-surface-muted: #eef2f6;
+
+  --ra-text: #0b203e;
+  --ra-muted: #65748a;
+  --ra-border: rgba(7,26,56,.10);
+  --ra-shell-edge: rgba(255,255,255,.78);
+
+  --ra-frame-radius: 34px;
+
+  --ra-workspace-background:
+    radial-gradient(
+      circle at 10% 16%,
+      rgba(255,153,0,.12),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 88% 8%,
+      rgba(40,99,178,.13),
+      transparent 30%
+    ),
+    linear-gradient(
+      145deg,
+      #eef2f7,
+      #e6ebf2 48%,
+      #f5f2ec
+    );
+
+  --ra-frame-shadow:
+    0 30px 90px rgba(4,20,44,.19),
+    0 10px 32px rgba(4,20,44,.10);
+
+  --ra-ring-shadow:
+    0 0 0 1px rgba(255,255,255,.55),
+    0 0 22px rgba(255,153,0,.17),
+    0 0 54px rgba(45,112,214,.13),
+    var(--ra-frame-shadow);
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+html[data-ra-theme='dark'] {
+  --ra-outer-base: #030812;
+  --ra-outer-deep-a: #02060d;
+  --ra-outer-deep-b: #0a1423;
+
+  --ra-main-bg: #0c1523;
+  --ra-surface: #111d2d;
+  --ra-surface-soft: rgba(17,29,45,.92);
+  --ra-surface-muted: #162337;
+
+  --ra-text: #f4f7fb;
+  --ra-muted: #aab8cc;
+  --ra-border: rgba(255,255,255,.09);
+  --ra-shell-edge: rgba(255,255,255,.12);
+
+  --ra-workspace-background:
+    radial-gradient(
+      circle at 10% 14%,
+      rgba(255,153,0,.10),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 90% 7%,
+      rgba(42,102,211,.17),
+      transparent 30%
+    ),
+    linear-gradient(
+      145deg,
+      #02060d,
+      #06101e 52%,
+      #040913
+    );
+
+  --ra-frame-shadow:
+    0 34px 100px rgba(0,0,0,.58),
+    0 12px 36px rgba(0,0,0,.36);
+}
+
+
+/* =========================================================
+   WORKSPACE ENVIRONMENT
+   ========================================================= */
+
+html[data-ra-workspace='clean'] {
+  --ra-workspace-background:
+    var(--ra-outer-base);
+}
+
+html[data-ra-workspace='deep'] {
+  --ra-workspace-background:
+    radial-gradient(
+      circle at 50% -12%,
+      rgba(255,153,0,.10),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 95% 60%,
+      rgba(37,103,211,.12),
+      transparent 35%
+    ),
+    linear-gradient(
+      150deg,
+      var(--ra-outer-deep-a),
+      var(--ra-outer-deep-b)
+    );
+}
+
+
+/* =========================================================
+   RING LIGHT
+   ========================================================= */
+
+html[data-ra-glow='off'] {
+  --ra-ring-shadow:
+    0 0 0 1px var(--ra-shell-edge),
+    var(--ra-frame-shadow);
+}
+
+html[data-ra-glow='subtle'] {
+  --ra-ring-shadow:
+    0 0 0 1px var(--ra-shell-edge),
+    0 0 22px rgba(255,153,0,.17),
+    0 0 54px rgba(45,112,214,.13),
+    var(--ra-frame-shadow);
+}
+
+html[data-ra-glow='medium'] {
+  --ra-ring-shadow:
+    0 0 0 1px var(--ra-shell-edge),
+    0 0 28px 3px rgba(255,153,0,.22),
+    0 0 72px 9px rgba(45,112,214,.19),
+    var(--ra-frame-shadow);
+}
+
+
+/* =========================================================
+   GLOBAL ENVIRONMENT
+   ========================================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--ra-workspace-background) !important;
+  color: var(--ra-text);
+}
+
+
+/* =========================================================
+   AUTHENTICATED WORKSTATION
+   FIXES OUTER SHAPE / SCROLLING
+   ========================================================= */
+
+.appBackground {
+  width: 100%;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+
+  padding: 16px !important;
+
+  display: grid;
+  place-items: center;
+
+  position: relative;
+  isolation: isolate;
+
+  overflow: hidden;
+
+  background:
+    var(--ra-workspace-background) !important;
+
+  transition:
+    background .25s ease;
+}
+
+.shell.glassFrame {
+  width: min(1600px, 100%) !important;
+
+  height:
+    calc(100dvh - 32px) !important;
+
+  min-height: 0 !important;
+  max-height:
+    calc(100dvh - 32px) !important;
+
+  margin: 0 auto;
+
+  border-radius:
+    var(--ra-frame-radius) !important;
+
+  overflow: hidden !important;
+
+  border:
+    1px solid var(--ra-shell-edge) !important;
+
+  background:
+    var(--ra-main-bg) !important;
+
+  box-shadow:
+    var(--ra-ring-shadow) !important;
+
+  isolation: isolate;
+
+  transition:
+    background .25s ease,
+    border-color .25s ease,
+    box-shadow .25s ease;
+}
+
+
+/*
+ * The sidebar and main content now remain inside
+ * the workstation height. Content scrolls internally
+ * instead of stretching the outer frame.
+ */
+
+.shell.glassFrame > .sidebar {
+  height: 100% !important;
+  min-height: 0 !important;
+
+  top: auto !important;
+
+  overflow: hidden;
+}
+
+.shell.glassFrame > .sidebar nav {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+}
+
+.shell.glassFrame > main {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background:
+    var(--ra-main-bg);
+
+  color:
+    var(--ra-text);
+}
+
+.shell.glassFrame .topbar {
+  flex: 0 0 auto;
+}
+
+.shell.glassFrame .content {
+  flex: 1 1 auto;
+
+  min-height: 0;
+  min-width: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+}
+
+
+/* =========================================================
+   AUTH SCREEN FRAME
+   ========================================================= */
+
+.authPage {
+  min-height: 100dvh !important;
+
+  padding: 24px !important;
+
+  background:
+    var(--ra-workspace-background) !important;
+
+  overflow: auto;
+
+  transition:
+    background .25s ease;
+}
+
+.authGlass {
+  width: min(1180px, 100%) !important;
+
+  min-height:
+    min(680px, calc(100dvh - 48px)) !important;
+
+  max-height:
+    calc(100dvh - 48px);
+
+  border-radius:
+    var(--ra-frame-radius) !important;
+
+  overflow: auto !important;
+
+  border:
+    1px solid var(--ra-shell-edge) !important;
+
+  box-shadow:
+    var(--ra-ring-shadow) !important;
+}
+
+
+/* =========================================================
+   LIGHT THEME SURFACES
+   ========================================================= */
+
+html[data-ra-theme='light']
+.shell.glassFrame > main {
+  background: #f5f7fa;
+}
+
+html[data-ra-theme='light']
+.topbar {
+  background:
+    rgba(255,255,255,.88) !important;
+
+  color: #0b203e;
+}
+
+html[data-ra-theme='light']
+.glassCard {
+  background:
+    rgba(255,255,255,.86);
+}
+
+
+/* =========================================================
+   DARK THEME APPLICATION
+   ========================================================= */
+
+html[data-ra-theme='dark']
+.shell.glassFrame > main {
+  background:
+    var(--ra-main-bg);
+}
+
+html[data-ra-theme='dark']
+.topbar {
+  background:
+    rgba(13,23,38,.94) !important;
+
+  color:
+    var(--ra-text) !important;
+
+  border-color:
+    var(--ra-border) !important;
+
+  box-shadow:
+    0 8px 30px rgba(0,0,0,.20) !important;
+}
+
+html[data-ra-theme='dark']
+.topbar h1,
+html[data-ra-theme='dark']
+.content h1,
+html[data-ra-theme='dark']
+.content h2,
+html[data-ra-theme='dark']
+.content h3,
+html[data-ra-theme='dark']
+.content strong {
+  color:
+    var(--ra-text);
+}
+
+html[data-ra-theme='dark']
+.topbar p,
+html[data-ra-theme='dark']
+.content p,
+html[data-ra-theme='dark']
+.sectionTitle p,
+html[data-ra-theme='dark']
+.workbenchHead p {
+  color:
+    var(--ra-muted);
+}
+
+html[data-ra-theme='dark']
+.glassCard,
+html[data-ra-theme='dark']
+.moduleTabs,
+html[data-ra-theme='dark']
+.quickForm,
+html[data-ra-theme='dark']
+.tableCard,
+html[data-ra-theme='dark']
+.moduleSearch {
+  background:
+    var(--ra-surface-soft) !important;
+
+  color:
+    var(--ra-text);
+
+  border-color:
+    var(--ra-border) !important;
+}
+
+html[data-ra-theme='dark']
+.glassButton,
+html[data-ra-theme='dark']
+.iconButton {
+  background:
+    #152338 !important;
+
+  color:
+    #f4f7fb !important;
+
+  border-color:
+    rgba(255,255,255,.10) !important;
+
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.06) !important;
+}
+
+html[data-ra-theme='dark']
+.content input,
+html[data-ra-theme='dark']
+.content select,
+html[data-ra-theme='dark']
+.content textarea {
+  background:
+    #0f1b2d !important;
+
+  color:
+    #f4f7fb !important;
+
+  border-color:
+    rgba(255,255,255,.12) !important;
+}
+
+html[data-ra-theme='dark']
+.content input::placeholder,
+html[data-ra-theme='dark']
+.content textarea::placeholder {
+  color:
+    #7f90a8;
+}
+
+html[data-ra-theme='dark']
+.moduleTable th,
+html[data-ra-theme='dark']
+.tr.th {
+  background:
+    rgba(255,255,255,.035) !important;
+
+  color:
+    #9cacbf;
+}
+
+html[data-ra-theme='dark']
+.moduleTable th,
+html[data-ra-theme='dark']
+.moduleTable td,
+html[data-ra-theme='dark']
+.tr,
+html[data-ra-theme='dark']
+.compactList > div {
+  border-color:
+    rgba(255,255,255,.07) !important;
+}
+
+html[data-ra-theme='dark']
+.launch {
+  color:
+    var(--ra-text);
+
+  border-color:
+    rgba(255,255,255,.09);
+}
+
+html[data-ra-theme='dark']
+.pill,
+html[data-ra-theme='dark']
+.statusPill {
+  background:
+    rgba(255,255,255,.07);
+
+  color:
+    #b4c1d2;
+}
+
+
+/* Auth stays strongly RideArrivo-branded.
+   Dark mode also darkens the sign-in panel. */
+
+html[data-ra-theme='dark']
+.authGlass form {
+  background:
+    rgba(15,27,45,.96) !important;
+
+  color:
+    #f4f7fb !important;
+
+  border:
+    1px solid rgba(255,255,255,.09);
+}
+
+html[data-ra-theme='dark']
+.authTabs {
+  background:
+    #0a1526 !important;
+}
+
+html[data-ra-theme='dark']
+.authTabs button {
+  color:
+    #aebbd0;
+}
+
+html[data-ra-theme='dark']
+.authTabs button.active {
+  background:
+    #18263b !important;
+
+  color:
+    #ffffff;
+}
+
+html[data-ra-theme='dark']
+.authGlass input {
+  background:
+    #0e1a2b !important;
+
+  color:
+    #ffffff !important;
+
+  border-color:
+    rgba(255,255,255,.12) !important;
+}
+
+
+/* =========================================================
+   APPEARANCE SETTINGS
+   ========================================================= */
+
+.appearanceSettings {
+  width: 100%;
+  max-width: 1180px;
+
+  margin: 0 auto;
+  padding-bottom: 36px;
+}
+
+.appearanceHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 22px;
+}
+
+.appearanceHeading h2 {
+  margin: 7px 0 7px;
+
+  font-size:
+    clamp(30px, 4vw, 42px);
+}
+
+.appearanceHeading p {
+  max-width: 720px;
+
+  margin: 0;
+
+  color:
+    var(--ra-muted);
+
+  line-height: 1.6;
+}
+
+.appearancePreview {
+  padding: 24px;
+
+  margin-bottom: 20px;
+
+  border-radius: 26px;
+
+  overflow: hidden;
+
+  background:
+    var(--ra-workspace-background);
+
+  border:
+    1px solid var(--ra-border);
+}
+
+.appearancePreviewGlow {
+  width: min(680px, 100%);
+
+  margin: 12px auto;
+
+  border-radius: 24px;
+
+  box-shadow:
+    var(--ra-ring-shadow);
+}
+
+.appearancePreviewShell {
+  height: 260px;
+
+  display: grid;
+
+  grid-template-columns:
+    120px 1fr;
+
+  overflow: hidden;
+
+  border-radius: 24px;
+
+  background:
+    var(--ra-main-bg);
+
+  border:
+    1px solid var(--ra-shell-edge);
+}
+
+.appearancePreviewSidebar {
+  padding: 28px 18px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #071a38,
+      #092b53
+    );
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 13px;
+}
+
+.appearancePreviewSidebar span {
+  height: 11px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(255,255,255,.22);
+}
+
+.appearancePreviewSidebar span:first-child {
+  width: 72%;
+  background:
+    #ff9900;
+}
+
+.appearancePreviewContent {
+  background:
+    var(--ra-main-bg);
+}
+
+.appearancePreviewTopbar {
+  height: 58px;
+
+  border-bottom:
+    1px solid var(--ra-border);
+
+  background:
+    var(--ra-surface-soft);
+}
+
+.appearancePreviewCard {
+  margin: 26px;
+
+  padding: 24px;
+
+  border-radius: 20px;
+
+  display: grid;
+
+  gap: 8px;
+
+  background:
+    var(--ra-surface);
+
+  border:
+    1px solid var(--ra-border);
+
+  color:
+    var(--ra-text);
+}
+
+.appearancePreviewCard small {
+  color:
+    var(--ra-muted);
+}
+
+.appearanceSettingsGrid {
+  display: grid;
+
+  gap: 16px;
+}
+
+.appearanceSettingCard {
+  padding: 22px;
+
+  border-radius: 24px;
+
+  background:
+    var(--ra-surface-soft);
+
+  border:
+    1px solid var(--ra-border);
+}
+
+.appearanceSettingCopy {
+  display: flex;
+
+  gap: 14px;
+
+  margin-bottom: 18px;
+}
+
+.appearanceSettingNumber {
+  width: 38px;
+  height: 38px;
+
+  flex: 0 0 auto;
+
+  border-radius: 12px;
+
+  display: grid;
+  place-items: center;
+
+  background:
+    rgba(255,153,0,.13);
+
+  color:
+    #d17d00;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.appearanceSettingCopy h3 {
+  margin: 0 0 5px;
+}
+
+.appearanceSettingCopy p {
+  margin: 0;
+
+  color:
+    var(--ra-muted);
+
+  line-height: 1.5;
+}
+
+.appearanceChoices {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.appearanceChoices.three {
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+}
+
+.appearanceChoice {
+  min-height: 112px;
+
+  padding: 14px;
+
+  border-radius: 18px;
+
+  display: grid;
+
+  align-content: start;
+
+  gap: 5px;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  color:
+    var(--ra-text);
+
+  background:
+    var(--ra-surface);
+
+  border:
+    1px solid var(--ra-border);
+
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease;
+}
+
+.appearanceChoice:hover {
+  transform:
+    translateY(-1px);
+
+  border-color:
+    rgba(255,153,0,.34);
+}
+
+.appearanceChoice.active {
+  border-color:
+    rgba(255,153,0,.72);
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,153,0,.18),
+    0 10px 30px rgba(7,26,56,.08);
+}
+
+.appearanceChoice small {
+  color:
+    var(--ra-muted);
+}
+
+.themeSwatch,
+.workspaceSwatch,
+.glowSwatch {
+  width: 42px;
+  height: 28px;
+
+  margin-bottom: 7px;
+
+  border-radius: 9px;
+
+  display: block;
+
+  border:
+    1px solid rgba(127,145,169,.30);
+}
+
+.lightSwatch {
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff,
+      #e8edf4
+    );
+}
+
+.darkSwatch {
+  background:
+    linear-gradient(
+      135deg,
+      #08111e,
+      #17283f
+    );
+}
+
+.workspaceSwatch.clean {
+  background:
+    #dfe5ec;
+}
+
+.workspaceSwatch.ambient {
+  background:
+    radial-gradient(
+      circle at 20% 30%,
+      #ffb13b,
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      #dce5ef,
+      #aebfd5
+    );
+}
+
+.workspaceSwatch.deep {
+  background:
+    linear-gradient(
+      135deg,
+      #071a38,
+      #173e72
+    );
+}
+
+.glowSwatch {
+  background:
+    #0a1830;
+}
+
+.glowSwatch.subtle {
+  box-shadow:
+    0 0 10px rgba(255,153,0,.38),
+    0 0 18px rgba(46,110,220,.26);
+}
+
+.glowSwatch.medium {
+  box-shadow:
+    0 0 13px 2px rgba(255,153,0,.52),
+    0 0 25px 4px rgba(46,110,220,.36);
+}
+
+
+/* =========================================================
+   RESPONSIVE SHELL INTEGRITY
+   ========================================================= */
+
+@media (max-width: 760px) {
+  .appBackground {
+    padding: 0 !important;
+  }
+
+  .shell.glassFrame {
+    width: 100% !important;
+
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+
+    border-radius: 0 !important;
+  }
+
+  .authPage {
+    padding: 12px !important;
+  }
+
+  .authGlass {
+    min-height:
+      calc(100dvh - 24px) !important;
+
+    max-height: none;
+
+    border-radius:
+      26px !important;
+  }
+
+  .appearanceHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .appearanceChoices,
+  .appearanceChoices.three {
+    grid-template-columns: 1fr;
+  }
+
+  .appearancePreview {
+    padding: 14px;
+  }
+
+  .appearancePreviewShell {
+    grid-template-columns:
+      72px 1fr;
+  }
+}
