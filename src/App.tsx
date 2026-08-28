@@ -7,7 +7,8 @@ import {
   Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, KeyRound,
   LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, Mail, MonitorCog, Network, PackageCheck,
   Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
-  UserCog, UserPlus, Users, Wrench, Images
+  UserCog, UserPlus, Users, Wrench, Images,
+  Globe2
 } from 'lucide-react'
 import { supabase, supabaseConfigured } from './lib/supabase'
 import { FinanceModule, PartnershipsModule } from './modules/BusinessModules'
@@ -41,7 +42,10 @@ import {
   PartnershipsTeamWorkspace,
   LegalTeamWorkspace
 } from './modules/DepartmentTeamWorkspace'
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+import ParasyteBrowser from './modules/ParasyteBrowser'
+import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
+import type { ParasyteOpenDetail } from './lib/parasyte'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -109,6 +113,7 @@ const sectionAccess:Record<Section,Role[]>={
   files:allWorkspaceRoles,
   knowledge:allWorkspaceRoles,
   apps:allWorkspaceRoles,
+  parasyte:allWorkspaceRoles,
   workspace:allWorkspaceRoles,
 
   /*
@@ -248,6 +253,55 @@ function App(){
   })
   const [authReady,setAuthReady]=useState(false)
   const [section,setSection]=useState<Section>('overview')
+
+  const [parasyteUrl,setParasyteUrl]=
+    useState('')
+
+  // ridearrivo-parasyte-listener
+  useEffect(()=>{
+
+    const handler=(event:Event)=>{
+
+      const detail=
+        (
+          event as CustomEvent<
+            ParasyteOpenDetail
+          >
+        ).detail
+
+      if(!detail?.url){
+        return
+      }
+
+      setParasyteUrl(
+        detail.url
+      )
+
+      setSection(
+        'parasyte'
+      )
+
+    }
+
+    window.addEventListener(
+      PARASYTE_OPEN_EVENT,
+      handler
+    )
+
+    return ()=>{
+
+      window.removeEventListener(
+        PARASYTE_OPEN_EVENT,
+        handler
+      )
+
+    }
+
+  },[])
+
+
+
+
   const [workspace,setWorkspace]=useState<Workspace|null>(null)
   const [deferredPrompt,setDeferredPrompt]=useState<any>(null)
   const [online,setOnline]=useState(navigator.onLine)
@@ -458,7 +512,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -668,6 +722,7 @@ function App(){
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>}/>}
         {section==='admin'&&<AdminModule/>}
+        {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>} 
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
       </div>

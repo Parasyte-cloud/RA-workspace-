@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import { openInParasyte } from '../lib/parasyte'
 
 import {
   MarketingModule
@@ -214,10 +215,8 @@ function ToolLauncher({
 
   const openTool=(url:string)=>{
 
-    window.open(
-      url,
-      '_blank',
-      'noopener,noreferrer'
+    openInParasyte(
+      url
     )
 
   }

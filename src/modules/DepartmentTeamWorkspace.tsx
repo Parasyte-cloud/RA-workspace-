@@ -20,6 +20,7 @@ import {
 import {
   supabase
 } from '../lib/supabase'
+import { openInParasyte } from '../lib/parasyte'
 
 import '../department-workspace.css'
 
@@ -340,10 +341,9 @@ export function DepartmentTeamWorkspace({
       return
     }
 
-    window.open(
+    openInParasyte(
       tool.url,
-      '_blank',
-      'noopener,noreferrer'
+      tool.name
     )
 
   }
