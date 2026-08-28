@@ -325,6 +325,11 @@ export function WorkDesk(){
     profile?.role==='admin' ||
     profile?.role==='manager'
 
+  const canDelegate=
+    canAssignCompanyWide ||
+    profile?.role==='cto' ||
+    profile?.role==='operations'
+
 
   const filtered=useMemo(()=>{
     if(!profile){
@@ -536,19 +541,21 @@ export function WorkDesk(){
           My Work
         </button>
 
-        <button
-          className={
-            view==='assigned'
-              ? 'active'
-              : ''
-          }
-          onClick={()=>
-            setView('assigned')
-          }
-        >
-          <UsersRound size={16}/>
-          Assigned by Me
-        </button>
+        {canDelegate&&
+          <button
+            className={
+              view==='assigned'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setView('assigned')
+            }
+          >
+            <UsersRound size={16}/>
+            Assigned by Me
+          </button>
+        }
 
         {canAssignCompanyWide&&
           <button

@@ -32,6 +32,7 @@ const ROLE_OPTIONS = [
   'employee',
   'support',
   'engineer',
+  'cto',
   'hr',
   'legal',
   'operations',

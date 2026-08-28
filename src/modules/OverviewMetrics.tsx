@@ -19,6 +19,7 @@ type Role =
   | 'employee'
   | 'support'
   | 'engineer'
+  | 'cto'
   | 'manager'
   | 'hr'
   | 'legal'
