@@ -102,13 +102,24 @@ const engineers = [
 ]
 
 
-function BrandLogo({className=''}:{className?:string}){
+function BrandLogo({
+  className=''
+}:{
+  className?:string
+}){
   return (
-    <img
-      src="/ridearrivo-wordmark-transparent.png"
-      alt="RideArrivo"
-      className={`brandLogo ${className}`}
-    />
+    <span
+      className={`ridearrivoWordmark ${className}`}
+      aria-label="RideArrivo"
+    >
+      <span className="ridearrivoRide">
+        Ride
+      </span>
+
+      <span className="ridearrivoArrivo">
+        Arrivo
+      </span>
+    </span>
   )
 }
 
@@ -297,10 +308,56 @@ function App(){
   useEffect(()=>{
     void loadProfile()
   },[
-    session?.user?.id,
-    session?.access_token
+    session?.user?.id
   ])
 
+
+  const [profileMenuOpen,setProfileMenuOpen]=useState(false)
+
+  useEffect(()=>{
+    if(!profileMenuOpen){
+      return
+    }
+
+    const closeOutside=(event:PointerEvent)=>{
+      const target=event.target as HTMLElement | null
+
+      if(
+        target &&
+        !target.closest('.profileMenuWrap')
+      ){
+        setProfileMenuOpen(false)
+      }
+    }
+
+    const closeEscape=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener(
+      'pointerdown',
+      closeOutside
+    )
+
+    document.addEventListener(
+      'keydown',
+      closeEscape
+    )
+
+    return()=>{
+      document.removeEventListener(
+        'pointerdown',
+        closeOutside
+      )
+
+      document.removeEventListener(
+        'keydown',
+        closeEscape
+      )
+    }
+  },[profileMenuOpen])
 
   const nav = useMemo(()=>{
     const items = [
@@ -420,30 +477,84 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<button
-  className="profileButton"
-  onClick={()=>setSection('profile')}
->
-  <div className="avatar">
-    {profile.avatar_url
-      ? <img
-          src={profile.avatar_url}
-          alt=""
-          style={{
-            width:'100%',
-            height:'100%',
-            objectFit:'cover',
-            borderRadius:'50%'
-          }}
-        />
-      : initials(profile.full_name)
-    }
-  </div>
-  <span>
-    <strong>{profile.full_name}</strong>
-    <small>{profile.role}</small>
-  </span>
-</button></div></header>
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<div className="profileMenuWrap">
+  <button
+    type="button"
+    className="profileButton"
+    aria-haspopup="menu"
+    aria-expanded={profileMenuOpen}
+    onClick={()=>setProfileMenuOpen(
+      current=>!current
+    )}
+  >
+    <div className="avatar">
+      {profile.avatar_url
+        ? <img
+            src={profile.avatar_url}
+            alt=""
+            style={{
+              width:'100%',
+              height:'100%',
+              objectFit:'cover',
+              borderRadius:'50%'
+            }}
+          />
+        : initials(profile.full_name)
+      }
+    </div>
+
+    <span>
+      <strong>{profile.full_name}</strong>
+      <small>{profile.role}</small>
+    </span>
+  </button>
+
+  {profileMenuOpen&&
+    <div
+      className="profileMenu"
+      role="menu"
+    >
+      <button
+        type="button"
+        role="menuitem"
+        onClick={()=>{
+          setProfileMenuOpen(false)
+          setWorkspace(null)
+          setSection('profile')
+        }}
+      >
+        My Profile
+      </button>
+
+      <div className="profileMenuDivider"/>
+
+      <button
+        type="button"
+        role="menuitem"
+        className="profileMenuDanger"
+        onClick={async()=>{
+          setProfileMenuOpen(false)
+
+          window.localStorage.removeItem(
+            'ridearrivo-last-activity'
+          )
+
+          const {error} =
+            await supabase?.auth.signOut() ?? {}
+
+          if(error){
+            console.error(
+              '[RideArrivo Auth] sign out failed',
+              error
+            )
+          }
+        }}
+      >
+        Sign out
+      </button>
+    </div>
+  }
+</div></div></header>
       <div className="content">
         {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>}
         {section==='profile'&&
@@ -480,9 +591,7 @@ function App(){
 function SetupRequired(){
   return <div className="authPage">
     <div className="setupCard">
-      <div className="brandWordmark setupWordmark">
-        <span className="rideText">Ride</span><span className="arrivoText">Arrivo</span>
-      </div>
+      <BrandLogo className="setupWordmark"/>
       <span className="eyebrow">INTERNAL WORKSPACE</span>
       <h1>Workspace authentication is not configured.</h1>
       <p>
@@ -570,8 +679,8 @@ function AuthGate(){
       <div className="authGlass glassPanel">
 
         <div className="authBrand">
-          <BrandLogo/>
-          <span>RideArrivo Internal Workspace</span>
+          <BrandLogo className="authLogo"/>
+<span>RideArrivo Internal Workspace</span>
         </div>
 
         <div className="authCopy">
