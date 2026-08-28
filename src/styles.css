@@ -4781,3 +4781,87 @@ textarea {
 .profileMenu .profileMenuDanger {
   color: #a92b2b;
 }
+
+/* =========================================================
+   RIDEARRIVO ORIGINAL WORDMARK
+   Preserve original artwork:
+   Ride = white
+   Arrivo = original amber
+   ========================================================= */
+
+.brandImageWordmark {
+  --ride-width: 42%;
+
+  position: relative;
+  display: inline-block;
+
+  width: 210px;
+  max-width: 100%;
+
+  line-height: 0;
+}
+
+.brandImageBase {
+  display: block;
+
+  width: 100% !important;
+  height: auto !important;
+
+  object-fit: contain;
+
+  filter: none !important;
+}
+
+.brandImageRideWhite {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100% !important;
+  height: auto !important;
+
+  object-fit: contain;
+
+  filter:
+    brightness(0)
+    invert(1) !important;
+
+  clip-path:
+    inset(
+      0
+      calc(100% - var(--ride-width))
+      0
+      0
+    );
+
+  pointer-events: none;
+}
+
+/* Startup */
+.splashLogo {
+  width: 240px !important;
+  max-width: 72vw !important;
+}
+
+/* Login / authentication */
+.authLogo {
+  width: 210px !important;
+  max-width: 70vw !important;
+}
+
+/* Sidebar */
+.sidebarLogo {
+  width: 190px !important;
+  max-width: 100% !important;
+}
+
+/* Setup / configuration */
+.setupWordmark {
+  width: 220px !important;
+  max-width: 72vw !important;
+}
+
+/* Retire temporary text-wordmark presentation */
+.ridearrivoWordmark {
+  display: none;
+}

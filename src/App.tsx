@@ -109,16 +109,22 @@ function BrandLogo({
 }){
   return (
     <span
-      className={`ridearrivoWordmark ${className}`}
+      className={`brandImageWordmark ${className}`}
       aria-label="RideArrivo"
     >
-      <span className="ridearrivoRide">
-        Ride
-      </span>
+      <img
+        src="/ridearrivo-wordmark-transparent.png"
+        alt=""
+        className="brandImageBase"
+        aria-hidden="true"
+      />
 
-      <span className="ridearrivoArrivo">
-        Arrivo
-      </span>
+      <img
+        src="/ridearrivo-wordmark-transparent.png"
+        alt=""
+        className="brandImageRideWhite"
+        aria-hidden="true"
+      />
     </span>
   )
 }
