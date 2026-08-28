@@ -122,8 +122,14 @@ function App(){
     session,
     setSession
   )
-  const [accessReady,setAccessReady]=useState(true)
-  const [accessApproved,setAccessApproved]=useState(true)
+  type AccessState =
+    | 'loading'
+    | 'approved'
+    | 'pending'
+    | 'error'
+
+  const [accessState,setAccessState]=
+    useState<AccessState>('loading')
 
   const [profile,setProfile]=useState<Profile>({
     id:'',
@@ -190,9 +196,20 @@ function App(){
   },[])
 
   const loadProfile=async()=>{
-    if(!supabase || !session?.user) return
+    const client=supabase
+    const user=session?.user
 
-    const {data,error}=await supabase
+    if(!client || !user){
+      setAccessState('loading')
+      return
+    }
+
+    setAccessState('loading')
+
+    const {
+      data,
+      error,
+    }=await client
       .from('employee_profiles')
       .select(`
         id,
@@ -212,134 +229,59 @@ function App(){
         bio,
         working_hours,
         virtual_card_enabled,
-        public_card_enabled
+        active
       `)
-      .eq('id',session.user.id)
+      .eq('id',user.id)
       .maybeSingle()
 
     if(error){
-      console.error('Unable to load employee profile',error)
+      console.error(
+        'Employee profile load failed',
+        error
+      )
+
+      setAccessState('error')
       return
     }
 
     if(!data){
-      setProfile({
-        id:session.user.id,
-        full_name:
-          session.user.user_metadata?.full_name ||
-          session.user.email?.split('@')[0] ||
-          'Employee',
-        email:session.user.email || '',
-        role:'employee',
-        department:'Unassigned',
-        job_title:''
-      })
+      setAccessState('pending')
+      return
+    }
+
+    if(data.active!==true){
+      setAccessState('pending')
       return
     }
 
     let avatar_url:string|null=null
 
     if(data.avatar_path){
-      const {data:signed}=await supabase.storage
-        .from('employee-headshots')
-        .createSignedUrl(data.avatar_path,3600)
+      const {
+        data:avatarData,
+      }=client.storage
+        .from('employee-avatars')
+        .getPublicUrl(data.avatar_path)
 
-      avatar_url=signed?.signedUrl || null
+      avatar_url=
+        avatarData?.publicUrl || null
     }
 
     setProfile({
       ...(data as Profile),
-      avatar_url
+      avatar_url,
     })
+
+    setAccessState('approved')
   }
 
   useEffect(()=>{
     void loadProfile()
-  },[session])
-
-
-  // approval-poll
-  useEffect(()=>{
-    const client=supabase
-
-    if(
-      !client ||
-      !session?.user ||
-      !accessReady ||
-      accessApproved
-    ){
-      return
-    }
-
-    let cancelled=false
-
-    const checkApproval=async()=>{
-      const userId=session.user.id
-
-      const {
-        data,
-        error,
-      }=await client
-        .from('employee_profiles')
-        .select(
-          'id,full_name,email,role,department,job_title,active'
-        )
-        .eq('id',userId)
-        .maybeSingle()
-
-      if(
-        cancelled ||
-        error ||
-        !data
-      ){
-        return
-      }
-
-      if(data.active===true){
-        setProfile({
-          ...data,
-          id:String(data.id),
-          full_name:String(data.full_name || ''),
-          email:String(
-            data.email ||
-            session.user.email ||
-            ''
-          ),
-          role:data.role as Role,
-          department:String(
-            data.department ||
-            'Unassigned'
-          ),
-          job_title:String(
-            data.job_title ||
-            ''
-          ),
-          active:true,
-        } as Profile)
-
-        setAccessApproved(true)
-      }
-    }
-
-    void checkApproval()
-
-    const timer=
-      window.setInterval(
-        ()=>{
-          void checkApproval()
-        },
-        5000
-      )
-
-    return()=>{
-      cancelled=true
-      window.clearInterval(timer)
-    }
   },[
     session?.user?.id,
-    accessReady,
-    accessApproved
+    session?.access_token
   ])
+
 
   const nav = useMemo(()=>{
     const items = [
@@ -355,6 +297,96 @@ function App(){
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
   if(!session) return <AuthGate/>
+
+  if(accessState==='loading'){
+    return (
+      <div className="splash">
+        <BrandLogo className="splashLogo"/>
+        <div className="spinner"/>
+      </div>
+    )
+  }
+
+  if(accessState==='error'){
+    return (
+      <div className="authPage">
+        <div className="setupCard">
+          <BrandLogo className="authLogo"/>
+
+          <span className="eyebrow">
+            WORKSPACE ACCESS
+          </span>
+
+          <h1>
+            We could not verify your access
+          </h1>
+
+          <p>
+            Your session is still active.
+            The workspace could not verify your
+            employee profile right now.
+          </p>
+
+          <button
+            className="primaryButton"
+            onClick={()=>{
+              setAccessState('loading')
+              void loadProfile()
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if(accessState==='pending'){
+    return (
+      <div className="authPage">
+        <div className="setupCard">
+          <BrandLogo className="authLogo"/>
+
+          <span className="eyebrow">
+            EMPLOYEE ACCESS
+          </span>
+
+          <h1>
+            Awaiting administrator approval
+          </h1>
+
+          <p>
+            Your RideArrivo account exists,
+            but workspace access has not yet
+            been approved.
+          </p>
+
+          <div className="pendingApprovalEmail">
+            {session.user.email}
+          </div>
+
+          <button
+            className="glassButton"
+            onClick={()=>{
+              setAccessState('loading')
+              void loadProfile()
+            }}
+          >
+            Check again
+          </button>
+
+          <button
+            className="glassButton"
+            onClick={()=>
+              void supabase?.auth.signOut()
+            }
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
