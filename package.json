@@ -7,10 +7,14 @@
     "dev": "vite",
     "build": "npm run prepare-brand && tsc -b && vite build",
     "preview": "vite preview",
-    "prepare-brand": "node scripts/prepare-brand-assets.mjs"
+    "prepare-brand": "node scripts/prepare-brand-assets.mjs",
+    "gateway:build": "npm --prefix gateway run build",
+    "gateway:test": "npm --prefix gateway test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "docx": "^9.7.1",
     "dompurify": "^3.4.14",
     "exceljs": "^4.4.0",
@@ -26,5 +30,8 @@
     "sharp": "^0.35.4",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

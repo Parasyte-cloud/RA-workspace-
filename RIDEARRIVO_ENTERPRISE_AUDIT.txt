@@ -1,0 +1,758 @@
+==================================================
+RIDEARRIVO ENTERPRISE AUDIT
+==================================================
+Thu Aug 27 19:04:02 WAT 2026
+
+=== GIT ===
+ M supabase/functions/ridearrivo-support/index.ts
+?? RIDEARRIVO_ENTERPRISE_AUDIT.txt
+e3fdfcb Harden workspace session persistence
+311ae5c Fix employee approval access workflow
+149efae Add administrator employee access approvals
+265102a Restrict department workspace access
+755b8e9 Complete Zoho mailbox navigation
+acf153e Restore and wire complete mailbox tray
+a8f60a4 Wire Zoho mailbox folders
+df31edc Redesign RideArrivo mail workspace
+6c29e22 Grant support function access to employee profiles
+a885322 Refine RideArrivo mail workspace UI
+
+=== BUILD ===
+
+> ridearrivo-workspace@1.0.0 build
+> npm run prepare-brand && tsc -b && vite build
+
+
+> ridearrivo-workspace@1.0.0 prepare-brand
+> node scripts/prepare-brand-assets.mjs
+
+RideArrivo transparent brand assets generated.
+vite v6.4.3 building for production...
+transforming...
+✓ 1643 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.65 kB │ gzip:   0.37 kB
+dist/assets/index-Dx4DyZg7.css     76.22 kB │ gzip:  14.76 kB
+dist/assets/index-qwESrj02.js   1,883.88 kB │ gzip: 535.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.39s
+
+=== NPM AUDIT ===
+# npm audit report
+
+uuid  <11.1.1
+Severity: moderate
+uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided - https://github.com/advisories/GHSA-w5hq-g745-h8pq
+fix available via `npm audit fix --force`
+Will install exceljs@3.4.0, which is a breaking change
+node_modules/uuid
+  exceljs  >=3.5.0
+  Depends on vulnerable versions of uuid
+  node_modules/exceljs
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+=== SOURCE FILES ===
+src/App.tsx
+src/components/EmployeeVirtualCard.tsx
+src/data/tools.ts
+src/lib/ridearrivoSupport.ts
+src/lib/supabase.ts
+src/lib/useSessionKeeper.ts
+src/main.tsx
+src/modules/AdminAccessManager.tsx
+src/modules/ApplicationsHub.tsx
+src/modules/BusinessModules.tsx
+src/modules/CoreModules.tsx
+src/modules/FinanceBanking.tsx
+src/modules/MailModule.tsx
+src/modules/Phase2Modules.tsx
+src/modules/ProfileModule.tsx
+src/modules/SocialModule.tsx
+src/modules/SupportOperationsPanel.tsx
+src/vite-env.d.ts
+supabase/functions/_shared/zoho.ts
+supabase/functions/ridearrivo-support/index.ts
+supabase/functions/whatsapp-send/index.ts
+supabase/functions/whatsapp-webhook/index.ts
+supabase/functions/workspace-user-admin/index.ts
+supabase/functions/zoho-mail-auth-url/index.ts
+supabase/functions/zoho-mail-callback/index.ts
+supabase/functions/zoho-mail-folder-messages/index.ts
+supabase/functions/zoho-mail-folders/index.ts
+supabase/functions/zoho-mail-inbox/index.ts
+supabase/functions/zoho-mail-message/index.ts
+supabase/functions/zoho-mail-send/index.ts
+supabase/functions/zoho-mail-status/index.ts
+
+=== AUTH / SESSION ===
+src/App.tsx:83:  {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
+src/App.tsx:102:  {name:'Expo / EAS', purpose:'Mobile builds, signing and releases', mac:'npm install -g eas-cli', windows:'npm install -g eas-cli'},
+src/App.tsx:126:  const [accessApproved,setAccessApproved]=useState(true)
+src/App.tsx:157:    supabase.auth.getSession().then(({data})=>{
+src/App.tsx:163:      supabase.auth.onAuthStateChange(
+src/App.tsx:269:      accessApproved
+src/App.tsx:285:          'id,full_name,email,role,department,job_title,active'
+src/App.tsx:298:      if(data.active===true){
+src/App.tsx:317:          active:true,
+src/App.tsx:320:        setAccessApproved(true)
+src/App.tsx:341:    accessApproved
+src/App.tsx:353:  const signOut=()=>supabase?.auth.signOut()
+src/App.tsx:362:      <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
+src/App.tsx:488:      const {error}=await supabase.auth.signInWithPassword({
+src/App.tsx:543:              className="active"
+src/App.tsx:584:            {busy?'Signing in...':'Sign in'}
+src/App.tsx:605:  const stats=[['Open bookings','24','Support queue',Headphones],['Active rides','8','Live operations',Route],['CRM pipeline','₦5.5m','Open opportunities',CircleDollarSign],['Open HR requests','3','People operations',Users]] as const
+src/App.tsx:618:function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
+src/App.tsx:624:function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+src/App.tsx:626:function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch, driver readiness, fleet, airport pickup execution, incidents and operating performance."/><div className="grid3"><Feature icon={<Route/>} title="Dispatch Board" text="Unassigned bookings, driver matching, trip state and operational ownership."/><Feature icon={<BadgeCheck/>} title="Driver readiness" text="Verification, availability, documentation and compliance status."/><Feature icon={<PackageCheck/>} title="Fleet readiness" text="Vehicles, maintenance, papers, inspections and capacity."/><Feature icon={<Activity/>} title="Live operations" text="Active trips, location health, delayed flights and exceptions."/><Feature icon={<ShieldAlert/>} title="Incident management" text="Safety, service incidents, owners, severity and corrective actions."/><Feature icon={<BarChart3/>} title="Operations KPIs" text="Assignment time, completion, cancellation, utilisation and service quality."/></div></section>}
+src/lib/useSessionKeeper.ts:67:              .getSession()
+src/lib/useSessionKeeper.ts:108:              .refreshSession()
+src/modules/Phase2Modules.tsx:207:            className={filter === value ? 'appCategory active' : 'appCategory'}
+src/modules/ApplicationsHub.tsx:132:        .eq('is_active', true)
+src/modules/ApplicationsHub.tsx:299:                  ? 'appCategory active'
+src/modules/ApplicationsHub.tsx:328:                      ? 'appFavorite active'
+src/modules/BusinessModules.tsx:25:function Tabs({items,active,onChange}:{items:string[];active:string;onChange:(v:string)=>void}){return <div className="moduleTabs">{items.map(i=><button key={i} className={i===active?'active':''} onClick={()=>onChange(i)}>{i}</button>)}</div>}
+src/modules/BusinessModules.tsx:67:<Title eyebrow="FINANCE & ACCOUNTING" title="Finance Control Centre" subtitle="Receivables, payables, journals, expenses, budgets, assets, tax and period close under finance-grade controls."/><div className="stats"><KPI icon={<CircleDollarSign/>} label="Revenue control" value="AR" hint="Invoices, balances and aging"/><KPI icon={<ReceiptText/>} label="Payables" value="AP" hint="Bills, approvals and due dates"/><KPI icon={<WalletCards/>} label="Spend control" value="OPEX" hint="Expenses and reimbursements"/><KPI icon={<PieChart/>} label="Planning" value="Budget" hint="Budgets and variance readiness"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
+src/modules/BusinessModules.tsx:75:{tab==='Assets'&&<DataWorkbench table="finance_assets" title="Fixed assets" description="Asset register and useful-life control." createLabel="Register asset" fields={[{key:'asset_code',label:'Asset code',required:true},{key:'name',label:'Asset name',required:true},{key:'category',label:'Category',required:true},{key:'purchase_date',label:'Purchase date',type:'date'},{key:'cost',label:'Cost (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['active','disposed','written_off'],required:true}]} columns={[{key:'asset_code',label:'Code'},{key:'name',label:'Asset'},{key:'category',label:'Category'},{key:'cost',label:'Cost',render:r=>money(r.cost)},{key:'status',label:'Status'}]}/>} 
+src/modules/BusinessModules.tsx:78:export function MarketingModule(){const [tab,setTab]=useState('Campaigns');const tabs=['Campaigns','Content','Attribution','Experiments','Assets'];return <section><Title eyebrow="MARKETING" title="Growth & Brand Command Centre" subtitle="Campaign planning, content governance, attribution, experimentation and creative asset control."/><div className="stats"><KPI icon={<Megaphone/>} label="Campaigns" value="Plan → Learn" hint="Objective, spend and outcome"/><KPI icon={<Target/>} label="Attribution" value="UTM" hint="Source and campaign visibility"/><KPI icon={<TrendingUp/>} label="Growth" value="CAC → LTV" hint="Acquisition economics"/><KPI icon={<CalendarClock/>} label="Content" value="Calendar" hint="Review and publishing"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
+src/modules/BusinessModules.tsx:85:export function PartnershipsModule(){const [tab,setTab]=useState('Partners');const tabs=['Partners','Pipeline','Agreements','Activities','Referrals','Onboarding'];return <section><Title eyebrow="PARTNERSHIPS" title="Partnerships & Alliances" subtitle="Prospecting, commercial pipeline, contracts, relationship history, referrals and launch readiness."/><div className="stats"><KPI icon={<Handshake/>} label="Lifecycle" value="End-to-end" hint="Prospect to renewal"/><KPI icon={<Building2/>} label="Segments" value="Multi-sector" hint="Hotels, travel, corporate and more"/><KPI icon={<CircleDollarSign/>} label="Commercial" value="Pipeline" hint="Value and commission"/><KPI icon={<Users/>} label="Relationships" value="360°" hint="Contacts and activity"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
+src/modules/BusinessModules.tsx:86:{tab==='Partners'&&<DataWorkbench table="partners" title="Partner directory" description="Master partner relationship record." createLabel="New partner" fields={[{key:'name',label:'Partner name',required:true},{key:'partner_type',label:'Partner type',type:'select',options:['hotel','corporate','travel_agency','airline','tourism','embassy','institution','technology','other'],required:true},{key:'status',label:'Status',type:'select',options:['prospect','engaged','active','paused','inactive'],required:true},{key:'website',label:'Website'},{key:'city',label:'City'},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'name',label:'Partner'},{key:'partner_type',label:'Type'},{key:'city',label:'City'},{key:'status',label:'Status'}]}/>} 
+src/modules/BusinessModules.tsx:88:{tab==='Agreements'&&<DataWorkbench table="partner_agreements" title="Agreements" description="Rates, commissions, SLA and renewal governance." createLabel="New agreement" fields={[{key:'partner_name',label:'Partner',required:true},{key:'agreement_type',label:'Agreement type',required:true},{key:'effective_date',label:'Effective date',type:'date'},{key:'expiry_date',label:'Expiry date',type:'date'},{key:'commission_rate',label:'Commission %',type:'number'},{key:'status',label:'Status',type:'select',options:['draft','review','signed','active','expired','terminated'],required:true},{key:'document_path',label:'Document path / URL'}]} columns={[{key:'partner_name',label:'Partner'},{key:'agreement_type',label:'Agreement'},{key:'expiry_date',label:'Expiry',render:r=>dateFmt(r.expiry_date)},{key:'commission_rate',label:'Commission %'},{key:'status',label:'Status'}]}/>} 
+src/modules/SupportOperationsPanel.tsx:146:  const [active, setActive] = useState<SupportResource>('tickets')
+src/modules/SupportOperationsPanel.tsx:153:  async function load(resource = active) {
+src/modules/SupportOperationsPanel.tsx:175:    load(active)
+src/modules/SupportOperationsPanel.tsx:176:  }, [active])
+src/modules/SupportOperationsPanel.tsx:234:              className={active === tab.key ? 'supportTab active' : 'supportTab'}
+src/modules/SupportOperationsPanel.tsx:235:              onClick={() => setActive(tab.key)}
+src/modules/SupportOperationsPanel.tsx:294:                    {active === 'tickets'
+src/modules/SupportOperationsPanel.tsx:296:                      : active === 'rides'
+src/modules/SupportOperationsPanel.tsx:298:                        : active.toUpperCase()}
+src/modules/SupportOperationsPanel.tsx:300:                  <h4>{titleFor(row, active)}</h4>
+src/modules/SupportOperationsPanel.tsx:311:                {detailRows(row, active)
+src/modules/SupportOperationsPanel.tsx:327:              {active === 'tickets' &&
+src/modules/SocialModule.tsx:45:    const {data:sessionData}=await supabase.auth.getSession();const uid=sessionData.session?.user.id
+src/modules/SocialModule.tsx:76:    const {data:profiles}=await supabase.from('employee_profiles').select('id,full_name,department,job_title').eq('active',true).limit(8)
+src/modules/SocialModule.tsx:86:    const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return
+src/modules/SocialModule.tsx:101:    const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid){setPublishing(false);return}
+src/modules/SocialModule.tsx:109:  const toggleLike=async(p:SocialPost)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;p.liked?await supabase.from('social_post_reactions').delete().eq('post_id',p.id).eq('user_id',uid).eq('reaction','like'):await supabase.from('social_post_reactions').upsert({post_id:p.id,user_id:uid,reaction:'like'});await load()}
+src/modules/SocialModule.tsx:110:  const toggleBookmark=async(p:SocialPost)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;p.bookmarked?await supabase.from('social_bookmarks').delete().eq('post_id',p.id).eq('user_id',uid):await supabase.from('social_bookmarks').upsert({post_id:p.id,user_id:uid});await load()}
+src/modules/SocialModule.tsx:111:  const toggleRepost=async(p:SocialPost)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;p.reposted?await supabase.from('social_reposts').delete().eq('post_id',p.id).eq('user_id',uid):await supabase.from('social_reposts').upsert({post_id:p.id,user_id:uid});await load()}
+src/modules/SocialModule.tsx:112:  const sendReply=async(e:FormEvent)=>{e.preventDefault();if(!supabase||!replyTo||!replyBody.trim())return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;const {error}=await supabase.from('social_posts').insert({author_id:uid,body:replyBody.trim(),post_type:'reply',visibility:replyTo.visibility,reply_to_id:replyTo.id});if(error)setNotice({kind:'error',text:error.message});else{setReplyBody('');setReplyTo(null);await load()}}
+src/modules/SocialModule.tsx:113:  const follow=async(id:string)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid||uid===id)return;await supabase.from('social_follows').upsert({follower_id:uid,following_id:id});setNotice({kind:'ok',text:'Following updated.'})}
+src/modules/SocialModule.tsx:119:        <div className="glassCard socialTabs">{(['For You','Following','News','Bookmarks'] as FeedTab[]).map(t=><button key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t==='News'?<Newspaper size={16}/>:t==='Bookmarks'?<Bookmark size={16}/>:t==='Following'?<Users size={16}/>:<Sparkles size={16}/>}<span>{t}</span></button>)}</div>
+src/modules/SocialModule.tsx:129:          <div className="postAvatar">{initials(p.author?.full_name)}</div><div className="postBody"><div className="postMeta"><strong>{p.author?.full_name||'RideArrivo Employee'}</strong><span>@{String(p.author?.email||'employee').split('@')[0]} · {timeAgo(p.created_at)}</span>{p.post_type!=='post'&&<span className="postType">{p.post_type}</span>}<button className="postMore"><Ellipsis size={17}/></button></div><p className="postText">{p.body}</p>{p.media&&p.media.length>0&&<div className={`postMedia mediaCount${Math.min(4,p.media.length)}`}>{p.media.slice(0,4).map(m=>m.media_type==='video'?<video key={m.id} src={m.signed_url||''} controls/>:<img key={m.id} src={m.signed_url||''} alt={m.alt_text||'Post media'}/>)}</div>}<div className="postActions"><button onClick={()=>setReplyTo(p)}><MessageCircle size={17}/><span>{p.replies||0}</span></button><button className={p.reposted?'active repost':''} onClick={()=>void toggleRepost(p)}><Repeat2 size={17}/><span>{p.reposts||0}</span></button><button className={p.liked?'active like':''} onClick={()=>void toggleLike(p)}><Heart size={17}/><span>{p.likes||0}</span></button><button className={p.bookmarked?'active':''} onClick={()=>void toggleBookmark(p)}>{p.bookmarked?<BookmarkCheck size={17}/>:<Bookmark size={17}/>}</button><button title="Report"><Flag size={16}/></button></div></div>
+src/modules/FinanceBanking.tsx:457:        {(['all', 'expense', 'income', 'unreconciled'] as const).map(v => <button key={v} className={filter === v ? 'active' : ''} onClick={() => setFilter(v)}>{v === 'all' ? 'All' : v === 'expense' ? 'Expenses' : v === 'income' ? 'Income' : 'Unreconciled'}</button>)}
+src/modules/FinanceBanking.tsx:486:      <Landmark size={20}/><div><strong>Providus API sync</strong><p>Manual statement import is active. Automatic balance, statement and transaction sync can be connected to this same ledger when Providus issues your corporate API credentials.</p></div>
+src/modules/AdminAccessManager.tsx:25:  active:boolean
+src/modules/AdminAccessManager.tsx:71:    await supabase.auth.getSession()
+src/modules/AdminAccessManager.tsx:146:      'pending'|'active'|'all'
+src/modules/AdminAccessManager.tsx:183:          user=>!user.active
+src/modules/AdminAccessManager.tsx:187:      if(filter==='active'){
+src/modules/AdminAccessManager.tsx:189:          user=>user.active
+src/modules/AdminAccessManager.tsx:270:      user=>!user.active
+src/modules/AdminAccessManager.tsx:319:              ? 'active'
+src/modules/AdminAccessManager.tsx:334:            filter==='active'
+src/modules/AdminAccessManager.tsx:335:              ? 'active'
+src/modules/AdminAccessManager.tsx:339:            setFilter('active')
+src/modules/AdminAccessManager.tsx:348:              ? 'active'
+src/modules/AdminAccessManager.tsx:515:                    user.active
+src/modules/AdminAccessManager.tsx:516:                      ? 'adminStatus active'
+src/modules/AdminAccessManager.tsx:520:                  {user.active
+src/modules/AdminAccessManager.tsx:525:                  {user.active
+src/modules/AdminAccessManager.tsx:532:                  {!user.active &&
+src/modules/AdminAccessManager.tsx:544:                  {user.active &&
+src/modules/AdminAccessManager.tsx:555:                  {user.active &&
+src/modules/MailModule.tsx:78:  const [activeFolder,setActiveFolder]=
+src/modules/MailModule.tsx:84:  const [activeFolderKey,setActiveFolderKey]=
+src/modules/MailModule.tsx:104:    } = await supabase.auth.getSession()
+src/modules/MailModule.tsx:265:    setActiveFolder(null)
+src/modules/MailModule.tsx:266:    setActiveFolderKey(key)
+src/modules/MailModule.tsx:305:    setActiveFolderKey(key)
+src/modules/MailModule.tsx:371:        !activeFolder
+src/modules/MailModule.tsx:373:        setActiveFolder(inbox)
+src/modules/MailModule.tsx:392:    setActiveFolder(folder)
+src/modules/MailModule.tsx:675:            {activeFolder?.name ||
+src/modules/MailModule.tsx:676:             activeFolderKey.charAt(0).toUpperCase()+
+src/modules/MailModule.tsx:677:             activeFolderKey.slice(1) ||
+src/modules/MailModule.tsx:771:              if(activeFolder){
+src/modules/MailModule.tsx:772:                void loadFolder(activeFolder)
+src/modules/MailModule.tsx:811:              activeFolderKey==='inbox'
+src/modules/MailModule.tsx:812:                ? 'active'
+src/modules/MailModule.tsx:831:              activeFolderKey==='starred'
+src/modules/MailModule.tsx:832:                ? 'active'
+src/modules/MailModule.tsx:845:              activeFolderKey==='sent'
+src/modules/MailModule.tsx:846:                ? 'active'
+src/modules/MailModule.tsx:865:              activeFolderKey==='drafts'
+src/modules/MailModule.tsx:866:                ? 'active'
+src/modules/MailModule.tsx:885:              activeFolderKey==='spam'
+src/modules/MailModule.tsx:886:                ? 'active'
+src/modules/MailModule.tsx:907:              activeFolderKey==='trash'
+src/modules/MailModule.tsx:908:                ? 'active'
+src/modules/MailModule.tsx:927:              activeFolderKey==='archive'
+src/modules/MailModule.tsx:928:                ? 'active'
+src/modules/MailModule.tsx:1040:                      ? 'mailMessageRow active'
+src/data/tools.ts:11:  { name:'Xcode', area:'Mobile', purpose:'iOS builds, simulators and signing', url:'https://developer.apple.com/xcode/', mode:'managed' },
+src/data/tools.ts:21:  { name:'Live Trips', area:'Support', purpose:'Active ride monitoring, driver position and exceptions', mode:'native' },
+
+=== RBAC ===
+src/App.tsx:31:type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
+src/App.tsx:37:  role:Role
+src/App.tsx:38:  department:string
+src/App.tsx:58:const sectionAccess:Partial<Record<Section,Role[]>>={
+src/App.tsx:80:const canAccess=(role:Role,section:Section)=>!sectionAccess[section]||sectionAccess[section]!.includes(role)
+src/App.tsx:132:    role:'employee',
+src/App.tsx:133:    department:'',
+src/App.tsx:201:        role,
+src/App.tsx:202:        department,
+src/App.tsx:233:        role:'employee',
+src/App.tsx:234:        department:'Unassigned',
+src/App.tsx:285:          'id,full_name,email,role,department,job_title,active'
+src/App.tsx:308:          role:data.role as Role,
+src/App.tsx:309:          department:String(
+src/App.tsx:310:            data.department ||
+src/App.tsx:348:    return items.filter(([id])=>canAccess(profile.role,id))
+src/App.tsx:349:  },[profile.role])
+src/App.tsx:363:      <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
+src/App.tsx:387:    <small>{profile.role}</small>
+src/App.tsx:391:        {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>}
+src/App.tsx:604:function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
+src/App.tsx:614:  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><div className="stats">{stats.map(([a,b,c,Icon])=><Metric key={a} icon={<Icon/>} label={a} value={b} hint={c}/>)}</div><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
+src/App.tsx:624:function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+src/App.tsx:630:function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+src/components/EmployeeVirtualCard.tsx:23:  role?:string|null
+src/components/EmployeeVirtualCard.tsx:24:  department?:string|null
+src/components/EmployeeVirtualCard.tsx:295:                  {profile.department&&
+src/components/EmployeeVirtualCard.tsx:296:                    <span className="virtualCardDepartment">
+src/components/EmployeeVirtualCard.tsx:297:                      {profile.department}
+src/components/EmployeeVirtualCard.tsx:400:                      <small>Department</small>
+src/components/EmployeeVirtualCard.tsx:402:                        {profile.department || 'RideArrivo'}
+src/modules/Phase2Modules.tsx:22:  audience_roles?: string[]
+src/modules/Phase2Modules.tsx:23:  audience_departments?: string[]
+src/modules/Phase2Modules.tsx:33:  department?: string
+src/modules/Phase2Modules.tsx:65:  department?: string
+src/modules/Phase2Modules.tsx:231:                  {task.department || 'Workspace'}
+src/modules/Phase2Modules.tsx:470:        file.department,
+src/modules/Phase2Modules.tsx:486:        subtitle="The central file directory for RideArrivo documents, department records and shared resources."
+src/modules/Phase2Modules.tsx:521:                  {file.department || file.provider}
+src/modules/ApplicationsHub.tsx:29:  allowed_roles?: string[] | null
+src/modules/ApplicationsHub.tsx:30:  allowed_departments?: string[] | null
+src/modules/ApplicationsHub.tsx:81:  const [role, setRole] = useState('')
+src/modules/ApplicationsHub.tsx:82:  const [department, setDepartment] = useState('')
+src/modules/ApplicationsHub.tsx:119:        .select('role,department')
+src/modules/ApplicationsHub.tsx:123:      const currentRole = String(profile?.role || '').toLowerCase()
+src/modules/ApplicationsHub.tsx:124:      const currentDepartment = String(profile?.department || '').toLowerCase()
+src/modules/ApplicationsHub.tsx:126:      setRole(currentRole)
+src/modules/ApplicationsHub.tsx:127:      setDepartment(currentDepartment)
+src/modules/ApplicationsHub.tsx:151:      const roles = app.allowed_roles || []
+src/modules/ApplicationsHub.tsx:152:      const departments = app.allowed_departments || []
+src/modules/ApplicationsHub.tsx:154:      const roleAllowed =
+src/modules/ApplicationsHub.tsx:155:        roles.length === 0 ||
+src/modules/ApplicationsHub.tsx:156:        roles.map((item) => item.toLowerCase()).includes(role)
+src/modules/ApplicationsHub.tsx:158:      const departmentAllowed =
+src/modules/ApplicationsHub.tsx:159:        departments.length === 0 ||
+src/modules/ApplicationsHub.tsx:160:        departments
+src/modules/ApplicationsHub.tsx:162:          .includes(department)
+src/modules/ApplicationsHub.tsx:164:      return roleAllowed && departmentAllowed
+src/modules/ApplicationsHub.tsx:166:  }, [apps, role, department])
+src/modules/BusinessModules.tsx:74:{tab==='Budgets'&&<DataWorkbench table="finance_budgets" title="Budgets" description="Department and category budgets." createLabel="Add budget" fields={[{key:'name',label:'Budget name',required:true},{key:'fiscal_year',label:'Fiscal year',type:'number',required:true},{key:'department',label:'Department',required:true},{key:'category',label:'Category',required:true},{key:'amount',label:'Amount (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['draft','approved','closed'],required:true}]} columns={[{key:'name',label:'Budget'},{key:'fiscal_year',label:'Year'},{key:'department',label:'Department'},{key:'amount',label:'Amount',render:r=>money(r.amount)},{key:'status',label:'Status'}]}/>} 
+src/modules/SocialModule.tsx:15:  author?:{full_name?:string;email?:string;department?:string;job_title?:string}|null;
+src/modules/SocialModule.tsx:39:  const [people,setPeople]=useState<{id:string;full_name:string;department:string;job_title:string}[]>([])
+src/modules/SocialModule.tsx:46:    let q=supabase.from('social_posts').select(`id,author_id,body,post_type,visibility,reply_to_id,quote_post_id,created_at,edited_at,scheduled_for,author:employee_profiles!social_posts_author_id_fkey(full_name,email,department,job_title),media:social_post_media(id,storage_path,media_type,alt_text)`).is('deleted_at',null).is('reply_to_id',null).order('created_at',{ascending:false}).limit(80)
+src/modules/SocialModule.tsx:76:    const {data:profiles}=await supabase.from('employee_profiles').select('id,full_name,department,job_title').eq('active',true).limit(8)
+src/modules/SocialModule.tsx:123:          <div className="composerOptions"><select value={postType} onChange={e=>setPostType(e.target.value)}><option value="post">Post</option><option value="news">News</option><option value="announcement">Announcement</option></select><select value={visibility} onChange={e=>setVisibility(e.target.value)}><option value="employees">All employees</option><option value="department">My department</option><option value="leadership">Leadership</option></select>{schedule&&<input type="datetime-local" value={schedule} onChange={e=>setSchedule(e.target.value)}/>}</div>
+src/modules/SocialModule.tsx:134:        <div className="glassCard railCard"><h3><UserPlus size={18}/>Who to follow</h3>{people.map(p=><div className="personRow" key={p.id}><div className="postAvatar small">{initials(p.full_name)}</div><span><strong>{p.full_name}</strong><small>{p.job_title||p.department}</small></span><button className="miniButton" onClick={()=>void follow(p.id)}>Follow</button></div>)}</div>
+src/modules/ProfileModule.tsx:350:            {profile.department}
+src/modules/ProfileModule.tsx:393:                  label="Department"
+src/modules/ProfileModule.tsx:394:                  value={profile.department}
+src/modules/FinanceBanking.tsx:29:  department?: string | null
+src/modules/FinanceBanking.tsx:259:      return [row.description, row.reference, row.category, row.department, row.vendor]
+src/modules/FinanceBanking.tsx:349:        { header: 'Department', key: 'department', width: 20 },
+src/modules/FinanceBanking.tsx:365:          department: row.department || '',
+src/modules/FinanceBanking.tsx:469:        <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Category</th><th>Department</th><th>Status</th></tr></thead>
+src/modules/FinanceBanking.tsx:478:            <td><input className="bankingCellInput" value={row.department || ''} placeholder="Assign" onChange={e => setRows(current => current.map(r => r.id === row.id ? { ...r, department: e.target.value } : r))} onBlur={e => void updateRow(row.id, { department: e.target.value || null })}/></td>
+src/modules/AdminAccessManager.tsx:22:  role:string
+src/modules/AdminAccessManager.tsx:23:  department:string
+src/modules/AdminAccessManager.tsx:31:const ROLE_OPTIONS = [
+src/modules/AdminAccessManager.tsx:45:const DEPARTMENTS = [
+src/modules/AdminAccessManager.tsx:219:        role:user.role,
+src/modules/AdminAccessManager.tsx:220:        department:user.department,
+src/modules/AdminAccessManager.tsx:289:            sign-ins, assign their role and
+src/modules/AdminAccessManager.tsx:290:            department, approve access or
+src/modules/AdminAccessManager.tsx:438:                  Department
+src/modules/AdminAccessManager.tsx:440:                    value={user.department}
+src/modules/AdminAccessManager.tsx:445:                          department:
+src/modules/AdminAccessManager.tsx:455:                    {DEPARTMENTS.map(
+src/modules/AdminAccessManager.tsx:456:                      department=>(
+src/modules/AdminAccessManager.tsx:458:                          key={department}
+src/modules/AdminAccessManager.tsx:459:                          value={department}
+src/modules/AdminAccessManager.tsx:461:                          {department}
+src/modules/AdminAccessManager.tsx:469:                  Role
+src/modules/AdminAccessManager.tsx:471:                    value={user.role}
+src/modules/AdminAccessManager.tsx:476:                          role:
+src/modules/AdminAccessManager.tsx:482:                    {ROLE_OPTIONS.map(
+src/modules/AdminAccessManager.tsx:483:                      role=>(
+src/modules/AdminAccessManager.tsx:485:                          key={role}
+src/modules/AdminAccessManager.tsx:486:                          value={role}
+src/modules/AdminAccessManager.tsx:488:                          {role}
+src/modules/CoreModules.tsx:131:export function PeopleModule(){const [employees,setEmployees]=useState<Record<string,unknown>[]>([]),[leave,setLeave]=useState({leave_type:'Annual',start_date:'',end_date:'',reason:''}),[message,setMessage]=useState('');useEffect(()=>{if(!supabase)return;void supabase.from('employee_profiles').select('id,full_name,email,department,job_title,role').order('full_name').then(({data})=>setEmployees((data||[]) as Record<string,unknown>[]))},[]);const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})};return <section><Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee directory and secure employee self-service."/><div className="grid2"><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div></div></section>}
+src/modules/CoreModules.tsx:213:            Role access is enforced at Supabase RLS. Service-role keys must
+supabase/schema.sql:2:-- Run in a dedicated Supabase project after reviewing organization-specific retention and role assignments.
+supabase/schema.sql:10:  department text not null default 'Unassigned',
+supabase/schema.sql:12:  role text not null default 'employee' check (role in ('employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin')),
+supabase/schema.sql:21:alter table public.employee_profiles drop constraint if exists employee_profiles_role_check;
+supabase/schema.sql:22:alter table public.employee_profiles add constraint employee_profiles_role_check check (role in ('employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'));
+supabase/schema.sql:24:create or replace function public.current_workspace_role()
+supabase/schema.sql:26:  select coalesce((select role from public.employee_profiles where id = auth.uid() and active = true),'employee');
+supabase/schema.sql:29:create or replace function public.has_workspace_role(roles text[])
+supabase/schema.sql:31:  select public.current_workspace_role() = any(roles);
+supabase/schema.sql:59:  allowed_roles text[] not null default array['employee']::text[],
+supabase/schema.sql:231:-- Directory: active employees visible internally. Role changes are admin/HR only.
+supabase/schema.sql:235:create policy "admins manage employee profiles" on public.employee_profiles for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+supabase/schema.sql:240:create policy "admins manage apps" on public.workspace_apps for all to authenticated using(public.has_workspace_role(array['admin'])) with check(public.has_workspace_role(array['admin']));
+supabase/schema.sql:242:-- CRM visible to customer-facing and management roles.
+supabase/schema.sql:244:create policy "crm read" on public.crm_accounts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:246:create policy "crm write" on public.crm_accounts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:248:create policy "crm contacts read" on public.crm_contacts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:250:create policy "crm contacts write" on public.crm_contacts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:252:create policy "crm leads read" on public.crm_leads for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:254:create policy "crm leads write" on public.crm_leads for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:256:create policy "crm opp read" on public.crm_opportunities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:258:create policy "crm opp write" on public.crm_opportunities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:260:create policy "crm activity read" on public.crm_activities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:262:create policy "crm activity write" on public.crm_activities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:265:create policy "support read" on public.support_cases for select to authenticated using(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:267:create policy "support write" on public.support_cases for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:269:create policy "incident read" on public.incidents for select to authenticated using(public.has_workspace_role(array['support','operations','legal','manager','admin']));
+supabase/schema.sql:271:create policy "incident write" on public.incidents for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:274:create policy "own leave read" on public.leave_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:278:create policy "hr leave manage" on public.leave_requests for update to authenticated using(public.has_workspace_role(array['manager','hr','admin'])) with check(public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:280:create policy "own hr requests" on public.hr_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:284:create policy "hr request manage" on public.hr_requests for update to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:286:create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:288:create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:291:create policy "legal read" on public.legal_contracts for select to authenticated using(public.has_workspace_role(array['legal','manager','admin']));
+supabase/schema.sql:293:create policy "legal manage" on public.legal_contracts for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:295:create policy "compliance read" on public.compliance_items for select to authenticated using(public.has_workspace_role(array['legal','operations','manager','admin']));
+supabase/schema.sql:297:create policy "compliance manage" on public.compliance_items for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:299:create policy "audit admin read" on public.workspace_audit_log for select to authenticated using(public.has_workspace_role(array['admin']));
+supabase/schema.sql:310:grant execute on function public.current_workspace_role() to authenticated;
+supabase/schema.sql:311:grant execute on function public.has_workspace_role(text[]) to authenticated;
+supabase/schema.sql:363:  department text not null, category text not null, amount numeric(14,2) not null check(amount>=0),
+supabase/schema.sql:458:    execute format('create policy "finance read" on public.%I for select to authenticated using(public.has_workspace_role(array[''finance'',''manager'',''admin'']))',t);
+supabase/schema.sql:459:    execute format('create policy "finance write" on public.%I for all to authenticated using(public.has_workspace_role(array[''finance'',''admin''])) with check(public.has_workspace_role(array[''finance'',''admin'']))',t);
+supabase/schema.sql:465:    execute format('create policy "marketing read" on public.%I for select to authenticated using(public.has_workspace_role(array[''marketing'',''partnerships'',''manager'',''admin'']))',t);
+supabase/schema.sql:466:    execute format('create policy "marketing write" on public.%I for all to authenticated using(public.has_workspace_role(array[''marketing'',''admin''])) with check(public.has_workspace_role(array[''marketing'',''admin'']))',t);
+supabase/schema.sql:472:    execute format('create policy "partnership read" on public.%I for select to authenticated using(public.has_workspace_role(array[''partnerships'',''marketing'',''operations'',''finance'',''legal'',''manager'',''admin'']))',t);
+supabase/schema.sql:473:    execute format('create policy "partnership write" on public.%I for all to authenticated using(public.has_workspace_role(array[''partnerships'',''admin''])) with check(public.has_workspace_role(array[''partnerships'',''admin'']))',t);
+supabase/schema.sql:481:grant execute on function public.current_workspace_role() to authenticated;
+supabase/schema.sql:482:grant execute on function public.has_workspace_role(text[]) to authenticated;
+supabase/schema.sql:500:  visibility text not null default 'employees' check(visibility in ('employees','department','leadership')),
+supabase/schema.sql:598:  member_role text not null default 'member' check(member_role in ('member','moderator','owner')),
+supabase/schema.sql:639:create policy "social update own posts" on public.social_posts for update to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:641:create policy "social delete own posts" on public.social_posts for delete to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:644:create policy "social media manage own post" on public.social_post_media for all to authenticated using(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])))) with check(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']))));
+supabase/schema.sql:674:create policy "social reports moderation" on public.social_reports for select to authenticated using(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:676:create policy "social reports moderation update" on public.social_reports for update to authenticated using(public.has_workspace_role(array['admin','marketing','hr'])) with check(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:687:create policy "social community manage" on public.social_communities for update to authenticated using(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:733:to service_role;
+supabase/functions/zoho-mail-status/index.ts:32:    const serviceRoleKey =
+supabase/functions/zoho-mail-status/index.ts:33:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-status/index.ts:41:        serviceRoleKey
+supabase/functions/zoho-mail-callback/index.ts:21:    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-callback/index.ts:28:      serviceRoleKey
+supabase/functions/zoho-mail-auth-url/index.ts:32:    const serviceRoleKey =
+supabase/functions/zoho-mail-auth-url/index.ts:33:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-auth-url/index.ts:39:      serviceRoleKey
+supabase/functions/workspace-user-admin/index.ts:13:const VALID_ROLES = new Set([
+supabase/functions/workspace-user-admin/index.ts:84:        "SUPABASE_SERVICE_ROLE_KEY"
+supabase/functions/workspace-user-admin/index.ts:150:          "id,email,role,active"
+supabase/functions/workspace-user-admin/index.ts:177:        administrator.role
+supabase/functions/workspace-user-admin/index.ts:247:              "id,email,full_name,role,department,job_title,active,created_at,updated_at"
+supabase/functions/workspace-user-admin/index.ts:315:              department:
+supabase/functions/workspace-user-admin/index.ts:317:                  profile?.department ||
+supabase/functions/workspace-user-admin/index.ts:321:              role:
+supabase/functions/workspace-user-admin/index.ts:323:                  profile?.role ||
+supabase/functions/workspace-user-admin/index.ts:386:      const role =
+supabase/functions/workspace-user-admin/index.ts:388:          body?.role ||
+supabase/functions/workspace-user-admin/index.ts:394:      const department =
+supabase/functions/workspace-user-admin/index.ts:396:          body?.department ||
+supabase/functions/workspace-user-admin/index.ts:423:        !VALID_ROLES.has(role)
+supabase/functions/workspace-user-admin/index.ts:428:              `Invalid role: ${role}`,
+supabase/functions/workspace-user-admin/index.ts:503:              role,
+supabase/functions/workspace-user-admin/index.ts:504:              department:
+supabase/functions/workspace-user-admin/index.ts:505:                department ||
+supabase/functions/workspace-user-admin/index.ts:539:          role,
+supabase/functions/workspace-user-admin/index.ts:540:          department,
+supabase/functions/ridearrivo-support/index.ts:76:    const serviceRoleKey =
+supabase/functions/ridearrivo-support/index.ts:77:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/ridearrivo-support/index.ts:81:      serviceRoleKey
+supabase/functions/ridearrivo-support/index.ts:111:      .select("id,role,email,full_name")
+supabase/functions/ridearrivo-support/index.ts:170:    const role =
+supabase/functions/ridearrivo-support/index.ts:171:      String(profile.role || "")
+supabase/functions/ridearrivo-support/index.ts:175:    const allowedRoles = [
+supabase/functions/ridearrivo-support/index.ts:182:    if (!allowedRoles.includes(role)) {
+supabase/functions/ridearrivo-support/index.ts:184:        "Support role rejected",
+supabase/functions/ridearrivo-support/index.ts:190:          role,
+supabase/functions/ridearrivo-support/index.ts:197:            "Your workspace role does not permit Support Operations access.",
+supabase/functions/_shared/zoho.ts:17:  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/_shared/zoho.ts:21:    serviceRoleKey
+supabase/functions/whatsapp-send/index.ts:6:  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/whatsapp-webhook/index.ts:6:  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/providus_finance.sql:28:  department text,
+supabase/providus_finance.sql:63:using (public.has_workspace_role(array['finance','manager','admin']));
+supabase/providus_finance.sql:68:using (public.has_workspace_role(array['finance','admin']))
+supabase/providus_finance.sql:69:with check (public.has_workspace_role(array['finance','admin']));
+supabase/providus_finance.sql:74:using (public.has_workspace_role(array['finance','manager','admin']));
+supabase/providus_finance.sql:79:using (public.has_workspace_role(array['finance','admin']))
+supabase/providus_finance.sql:80:with check (public.has_workspace_role(array['finance','admin']));
+
+=== RLS POLICIES ===
+supabase/schema.sql:215:alter table public.employee_profiles enable row level security;
+supabase/schema.sql:216:alter table public.workspace_apps enable row level security;
+supabase/schema.sql:217:alter table public.crm_accounts enable row level security;
+supabase/schema.sql:218:alter table public.crm_contacts enable row level security;
+supabase/schema.sql:219:alter table public.crm_leads enable row level security;
+supabase/schema.sql:220:alter table public.crm_opportunities enable row level security;
+supabase/schema.sql:221:alter table public.crm_activities enable row level security;
+supabase/schema.sql:222:alter table public.support_cases enable row level security;
+supabase/schema.sql:223:alter table public.incidents enable row level security;
+supabase/schema.sql:224:alter table public.leave_requests enable row level security;
+supabase/schema.sql:225:alter table public.hr_requests enable row level security;
+supabase/schema.sql:226:alter table public.onboarding_tasks enable row level security;
+supabase/schema.sql:227:alter table public.legal_contracts enable row level security;
+supabase/schema.sql:228:alter table public.compliance_items enable row level security;
+supabase/schema.sql:229:alter table public.workspace_audit_log enable row level security;
+supabase/schema.sql:232:drop policy if exists "employees read directory" on public.employee_profiles;
+supabase/schema.sql:233:create policy "employees read directory" on public.employee_profiles for select to authenticated using(active=true);
+supabase/schema.sql:234:drop policy if exists "admins manage employee profiles" on public.employee_profiles;
+supabase/schema.sql:235:create policy "admins manage employee profiles" on public.employee_profiles for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:237:drop policy if exists "employees read apps" on public.workspace_apps;
+supabase/schema.sql:238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+supabase/schema.sql:239:drop policy if exists "admins manage apps" on public.workspace_apps;
+supabase/schema.sql:240:create policy "admins manage apps" on public.workspace_apps for all to authenticated using(public.has_workspace_role(array['admin'])) with check(public.has_workspace_role(array['admin']));
+supabase/schema.sql:243:drop policy if exists "crm read" on public.crm_accounts;
+supabase/schema.sql:244:create policy "crm read" on public.crm_accounts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:245:drop policy if exists "crm write" on public.crm_accounts;
+supabase/schema.sql:246:create policy "crm write" on public.crm_accounts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:247:drop policy if exists "crm contacts read" on public.crm_contacts;
+supabase/schema.sql:248:create policy "crm contacts read" on public.crm_contacts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:249:drop policy if exists "crm contacts write" on public.crm_contacts;
+supabase/schema.sql:250:create policy "crm contacts write" on public.crm_contacts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:251:drop policy if exists "crm leads read" on public.crm_leads;
+supabase/schema.sql:252:create policy "crm leads read" on public.crm_leads for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:253:drop policy if exists "crm leads write" on public.crm_leads;
+supabase/schema.sql:254:create policy "crm leads write" on public.crm_leads for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:255:drop policy if exists "crm opp read" on public.crm_opportunities;
+supabase/schema.sql:256:create policy "crm opp read" on public.crm_opportunities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:257:drop policy if exists "crm opp write" on public.crm_opportunities;
+supabase/schema.sql:258:create policy "crm opp write" on public.crm_opportunities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:259:drop policy if exists "crm activity read" on public.crm_activities;
+supabase/schema.sql:260:create policy "crm activity read" on public.crm_activities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:261:drop policy if exists "crm activity write" on public.crm_activities;
+supabase/schema.sql:262:create policy "crm activity write" on public.crm_activities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:264:drop policy if exists "support read" on public.support_cases;
+supabase/schema.sql:265:create policy "support read" on public.support_cases for select to authenticated using(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:266:drop policy if exists "support write" on public.support_cases;
+supabase/schema.sql:267:create policy "support write" on public.support_cases for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:268:drop policy if exists "incident read" on public.incidents;
+supabase/schema.sql:269:create policy "incident read" on public.incidents for select to authenticated using(public.has_workspace_role(array['support','operations','legal','manager','admin']));
+supabase/schema.sql:270:drop policy if exists "incident write" on public.incidents;
+supabase/schema.sql:271:create policy "incident write" on public.incidents for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:273:drop policy if exists "own leave read" on public.leave_requests;
+supabase/schema.sql:274:create policy "own leave read" on public.leave_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:275:drop policy if exists "own leave create" on public.leave_requests;
+supabase/schema.sql:276:create policy "own leave create" on public.leave_requests for insert to authenticated with check(employee_id=auth.uid());
+supabase/schema.sql:277:drop policy if exists "hr leave manage" on public.leave_requests;
+supabase/schema.sql:278:create policy "hr leave manage" on public.leave_requests for update to authenticated using(public.has_workspace_role(array['manager','hr','admin'])) with check(public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:279:drop policy if exists "own hr requests" on public.hr_requests;
+supabase/schema.sql:280:create policy "own hr requests" on public.hr_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:281:drop policy if exists "own hr request create" on public.hr_requests;
+supabase/schema.sql:282:create policy "own hr request create" on public.hr_requests for insert to authenticated with check(employee_id=auth.uid());
+supabase/schema.sql:283:drop policy if exists "hr request manage" on public.hr_requests;
+supabase/schema.sql:284:create policy "hr request manage" on public.hr_requests for update to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:285:drop policy if exists "onboarding read" on public.onboarding_tasks;
+supabase/schema.sql:286:create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:287:drop policy if exists "onboarding manage" on public.onboarding_tasks;
+supabase/schema.sql:288:create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:290:drop policy if exists "legal read" on public.legal_contracts;
+supabase/schema.sql:291:create policy "legal read" on public.legal_contracts for select to authenticated using(public.has_workspace_role(array['legal','manager','admin']));
+supabase/schema.sql:292:drop policy if exists "legal manage" on public.legal_contracts;
+supabase/schema.sql:293:create policy "legal manage" on public.legal_contracts for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:294:drop policy if exists "compliance read" on public.compliance_items;
+supabase/schema.sql:295:create policy "compliance read" on public.compliance_items for select to authenticated using(public.has_workspace_role(array['legal','operations','manager','admin']));
+supabase/schema.sql:296:drop policy if exists "compliance manage" on public.compliance_items;
+supabase/schema.sql:297:create policy "compliance manage" on public.compliance_items for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:298:drop policy if exists "audit admin read" on public.workspace_audit_log;
+supabase/schema.sql:299:create policy "audit admin read" on public.workspace_audit_log for select to authenticated using(public.has_workspace_role(array['admin']));
+supabase/schema.sql:453:  loop execute format('alter table public.%I enable row level security',t); end loop;
+supabase/schema.sql:457:    execute format('drop policy if exists "finance read" on public.%I',t); execute format('drop policy if exists "finance write" on public.%I',t);
+supabase/schema.sql:458:    execute format('create policy "finance read" on public.%I for select to authenticated using(public.has_workspace_role(array[''finance'',''manager'',''admin'']))',t);
+supabase/schema.sql:459:    execute format('create policy "finance write" on public.%I for all to authenticated using(public.has_workspace_role(array[''finance'',''admin''])) with check(public.has_workspace_role(array[''finance'',''admin'']))',t);
+supabase/schema.sql:464:    execute format('drop policy if exists "marketing read" on public.%I',t); execute format('drop policy if exists "marketing write" on public.%I',t);
+supabase/schema.sql:465:    execute format('create policy "marketing read" on public.%I for select to authenticated using(public.has_workspace_role(array[''marketing'',''partnerships'',''manager'',''admin'']))',t);
+supabase/schema.sql:466:    execute format('create policy "marketing write" on public.%I for all to authenticated using(public.has_workspace_role(array[''marketing'',''admin''])) with check(public.has_workspace_role(array[''marketing'',''admin'']))',t);
+supabase/schema.sql:471:    execute format('drop policy if exists "partnership read" on public.%I',t); execute format('drop policy if exists "partnership write" on public.%I',t);
+supabase/schema.sql:472:    execute format('create policy "partnership read" on public.%I for select to authenticated using(public.has_workspace_role(array[''partnerships'',''marketing'',''operations'',''finance'',''legal'',''manager'',''admin'']))',t);
+supabase/schema.sql:473:    execute format('create policy "partnership write" on public.%I for all to authenticated using(public.has_workspace_role(array[''partnerships'',''admin''])) with check(public.has_workspace_role(array[''partnerships'',''admin'']))',t);
+supabase/schema.sql:625:  loop execute format('alter table public.%I enable row level security',t); end loop;
+supabase/schema.sql:631:    execute format('drop policy if exists "social employee read" on public.%I',t);
+supabase/schema.sql:632:    execute format('create policy "social employee read" on public.%I for select to authenticated using(true)',t);
+supabase/schema.sql:636:drop policy if exists "social create own posts" on public.social_posts;
+supabase/schema.sql:637:create policy "social create own posts" on public.social_posts for insert to authenticated with check(author_id=auth.uid());
+supabase/schema.sql:638:drop policy if exists "social update own posts" on public.social_posts;
+supabase/schema.sql:639:create policy "social update own posts" on public.social_posts for update to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:640:drop policy if exists "social delete own posts" on public.social_posts;
+supabase/schema.sql:641:create policy "social delete own posts" on public.social_posts for delete to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:643:drop policy if exists "social media manage own post" on public.social_post_media;
+supabase/schema.sql:644:create policy "social media manage own post" on public.social_post_media for all to authenticated using(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])))) with check(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']))));
+supabase/schema.sql:646:drop policy if exists "social reaction own" on public.social_post_reactions;
+supabase/schema.sql:647:create policy "social reaction own" on public.social_post_reactions for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:648:drop policy if exists "social repost own" on public.social_reposts;
+supabase/schema.sql:649:create policy "social repost own" on public.social_reposts for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:650:drop policy if exists "social bookmarks own" on public.social_bookmarks;
+supabase/schema.sql:651:create policy "social bookmarks own" on public.social_bookmarks for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:652:drop policy if exists "social bookmarks read own" on public.social_bookmarks;
+supabase/schema.sql:653:create policy "social bookmarks read own" on public.social_bookmarks for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:654:drop policy if exists "social follows read" on public.social_follows;
+supabase/schema.sql:655:create policy "social follows read" on public.social_follows for select to authenticated using(true);
+supabase/schema.sql:656:drop policy if exists "social follows own" on public.social_follows;
+supabase/schema.sql:657:create policy "social follows own" on public.social_follows for insert to authenticated with check(follower_id=auth.uid());
+supabase/schema.sql:658:drop policy if exists "social follows delete own" on public.social_follows;
+supabase/schema.sql:659:create policy "social follows delete own" on public.social_follows for delete to authenticated using(follower_id=auth.uid());
+supabase/schema.sql:661:drop policy if exists "social hashtag manage" on public.social_hashtags;
+supabase/schema.sql:662:create policy "social hashtag manage" on public.social_hashtags for insert to authenticated with check(true);
+supabase/schema.sql:663:drop policy if exists "social post hashtag manage" on public.social_post_hashtags;
+supabase/schema.sql:664:create policy "social post hashtag manage" on public.social_post_hashtags for insert to authenticated with check(exists(select 1 from public.social_posts p where p.id=post_id and p.author_id=auth.uid()));
+supabase/schema.sql:666:drop policy if exists "social notification own" on public.social_notifications;
+supabase/schema.sql:667:create policy "social notification own" on public.social_notifications for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:668:drop policy if exists "social notification update own" on public.social_notifications;
+supabase/schema.sql:669:create policy "social notification update own" on public.social_notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:671:drop policy if exists "social reports create" on public.social_reports;
+supabase/schema.sql:672:create policy "social reports create" on public.social_reports for insert to authenticated with check(reporter_id=auth.uid());
+supabase/schema.sql:673:drop policy if exists "social reports moderation" on public.social_reports;
+supabase/schema.sql:674:create policy "social reports moderation" on public.social_reports for select to authenticated using(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:675:drop policy if exists "social reports moderation update" on public.social_reports;
+supabase/schema.sql:676:create policy "social reports moderation update" on public.social_reports for update to authenticated using(public.has_workspace_role(array['admin','marketing','hr'])) with check(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:679:drop policy if exists "social lists own" on public.social_lists;
+supabase/schema.sql:680:create policy "social lists own" on public.social_lists for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+supabase/schema.sql:681:drop policy if exists "social list members owner" on public.social_list_members;
+supabase/schema.sql:682:create policy "social list members owner" on public.social_list_members for all to authenticated using(exists(select 1 from public.social_lists l where l.id=list_id and l.owner_id=auth.uid())) with check(exists(select 1 from public.social_lists l where l.id=list_id and l.owner_id=auth.uid()));
+supabase/schema.sql:684:drop policy if exists "social community create" on public.social_communities;
+supabase/schema.sql:685:create policy "social community create" on public.social_communities for insert to authenticated with check(owner_id=auth.uid());
+supabase/schema.sql:686:drop policy if exists "social community manage" on public.social_communities;
+supabase/schema.sql:687:create policy "social community manage" on public.social_communities for update to authenticated using(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:688:drop policy if exists "social community member self" on public.social_community_members;
+supabase/schema.sql:689:create policy "social community member self" on public.social_community_members for insert to authenticated with check(user_id=auth.uid());
+supabase/schema.sql:692:drop policy if exists "social conversations member read" on public.social_conversations;
+supabase/schema.sql:693:create policy "social conversations member read" on public.social_conversations for select to authenticated using(created_by=auth.uid() or exists(select 1 from public.social_conversation_members m where m.conversation_id=id and m.user_id=auth.uid()));
+supabase/schema.sql:694:drop policy if exists "social conversations create" on public.social_conversations;
+supabase/schema.sql:695:create policy "social conversations create" on public.social_conversations for insert to authenticated with check(created_by=auth.uid());
+supabase/schema.sql:696:drop policy if exists "social conversation members read" on public.social_conversation_members;
+supabase/schema.sql:697:create policy "social conversation members read" on public.social_conversation_members for select to authenticated using(user_id=auth.uid() or exists(select 1 from public.social_conversations c where c.id=conversation_id and c.created_by=auth.uid()));
+supabase/schema.sql:698:drop policy if exists "social conversation members add" on public.social_conversation_members;
+supabase/schema.sql:699:create policy "social conversation members add" on public.social_conversation_members for insert to authenticated with check(user_id=auth.uid() or exists(select 1 from public.social_conversations c where c.id=conversation_id and c.created_by=auth.uid()));
+supabase/schema.sql:700:drop policy if exists "social messages member read" on public.social_messages;
+supabase/schema.sql:701:create policy "social messages member read" on public.social_messages for select to authenticated using(exists(select 1 from public.social_conversation_members m where m.conversation_id=social_messages.conversation_id and m.user_id=auth.uid()));
+supabase/schema.sql:702:drop policy if exists "social messages member send" on public.social_messages;
+supabase/schema.sql:703:create policy "social messages member send" on public.social_messages for insert to authenticated with check(sender_id=auth.uid() and exists(select 1 from public.social_conversation_members m where m.conversation_id=social_messages.conversation_id and m.user_id=auth.uid()));
+supabase/schema.sql:709:drop policy if exists "social media employee read" on storage.objects;
+supabase/schema.sql:710:create policy "social media employee read" on storage.objects for select to authenticated using(bucket_id='social-media');
+supabase/schema.sql:711:drop policy if exists "social media upload own" on storage.objects;
+supabase/schema.sql:712:create policy "social media upload own" on storage.objects for insert to authenticated with check(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/schema.sql:713:drop policy if exists "social media update own" on storage.objects;
+supabase/schema.sql:714:create policy "social media update own" on storage.objects for update to authenticated using(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text) with check(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/schema.sql:715:drop policy if exists "social media delete own" on storage.objects;
+supabase/schema.sql:716:create policy "social media delete own" on storage.objects for delete to authenticated using(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/providus_finance.sql:52:alter table public.finance_bank_imports enable row level security;
+supabase/providus_finance.sql:53:alter table public.finance_bank_transactions enable row level security;
+supabase/providus_finance.sql:55:drop policy if exists "finance bank import read" on public.finance_bank_imports;
+supabase/providus_finance.sql:56:drop policy if exists "finance bank import write" on public.finance_bank_imports;
+supabase/providus_finance.sql:57:drop policy if exists "finance bank transaction read" on public.finance_bank_transactions;
+supabase/providus_finance.sql:58:drop policy if exists "finance bank transaction write" on public.finance_bank_transactions;
+supabase/providus_finance.sql:60:create policy "finance bank import read"
+supabase/providus_finance.sql:65:create policy "finance bank import write"
+supabase/providus_finance.sql:71:create policy "finance bank transaction read"
+supabase/providus_finance.sql:76:create policy "finance bank transaction write"
+
+=== TASKS / NOTIFICATIONS ===
+src/App.tsx:23:  TasksModule,
+src/App.tsx:30:type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+src/App.tsx:74:  tasks:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
+src/App.tsx:346:      ['overview','Overview',Home],['profile','My Profile',UserCog],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+src/App.tsx:400:        {section==='tasks'&&<TasksModule/>}
+src/App.tsx:616:function CRM(){return <section><SectionTitle eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint." actions={<button className="primaryButton"><UserPlus size={16}/>New lead</button>}/><div className="stats"><Metric icon={<Users/>} label="Contacts" value="2,184" hint="Riders and stakeholders"/><Metric icon={<Building2/>} label="Corporate accounts" value="38" hint="Hotels, travel and companies"/><Metric icon={<CircleDollarSign/>} label="Open pipeline" value="₦5.5m" hint="14 opportunities"/><Metric icon={<CalendarDays/>} label="Follow-ups due" value="12" hint="Today"/></div><div className="glassCard tableCard"><div className="tableToolbar"><div><h3>Relationship pipeline</h3><p>Sales, partnership and recovery work in one queue.</p></div><button className="glassButton"><ListChecks size={16}/>Activities</button></div><div className="dataTable"><div className="tr th"><span>Name / Account</span><span>Type</span><span>Status</span><span>Value</span><span>Last activity</span></div>{crmRows.map(r=><div className="tr" key={r.name}><span><strong>{r.name}</strong></span><span>{r.type}</span><span><StatusPill value={r.status}/></span><span>{r.value}</span><span>{r.last}</span></div>)}</div></div><div className="grid3"><Feature icon={<TicketCheck/>} title="Customer 360" text="Bookings, support cases, notes, payments and communications tied to one profile."/><Feature icon={<CircleDollarSign/>} title="Corporate sales" text="Track hotel, corporate and travel-agent opportunities from lead to signed account."/><Feature icon={<Activity/>} title="Activity timeline" text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."/></div></section>}
+src/App.tsx:618:function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
+src/App.tsx:626:function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch, driver readiness, fleet, airport pickup execution, incidents and operating performance."/><div className="grid3"><Feature icon={<Route/>} title="Dispatch Board" text="Unassigned bookings, driver matching, trip state and operational ownership."/><Feature icon={<BadgeCheck/>} title="Driver readiness" text="Verification, availability, documentation and compliance status."/><Feature icon={<PackageCheck/>} title="Fleet readiness" text="Vehicles, maintenance, papers, inspections and capacity."/><Feature icon={<Activity/>} title="Live operations" text="Active trips, location health, delayed flights and exceptions."/><Feature icon={<ShieldAlert/>} title="Incident management" text="Safety, service incidents, owners, severity and corrective actions."/><Feature icon={<BarChart3/>} title="Operations KPIs" text="Assignment time, completion, cancellation, utilisation and service quality."/></div></section>}
+src/App.tsx:630:function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+src/modules/Phase2Modules.tsx:26:type Task = {
+src/modules/Phase2Modules.tsx:163:export function TasksModule() {
+src/modules/Phase2Modules.tsx:164:  const [items, setItems] = useState<Task[]>([])
+src/modules/Phase2Modules.tsx:176:      .from('workspace_tasks')
+src/modules/Phase2Modules.tsx:180:    setItems((data || []) as Task[])
+src/modules/Phase2Modules.tsx:193:        title="Tasks"
+src/modules/Phase2Modules.tsx:194:        subtitle="Your assignments, priorities, deadlines and progress."
+src/modules/Phase2Modules.tsx:215:      {loading && <EmptyState text="Loading tasks..." />}
+src/modules/Phase2Modules.tsx:218:        {filtered.map((task) => (
+src/modules/Phase2Modules.tsx:219:          <article className="glassCard phase2Record" key={task.id}>
+src/modules/Phase2Modules.tsx:222:                {task.status === 'completed' ? (
+src/modules/Phase2Modules.tsx:231:                  {task.department || 'Workspace'}
+src/modules/Phase2Modules.tsx:233:                <h3>{task.title}</h3>
+src/modules/Phase2Modules.tsx:236:              <span className={`statusPill ${task.priority}`}>
+src/modules/Phase2Modules.tsx:237:                {task.priority}
+src/modules/Phase2Modules.tsx:241:            {task.description && <p>{task.description}</p>}
+src/modules/Phase2Modules.tsx:244:              <span>{task.status.replace(/_/g, ' ')}</span>
+src/modules/Phase2Modules.tsx:245:              {task.due_at && (
+src/modules/Phase2Modules.tsx:247:                  Due {new Date(task.due_at).toLocaleString()}
+src/modules/Phase2Modules.tsx:256:        <EmptyState text="No tasks in this view." />
+src/modules/BusinessModules.tsx:68:{tab==='Dashboard'&&<div className="grid3"><Feature icon={<Landmark/>} title="Cash & banking" text="Bank accounts, settlement records and reconciliation readiness."/><Feature icon={<BookOpenCheck/>} title="General ledger" text="Chart of accounts, journals and double-entry lines."/><Feature icon={<BarChart3/>} title="Reporting" text="Trial balance, P&L, balance sheet, cash flow and aging-ready data."/><Feature icon={<Percent/>} title="Tax" text="VAT, WHT and statutory obligations with due-date control."/><Feature icon={<CheckCircle2/>} title="Close" text="Month-end tasks, ownership and completion status."/><Feature icon={<CircleDollarSign/>} title="Ride economics" text="Booking revenue, refunds, corporate AR and partner/driver settlement support."/></div>}
+src/modules/BusinessModules.tsx:76:{tab==='Tax & Close'&&<div className="grid2"><DataWorkbench table="finance_tax_obligations" title="Tax obligations" description="VAT, WHT and filing control." createLabel="Add obligation" fields={[{key:'tax_type',label:'Tax type',required:true},{key:'period_label',label:'Period',required:true},{key:'due_date',label:'Due date',type:'date',required:true},{key:'amount',label:'Amount (NGN)',type:'number'},{key:'status',label:'Status',type:'select',options:['open','prepared','filed','paid','overdue'],required:true}]} columns={[{key:'tax_type',label:'Tax'},{key:'period_label',label:'Period'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'amount',label:'Amount',render:r=>money(r.amount)},{key:'status',label:'Status'}]}/><DataWorkbench table="finance_close_tasks" title="Period close" description="Month-end and year-end checklist." createLabel="Add close task" fields={[{key:'period_label',label:'Period',required:true},{key:'task_name',label:'Task',required:true},{key:'due_date',label:'Due date',type:'date'},{key:'status',label:'Status',type:'select',options:['open','in_progress','review','complete'],required:true}]} columns={[{key:'period_label',label:'Period'},{key:'task_name',label:'Task'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'status',label:'Status'}]}/></div>}</section>}
+src/modules/BusinessModules.tsx:89:{tab==='Activities'&&<DataWorkbench table="partner_activities" title="Relationship activities" description="Meetings, calls and follow-ups." createLabel="Log activity" fields={[{key:'partner_name',label:'Partner',required:true},{key:'activity_type',label:'Type',type:'select',options:['meeting','call','email','proposal','review','task'],required:true},{key:'subject',label:'Subject',required:true},{key:'activity_date',label:'Date',type:'date',required:true},{key:'next_action',label:'Next action'},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'activity_date',label:'Date',render:r=>dateFmt(r.activity_date)},{key:'partner_name',label:'Partner'},{key:'activity_type',label:'Type'},{key:'subject',label:'Subject'},{key:'next_action',label:'Next action'}]}/>} 
+src/modules/BusinessModules.tsx:91:{tab==='Onboarding'&&<DataWorkbench table="partner_onboarding_tasks" title="Partner onboarding" description="Commercial, legal, finance, operations, technology and marketing launch tasks." createLabel="Add task" fields={[{key:'partner_name',label:'Partner',required:true},{key:'task_name',label:'Task',required:true},{key:'workstream',label:'Workstream',type:'select',options:['commercial','legal','finance','operations','technology','marketing'],required:true},{key:'due_date',label:'Due date',type:'date'},{key:'status',label:'Status',type:'select',options:['not_started','in_progress','blocked','complete'],required:true}]} columns={[{key:'partner_name',label:'Partner'},{key:'task_name',label:'Task'},{key:'workstream',label:'Workstream'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'status',label:'Status'}]}/>}</section>}
+src/modules/SocialModule.tsx:116:    <div className="sectionTitle"><div><span className="eyebrow">RIDEARRIVO SOCIAL & NEWS</span><h2>RideArrivo Pulse</h2><p>Company news, conversations, announcements and team knowledge in a fast social feed.</p></div><div className="buttonRow"><button className="glassButton"><Bell size={16}/>Notifications</button><button className="primaryButton" onClick={()=>document.getElementById('social-composer')?.scrollIntoView({behavior:'smooth'})}><Plus size={16}/>Post</button></div></div>
+src/modules/MailModule.tsx:763:            and notifications.
+src/data/tools.ts:20:  { name:'Orders Console', area:'Support', purpose:'Incoming bookings, assignment status and rider context', mode:'native' },
+supabase/schema.sql:2:-- Run in a dedicated Supabase project after reviewing organization-specific retention and role assignments.
+supabase/schema.sql:115:  activity_type text not null check(activity_type in ('call','email','meeting','note','task','support')),
+supabase/schema.sql:173:create table if not exists public.onboarding_tasks (
+supabase/schema.sql:226:alter table public.onboarding_tasks enable row level security;
+supabase/schema.sql:285:drop policy if exists "onboarding read" on public.onboarding_tasks;
+supabase/schema.sql:286:create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:287:drop policy if exists "onboarding manage" on public.onboarding_tasks;
+supabase/schema.sql:288:create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:312:grant select,insert,update,delete on public.employee_profiles, public.workspace_apps, public.crm_accounts, public.crm_contacts, public.crm_leads, public.crm_opportunities, public.crm_activities, public.support_cases, public.incidents, public.leave_requests, public.hr_requests, public.onboarding_tasks, public.legal_contracts, public.compliance_items, public.workspace_audit_log to authenticated;
+supabase/schema.sql:376:create table if not exists public.finance_close_tasks (
+supabase/schema.sql:377:  id uuid primary key default gen_random_uuid(), period_label text not null, task_name text not null,
+supabase/schema.sql:433:  activity_type text not null check(activity_type in ('meeting','call','email','proposal','review','task')),
+supabase/schema.sql:443:create table if not exists public.partner_onboarding_tasks (
+supabase/schema.sql:444:  id uuid primary key default gen_random_uuid(), partner_name text not null, task_name text not null,
+supabase/schema.sql:452:  foreach t in array array['finance_accounts','finance_journals','finance_journal_lines','finance_invoices','finance_bills','finance_expenses','finance_budgets','finance_assets','finance_tax_obligations','finance_close_tasks','marketing_campaigns','marketing_content','marketing_attribution','marketing_experiments','marketing_assets','partners','partner_opportunities','partner_agreements','partner_activities','partner_referrals','partner_onboarding_tasks']
+supabase/schema.sql:456:  foreach t in array array['finance_accounts','finance_journals','finance_journal_lines','finance_invoices','finance_bills','finance_expenses','finance_budgets','finance_assets','finance_tax_obligations','finance_close_tasks'] loop
+supabase/schema.sql:470:  foreach t in array array['partners','partner_opportunities','partner_agreements','partner_activities','partner_referrals','partner_onboarding_tasks'] loop
+supabase/schema.sql:477:  foreach t in array array['finance_accounts','finance_journals','finance_journal_lines','finance_invoices','finance_bills','finance_expenses','finance_budgets','finance_assets','finance_tax_obligations','finance_close_tasks','marketing_campaigns','marketing_content','marketing_attribution','marketing_experiments','marketing_assets','partners','partner_opportunities','partner_agreements','partner_activities','partner_referrals','partner_onboarding_tasks']
+supabase/schema.sql:564:create table if not exists public.social_notifications (
+supabase/schema.sql:568:  notification_type text not null check(notification_type in ('like','reply','repost','follow','mention','announcement','system')),
+supabase/schema.sql:624:  foreach t in array array['social_posts','social_post_media','social_post_reactions','social_reposts','social_bookmarks','social_follows','social_hashtags','social_post_hashtags','social_mentions','social_polls','social_poll_options','social_poll_votes','social_notifications','social_reports','social_lists','social_list_members','social_communities','social_community_members','social_conversations','social_conversation_members','social_messages','social_spaces']
+supabase/schema.sql:666:drop policy if exists "social notification own" on public.social_notifications;
+supabase/schema.sql:667:create policy "social notification own" on public.social_notifications for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:668:drop policy if exists "social notification update own" on public.social_notifications;
+supabase/schema.sql:669:create policy "social notification update own" on public.social_notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:719:  foreach t in array array['social_posts','social_post_media','social_post_reactions','social_reposts','social_bookmarks','social_follows','social_hashtags','social_post_hashtags','social_mentions','social_polls','social_poll_options','social_poll_votes','social_notifications','social_reports','social_lists','social_list_members','social_communities','social_community_members','social_conversations','social_conversation_members','social_messages','social_spaces']
+supabase/schema.sql:728:create index if not exists idx_social_notifications_user on public.social_notifications(user_id,created_at desc);
+
+=== XSS / HTML ===
+grep: empty (sub)expression
+
+=== EXTERNAL NAVIGATION / IFRAMES ===
+src/App.tsx:622:  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
+src/App.tsx:632:function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads" referrerPolicy="strict-origin-when-cross-origin"/></section>}
+src/modules/CoreModules.tsx:168:          <iframe
+src/modules/CoreModules.tsx:178:          security policy is blocking iframe embedding. Use the full console
+
+=== POSSIBLE SECRETS ===
+ARCHITECTURE_AUDIT.md:87:- No service-role key is required by the browser.
+README.md:26:Never expose a Supabase service-role or secret key to Vite or Cloudflare Pages.
+src/lib/supabase.ts:14:          autoRefreshToken: true,
+src/modules/CoreModules.tsx:213:            Role access is enforced at Supabase RLS. Service-role keys must
+supabase/config.toml:20:# `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
+supabase/config.toml:169:# If disabled, the refresh token will never expire.
+supabase/config.toml:170:enable_refresh_token_rotation = true
+supabase/config.toml:171:# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
+supabase/config.toml:172:# Requires enable_refresh_token_rotation = true.
+supabase/config.toml:173:refresh_token_reuse_interval = 10
+supabase/functions/_shared/zoho.ts:17:  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/_shared/zoho.ts:21:    serviceRoleKey
+supabase/functions/_shared/zoho.ts:48:      refresh_token,
+supabase/functions/_shared/zoho.ts:66:  const clientSecret = Deno.env.get("ZOHO_CLIENT_SECRET")
+supabase/functions/_shared/zoho.ts:68:  if (!clientId || !clientSecret) {
+supabase/functions/_shared/zoho.ts:85:        refresh_token: connection.refresh_token,
+supabase/functions/_shared/zoho.ts:87:        client_secret: clientSecret,
+supabase/functions/_shared/zoho.ts:88:        grant_type: "refresh_token",
+supabase/functions/ridearrivo-support/index.ts:76:    const serviceRoleKey =
+supabase/functions/ridearrivo-support/index.ts:77:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/ridearrivo-support/index.ts:81:      serviceRoleKey
+supabase/functions/whatsapp-send/index.ts:6:  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/whatsapp-webhook/index.ts:6:  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/workspace-user-admin/index.ts:84:        "SUPABASE_SERVICE_ROLE_KEY"
+supabase/functions/workspace-user-admin/index.ts:108:            autoRefreshToken:false,
+supabase/functions/zoho-mail-auth-url/index.ts:32:    const serviceRoleKey =
+supabase/functions/zoho-mail-auth-url/index.ts:33:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-auth-url/index.ts:39:      serviceRoleKey
+supabase/functions/zoho-mail-callback/index.ts:21:    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-callback/index.ts:23:    const clientSecret = Deno.env.get("ZOHO_CLIENT_SECRET")!
+supabase/functions/zoho-mail-callback/index.ts:28:      serviceRoleKey
+supabase/functions/zoho-mail-callback/index.ts:59:          client_secret: clientSecret,
+supabase/functions/zoho-mail-callback/index.ts:68:    if (!tokenResponse.ok || !tokenData.refresh_token) {
+supabase/functions/zoho-mail-callback/index.ts:110:        refresh_token: tokenData.refresh_token,
+supabase/functions/zoho-mail-status/index.ts:32:    const serviceRoleKey =
+supabase/functions/zoho-mail-status/index.ts:33:      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+supabase/functions/zoho-mail-status/index.ts:41:        serviceRoleKey
+supabase/schema.sql:733:to service_role;
+
+=== ENV FILES ===
+.env.example
+
+=== CORS ===
+supabase/functions/zoho-mail-status/index.ts:4:const corsHeaders = {
+supabase/functions/zoho-mail-status/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/zoho-mail-status/index.ts:12:    return new Response("ok", { headers: corsHeaders })
+supabase/functions/zoho-mail-status/index.ts:24:            ...corsHeaders,
+supabase/functions/zoho-mail-status/index.ts:55:            ...corsHeaders,
+supabase/functions/zoho-mail-status/index.ts:75:          ...corsHeaders,
+supabase/functions/zoho-mail-status/index.ts:88:          ...corsHeaders,
+supabase/functions/zoho-mail-message/index.ts:4:  corsHeaders,
+supabase/functions/zoho-mail-message/index.ts:14:      headers: corsHeaders,
+supabase/functions/zoho-mail-auth-url/index.ts:4:const corsHeaders = {
+supabase/functions/zoho-mail-auth-url/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/zoho-mail-auth-url/index.ts:12:    return new Response("ok", { headers: corsHeaders })
+supabase/functions/zoho-mail-auth-url/index.ts:24:            ...corsHeaders,
+supabase/functions/zoho-mail-auth-url/index.ts:53:            ...corsHeaders,
+supabase/functions/zoho-mail-auth-url/index.ts:106:          ...corsHeaders,
+supabase/functions/zoho-mail-auth-url/index.ts:124:          ...corsHeaders,
+supabase/functions/zoho-mail-inbox/index.ts:4:  corsHeaders,
+supabase/functions/zoho-mail-inbox/index.ts:14:      headers: corsHeaders,
+supabase/functions/workspace-user-admin/index.ts:4:const corsHeaders = {
+supabase/functions/workspace-user-admin/index.ts:5:  "Access-Control-Allow-Origin":
+supabase/functions/workspace-user-admin/index.ts:36:        ...corsHeaders,
+supabase/functions/workspace-user-admin/index.ts:57:      {headers:corsHeaders}
+supabase/functions/zoho-mail-send/index.ts:3:  corsHeaders,
+supabase/functions/zoho-mail-send/index.ts:13:      headers: corsHeaders,
+supabase/functions/zoho-mail-folder-messages/index.ts:4:  corsHeaders,
+supabase/functions/zoho-mail-folder-messages/index.ts:14:      headers: corsHeaders,
+supabase/functions/ridearrivo-support/index.ts:4:const corsHeaders = {
+supabase/functions/ridearrivo-support/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/ridearrivo-support/index.ts:14:      ...corsHeaders,
+supabase/functions/ridearrivo-support/index.ts:65:    return new Response("ok", { headers: corsHeaders })
+supabase/functions/ridearrivo-support/index.ts:286:        ...corsHeaders,
+supabase/functions/zoho-mail-folders/index.ts:4:  corsHeaders,
+supabase/functions/zoho-mail-folders/index.ts:14:      headers: corsHeaders,
+supabase/functions/_shared/zoho.ts:3:export const corsHeaders = {
+supabase/functions/_shared/zoho.ts:4:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/_shared/zoho.ts:112:        ...corsHeaders,
+
+=== ADMIN / DEVICE ===
+src/App.tsx:14:import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
+src/App.tsx:414:        {section==='admin'&&<AdminModule/>}
+src/App.tsx:608:    ['engineering','Engineering Station','Repos, deployments, mobile tooling, device bootstrap and APIs.',Code2],
+src/App.tsx:622:  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
+src/App.tsx:630:function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+src/modules/BusinessModules.tsx:2:const PROVIDUS_URL = 'https://ibank.providusbank.com/provipay#/login'
+src/modules/BusinessModules.tsx:28:      <div className="providusBanking glassCard">
+src/modules/BusinessModules.tsx:29:        <div className="providusBankingCopy">
+src/modules/FinanceBanking.tsx:37:const PROVIDUS_URL = 'https://ibank.providusbank.com/provipay#/login'
+src/modules/AdminAccessManager.tsx:134:export default function AdminAccessManager(){
+src/modules/CoreModules.tsx:7:import AdminAccessManager from './AdminAccessManager'
+src/modules/CoreModules.tsx:133:export function AdminModule(){
+src/modules/CoreModules.tsx:144:      <AdminAccessManager/>
+src/data/tools.ts:1:export type Tool = { name:string; area:string; purpose:string; url?:string; install?:string; mode:'native'|'embed'|'download'|'managed' }
+src/data/tools.ts:11:  { name:'Xcode', area:'Mobile', purpose:'iOS builds, simulators and signing', url:'https://developer.apple.com/xcode/', mode:'managed' },
+

@@ -17,6 +17,7 @@ export type WorkstationSize =
   | 'compact'
   | 'balanced'
   | 'expanded'
+  | 'maximized'
 
 export type AppearancePreferences = {
   theme: ThemeMode
@@ -56,7 +57,8 @@ const glows: GlowStrength[] = [
 const workstationSizes: WorkstationSize[] = [
   'compact',
   'balanced',
-  'expanded'
+  'expanded',
+  'maximized'
 ]
 
 export function readAppearance(): AppearancePreferences {

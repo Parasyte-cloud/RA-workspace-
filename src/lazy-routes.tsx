@@ -10,6 +10,14 @@ export const MarketingTeamWorkspace = lazy(
     )
 )
 
+export const ParasyteLinux = lazy(
+  () => import('./modules/ParasyteLinux')
+)
+
+export const BrandLibrary = lazy(
+  () => import('./modules/BrandLibrary')
+)
+
 export const ParasyteBrowser = lazy(
   () => import('./modules/ParasyteBrowser')
 )

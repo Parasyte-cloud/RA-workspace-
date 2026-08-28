@@ -5066,3 +5066,237 @@ html[data-ra-glow="high"] {
 
 }
 
+
+
+/* =========================================================
+   RIDEARRIVO RESPONSIVE WORKSTATION SCALE V2
+   Cross-platform viewport sizing.
+   Overrides earlier fixed-width workstation caps.
+   ========================================================= */
+
+@media (min-width: 761px) {
+
+  html[data-ra-size]
+  .shell.glassFrame {
+    max-width:
+      none !important;
+
+    margin:
+      0 auto !important;
+  }
+
+
+  /* -------------------------------------------------------
+     COMPACT
+     Larger than previous compact but keeps clear ambience.
+     ------------------------------------------------------- */
+
+  html[data-ra-size="compact"]
+  .appBackground {
+    padding:
+      28px !important;
+  }
+
+  html[data-ra-size="compact"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 56px) !important;
+
+    height:
+      calc(100dvh - 56px) !important;
+
+    max-height:
+      calc(100dvh - 56px) !important;
+
+    border-radius:
+      40px !important;
+  }
+
+
+  /* -------------------------------------------------------
+     BALANCED
+     Recommended everyday workstation.
+     ------------------------------------------------------- */
+
+  html[data-ra-size="balanced"]
+  .appBackground {
+    padding:
+      18px !important;
+  }
+
+  html[data-ra-size="balanced"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 36px) !important;
+
+    height:
+      calc(100dvh - 36px) !important;
+
+    max-height:
+      calc(100dvh - 36px) !important;
+
+    border-radius:
+      38px !important;
+  }
+
+
+  /* -------------------------------------------------------
+     EXPANDED
+     Almost full display.
+     ------------------------------------------------------- */
+
+  html[data-ra-size="expanded"]
+  .appBackground {
+    padding:
+      9px !important;
+  }
+
+  html[data-ra-size="expanded"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 18px) !important;
+
+    height:
+      calc(100dvh - 18px) !important;
+
+    max-height:
+      calc(100dvh - 18px) !important;
+
+    border-radius:
+      34px !important;
+  }
+
+
+  /* -------------------------------------------------------
+     MAXIMIZED
+     Nearly edge-to-edge but retains the workstation frame.
+     ------------------------------------------------------- */
+
+  html[data-ra-size="maximized"]
+  .appBackground {
+    padding:
+      3px !important;
+  }
+
+  html[data-ra-size="maximized"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 6px) !important;
+
+    height:
+      calc(100dvh - 6px) !important;
+
+    max-height:
+      calc(100dvh - 6px) !important;
+
+    border-radius:
+      28px !important;
+  }
+
+
+  html[data-ra-size="maximized"]
+  .shell.glassFrame > main {
+    border-radius:
+      0 28px 28px 0 !important;
+  }
+
+}
+
+
+/* Maximized preview in Appearance settings */
+
+.sizeSwatch.maximized::after {
+  width:
+    96%;
+
+  height:
+    88%;
+
+  border-radius:
+    10px;
+}
+
+
+/* Short Windows laptops / smaller vertical viewports */
+
+@media
+  (min-width:761px)
+  and (max-height:720px) {
+
+  html[data-ra-size="compact"]
+  .appBackground {
+    padding:
+      20px !important;
+  }
+
+  html[data-ra-size="compact"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 40px) !important;
+
+    height:
+      calc(100dvh - 40px) !important;
+
+    max-height:
+      calc(100dvh - 40px) !important;
+  }
+
+
+  html[data-ra-size="balanced"]
+  .appBackground {
+    padding:
+      12px !important;
+  }
+
+  html[data-ra-size="balanced"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 24px) !important;
+
+    height:
+      calc(100dvh - 24px) !important;
+
+    max-height:
+      calc(100dvh - 24px) !important;
+  }
+
+
+  html[data-ra-size="expanded"]
+  .appBackground {
+    padding:
+      6px !important;
+  }
+
+  html[data-ra-size="expanded"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 12px) !important;
+
+    height:
+      calc(100dvh - 12px) !important;
+
+    max-height:
+      calc(100dvh - 12px) !important;
+  }
+
+
+  html[data-ra-size="maximized"]
+  .appBackground {
+    padding:
+      2px !important;
+  }
+
+  html[data-ra-size="maximized"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 4px) !important;
+
+    height:
+      calc(100dvh - 4px) !important;
+
+    max-height:
+      calc(100dvh - 4px) !important;
+  }
+
+}
+

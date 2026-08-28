@@ -1,0 +1,26 @@
+[Unit]
+Description=RideArrivo ParAsYtE Linux Gateway
+Documentation=file:///opt/ridearrivo-workspace/gateway/README.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ridearrivo-workspace/gateway
+EnvironmentFile=%h/.config/parasyte-linux/gateway.env
+ExecStart=/usr/bin/node /opt/ridearrivo-workspace/gateway/dist/server.js
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=default.target

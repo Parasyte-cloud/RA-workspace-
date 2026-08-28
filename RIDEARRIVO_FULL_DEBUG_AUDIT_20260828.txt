@@ -1,0 +1,973 @@
+==================================================
+RIDEARRIVO FULL PRODUCTION DEBUG AUDIT
+Generated: Fri Aug 28 13:39:08 WAT 2026
+==================================================
+
+=== GIT ===
+ M src/App.tsx
+ M src/styles.css
+ M supabase/functions/ridearrivo-support/index.ts
+?? RIDEARRIVO_AUTH_DIAGNOSTIC.txt
+?? RIDEARRIVO_ENTERPRISE_AUDIT.txt
+?? RIDEARRIVO_FULL_DEBUG_AUDIT_20260828.txt
+?? src/modules/OverviewMetrics.tsx
+?? supabase/migrations/20260828162000_work_approvals_deadlines.sql
+0bfa90e Fix RideArrivo wordmark visibility
+39498c6 Restore canonical RideArrivo workspace wordmark
+8c6822d Add department isolation and work delegation schema
+b056f87 Add work delegation collaboration and notifications
+408699d Restore original RideArrivo wordmark branding
+bf102ea Stabilize authentication and workspace account controls
+6a382a9 Stabilize workspace authentication and profile controls
+3e934fc Harden employee sessions and responsive authentication
+9c9e14c Harden employee approval and session access
+e3fdfcb Harden workspace session persistence
+311ae5c Fix employee approval access workflow
+149efae Add administrator employee access approvals
+
+=== BUILD ===
+
+> ridearrivo-workspace@1.0.0 build
+> npm run prepare-brand && tsc -b && vite build
+
+
+> ridearrivo-workspace@1.0.0 prepare-brand
+> node scripts/prepare-brand-assets.mjs
+
+RideArrivo transparent brand assets generated.
+vite v6.4.3 building for production...
+transforming...
+✓ 1647 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.65 kB │ gzip:   0.36 kB
+dist/assets/index-BSQa2ap8.css     93.29 kB │ gzip:  18.19 kB
+dist/assets/index-DEljkuLA.js   1,907.81 kB │ gzip: 541.28 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.69s
+
+=== NPM AUDIT ===
+# npm audit report
+
+uuid  <11.1.1
+Severity: moderate
+uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided - https://github.com/advisories/GHSA-w5hq-g745-h8pq
+fix available via `npm audit fix --force`
+Will install exceljs@3.4.0, which is a breaking change
+node_modules/uuid
+  exceljs  >=3.5.0
+  Depends on vulnerable versions of uuid
+  node_modules/exceljs
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+=== HARDCODED / DEMO KPI VALUES ===
+src/App.tsx:171:const crmRows = [
+src/App.tsx:172:  {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
+src/App.tsx:178:const supportQueue = [
+src/App.tsx:865:function CRM(){return <section><SectionTitle eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint." actions={<button className="primaryButton"><UserPlus size={16}/>New lead</button>}/><div className="stats"><Metric icon={<Users/>} label="Contacts" value="2,184" hint="Riders and stakeholders"/><Metric icon={<Building2/>} label="Corporate accounts" value="38" hint="Hotels, travel and companies"/><Metric icon={<CircleDollarSign/>} label="Open pipeline" value="₦5.5m" hint="14 opportunities"/><Metric icon={<CalendarDays/>} label="Follow-ups due" value="12" hint="Today"/></div><div className="glassCard tableCard"><div className="tableToolbar"><div><h3>Relationship pipeline</h3><p>Sales, partnership and recovery work in one queue.</p></div><button className="glassButton"><ListChecks size={16}/>Activities</button></div><div className="dataTable"><div className="tr th"><span>Name / Account</span><span>Type</span><span>Status</span><span>Value</span><span>Last activity</span></div>{crmRows.map(r=><div className="tr" key={r.name}><span><strong>{r.name}</strong></span><span>{r.type}</span><span><StatusPill value={r.status}/></span><span>{r.value}</span><span>{r.last}</span></div>)}</div></div><div className="grid3"><Feature icon={<TicketCheck/>} title="Customer 360" text="Bookings, support cases, notes, payments and communications tied to one profile."/><Feature icon={<CircleDollarSign/>} title="Corporate sales" text="Track hotel, corporate and travel-agent opportunities from lead to signed account."/><Feature icon={<Activity/>} title="Activity timeline" text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."/></div></section>}
+src/App.tsx:867:function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
+src/App.tsx:873:function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+
+=== BRAND IMPLEMENTATIONS ===
+src/App.tsx:195:function BrandLogo({className=''}:{className?:string}){
+src/App.tsx:198:      src="/ridearrivo-wordmark-workspace.png"
+src/App.tsx:200:      className={`brandLogo ${className}`}
+src/App.tsx:459:  if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
+src/App.tsx:466:        <BrandLogo className="splashLogo"/>
+src/App.tsx:476:          <BrandLogo className="authLogo"/>
+src/App.tsx:510:          <BrandLogo className="authLogo"/>
+src/App.tsx:555:      <div className="brand"><BrandLogo className="sidebarLogo"/><span>Internal Workspace</span></div>
+src/App.tsx:678:      <BrandLogo className="setupWordmark"/>
+src/App.tsx:766:          <BrandLogo className="authLogo"/>
+src/styles.css:4:.brandWordmark{
+src/styles.css:15:.rideText{
+src/styles.css:19:.arrivoText{
+src/styles.css:23:.sidebar .brandWordmark{
+src/styles.css:31:.authBrand .rideText{
+src/styles.css:35:.authBrand .arrivoText{
+src/styles.css:92:.sidebarLogo{
+src/styles.css:97:.authLogo{
+src/styles.css:148:.brandLogo{
+src/styles.css:155:.sidebarLogo{
+src/styles.css:161:.authLogo{
+src/styles.css:247:  .sidebarLogo{
+src/styles.css:286:  .authLogo{
+src/styles.css:481:  .authLogo{
+src/styles.css:508:.moduleTabs{display:flex;gap:8px;overflow-x:auto;padding:6px;margin:0 0 16px;border-radius:16px;background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.58);scrollbar-width:none}.moduleTabs::-webkit-scrollbar{display:none}.moduleTabs button{border:0;background:transparent;padding:10px 14px;border-radius:11px;color:#5e6d7f;font-weight:800;white-space:nowrap;cursor:pointer}.moduleTabs button.active{background:#fff;color:var(--navy);box-shadow:0 8px 22px rgba(7,26,56,.08)}.workbench{overflow:hidden}.workbenchHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}.workbenchHead h3{margin:0 0 5px}.workbenchHead p{margin:0;color:#6d7a8a;font-size:12px}.workbenchActions{display:flex;gap:8px}.moduleSearch{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;margin-bottom:12px;border:1px solid rgba(7,26,56,.09);background:rgba(255,255,255,.64);border-radius:12px}.moduleSearch input{width:100%;border:0;outline:0;background:transparent}.quickForm{padding:14px;margin:10px 0 14px;border-radius:16px;background:rgba(247,249,252,.85);border:1px solid rgba(7,26,56,.08)}.quickFormGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.quickForm label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#536173}.quickForm input,.quickForm select,.quickForm textarea{width:100%;border:1px solid #d7dee7;background:#fff;padding:10px 11px;border-radius:10px;color:#0b203e;outline:0;font:inherit}.quickForm textarea{min-height:84px;resize:vertical}.moduleTableWrap{overflow:auto;border:1px solid rgba(7,26,56,.07);border-radius:14px}.moduleTable{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}.moduleTable th,.moduleTable td{padding:11px 12px;text-align:left;border-bottom:1px solid rgba(7,26,56,.07)}.moduleTable th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#6a7788;background:rgba(7,26,56,.035)}.moduleError{padding:10px 12px;margin-bottom:10px;border-radius:11px;background:#ffe9e9;color:#9d2424;font-size:12px}.splashLogo{width:240px;max-width:70vw}.brand .sidebarLogo{width:190px;max-width:100%;height:auto}
+src/styles.css:4553:.authBrandWordmark {
+src/styles.css:4575:.authBrand .authBrandWordmark {
+src/styles.css:4682:.authLogo {
+src/styles.css:4686:.sidebarLogo {
+src/styles.css:4695:.splashLogo {
+src/styles.css:4841:.splashLogo {
+src/styles.css:4847:.authLogo {
+src/styles.css:4853:.sidebarLogo {
+src/styles.css:4897:.authLogo {
+src/styles.css:4901:.sidebarLogo {
+src/styles.css:4910:.splashLogo {
+src/styles.css:5647:.brandLogo{
+src/styles.css:5657:.sidebarLogo{
+src/styles.css:5661:.authLogo{
+src/styles.css:5666:.splashLogo{
+src/styles.css:5684:.splash .brandLogo,
+src/styles.css:5685:.splashLogo{
+src/styles.css:5694:  .splash .brandLogo,
+src/styles.css:5695:  .splashLogo{
+public/sw.js:9:  '/ridearrivo-wordmark-transparent.png'
+scripts/prepare-brand-assets.mjs:118:  'public/ridearrivo-wordmark.png',
+scripts/prepare-brand-assets.mjs:119:  'public/ridearrivo-wordmark-transparent.png'
+scripts/prepare-brand-assets.mjs:123:  'public/ridearrivo-wordmark.png',
+scripts/prepare-brand-assets.mjs:124:  'public/ridearrivo-wordmark-workspace.png'
+
+=== RBAC ===
+src/App.tsx:32:type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
+src/App.tsx:87:const sectionAccess:Record<Section,Role[]>={
+src/App.tsx:163:const canAccess=(
+src/App.tsx:167:  sectionAccess[section]
+src/App.tsx:446:    return items.filter(([id])=>canAccess(profile.role,id))
+src/App.tsx:863:  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
+src/modules/ApplicationsHub.tsx:29:  allowed_roles?: string[] | null
+src/modules/ApplicationsHub.tsx:151:      const roles = app.allowed_roles || []
+src/modules/OverviewMetrics.tsx:18:type Role =
+supabase/migrations/20260828143000_work_collaboration.sql:133:        or public.has_workspace_role(
+supabase/migrations/20260828143000_work_collaboration.sql:230:    or public.has_workspace_role(
+supabase/migrations/20260828143000_work_collaboration.sql:387:    or public.has_workspace_role(
+supabase/migrations/20260828143000_work_collaboration.sql:518:    or public.has_workspace_role(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:161:    or public.has_workspace_role(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:306:    or public.has_workspace_role(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:439:     and not public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:255:      when public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:387:  or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:435:  or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:450:  or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:481:  or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:531:        or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:566:        or public.has_workspace_role(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:603:        or public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:31:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:41:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:46:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:63:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:73:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:78:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:95:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:105:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:110:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:127:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:137:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:142:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:159:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:169:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:174:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:194:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:204:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:209:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:234:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:244:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:249:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:269:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:279:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:284:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:301:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:311:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:316:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:339:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:349:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:354:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:371:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:381:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:386:  public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:425:           public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:438:           public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:443:           public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:488:           public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:501:           public.has_workspace_role(
+supabase/migrations/20260828123000_strict_department_rls.sql:506:           public.has_workspace_role(
+supabase/migrations/20260828133000_harden_work_delegation.sql:40:        or public.has_workspace_role(
+supabase/migrations/20260828150000_work_attachment_storage.sql:116:    or public.has_workspace_role(
+supabase/schema.sql:24:create or replace function public.current_workspace_role()
+supabase/schema.sql:29:create or replace function public.has_workspace_role(roles text[])
+supabase/schema.sql:31:  select public.current_workspace_role() = any(roles);
+supabase/schema.sql:59:  allowed_roles text[] not null default array['employee']::text[],
+supabase/schema.sql:235:create policy "admins manage employee profiles" on public.employee_profiles for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+supabase/schema.sql:240:create policy "admins manage apps" on public.workspace_apps for all to authenticated using(public.has_workspace_role(array['admin'])) with check(public.has_workspace_role(array['admin']));
+supabase/schema.sql:244:create policy "crm read" on public.crm_accounts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:246:create policy "crm write" on public.crm_accounts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:248:create policy "crm contacts read" on public.crm_contacts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:250:create policy "crm contacts write" on public.crm_contacts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:252:create policy "crm leads read" on public.crm_leads for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:254:create policy "crm leads write" on public.crm_leads for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:256:create policy "crm opp read" on public.crm_opportunities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:258:create policy "crm opp write" on public.crm_opportunities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:260:create policy "crm activity read" on public.crm_activities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:262:create policy "crm activity write" on public.crm_activities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:265:create policy "support read" on public.support_cases for select to authenticated using(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:267:create policy "support write" on public.support_cases for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:269:create policy "incident read" on public.incidents for select to authenticated using(public.has_workspace_role(array['support','operations','legal','manager','admin']));
+supabase/schema.sql:271:create policy "incident write" on public.incidents for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:274:create policy "own leave read" on public.leave_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:278:create policy "hr leave manage" on public.leave_requests for update to authenticated using(public.has_workspace_role(array['manager','hr','admin'])) with check(public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:280:create policy "own hr requests" on public.hr_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:284:create policy "hr request manage" on public.hr_requests for update to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:286:create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:288:create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:291:create policy "legal read" on public.legal_contracts for select to authenticated using(public.has_workspace_role(array['legal','manager','admin']));
+supabase/schema.sql:293:create policy "legal manage" on public.legal_contracts for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:295:create policy "compliance read" on public.compliance_items for select to authenticated using(public.has_workspace_role(array['legal','operations','manager','admin']));
+supabase/schema.sql:297:create policy "compliance manage" on public.compliance_items for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:299:create policy "audit admin read" on public.workspace_audit_log for select to authenticated using(public.has_workspace_role(array['admin']));
+supabase/schema.sql:310:grant execute on function public.current_workspace_role() to authenticated;
+supabase/schema.sql:311:grant execute on function public.has_workspace_role(text[]) to authenticated;
+supabase/schema.sql:458:    execute format('create policy "finance read" on public.%I for select to authenticated using(public.has_workspace_role(array[''finance'',''manager'',''admin'']))',t);
+supabase/schema.sql:459:    execute format('create policy "finance write" on public.%I for all to authenticated using(public.has_workspace_role(array[''finance'',''admin''])) with check(public.has_workspace_role(array[''finance'',''admin'']))',t);
+supabase/schema.sql:465:    execute format('create policy "marketing read" on public.%I for select to authenticated using(public.has_workspace_role(array[''marketing'',''partnerships'',''manager'',''admin'']))',t);
+supabase/schema.sql:466:    execute format('create policy "marketing write" on public.%I for all to authenticated using(public.has_workspace_role(array[''marketing'',''admin''])) with check(public.has_workspace_role(array[''marketing'',''admin'']))',t);
+supabase/schema.sql:472:    execute format('create policy "partnership read" on public.%I for select to authenticated using(public.has_workspace_role(array[''partnerships'',''marketing'',''operations'',''finance'',''legal'',''manager'',''admin'']))',t);
+supabase/schema.sql:473:    execute format('create policy "partnership write" on public.%I for all to authenticated using(public.has_workspace_role(array[''partnerships'',''admin''])) with check(public.has_workspace_role(array[''partnerships'',''admin'']))',t);
+supabase/schema.sql:481:grant execute on function public.current_workspace_role() to authenticated;
+supabase/schema.sql:482:grant execute on function public.has_workspace_role(text[]) to authenticated;
+supabase/schema.sql:639:create policy "social update own posts" on public.social_posts for update to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:641:create policy "social delete own posts" on public.social_posts for delete to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:644:create policy "social media manage own post" on public.social_post_media for all to authenticated using(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])))) with check(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']))));
+supabase/schema.sql:674:create policy "social reports moderation" on public.social_reports for select to authenticated using(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:676:create policy "social reports moderation update" on public.social_reports for update to authenticated using(public.has_workspace_role(array['admin','marketing','hr'])) with check(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:687:create policy "social community manage" on public.social_communities for update to authenticated using(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/providus_finance.sql:63:using (public.has_workspace_role(array['finance','manager','admin']));
+supabase/providus_finance.sql:68:using (public.has_workspace_role(array['finance','admin']))
+supabase/providus_finance.sql:69:with check (public.has_workspace_role(array['finance','admin']));
+supabase/providus_finance.sql:74:using (public.has_workspace_role(array['finance','manager','admin']));
+supabase/providus_finance.sql:79:using (public.has_workspace_role(array['finance','admin']))
+supabase/providus_finance.sql:80:with check (public.has_workspace_role(array['finance','admin']));
+
+=== RLS POLICIES ===
+supabase/migrations/20260828143000_work_collaboration.sql:584:  enable row level security;
+supabase/migrations/20260828143000_work_collaboration.sql:586:drop policy if exists
+supabase/migrations/20260828143000_work_collaboration.sql:590:create policy "work watchers read"
+supabase/migrations/20260828143000_work_collaboration.sql:604:  enable row level security;
+supabase/migrations/20260828143000_work_collaboration.sql:606:drop policy if exists
+supabase/migrations/20260828143000_work_collaboration.sql:610:create policy "work attachments read"
+supabase/migrations/20260828143000_work_collaboration.sql:618:drop policy if exists
+supabase/migrations/20260828143000_work_collaboration.sql:622:create policy "work attachments create"
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:721:  enable row level security;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:724:  enable row level security;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:727:drop policy if exists
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:731:create policy "work approvals read"
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:746:drop policy if exists
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:750:create policy "work deadline events read"
+supabase/migrations/20260827235500_harden_employee_approval.sql:51:drop policy if exists
+supabase/migrations/20260827235500_harden_employee_approval.sql:55:create policy
+supabase/migrations/20260828130000_work_delegation_notifications.sql:344:  enable row level security;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:347:  enable row level security;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:350:  enable row level security;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:353:  enable row level security;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:356:  enable row level security;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:368:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:372:create policy "work items read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:397:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:401:create policy "work items create"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:416:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:420:create policy "work items update"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:460:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:464:create policy "work assignees read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:487:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:491:create policy "work assignees create"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:506:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:510:create policy "work comments read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:539:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:543:create policy "work comments create"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:578:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:582:create policy "work activity read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:616:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:620:create policy "notifications own read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:629:drop policy if exists
+supabase/migrations/20260828130000_work_delegation_notifications.sql:633:create policy "notifications own update"
+supabase/migrations/20260828123000_strict_department_rls.sql:20:drop policy if exists "crm read"
+supabase/migrations/20260828123000_strict_department_rls.sql:23:drop policy if exists "crm write"
+supabase/migrations/20260828123000_strict_department_rls.sql:26:create policy "crm read"
+supabase/migrations/20260828123000_strict_department_rls.sql:36:create policy "crm write"
+supabase/migrations/20260828123000_strict_department_rls.sql:52:drop policy if exists "crm contacts read"
+supabase/migrations/20260828123000_strict_department_rls.sql:55:drop policy if exists "crm contacts write"
+supabase/migrations/20260828123000_strict_department_rls.sql:58:create policy "crm contacts read"
+supabase/migrations/20260828123000_strict_department_rls.sql:68:create policy "crm contacts write"
+supabase/migrations/20260828123000_strict_department_rls.sql:84:drop policy if exists "crm leads read"
+supabase/migrations/20260828123000_strict_department_rls.sql:87:drop policy if exists "crm leads write"
+supabase/migrations/20260828123000_strict_department_rls.sql:90:create policy "crm leads read"
+supabase/migrations/20260828123000_strict_department_rls.sql:100:create policy "crm leads write"
+supabase/migrations/20260828123000_strict_department_rls.sql:116:drop policy if exists "crm opp read"
+supabase/migrations/20260828123000_strict_department_rls.sql:119:drop policy if exists "crm opp write"
+supabase/migrations/20260828123000_strict_department_rls.sql:122:create policy "crm opp read"
+supabase/migrations/20260828123000_strict_department_rls.sql:132:create policy "crm opp write"
+supabase/migrations/20260828123000_strict_department_rls.sql:148:drop policy if exists "crm activity read"
+supabase/migrations/20260828123000_strict_department_rls.sql:151:drop policy if exists "crm activity write"
+supabase/migrations/20260828123000_strict_department_rls.sql:154:create policy "crm activity read"
+supabase/migrations/20260828123000_strict_department_rls.sql:164:create policy "crm activity write"
+supabase/migrations/20260828123000_strict_department_rls.sql:183:drop policy if exists "support read"
+supabase/migrations/20260828123000_strict_department_rls.sql:186:drop policy if exists "support write"
+supabase/migrations/20260828123000_strict_department_rls.sql:189:create policy "support read"
+supabase/migrations/20260828123000_strict_department_rls.sql:199:create policy "support write"
+supabase/migrations/20260828123000_strict_department_rls.sql:223:drop policy if exists "incident read"
+supabase/migrations/20260828123000_strict_department_rls.sql:226:drop policy if exists "incident write"
+supabase/migrations/20260828123000_strict_department_rls.sql:229:create policy "incident read"
+supabase/migrations/20260828123000_strict_department_rls.sql:239:create policy "incident write"
+supabase/migrations/20260828123000_strict_department_rls.sql:258:drop policy if exists "legal read"
+supabase/migrations/20260828123000_strict_department_rls.sql:261:drop policy if exists "legal manage"
+supabase/migrations/20260828123000_strict_department_rls.sql:264:create policy "legal read"
+supabase/migrations/20260828123000_strict_department_rls.sql:274:create policy "legal manage"
+supabase/migrations/20260828123000_strict_department_rls.sql:290:drop policy if exists "compliance read"
+supabase/migrations/20260828123000_strict_department_rls.sql:293:drop policy if exists "compliance manage"
+supabase/migrations/20260828123000_strict_department_rls.sql:296:create policy "compliance read"
+supabase/migrations/20260828123000_strict_department_rls.sql:306:create policy "compliance manage"
+supabase/migrations/20260828123000_strict_department_rls.sql:328:drop policy if exists "finance bank import read"
+supabase/migrations/20260828123000_strict_department_rls.sql:331:drop policy if exists "finance bank import write"
+supabase/migrations/20260828123000_strict_department_rls.sql:334:create policy "finance bank import read"
+supabase/migrations/20260828123000_strict_department_rls.sql:344:create policy "finance bank import write"
+supabase/migrations/20260828123000_strict_department_rls.sql:360:drop policy if exists "finance bank transaction read"
+supabase/migrations/20260828123000_strict_department_rls.sql:363:drop policy if exists "finance bank transaction write"
+supabase/migrations/20260828123000_strict_department_rls.sql:366:create policy "finance bank transaction read"
+supabase/migrations/20260828123000_strict_department_rls.sql:376:create policy "finance bank transaction write"
+supabase/migrations/20260828123000_strict_department_rls.sql:410:        'drop policy if exists "marketing read" on public.%I',
+supabase/migrations/20260828123000_strict_department_rls.sql:415:        'drop policy if exists "marketing write" on public.%I',
+supabase/migrations/20260828123000_strict_department_rls.sql:420:        'create policy "marketing read"
+supabase/migrations/20260828123000_strict_department_rls.sql:433:        'create policy "marketing write"
+supabase/migrations/20260828123000_strict_department_rls.sql:473:        'drop policy if exists "partnership read" on public.%I',
+supabase/migrations/20260828123000_strict_department_rls.sql:478:        'drop policy if exists "partnership write" on public.%I',
+supabase/migrations/20260828123000_strict_department_rls.sql:483:        'create policy "partnership read"
+supabase/migrations/20260828123000_strict_department_rls.sql:496:        'create policy "partnership write"
+supabase/migrations/20260828133000_harden_work_delegation.sql:60:drop policy if exists
+supabase/migrations/20260828133000_harden_work_delegation.sql:64:create policy "work items read"
+supabase/migrations/20260828133000_harden_work_delegation.sql:73:drop policy if exists
+supabase/migrations/20260828133000_harden_work_delegation.sql:77:create policy "work assignees read"
+supabase/migrations/20260828133000_harden_work_delegation.sql:86:drop policy if exists
+supabase/migrations/20260828133000_harden_work_delegation.sql:90:create policy "work comments read"
+supabase/migrations/20260828133000_harden_work_delegation.sql:99:drop policy if exists
+supabase/migrations/20260828133000_harden_work_delegation.sql:103:create policy "work comments create"
+supabase/migrations/20260828133000_harden_work_delegation.sql:113:drop policy if exists
+supabase/migrations/20260828133000_harden_work_delegation.sql:117:create policy "work activity read"
+supabase/migrations/20260828150000_work_attachment_storage.sql:44:drop policy if exists
+supabase/migrations/20260828150000_work_attachment_storage.sql:48:create policy "work attachments storage read"
+supabase/migrations/20260828150000_work_attachment_storage.sql:71:drop policy if exists
+supabase/migrations/20260828150000_work_attachment_storage.sql:75:create policy "work attachments storage create"
+supabase/migrations/20260828150000_work_attachment_storage.sql:100:drop policy if exists
+supabase/migrations/20260828150000_work_attachment_storage.sql:104:create policy "work attachments storage delete"
+supabase/schema.sql:215:alter table public.employee_profiles enable row level security;
+supabase/schema.sql:216:alter table public.workspace_apps enable row level security;
+supabase/schema.sql:217:alter table public.crm_accounts enable row level security;
+supabase/schema.sql:218:alter table public.crm_contacts enable row level security;
+supabase/schema.sql:219:alter table public.crm_leads enable row level security;
+supabase/schema.sql:220:alter table public.crm_opportunities enable row level security;
+supabase/schema.sql:221:alter table public.crm_activities enable row level security;
+supabase/schema.sql:222:alter table public.support_cases enable row level security;
+supabase/schema.sql:223:alter table public.incidents enable row level security;
+supabase/schema.sql:224:alter table public.leave_requests enable row level security;
+supabase/schema.sql:225:alter table public.hr_requests enable row level security;
+supabase/schema.sql:226:alter table public.onboarding_tasks enable row level security;
+supabase/schema.sql:227:alter table public.legal_contracts enable row level security;
+supabase/schema.sql:228:alter table public.compliance_items enable row level security;
+supabase/schema.sql:229:alter table public.workspace_audit_log enable row level security;
+supabase/schema.sql:232:drop policy if exists "employees read directory" on public.employee_profiles;
+supabase/schema.sql:233:create policy "employees read directory" on public.employee_profiles for select to authenticated using(active=true);
+supabase/schema.sql:234:drop policy if exists "admins manage employee profiles" on public.employee_profiles;
+supabase/schema.sql:235:create policy "admins manage employee profiles" on public.employee_profiles for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:237:drop policy if exists "employees read apps" on public.workspace_apps;
+supabase/schema.sql:238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+supabase/schema.sql:239:drop policy if exists "admins manage apps" on public.workspace_apps;
+supabase/schema.sql:240:create policy "admins manage apps" on public.workspace_apps for all to authenticated using(public.has_workspace_role(array['admin'])) with check(public.has_workspace_role(array['admin']));
+supabase/schema.sql:243:drop policy if exists "crm read" on public.crm_accounts;
+supabase/schema.sql:244:create policy "crm read" on public.crm_accounts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:245:drop policy if exists "crm write" on public.crm_accounts;
+supabase/schema.sql:246:create policy "crm write" on public.crm_accounts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:247:drop policy if exists "crm contacts read" on public.crm_contacts;
+supabase/schema.sql:248:create policy "crm contacts read" on public.crm_contacts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:249:drop policy if exists "crm contacts write" on public.crm_contacts;
+supabase/schema.sql:250:create policy "crm contacts write" on public.crm_contacts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:251:drop policy if exists "crm leads read" on public.crm_leads;
+supabase/schema.sql:252:create policy "crm leads read" on public.crm_leads for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:253:drop policy if exists "crm leads write" on public.crm_leads;
+supabase/schema.sql:254:create policy "crm leads write" on public.crm_leads for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:255:drop policy if exists "crm opp read" on public.crm_opportunities;
+supabase/schema.sql:256:create policy "crm opp read" on public.crm_opportunities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:257:drop policy if exists "crm opp write" on public.crm_opportunities;
+supabase/schema.sql:258:create policy "crm opp write" on public.crm_opportunities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:259:drop policy if exists "crm activity read" on public.crm_activities;
+supabase/schema.sql:260:create policy "crm activity read" on public.crm_activities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:261:drop policy if exists "crm activity write" on public.crm_activities;
+supabase/schema.sql:262:create policy "crm activity write" on public.crm_activities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+supabase/schema.sql:264:drop policy if exists "support read" on public.support_cases;
+supabase/schema.sql:265:create policy "support read" on public.support_cases for select to authenticated using(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:266:drop policy if exists "support write" on public.support_cases;
+supabase/schema.sql:267:create policy "support write" on public.support_cases for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:268:drop policy if exists "incident read" on public.incidents;
+supabase/schema.sql:269:create policy "incident read" on public.incidents for select to authenticated using(public.has_workspace_role(array['support','operations','legal','manager','admin']));
+supabase/schema.sql:270:drop policy if exists "incident write" on public.incidents;
+supabase/schema.sql:271:create policy "incident write" on public.incidents for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+supabase/schema.sql:273:drop policy if exists "own leave read" on public.leave_requests;
+supabase/schema.sql:274:create policy "own leave read" on public.leave_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:275:drop policy if exists "own leave create" on public.leave_requests;
+supabase/schema.sql:276:create policy "own leave create" on public.leave_requests for insert to authenticated with check(employee_id=auth.uid());
+supabase/schema.sql:277:drop policy if exists "hr leave manage" on public.leave_requests;
+supabase/schema.sql:278:create policy "hr leave manage" on public.leave_requests for update to authenticated using(public.has_workspace_role(array['manager','hr','admin'])) with check(public.has_workspace_role(array['manager','hr','admin']));
+supabase/schema.sql:279:drop policy if exists "own hr requests" on public.hr_requests;
+supabase/schema.sql:280:create policy "own hr requests" on public.hr_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:281:drop policy if exists "own hr request create" on public.hr_requests;
+supabase/schema.sql:282:create policy "own hr request create" on public.hr_requests for insert to authenticated with check(employee_id=auth.uid());
+supabase/schema.sql:283:drop policy if exists "hr request manage" on public.hr_requests;
+supabase/schema.sql:284:create policy "hr request manage" on public.hr_requests for update to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:285:drop policy if exists "onboarding read" on public.onboarding_tasks;
+supabase/schema.sql:286:create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:287:drop policy if exists "onboarding manage" on public.onboarding_tasks;
+supabase/schema.sql:288:create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+supabase/schema.sql:290:drop policy if exists "legal read" on public.legal_contracts;
+supabase/schema.sql:291:create policy "legal read" on public.legal_contracts for select to authenticated using(public.has_workspace_role(array['legal','manager','admin']));
+supabase/schema.sql:292:drop policy if exists "legal manage" on public.legal_contracts;
+supabase/schema.sql:293:create policy "legal manage" on public.legal_contracts for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:294:drop policy if exists "compliance read" on public.compliance_items;
+supabase/schema.sql:295:create policy "compliance read" on public.compliance_items for select to authenticated using(public.has_workspace_role(array['legal','operations','manager','admin']));
+supabase/schema.sql:296:drop policy if exists "compliance manage" on public.compliance_items;
+supabase/schema.sql:297:create policy "compliance manage" on public.compliance_items for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+supabase/schema.sql:298:drop policy if exists "audit admin read" on public.workspace_audit_log;
+supabase/schema.sql:299:create policy "audit admin read" on public.workspace_audit_log for select to authenticated using(public.has_workspace_role(array['admin']));
+supabase/schema.sql:453:  loop execute format('alter table public.%I enable row level security',t); end loop;
+supabase/schema.sql:457:    execute format('drop policy if exists "finance read" on public.%I',t); execute format('drop policy if exists "finance write" on public.%I',t);
+supabase/schema.sql:458:    execute format('create policy "finance read" on public.%I for select to authenticated using(public.has_workspace_role(array[''finance'',''manager'',''admin'']))',t);
+supabase/schema.sql:459:    execute format('create policy "finance write" on public.%I for all to authenticated using(public.has_workspace_role(array[''finance'',''admin''])) with check(public.has_workspace_role(array[''finance'',''admin'']))',t);
+supabase/schema.sql:464:    execute format('drop policy if exists "marketing read" on public.%I',t); execute format('drop policy if exists "marketing write" on public.%I',t);
+supabase/schema.sql:465:    execute format('create policy "marketing read" on public.%I for select to authenticated using(public.has_workspace_role(array[''marketing'',''partnerships'',''manager'',''admin'']))',t);
+supabase/schema.sql:466:    execute format('create policy "marketing write" on public.%I for all to authenticated using(public.has_workspace_role(array[''marketing'',''admin''])) with check(public.has_workspace_role(array[''marketing'',''admin'']))',t);
+supabase/schema.sql:471:    execute format('drop policy if exists "partnership read" on public.%I',t); execute format('drop policy if exists "partnership write" on public.%I',t);
+supabase/schema.sql:472:    execute format('create policy "partnership read" on public.%I for select to authenticated using(public.has_workspace_role(array[''partnerships'',''marketing'',''operations'',''finance'',''legal'',''manager'',''admin'']))',t);
+supabase/schema.sql:473:    execute format('create policy "partnership write" on public.%I for all to authenticated using(public.has_workspace_role(array[''partnerships'',''admin''])) with check(public.has_workspace_role(array[''partnerships'',''admin'']))',t);
+supabase/schema.sql:625:  loop execute format('alter table public.%I enable row level security',t); end loop;
+supabase/schema.sql:631:    execute format('drop policy if exists "social employee read" on public.%I',t);
+supabase/schema.sql:632:    execute format('create policy "social employee read" on public.%I for select to authenticated using(true)',t);
+supabase/schema.sql:636:drop policy if exists "social create own posts" on public.social_posts;
+supabase/schema.sql:637:create policy "social create own posts" on public.social_posts for insert to authenticated with check(author_id=auth.uid());
+supabase/schema.sql:638:drop policy if exists "social update own posts" on public.social_posts;
+supabase/schema.sql:639:create policy "social update own posts" on public.social_posts for update to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:640:drop policy if exists "social delete own posts" on public.social_posts;
+supabase/schema.sql:641:create policy "social delete own posts" on public.social_posts for delete to authenticated using(author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:643:drop policy if exists "social media manage own post" on public.social_post_media;
+supabase/schema.sql:644:create policy "social media manage own post" on public.social_post_media for all to authenticated using(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])))) with check(exists(select 1 from public.social_posts p where p.id=post_id and (p.author_id=auth.uid() or public.has_workspace_role(array['admin','marketing']))));
+supabase/schema.sql:646:drop policy if exists "social reaction own" on public.social_post_reactions;
+supabase/schema.sql:647:create policy "social reaction own" on public.social_post_reactions for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:648:drop policy if exists "social repost own" on public.social_reposts;
+supabase/schema.sql:649:create policy "social repost own" on public.social_reposts for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:650:drop policy if exists "social bookmarks own" on public.social_bookmarks;
+supabase/schema.sql:651:create policy "social bookmarks own" on public.social_bookmarks for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:652:drop policy if exists "social bookmarks read own" on public.social_bookmarks;
+supabase/schema.sql:653:create policy "social bookmarks read own" on public.social_bookmarks for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:654:drop policy if exists "social follows read" on public.social_follows;
+supabase/schema.sql:655:create policy "social follows read" on public.social_follows for select to authenticated using(true);
+supabase/schema.sql:656:drop policy if exists "social follows own" on public.social_follows;
+supabase/schema.sql:657:create policy "social follows own" on public.social_follows for insert to authenticated with check(follower_id=auth.uid());
+supabase/schema.sql:658:drop policy if exists "social follows delete own" on public.social_follows;
+supabase/schema.sql:659:create policy "social follows delete own" on public.social_follows for delete to authenticated using(follower_id=auth.uid());
+supabase/schema.sql:661:drop policy if exists "social hashtag manage" on public.social_hashtags;
+supabase/schema.sql:662:create policy "social hashtag manage" on public.social_hashtags for insert to authenticated with check(true);
+supabase/schema.sql:663:drop policy if exists "social post hashtag manage" on public.social_post_hashtags;
+supabase/schema.sql:664:create policy "social post hashtag manage" on public.social_post_hashtags for insert to authenticated with check(exists(select 1 from public.social_posts p where p.id=post_id and p.author_id=auth.uid()));
+supabase/schema.sql:666:drop policy if exists "social notification own" on public.social_notifications;
+supabase/schema.sql:667:create policy "social notification own" on public.social_notifications for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:668:drop policy if exists "social notification update own" on public.social_notifications;
+supabase/schema.sql:669:create policy "social notification update own" on public.social_notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:671:drop policy if exists "social reports create" on public.social_reports;
+supabase/schema.sql:672:create policy "social reports create" on public.social_reports for insert to authenticated with check(reporter_id=auth.uid());
+supabase/schema.sql:673:drop policy if exists "social reports moderation" on public.social_reports;
+supabase/schema.sql:674:create policy "social reports moderation" on public.social_reports for select to authenticated using(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:675:drop policy if exists "social reports moderation update" on public.social_reports;
+supabase/schema.sql:676:create policy "social reports moderation update" on public.social_reports for update to authenticated using(public.has_workspace_role(array['admin','marketing','hr'])) with check(public.has_workspace_role(array['admin','marketing','hr']));
+supabase/schema.sql:679:drop policy if exists "social lists own" on public.social_lists;
+supabase/schema.sql:680:create policy "social lists own" on public.social_lists for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+supabase/schema.sql:681:drop policy if exists "social list members owner" on public.social_list_members;
+supabase/schema.sql:682:create policy "social list members owner" on public.social_list_members for all to authenticated using(exists(select 1 from public.social_lists l where l.id=list_id and l.owner_id=auth.uid())) with check(exists(select 1 from public.social_lists l where l.id=list_id and l.owner_id=auth.uid()));
+supabase/schema.sql:684:drop policy if exists "social community create" on public.social_communities;
+supabase/schema.sql:685:create policy "social community create" on public.social_communities for insert to authenticated with check(owner_id=auth.uid());
+supabase/schema.sql:686:drop policy if exists "social community manage" on public.social_communities;
+supabase/schema.sql:687:create policy "social community manage" on public.social_communities for update to authenticated using(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing'])) with check(owner_id=auth.uid() or public.has_workspace_role(array['admin','marketing']));
+supabase/schema.sql:688:drop policy if exists "social community member self" on public.social_community_members;
+supabase/schema.sql:689:create policy "social community member self" on public.social_community_members for insert to authenticated with check(user_id=auth.uid());
+supabase/schema.sql:692:drop policy if exists "social conversations member read" on public.social_conversations;
+supabase/schema.sql:693:create policy "social conversations member read" on public.social_conversations for select to authenticated using(created_by=auth.uid() or exists(select 1 from public.social_conversation_members m where m.conversation_id=id and m.user_id=auth.uid()));
+supabase/schema.sql:694:drop policy if exists "social conversations create" on public.social_conversations;
+supabase/schema.sql:695:create policy "social conversations create" on public.social_conversations for insert to authenticated with check(created_by=auth.uid());
+supabase/schema.sql:696:drop policy if exists "social conversation members read" on public.social_conversation_members;
+supabase/schema.sql:697:create policy "social conversation members read" on public.social_conversation_members for select to authenticated using(user_id=auth.uid() or exists(select 1 from public.social_conversations c where c.id=conversation_id and c.created_by=auth.uid()));
+supabase/schema.sql:698:drop policy if exists "social conversation members add" on public.social_conversation_members;
+supabase/schema.sql:699:create policy "social conversation members add" on public.social_conversation_members for insert to authenticated with check(user_id=auth.uid() or exists(select 1 from public.social_conversations c where c.id=conversation_id and c.created_by=auth.uid()));
+supabase/schema.sql:700:drop policy if exists "social messages member read" on public.social_messages;
+supabase/schema.sql:701:create policy "social messages member read" on public.social_messages for select to authenticated using(exists(select 1 from public.social_conversation_members m where m.conversation_id=social_messages.conversation_id and m.user_id=auth.uid()));
+supabase/schema.sql:702:drop policy if exists "social messages member send" on public.social_messages;
+supabase/schema.sql:703:create policy "social messages member send" on public.social_messages for insert to authenticated with check(sender_id=auth.uid() and exists(select 1 from public.social_conversation_members m where m.conversation_id=social_messages.conversation_id and m.user_id=auth.uid()));
+supabase/schema.sql:709:drop policy if exists "social media employee read" on storage.objects;
+supabase/schema.sql:710:create policy "social media employee read" on storage.objects for select to authenticated using(bucket_id='social-media');
+supabase/schema.sql:711:drop policy if exists "social media upload own" on storage.objects;
+supabase/schema.sql:712:create policy "social media upload own" on storage.objects for insert to authenticated with check(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/schema.sql:713:drop policy if exists "social media update own" on storage.objects;
+supabase/schema.sql:714:create policy "social media update own" on storage.objects for update to authenticated using(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text) with check(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/schema.sql:715:drop policy if exists "social media delete own" on storage.objects;
+supabase/schema.sql:716:create policy "social media delete own" on storage.objects for delete to authenticated using(bucket_id='social-media' and (storage.foldername(name))[1]=auth.uid()::text);
+supabase/providus_finance.sql:52:alter table public.finance_bank_imports enable row level security;
+supabase/providus_finance.sql:53:alter table public.finance_bank_transactions enable row level security;
+supabase/providus_finance.sql:55:drop policy if exists "finance bank import read" on public.finance_bank_imports;
+supabase/providus_finance.sql:56:drop policy if exists "finance bank import write" on public.finance_bank_imports;
+supabase/providus_finance.sql:57:drop policy if exists "finance bank transaction read" on public.finance_bank_transactions;
+supabase/providus_finance.sql:58:drop policy if exists "finance bank transaction write" on public.finance_bank_transactions;
+supabase/providus_finance.sql:60:create policy "finance bank import read"
+supabase/providus_finance.sql:65:create policy "finance bank import write"
+supabase/providus_finance.sql:71:create policy "finance bank transaction read"
+supabase/providus_finance.sql:76:create policy "finance bank transaction write"
+
+=== WORK DESK DEPENDENCIES ===
+src/App.tsx:879:function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+src/components/NotificationCenter.tsx:44:  const loadNotifications=useCallback(async()=>{
+src/components/NotificationCenter.tsx:52:      .from('notifications')
+src/components/NotificationCenter.tsx:71:        '[RideArrivo Notifications]',
+src/components/NotificationCenter.tsx:83:    void loadNotifications()
+src/components/NotificationCenter.tsx:84:  },[loadNotifications])
+src/components/NotificationCenter.tsx:94:      .channel('ridearrivo-notifications')
+src/components/NotificationCenter.tsx:100:          table:'notifications'
+src/components/NotificationCenter.tsx:103:          void loadNotifications()
+src/components/NotificationCenter.tsx:111:  },[loadNotifications])
+src/components/NotificationCenter.tsx:170:      .from('notifications')
+src/components/NotificationCenter.tsx:178:        '[RideArrivo Notifications]',
+src/components/NotificationCenter.tsx:212:      .from('notifications')
+src/components/NotificationCenter.tsx:220:        '[RideArrivo Notifications]',
+src/components/NotificationCenter.tsx:259:        aria-label="Notifications"
+src/components/NotificationCenter.tsx:282:                NOTIFICATIONS
+src/components/NotificationCenter.tsx:307:                Loading notifications...
+src/components/NotificationCenter.tsx:348:                No notifications yet.
+src/modules/WorkDesk.tsx:45:  work_item_assignees?:{
+src/modules/WorkDesk.tsx:195:        .from('work_items')
+src/modules/WorkDesk.tsx:207:          work_item_assignees(
+src/modules/WorkDesk.tsx:210:            assignee:employee_profiles!work_item_assignees_assignee_id_fkey(
+src/modules/WorkDesk.tsx:296:          table:'work_items'
+src/modules/WorkDesk.tsx:307:          table:'work_item_assignees'
+src/modules/WorkDesk.tsx:349:        item.work_item_assignees
+src/modules/WorkDesk.tsx:579:              item.work_item_assignees || []
+src/modules/WorkItemDetail.tsx:93:  work_item_assignees?:Assignee[]
+src/modules/WorkItemDetail.tsx:126:    item.work_item_assignees || []
+src/modules/WorkItemDetail.tsx:175:        .from('work_item_comments')
+src/modules/WorkItemDetail.tsx:181:          author:employee_profiles!work_item_comments_author_id_fkey(
+src/modules/WorkItemDetail.tsx:195:        .from('work_item_watchers')
+src/modules/WorkItemDetail.tsx:198:          user:employee_profiles!work_item_watchers_user_id_fkey(
+src/modules/WorkItemDetail.tsx:209:        .from('work_item_activity')
+src/modules/WorkItemDetail.tsx:215:          actor:employee_profiles!work_item_activity_actor_id_fkey(
+src/modules/WorkItemDetail.tsx:226:        .from('work_item_attachments')
+src/modules/WorkItemDetail.tsx:293:          table:'work_item_comments',
+src/modules/WorkItemDetail.tsx:305:          table:'work_item_watchers',
+src/modules/WorkItemDetail.tsx:481:          .from('work_item_attachments')
+src/modules/SocialModule.tsx:116:    <div className="sectionTitle"><div><span className="eyebrow">RIDEARRIVO SOCIAL & NEWS</span><h2>RideArrivo Pulse</h2><p>Company news, conversations, announcements and team knowledge in a fast social feed.</p></div><div className="buttonRow"><button className="glassButton"><Bell size={16}/>Notifications</button><button className="primaryButton" onClick={()=>document.getElementById('social-composer')?.scrollIntoView({behavior:'smooth'})}><Plus size={16}/>Post</button></div></div>
+src/modules/MailModule.tsx:763:            and notifications.
+supabase/migrations/20260828143000_work_collaboration.sql:12:create table if not exists public.work_item_watchers (
+supabase/migrations/20260828143000_work_collaboration.sql:16:    references public.work_items(id)
+supabase/migrations/20260828143000_work_collaboration.sql:34:on public.work_item_watchers(user_id);
+supabase/migrations/20260828143000_work_collaboration.sql:38:on public.work_item_watchers(work_item_id);
+supabase/migrations/20260828143000_work_collaboration.sql:45:create table if not exists public.work_item_attachments (
+supabase/migrations/20260828143000_work_collaboration.sql:49:    references public.work_items(id)
+supabase/migrations/20260828143000_work_collaboration.sql:66:on public.work_item_attachments(
+supabase/migrations/20260828143000_work_collaboration.sql:76:alter table public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:83:alter table public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:86:alter table public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:111:    from public.work_items w
+supabase/migrations/20260828143000_work_collaboration.sql:119:          from public.work_item_assignees a
+supabase/migrations/20260828143000_work_collaboration.sql:127:          from public.work_item_watchers wt
+supabase/migrations/20260828143000_work_collaboration.sql:172:  insert into public.work_item_assignees(
+supabase/migrations/20260828143000_work_collaboration.sql:221:  from public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:238:  delete from public.work_item_assignees
+supabase/migrations/20260828143000_work_collaboration.sql:243:  insert into public.work_item_activity(
+supabase/migrations/20260828143000_work_collaboration.sql:306:  insert into public.work_item_watchers(
+supabase/migrations/20260828143000_work_collaboration.sql:322:  insert into public.notifications(
+supabase/migrations/20260828143000_work_collaboration.sql:337:  from public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:340:  insert into public.work_item_activity(
+supabase/migrations/20260828143000_work_collaboration.sql:392:      from public.work_items w
+supabase/migrations/20260828143000_work_collaboration.sql:401:  delete from public.work_item_watchers
+supabase/migrations/20260828143000_work_collaboration.sql:439:  insert into public.work_item_comments(
+supabase/migrations/20260828143000_work_collaboration.sql:452:  insert into public.work_item_activity(
+supabase/migrations/20260828143000_work_collaboration.sql:509:  from public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:525:  update public.work_items
+supabase/migrations/20260828143000_work_collaboration.sql:532:  insert into public.work_item_activity(
+supabase/migrations/20260828143000_work_collaboration.sql:550:  insert into public.notifications(
+supabase/migrations/20260828143000_work_collaboration.sql:565:  from public.work_item_assignees
+supabase/migrations/20260828143000_work_collaboration.sql:583:alter table public.work_item_watchers
+supabase/migrations/20260828143000_work_collaboration.sql:588:on public.work_item_watchers;
+supabase/migrations/20260828143000_work_collaboration.sql:591:on public.work_item_watchers
+supabase/migrations/20260828143000_work_collaboration.sql:603:alter table public.work_item_attachments
+supabase/migrations/20260828143000_work_collaboration.sql:608:on public.work_item_attachments;
+supabase/migrations/20260828143000_work_collaboration.sql:611:on public.work_item_attachments
+supabase/migrations/20260828143000_work_collaboration.sql:620:on public.work_item_attachments;
+supabase/migrations/20260828143000_work_collaboration.sql:623:on public.work_item_attachments
+supabase/migrations/20260828143000_work_collaboration.sql:637:on public.work_item_watchers
+supabase/migrations/20260828143000_work_collaboration.sql:641:on public.work_item_attachments
+supabase/migrations/20260828143000_work_collaboration.sql:645:on public.work_item_watchers
+supabase/migrations/20260828143000_work_collaboration.sql:649:on public.work_item_attachments
+supabase/migrations/20260828143000_work_collaboration.sql:661:      add table public.work_item_comments;
+supabase/migrations/20260828143000_work_collaboration.sql:668:      add table public.work_item_watchers;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:12:create table if not exists public.work_item_approvals (
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:16:    references public.work_items(id)
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:49:on public.work_item_approvals(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:56:on public.work_item_approvals(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:64:on public.work_item_approvals(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:74:-- Prevents duplicate notifications/escalations.
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:81:    references public.work_items(id)
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:108:on public.work_item_approvals;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:113:on public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:152:  from public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:179:  insert into public.work_item_approvals(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:194:  update public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:202:  insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:219:  insert into public.work_item_activity(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:274:  approval_row public.work_item_approvals%rowtype;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:293:  from public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:314:  update public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:321:  insert into public.work_item_activity(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:345:    update public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:355:    from public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:361:      update public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:370:  insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:393:  from public.work_items w
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:454:    from public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:480:    insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:495:    from public.work_item_assignees a
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:510:    from public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:535:    insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:550:    from public.work_item_assignees a
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:554:      insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:572:    insert into public.work_item_activity(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:600:    from public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:625:    update public.work_items
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:636:    insert into public.work_item_activity(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:652:    insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:667:    from public.work_item_assignees a
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:671:      insert into public.notifications(
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:720:alter table public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:729:on public.work_item_approvals;
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:732:on public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:762:on public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:770:on public.work_item_approvals
+supabase/migrations/20260828162000_work_approvals_deadlines.sql:786:      add table public.work_item_approvals;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:2:-- RideArrivo Work Delegation + Realtime Notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:11:create table if not exists public.work_items (
+supabase/migrations/20260828130000_work_delegation_notifications.sql:60:create table if not exists public.work_item_assignees (
+supabase/migrations/20260828130000_work_delegation_notifications.sql:64:    references public.work_items(id)
+supabase/migrations/20260828130000_work_delegation_notifications.sql:87:create table if not exists public.work_item_comments (
+supabase/migrations/20260828130000_work_delegation_notifications.sql:91:    references public.work_items(id)
+supabase/migrations/20260828130000_work_delegation_notifications.sql:109:create table if not exists public.work_item_activity (
+supabase/migrations/20260828130000_work_delegation_notifications.sql:113:    references public.work_items(id)
+supabase/migrations/20260828130000_work_delegation_notifications.sql:129:-- NOTIFICATIONS
+supabase/migrations/20260828130000_work_delegation_notifications.sql:132:create table if not exists public.notifications (
+supabase/migrations/20260828130000_work_delegation_notifications.sql:159:  idx_work_items_created_by
+supabase/migrations/20260828130000_work_delegation_notifications.sql:160:on public.work_items(created_by);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:163:  idx_work_items_department
+supabase/migrations/20260828130000_work_delegation_notifications.sql:164:on public.work_items(department);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:167:  idx_work_items_status
+supabase/migrations/20260828130000_work_delegation_notifications.sql:168:on public.work_items(status);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:171:  idx_work_items_due_at
+supabase/migrations/20260828130000_work_delegation_notifications.sql:172:on public.work_items(due_at);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:176:on public.work_item_assignees(assignee_id);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:180:on public.work_item_assignees(work_item_id);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:184:on public.work_item_comments(work_item_id,created_at);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:188:on public.work_item_activity(work_item_id,created_at);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:191:  idx_notifications_user_unread
+supabase/migrations/20260828130000_work_delegation_notifications.sql:192:on public.notifications(user_id,read_at,created_at desc);
+supabase/migrations/20260828130000_work_delegation_notifications.sql:210:  work_items_set_updated_at
+supabase/migrations/20260828130000_work_delegation_notifications.sql:211:on public.work_items;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:214:  work_items_set_updated_at
+supabase/migrations/20260828130000_work_delegation_notifications.sql:215:before update on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:222:on public.work_item_comments;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:226:before update on public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:287:  from public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:290:  insert into public.notifications(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:307:  insert into public.work_item_activity(
+supabase/migrations/20260828130000_work_delegation_notifications.sql:329:on public.work_item_assignees;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:334:on public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:343:alter table public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:346:alter table public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:349:alter table public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:352:alter table public.work_item_activity
+supabase/migrations/20260828130000_work_delegation_notifications.sql:355:alter table public.notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:370:on public.work_items;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:373:on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:381:    from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:383:      a.work_item_id = work_items.id
+supabase/migrations/20260828130000_work_delegation_notifications.sql:399:on public.work_items;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:402:on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:418:on public.work_items;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:421:on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:429:    from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:431:      a.work_item_id = work_items.id
+supabase/migrations/20260828130000_work_delegation_notifications.sql:444:    from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:446:      a.work_item_id = work_items.id
+supabase/migrations/20260828130000_work_delegation_notifications.sql:462:on public.work_item_assignees;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:465:on public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:475:    from public.work_items w
+supabase/migrations/20260828130000_work_delegation_notifications.sql:489:on public.work_item_assignees;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:492:on public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:508:on public.work_item_comments;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:511:on public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:517:    from public.work_items w
+supabase/migrations/20260828130000_work_delegation_notifications.sql:525:          from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:541:on public.work_item_comments;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:544:on public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:552:    from public.work_items w
+supabase/migrations/20260828130000_work_delegation_notifications.sql:560:          from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:580:on public.work_item_activity;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:583:on public.work_item_activity
+supabase/migrations/20260828130000_work_delegation_notifications.sql:589:    from public.work_items w
+supabase/migrations/20260828130000_work_delegation_notifications.sql:597:          from public.work_item_assignees a
+supabase/migrations/20260828130000_work_delegation_notifications.sql:612:-- NOTIFICATIONS
+supabase/migrations/20260828130000_work_delegation_notifications.sql:613:-- User can only read/update their own notifications.
+supabase/migrations/20260828130000_work_delegation_notifications.sql:617:  "notifications own read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:618:on public.notifications;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:620:create policy "notifications own read"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:621:on public.notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:630:  "notifications own update"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:631:on public.notifications;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:633:create policy "notifications own update"
+supabase/migrations/20260828130000_work_delegation_notifications.sql:634:on public.notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:650:on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:654:on public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:658:on public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:662:on public.work_item_activity
+supabase/migrations/20260828130000_work_delegation_notifications.sql:666:on public.notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:674:on public.work_items
+supabase/migrations/20260828130000_work_delegation_notifications.sql:678:on public.work_item_assignees
+supabase/migrations/20260828130000_work_delegation_notifications.sql:682:on public.work_item_comments
+supabase/migrations/20260828130000_work_delegation_notifications.sql:686:on public.work_item_activity
+supabase/migrations/20260828130000_work_delegation_notifications.sql:690:on public.notifications
+supabase/migrations/20260828130000_work_delegation_notifications.sql:696:-- Add notifications/work changes to Supabase realtime.
+supabase/migrations/20260828130000_work_delegation_notifications.sql:704:      add table public.notifications;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:711:      add table public.work_items;
+supabase/migrations/20260828130000_work_delegation_notifications.sql:718:      add table public.work_item_assignees;
+supabase/migrations/20260828133000_harden_work_delegation.sql:12:-- Prevents work_items <-> assignees RLS recursion.
+supabase/migrations/20260828133000_harden_work_delegation.sql:26:    from public.work_items w
+supabase/migrations/20260828133000_harden_work_delegation.sql:34:          from public.work_item_assignees a
+supabase/migrations/20260828133000_harden_work_delegation.sql:62:on public.work_items;
+supabase/migrations/20260828133000_harden_work_delegation.sql:65:on public.work_items
+supabase/migrations/20260828133000_harden_work_delegation.sql:75:on public.work_item_assignees;
+supabase/migrations/20260828133000_harden_work_delegation.sql:78:on public.work_item_assignees
+supabase/migrations/20260828133000_harden_work_delegation.sql:88:on public.work_item_comments;
+supabase/migrations/20260828133000_harden_work_delegation.sql:91:on public.work_item_comments
+supabase/migrations/20260828133000_harden_work_delegation.sql:101:on public.work_item_comments;
+supabase/migrations/20260828133000_harden_work_delegation.sql:104:on public.work_item_comments
+supabase/migrations/20260828133000_harden_work_delegation.sql:115:on public.work_item_activity;
+supabase/migrations/20260828133000_harden_work_delegation.sql:118:on public.work_item_activity
+supabase/migrations/20260828133000_harden_work_delegation.sql:198:  insert into public.work_items(
+supabase/migrations/20260828133000_harden_work_delegation.sql:222:  insert into public.work_item_assignees(
+supabase/migrations/20260828133000_harden_work_delegation.sql:291:  update public.work_items
+supabase/migrations/20260828133000_harden_work_delegation.sql:302:  insert into public.work_item_activity(
+supabase/migrations/20260828133000_harden_work_delegation.sql:332:on public.work_items
+supabase/migrations/20260828133000_harden_work_delegation.sql:336:on public.work_items
+supabase/schema.sql:564:create table if not exists public.social_notifications (
+supabase/schema.sql:624:  foreach t in array array['social_posts','social_post_media','social_post_reactions','social_reposts','social_bookmarks','social_follows','social_hashtags','social_post_hashtags','social_mentions','social_polls','social_poll_options','social_poll_votes','social_notifications','social_reports','social_lists','social_list_members','social_communities','social_community_members','social_conversations','social_conversation_members','social_messages','social_spaces']
+supabase/schema.sql:666:drop policy if exists "social notification own" on public.social_notifications;
+supabase/schema.sql:667:create policy "social notification own" on public.social_notifications for select to authenticated using(user_id=auth.uid());
+supabase/schema.sql:668:drop policy if exists "social notification update own" on public.social_notifications;
+supabase/schema.sql:669:create policy "social notification update own" on public.social_notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
+supabase/schema.sql:719:  foreach t in array array['social_posts','social_post_media','social_post_reactions','social_reposts','social_bookmarks','social_follows','social_hashtags','social_post_hashtags','social_mentions','social_polls','social_poll_options','social_poll_votes','social_notifications','social_reports','social_lists','social_list_members','social_communities','social_community_members','social_conversations','social_conversation_members','social_messages','social_spaces']
+supabase/schema.sql:728:create index if not exists idx_social_notifications_user on public.social_notifications(user_id,created_at desc);
+
+=== POTENTIAL XSS / RAW HTML ===
+src/modules/MailModule.tsx:1139:                dangerouslySetInnerHTML={{
+
+=== HARDCODED URLS / ENVIRONMENT ===
+supabase/.temp/pooler-url:1:postgresql://postgres.fkkxcivxnwshahnbatnp@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+supabase/functions/zoho-mail-status/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/zoho-mail-callback/index.ts:4:const WORKSPACE_URL = "https://intranet.ridearrivo.com"
+supabase/functions/zoho-mail-auth-url/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/workspace-user-admin/index.ts:6:    "https://intranet.ridearrivo.com",
+supabase/functions/ridearrivo-support/index.ts:5:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/_shared/zoho.ts:4:  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
+supabase/functions/whatsapp-send/.npmrc:3:# https://supabase.com/docs/guides/functions/import-maps#importing-from-private-registries
+supabase/functions/whatsapp-webhook/.npmrc:3:# https://supabase.com/docs/guides/functions/import-maps#importing-from-private-registries
+supabase/config.toml:2:# https://supabase.com/docs/guides/local-development/cli/config
+supabase/config.toml:98:api_url = "http://127.0.0.1"
+supabase/config.toml:158:site_url = "http://127.0.0.1:3000"
+supabase/config.toml:162:additional_redirect_urls = ["https://127.0.0.1:3000"]
+supabase/config.toml:193:# rp_id = "localhost"
+supabase/config.toml:194:# rp_origins = ["http://127.0.0.1:3000"]
+
+=== TYPESCRIPT SUPPRESSION ===
+src/styles.css:1155:  overflow-wrap: anywhere;
+src/styles.css:1725:  overflow-wrap: anywhere;
+src/styles.css:1780:  overflow-wrap: anywhere;
+src/styles.css:1871:  overflow-wrap: anywhere;
+src/styles.css:2745:  overflow-wrap: anywhere;
+src/styles.css:3570:  overflow-wrap: anywhere;
+src/lib/ridearrivoSupport.ts:33:      const context = (error as any).context
+src/modules/SupportOperationsPanel.tsx:29:function asArray(value: any): any[] {
+src/modules/SupportOperationsPanel.tsx:50:function firstValue(row: any, keys: string[]) {
+src/modules/SupportOperationsPanel.tsx:60:function titleFor(row: any, resource: SupportResource) {
+src/modules/SupportOperationsPanel.tsx:94:function detailRows(row: any, resource: SupportResource) {
+src/modules/SocialModule.tsx:77:    setPeople((profiles||[]) as any)
+src/modules/MailModule.tsx:130:        const context=(error as any).context
+
+=== TODO / FIXME / TEMP ===
+src/App.tsx:806:              placeholder="name@ridearrivo.com"
+src/App.tsx:818:              placeholder="Enter your password"
+src/styles.css:1::root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#071a38;background:#071a38;font-synthesis:none;--navy:#071a38;--navy2:#0b2850;--amber:#ff9900;--amber2:#ffb13b;--cream:#f8f5ef;--glass:rgba(255,255,255,.66);--line:rgba(255,255,255,.38);--shadow:0 20px 60px rgba(5,25,58,.16)}*{box-sizing:border-box}html,body,#root{margin:0;min-width:320px;min-height:100%}body{min-height:100vh;background:radial-gradient(circle at 8% 12%,rgba(255,153,0,.18),transparent 24%),radial-gradient(circle at 88% 4%,rgba(52,103,170,.22),transparent 28%),linear-gradient(150deg,#f7f4ee,#e8edf3 48%,#f7f3ea)}button,a,input{font:inherit}.appBackground{min-height:100vh;padding:14px}.glassFrame{backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);background:rgba(255,255,255,.34);border:1px solid rgba(255,255,255,.55);box-shadow:0 28px 90px rgba(2,17,40,.22);border-radius:30px;overflow:hidden}.glassPanel,.glassCard,.glassHero{backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(255,255,255,.52);box-shadow:var(--shadow)}.shell{display:grid;grid-template-columns:258px 1fr;min-height:calc(100vh - 28px)}.sidebar{position:sticky;top:0;height:calc(100vh - 28px);background:linear-gradient(180deg,rgba(7,26,56,.96),rgba(7,26,56,.9));color:#fff;padding:18px 14px;display:flex;flex-direction:column}.brand{padding:8px 8px 22px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:14px}.brand img{display:block;width:176px;max-width:100%;filter:brightness(0) invert(1);object-fit:contain}.brand span{display:block;margin-top:7px;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#a8b5c7}.sidebar nav{display:grid;gap:6px}.sidebar nav button{border:1px solid transparent;background:transparent;color:#d3dbe7;padding:11px 12px;border-radius:14px;display:flex;align-items:center;gap:11px;cursor:pointer;text-align:left;transition:.2s}.sidebar nav button:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.1);color:#fff}.sidebar nav button.active{background:linear-gradient(135deg,rgba(255,153,0,.24),rgba(255,255,255,.08));border-color:rgba(255,177,59,.28);color:#fff;box-shadow:inset 3px 0 var(--amber)}.sidebarFooter{margin-top:auto;padding:14px 8px;color:#a9b5c5}.status{display:flex;align-items:center;gap:8px;margin-bottom:7px}.dot{width:8px;height:8px;background:#e95a5a;border-radius:50%}.dot.ok{background:#3ed27d}.topbar{height:84px;background:rgba(255,255,255,.58);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10;border-width:0 0 1px 0;box-shadow:0 8px 30px rgba(7,26,56,.06)}.topbar h1{font-size:19px;margin:0 0 2px}.topbar p{margin:0;color:#6e7988;font-size:12px}.headerActions,.buttonRow{display:flex;gap:9px;align-items:center}.iconButton,.glassButton{border:1px solid rgba(7,26,56,.1);background:rgba(255,255,255,.58);color:var(--navy);border-radius:12px;padding:9px 11px;display:inline-flex;align-items:center;gap:7px;text-decoration:none;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.8)}.iconButton{width:38px;height:38px;justify-content:center;padding:0}.profileButton{border:0;background:transparent;display:flex;gap:8px;align-items:center;cursor:pointer;text-align:left}.profileButton span strong,.profileButton span small{display:block}.profileButton span small{text-transform:capitalize;color:#718096}.avatar{width:38px;height:38px;border-radius:13px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;display:grid;place-items:center;font-weight:800}.content{padding:28px;max-width:1540px;margin:auto}.hero{min-height:290px;border-radius:28px;padding:38px;display:grid;grid-template-columns:1fr 300px;gap:30px;align-items:center;overflow:hidden;background:linear-gradient(135deg,rgba(7,26,56,.96),rgba(8,45,89,.9));color:#fff;position:relative}.hero:after{content:"";position:absolute;inset:auto -8% -45% auto;width:470px;height:470px;border-radius:50%;background:radial-gradient(circle,rgba(255,153,0,.28),transparent 68%)}.hero>div{position:relative;z-index:1}.hero img{width:280px;justify-self:end;border-radius:34px;opacity:.95;box-shadow:0 25px 70px rgba(0,0,0,.26)}.hero h2{font-size:42px;line-height:1.02;max-width:800px;margin:10px 0 14px}.hero p{color:#cdd8e7;max-width:760px;line-height:1.6}.heroActions{display:flex;gap:10px;margin-top:21px}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.16em;color:var(--amber);text-transform:uppercase}.primaryButton{border:0;background:linear-gradient(135deg,var(--amber),var(--amber2));color:#071a38;padding:10px 14px;border-radius:12px;font-weight:800;display:inline-flex;align-items:center;gap:7px;cursor:pointer;text-decoration:none;box-shadow:0 10px 25px rgba(255,153,0,.2)}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 28px}.glassCard{background:rgba(255,255,255,.61);border-radius:20px}.metric{padding:17px;display:flex;gap:12px;align-items:flex-start}.metricIcon,.iconBox{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,rgba(255,153,0,.17),rgba(255,177,59,.28));color:#b66e00;display:grid;place-items:center;flex:0 0 auto}.metric span,.metric strong,.metric small{display:block}.metric span{font-size:11px;color:#6f7b8a}.metric strong{font-size:26px;margin:4px 0 2px}.metric small{font-size:11px;color:#8b96a4}.sectionTitle{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin:28px 0 16px}.sectionTitle h2{margin:6px 0 5px;font-size:28px}.sectionTitle p{margin:0;color:#677586;max-width:850px;line-height:1.5}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.feature,.glassCard{padding:19px}.feature h3,.glassCard h3{margin:12px 0 7px}.feature p,.glassCard p{color:#697686;margin:0;line-height:1.55}.launch{border:1px solid rgba(255,255,255,.55);display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;text-align:left;color:var(--navy);cursor:pointer;width:100%}.launch:hover,.glassCard:hover{border-color:rgba(255,153,0,.3);box-shadow:0 20px 55px rgba(7,26,56,.13)}.launch strong{font-size:15px}.launch p{margin:4px 0 0;font-size:12px}.cardHeader,.tableToolbar{display:flex;justify-content:space-between;gap:14px;align-items:center}.pill,.statusPill{font-size:10px;padding:6px 8px;border-radius:999px;background:rgba(7,26,56,.06);color:#566476;white-space:nowrap}.statusPill.active,.statusPill.driver-assigned{background:#e7f8ee;color:#197647}.statusPill.high,.statusPill.awaiting-driver,.statusPill.follow-up{background:#fff2dc;color:#9a5c00}.statusPill.opportunity,.statusPill.negotiation{background:#e9efff;color:#315bc1}.callout{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;background:linear-gradient(135deg,rgba(255,247,226,.88),rgba(255,255,255,.68))}.callout p{margin-top:5px}.compactList{display:grid;margin-top:13px}.compactList>div{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid rgba(7,26,56,.08)}.compactList span strong,.compactList span small{display:block}.compactList small{margin-top:3px;color:#7b8795}.compactList>div>span:last-child{text-align:right}.tools .copyBtn{border:0;background:rgba(7,26,56,.06);width:32px;height:32px;border-radius:10px;display:grid;place-items:center;cursor:pointer}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.toolGrid .feature,.toolGrid .launch{padding:14px;box-shadow:none}.tableCard{padding:0;overflow:hidden;margin-bottom:14px}.tableToolbar{padding:18px}.tableToolbar h3{margin:0 0 3px}.dataTable{overflow:auto}.tr{display:grid;grid-template-columns:1.25fr .7fr .8fr .65fr 1.2fr;gap:12px;padding:13px 18px;border-top:1px solid rgba(7,26,56,.07);align-items:center;min-width:850px;font-size:12px}.tr.th{background:rgba(7,26,56,.035);font-weight:800;color:#647182;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.workspace{height:calc(100vh - 144px);padding:0;display:flex;flex-direction:column;overflow:hidden}.workspaceBar{padding:12px 14px;border-bottom:1px solid rgba(7,26,56,.08);display:flex;justify-content:space-between;align-items:center}.workspaceBar strong,.workspaceBar span{display:block}.workspaceBar span{font-size:10px;color:#7e8997;margin-top:2px}.embedNote{padding:9px 14px;background:rgba(255,153,0,.11);color:#76561d;font-size:11px;border-bottom:1px solid rgba(255,153,0,.18)}.workspace iframe{border:0;width:100%;flex:1;background:#fff}.authPage{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 15% 10%,rgba(255,153,0,.22),transparent 28%),radial-gradient(circle at 80% 0,rgba(40,92,160,.34),transparent 35%),linear-gradient(135deg,#06162f,#0a2a52)}.authGlass{width:min(1080px,100%);min-height:640px;border-radius:32px;padding:34px;display:grid;grid-template-columns:1.2fr .8fr;gap:34px;position:relative;overflow:hidden;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(28px) saturate(160%);box-shadow:0 34px 100px rgba(0,0,0,.34);color:#fff}.authBrand{grid-column:1/-1}.authBrand img{width:210px;filter:brightness(0) invert(1)}.authBrand span{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#b9c8da;margin-top:7px}.authCopy{align-self:center}.authCopy h1{font-size:48px;line-height:1.02;margin:11px 0 15px;max-width:620px}.authCopy p{color:#cbd7e7;line-height:1.6;max-width:580px}.trustRow{display:flex;align-items:center;gap:8px;color:#ffd79a;margin-top:20px}.authGlass form{align-self:center;background:rgba(255,255,255,.91);color:var(--navy);padding:25px;border-radius:24px;box-shadow:0 24px 60px rgba(0,0,0,.17)}.authTabs{display:grid;grid-template-columns:1fr 1fr;background:#eef1f5;border-radius:12px;padding:4px;margin-bottom:16px}.authTabs button{border:0;background:transparent;padding:9px;border-radius:9px;cursor:pointer}.authTabs button.active{background:#fff;box-shadow:0 5px 16px rgba(7,26,56,.08);font-weight:800}.authGlass label{display:grid;gap:6px;font-size:11px;font-weight:800;margin:12px 0}.authGlass input{border:1px solid #dce2e8;background:#fff;padding:12px;border-radius:11px;outline:0}.authGlass input:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,153,0,.12)}.authGlass form>.primaryButton{width:100%;justify-content:center;margin-top:8px}.authMessage{font-size:11px;padding:10px;border-radius:10px;background:#fff4de;color:#7d5612}.splash{min-height:100vh;display:grid;place-items:center;background:var(--navy)}.splash img{width:180px;border-radius:30px}.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;position:absolute;margin-top:250px}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:1000px){.shell{grid-template-columns:80px 1fr}.brand img{width:48px;height:48px;object-fit:cover;object-position:left}.brand span,.sidebar nav span,.sidebarFooter small{display:none}.sidebar nav button{justify-content:center}.hero{grid-template-columns:1fr 220px}.hero img{width:220px}.stats,.grid3{grid-template-columns:1fr 1fr}.authGlass{grid-template-columns:1fr}.authBrand{grid-column:auto}.authCopy h1{font-size:38px}}@media(max-width:700px){.appBackground{padding:0}.glassFrame{border-radius:0}.shell{display:block;min-height:100vh}.sidebar{position:fixed;z-index:30;bottom:0;top:auto;width:100%;height:70px;padding:8px;border-radius:0}.brand,.sidebarFooter{display:none}.sidebar nav{grid-template-columns:repeat(9,1fr);gap:0;overflow-x:auto}.sidebar nav button{padding:10px 4px}.sidebar nav button.active{box-shadow:inset 0 3px var(--amber)}.topbar{padding:0 14px}.topbar p,.profileButton span,.iconButton{display:none}.content{padding:16px 16px 88px}.hero{grid-template-columns:1fr;padding:24px}.hero img{display:none}.hero h2{font-size:32px}.stats,.grid3,.grid2{grid-template-columns:1fr}.sectionTitle{align-items:flex-start;flex-direction:column}.toolGrid{grid-template-columns:1fr}.authPage{padding:12px}.authGlass{padding:20px;min-height:auto}.authCopy h1{font-size:34px}.buttonRow{flex-wrap:wrap}}
+src/styles.css:231:    grid-template-columns:1fr;
+src/styles.css:252:    grid-template-columns:repeat(2,minmax(0,1fr));
+src/styles.css:256:    grid-template-columns:repeat(2,minmax(0,1fr));
+src/styles.css:382:    grid-template-columns:1fr;
+src/styles.css:397:    grid-template-columns:1fr;
+src/styles.css:508:.moduleTabs{display:flex;gap:8px;overflow-x:auto;padding:6px;margin:0 0 16px;border-radius:16px;background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.58);scrollbar-width:none}.moduleTabs::-webkit-scrollbar{display:none}.moduleTabs button{border:0;background:transparent;padding:10px 14px;border-radius:11px;color:#5e6d7f;font-weight:800;white-space:nowrap;cursor:pointer}.moduleTabs button.active{background:#fff;color:var(--navy);box-shadow:0 8px 22px rgba(7,26,56,.08)}.workbench{overflow:hidden}.workbenchHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}.workbenchHead h3{margin:0 0 5px}.workbenchHead p{margin:0;color:#6d7a8a;font-size:12px}.workbenchActions{display:flex;gap:8px}.moduleSearch{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;margin-bottom:12px;border:1px solid rgba(7,26,56,.09);background:rgba(255,255,255,.64);border-radius:12px}.moduleSearch input{width:100%;border:0;outline:0;background:transparent}.quickForm{padding:14px;margin:10px 0 14px;border-radius:16px;background:rgba(247,249,252,.85);border:1px solid rgba(7,26,56,.08)}.quickFormGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.quickForm label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#536173}.quickForm input,.quickForm select,.quickForm textarea{width:100%;border:1px solid #d7dee7;background:#fff;padding:10px 11px;border-radius:10px;color:#0b203e;outline:0;font:inherit}.quickForm textarea{min-height:84px;resize:vertical}.moduleTableWrap{overflow:auto;border:1px solid rgba(7,26,56,.07);border-radius:14px}.moduleTable{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}.moduleTable th,.moduleTable td{padding:11px 12px;text-align:left;border-bottom:1px solid rgba(7,26,56,.07)}.moduleTable th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#6a7788;background:rgba(7,26,56,.035)}.moduleError{padding:10px 12px;margin-bottom:10px;border-radius:11px;background:#ffe9e9;color:#9d2424;font-size:12px}.splashLogo{width:240px;max-width:70vw}.brand .sidebarLogo{width:190px;max-width:100%;height:auto}
+src/styles.css:509:@media(max-width:900px){.quickFormGrid{grid-template-columns:1fr}.moduleTable{min-width:640px}}
+src/styles.css:514:.socialLayout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}.socialMain{min-width:0;display:grid;gap:14px}.socialRail{display:grid;gap:14px;position:sticky;top:104px}.socialTabs{padding:5px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.socialTabs button{border:0;background:transparent;border-radius:12px;padding:11px 8px;display:flex;align-items:center;justify-content:center;gap:7px;color:#6d7989;font-weight:750;cursor:pointer}.socialTabs button.active{background:rgba(255,255,255,.85);color:var(--navy);box-shadow:0 8px 22px rgba(7,26,56,.08)}.socialComposer{padding:18px}.composerTop{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start}.composerAvatar,.postAvatar{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,var(--navy),#194a80);display:grid;place-items:center;color:#fff;font-weight:900;flex:0 0 auto}.composerTop textarea,.replyModal textarea{width:100%;min-height:100px;border:0;background:transparent;resize:vertical;font:inherit;font-size:17px;color:var(--navy);outline:0;padding:8px 2px}.composerOptions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0 56px}.composerOptions select,.composerOptions input{border:1px solid rgba(7,26,56,.1);background:rgba(255,255,255,.7);border-radius:10px;padding:8px 10px;color:var(--navy)}.composerBar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:12px;margin-top:10px;border-top:1px solid rgba(7,26,56,.08)}.composerBar>div:first-child{display:flex;gap:6px}.composerSubmit{display:flex;align-items:center;gap:12px}.composerSubmit small{color:#7a8797}.mediaQueue{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 0 56px}.mediaQueue span{display:flex;align-items:center;gap:5px;background:rgba(7,26,56,.06);padding:6px 8px;border-radius:9px;font-size:11px}.mediaQueue button{border:0;background:transparent;cursor:pointer;display:grid;place-items:center}.socialSearch{padding:10px 14px;display:flex;align-items:center;gap:8px}.socialSearch input{width:100%;border:0;background:transparent;outline:0;font:inherit}.socialFeed{display:grid;gap:10px}.socialPost{padding:16px;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px}.postBody{min-width:0}.postMeta{display:flex;align-items:center;gap:7px;min-width:0}.postMeta strong{white-space:nowrap}.postMeta>span{font-size:12px;color:#7b8795;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.postType{background:rgba(255,153,0,.13);color:#9b6100!important;border-radius:999px;padding:4px 7px;text-transform:capitalize}.postMore{margin-left:auto;border:0;background:transparent;color:#7b8795;cursor:pointer}.postText{font-size:15px;line-height:1.6;color:#1d2b3b!important;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0 10px!important}.postMedia{display:grid;gap:3px;border-radius:17px;overflow:hidden;margin:9px 0}.postMedia img,.postMedia video{width:100%;height:100%;max-height:460px;object-fit:cover;background:#0a1830}.mediaCount2,.mediaCount3,.mediaCount4{grid-template-columns:1fr 1fr}.mediaCount3>*:first-child{grid-row:span 2}.postActions{display:flex;align-items:center;justify-content:space-between;max-width:500px;margin-top:7px}.postActions button{border:0;background:transparent;color:#708092;display:flex;align-items:center;gap:5px;padding:6px;border-radius:999px;cursor:pointer}.postActions button:hover,.postActions button.active{background:rgba(7,26,56,.06);color:#0b5db5}.postActions button.like{color:#d84272}.postActions button.repost{color:#188d68}.railCard{padding:16px}.railCard h3{margin:0 0 10px;display:flex;align-items:center;gap:8px}.railCard>p{font-size:12px;color:#778494}.trend{width:100%;display:flex;justify-content:space-between;text-align:left;border:0;border-top:1px solid rgba(7,26,56,.07);background:transparent;padding:11px 2px;cursor:pointer}.trend:first-of-type{border-top:0}.trend span strong,.trend span small{display:block}.trend span small{font-size:10px;color:#85909d;margin:2px 0}.personRow{display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:center;padding:10px 0;border-top:1px solid rgba(7,26,56,.07)}.personRow:first-of-type{border-top:0}.postAvatar.small{width:36px;height:36px;border-radius:12px;font-size:11px}.personRow span strong,.personRow span small{display:block}.personRow span small{font-size:10px;color:#7d8997;margin-top:2px}.miniButton{border:1px solid rgba(7,26,56,.12);background:var(--navy);color:#fff;border-radius:999px;padding:6px 10px;font-weight:750;cursor:pointer}.socialFeatures p{display:flex;align-items:center;gap:7px;margin:9px 0;color:#647386}.socialEmpty{padding:42px;text-align:center;display:grid;place-items:center;gap:8px;color:#768493}.socialEmpty strong{color:var(--navy)}.socialModal{position:fixed;inset:0;background:rgba(4,13,28,.58);z-index:500;display:grid;place-items:center;padding:20px;backdrop-filter:blur(8px)}.replyModal{width:min(620px,100%);padding:24px;position:relative}.modalClose{position:absolute;right:14px;top:14px;width:34px;height:34px;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(7,26,56,.07);cursor:pointer}.quotedPost{padding:12px;border-left:3px solid var(--amber);background:rgba(7,26,56,.04);border-radius:0 10px 10px 0;color:#566476!important}.replyModal textarea{background:rgba(255,255,255,.64);border:1px solid rgba(7,26,56,.1);border-radius:14px;padding:13px;margin:12px 0}.moduleNotice{padding:11px 13px;border-radius:12px;background:#e8f8ef;color:#176b43;font-size:12px;border:1px solid #cbead9}
+src/styles.css:515:@media(max-width:1100px){.socialLayout{grid-template-columns:1fr}.socialRail{position:static;grid-template-columns:1fr 1fr}.socialFeatures{display:none}}
+src/styles.css:516:@media(max-width:720px){.socialModule .sectionTitle .buttonRow{display:none}.socialTabs{overflow-x:auto;display:flex}.socialTabs button{min-width:110px}.socialComposer{padding:14px}.composerTop{grid-template-columns:36px 1fr}.composerAvatar{width:36px;height:36px;border-radius:12px}.composerTop textarea{font-size:16px;min-height:88px}.composerOptions,.mediaQueue{margin-left:0}.composerBar{align-items:flex-end}.composerBar .iconButton:nth-of-type(n+3){display:none}.socialPost{padding:13px;grid-template-columns:36px 1fr;gap:9px}.postAvatar{width:36px;height:36px;border-radius:12px;font-size:11px}.postMeta{flex-wrap:wrap;gap:4px}.postMeta strong{max-width:65%;overflow:hidden;text-overflow:ellipsis}.postMeta>span{font-size:10px}.postText{font-size:14px}.postActions{max-width:none}.postActions button{padding:7px 4px}.socialRail{grid-template-columns:1fr}.railCard:nth-child(2){display:none}.mediaCount2,.mediaCount3,.mediaCount4{grid-template-columns:1fr 1fr}.postMedia img,.postMedia video{max-height:330px}}
+src/styles.css:634:  grid-template-columns:190px minmax(300px,420px) minmax(0,1fr);
+src/styles.css:698:  grid-template-columns:110px minmax(0,1fr) auto;
+src/styles.css:883:    grid-template-columns:150px minmax(280px,360px) 1fr;
+src/styles.css:923:    grid-template-columns:90px minmax(0,1fr);
+src/styles.css:1051:  grid-template-columns: repeat(3, minmax(0, 1fr));
+src/styles.css:1137:  grid-template-columns: repeat(3, minmax(0, 1fr));
+src/styles.css:1194:    grid-template-columns: 1fr;
+src/styles.css:1202:    grid-template-columns: 1fr;
+src/styles.css:1215:  grid-template-columns: repeat(4, minmax(0, 1fr));
+src/styles.css:1286:  grid-template-columns:
+src/styles.css:1358:    grid-template-columns:
+src/styles.css:1363:    grid-template-columns:
+src/styles.css:1371:    grid-template-columns: 1fr;
+src/styles.css:1405:  grid-template-columns: repeat(3, minmax(0, 1fr));
+src/styles.css:1523:    grid-template-columns: repeat(2, minmax(0, 1fr));
+src/styles.css:1529:    grid-template-columns: 1fr;
+src/styles.css:1602:  grid-template-columns: minmax(220px, 250px) minmax(0, 1fr);
+src/styles.css:1825:  grid-template-columns: repeat(4, minmax(0, 1fr));
+src/styles.css:1830:  grid-template-columns: repeat(3, minmax(0, 1fr));
+src/styles.css:1835:  grid-template-columns: repeat(2, minmax(0, 1fr));
+src/styles.css:1947:    grid-template-columns: 220px minmax(0, 1fr);
+src/styles.css:1956:    grid-template-columns: repeat(2, minmax(0, 1fr));
+src/styles.css:1961:    grid-template-columns: repeat(2, minmax(0, 1fr));
+src/styles.css:1982:    grid-template-columns: 76px minmax(0, 1fr);
+src/styles.css:2030:    grid-template-columns: 1fr;
+src/styles.css:2041:    grid-template-columns: repeat(2, minmax(0, 1fr));
+src/styles.css:2185:    grid-template-columns: 1fr;
+src/styles.css:2311:  grid-template-columns: 210px minmax(340px, 0.9fr) minmax(420px, 1.2fr);
+src/styles.css:2417:  grid-template-columns: 135px minmax(0,1fr) auto;
+src/styles.css:2547:    grid-template-columns: 175px 1fr;
+src/styles.css:2584:  grid-template-columns: 310px minmax(0,1fr);
+src/styles.css:2702:  grid-template-columns:
+src/styles.css:2785:  grid-template-columns:
+src/styles.css:2841:    grid-template-columns: 1fr;
+src/styles.css:2846:    grid-template-columns: 1fr;
+src/styles.css:2862:  grid-template-columns: 210px minmax(360px, 0.9fr) minmax(420px, 1.2fr);
+src/styles.css:2964:  grid-template-columns: 140px minmax(0,1fr) auto;
+src/styles.css:3123:    grid-template-columns: 180px 1fr;
+src/styles.css:3134:    grid-template-columns: 1fr;
+src/styles.css:3155:    grid-template-columns: 1fr auto;
+src/styles.css:3189:  grid-template-columns:
+src/styles.css:3405:  grid-template-columns:
+src/styles.css:3717:    grid-template-columns:
+src/styles.css:3737:    grid-template-columns: 1fr;
+src/styles.css:3775:    grid-template-columns:
+src/styles.css:3916:  grid-template-columns:
+src/styles.css:3997:    grid-template-columns:1fr;
+src/styles.css:4049:  grid-template-columns:
+src/styles.css:4072:    grid-template-columns: 1fr;
+src/styles.css:4149:  grid-template-columns:
+src/styles.css:4182:    grid-template-columns:
+src/styles.css:4230:    grid-template-columns: 1fr;
+src/styles.css:4293:    grid-template-columns:
+src/styles.css:4297:    grid-template-rows:
+src/styles.css:4421:    grid-template-columns: 1fr !important;
+src/styles.css:4600:    grid-template-columns:
+src/styles.css:4604:    grid-template-rows:
+src/styles.css:4633:    grid-template-columns: 1fr !important;
+src/styles.css:4864:/* Retire temporary text-wordmark presentation */
+src/styles.css:4987:  grid-template-columns:
+src/styles.css:5152:    grid-template-columns:1fr;
+src/styles.css:5202:  grid-template-rows:auto minmax(0,1fr);
+src/styles.css:5250:  grid-template-columns:8px minmax(0,1fr);
+src/styles.css:5353:  grid-template-rows:auto minmax(0,1fr);
+src/styles.css:5417:  grid-template-columns:
+src/styles.css:5468:  grid-template-columns:minmax(0,1fr) auto;
+src/styles.css:5518:  grid-template-columns:auto minmax(0,1fr) auto;
+src/styles.css:5597:  grid-template-columns:auto minmax(0,1fr);
+src/styles.css:5626:    grid-template-columns:1fr;
+src/styles.css:5630:    grid-template-columns:1fr;
+src/virtual-card.css:197:  grid-template-columns:auto minmax(0,1fr) auto;
+src/responsive.css:122:  grid-template-columns:
+src/responsive.css:126:  grid-template-rows: minmax(0, 1fr);
+src/responsive.css:207:  grid-template-rows:
+src/responsive.css:360:  grid-template-columns:
+src/responsive.css:365:  grid-template-columns:
+src/responsive.css:370:  grid-template-columns:
+src/responsive.css:511:    grid-template-columns:
+src/responsive.css:517:    grid-template-columns:
+src/responsive.css:523:    grid-template-columns:
+src/responsive.css:537:    grid-template-columns:
+src/responsive.css:570:    grid-template-columns: minmax(0, 1fr);
+src/responsive.css:599:    grid-template-columns:
+src/responsive.css:604:    grid-template-columns:
+src/responsive.css:631:    grid-template-columns: minmax(0, 1fr);
+src/responsive.css:633:    grid-template-rows:
+src/responsive.css:736:    grid-template-columns:
+src/responsive.css:771:    grid-template-columns:
+src/lib/useSessionKeeper.ts:79:            // temporary network failure.
+src/modules/WorkDesk.tsx:781:                  placeholder="What needs to be done?"
+src/modules/WorkDesk.tsx:796:                  placeholder="Context, expected outcome and instructions"
+src/modules/Phase2Modules.tsx:200:          ['todo', 'To Do'],
+src/modules/Phase2Modules.tsx:414:          placeholder="Search the knowledge base..."
+src/modules/Phase2Modules.tsx:505:          placeholder="Search company files..."
+src/modules/ApplicationsHub.tsx:289:            placeholder="Search applications..."
+src/modules/WorkItemDetail.tsx:895:                placeholder="Write a comment..."
+src/modules/WorkItemDetail.tsx:937:              placeholder="Why is this work being escalated?"
+src/modules/BusinessModules.tsx:21: return <div className="glassCard workbench"><div className="workbenchHead"><div><h3>{title}</h3><p>{description}</p></div><div className="workbenchActions"><button className="iconButton" onClick={()=>void load()} title="Refresh"><RefreshCw size={16}/></button><button className="primaryButton" onClick={()=>setOpen(v=>!v)}>{open?'Close':createLabel}</button></div></div><div className="moduleSearch"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${title.toLowerCase()}`}/></div>{error&&<div className="moduleError">{error}</div>}{open&&<form className="quickForm" onSubmit={submit}><div className="quickFormGrid">{fields.map(f=><label key={f.key}>{f.label}{f.type==='select'?<select required={f.required} value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}><option value="">Select</option>{f.options?.map(o=><option key={o} value={o}>{o}</option>)}</select>:f.type==='textarea'?<textarea required={f.required} value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>:<input required={f.required} type={f.type||'text'} value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>}</label>)}</div><button className="primaryButton" disabled={saving}>{saving?'Saving...':'Save record'}</button></form>}<div className="moduleTableWrap"><table className="moduleTable"><thead><tr>{columns.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead><tbody>{loading?<tr><td colSpan={columns.length}>Loading…</td></tr>:visible.length===0?<tr><td colSpan={columns.length}>No records yet.</td></tr>:visible.map((r,i)=><tr key={String(r.id||i)}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String(r[c.key]??'—')}</td>)}</tr>)}</tbody></table></div></div>
+src/modules/SupportOperationsPanel.tsx:247:            placeholder="Search reference, rider, phone, driver..."
+src/modules/SocialModule.tsx:121:          <div className="composerTop"><div className="composerAvatar">RA</div><textarea value={body} onChange={e=>setBody(e.target.value.slice(0,10000))} placeholder="What's happening at RideArrivo? Share news, an update, a win or an idea…"/></div>
+src/modules/SocialModule.tsx:127:        <div className="glassCard socialSearch"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search posts and people"/></div>
+src/modules/SocialModule.tsx:138:    {replyTo&&<div className="socialModal" onClick={()=>setReplyTo(null)}><form className="glassCard replyModal" onSubmit={sendReply} onClick={e=>e.stopPropagation()}><button className="modalClose" type="button" onClick={()=>setReplyTo(null)}><X/></button><span className="eyebrow">REPLYING TO {replyTo.author?.full_name||'POST'}</span><p className="quotedPost">{replyTo.body}</p><textarea autoFocus value={replyBody} onChange={e=>setReplyBody(e.target.value.slice(0,10000))} placeholder="Post your reply"/><button className="primaryButton" disabled={!replyBody.trim()}><Send size={16}/>Reply</button></form></div>}
+src/modules/ProfileModule.tsx:513:                  placeholder="Write a short professional introduction..."
+src/modules/FinanceBanking.tsx:459:      <input className="bankingSearch" placeholder="Search description, reference, category..." value={query} onChange={e => setQuery(e.target.value)}/>
+src/modules/FinanceBanking.tsx:478:            <td><input className="bankingCellInput" value={row.department || ''} placeholder="Assign" onChange={e => setRows(current => current.map(r => r.id === row.id ? { ...r, department: e.target.value } : r))} onBlur={e => void updateRow(row.id, { department: e.target.value || null })}/></td>
+src/modules/CoreModules.tsx:131:export function PeopleModule(){const [employees,setEmployees]=useState<Record<string,unknown>[]>([]),[leave,setLeave]=useState({leave_type:'Annual',start_date:'',end_date:'',reason:''}),[message,setMessage]=useState('');useEffect(()=>{if(!supabase)return;void supabase.from('employee_profiles').select('id,full_name,email,department,job_title,role').order('full_name').then(({data})=>setEmployees((data||[]) as Record<string,unknown>[]))},[]);const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})};return <section><Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee directory and secure employee self-service."/><div className="grid2"><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div><div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div></div></section>}
+src/modules/MailModule.tsx:1012:                placeholder="Search mail"
+src/modules/MailModule.tsx:1184:              placeholder="Recipient email"
+src/modules/MailModule.tsx:1193:              placeholder="Subject"
+src/modules/MailModule.tsx:1201:              placeholder="Write your message..."
+supabase/.gitignore:3:.temp
+supabase/config.toml:245:# Uncomment to customize email template
+supabase/config.toml:246:# [auth.email.template.invite]
+supabase/config.toml:248:# content_path = "./supabase/templates/invite.html"
+supabase/config.toml:250:# Uncomment to customize notification email template
+supabase/config.toml:254:# content_path = "./supabase/templates/password_changed_notification.html"
+supabase/config.toml:261:# Template for sending OTP to users
+supabase/config.toml:262:template = "Your code is {{ .Code }}"
+supabase/config.toml:310:template = "Your code is {{ .Code }}"
+
+=== LARGE SOURCE FILES ===
+  402235 total
+  108670 src/styles.css
+   36201 src/App.tsx
+   25631 src/modules/MailModule.tsx
+   24332 src/modules/BusinessModules.tsx
+   24215 src/modules/FinanceBanking.tsx
+   20344 src/modules/WorkItemDetail.tsx
+   18980 src/modules/WorkDesk.tsx
+   17000 src/modules/SocialModule.tsx
+   13682 src/modules/Phase2Modules.tsx
+   13572 src/modules/CoreModules.tsx
+   13310 src/modules/ProfileModule.tsx
+   13277 src/responsive.css
+   12508 src/modules/AdminAccessManager.tsx
+   11287 src/components/EmployeeVirtualCard.tsx
+    9590 src/modules/SupportOperationsPanel.tsx
+    9037 src/modules/ApplicationsHub.tsx
+    6802 src/components/NotificationCenter.tsx
+    6514 src/virtual-card.css
+    5428 src/modules/OverviewMetrics.tsx
+    3430 src/lib/useSessionKeeper.ts
+    3146 src/lib/useIdleSignOut.ts
+    3058 src/data/tools.ts
+    1157 src/lib/ridearrivoSupport.ts
+     748 src/lib/supabase.ts
+     278 src/main.tsx
+      38 src/vite-env.d.ts

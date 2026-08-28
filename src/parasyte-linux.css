@@ -1,0 +1,512 @@
+.parasyteLinuxShell{
+  width:100%;
+  min-width:0;
+
+  display:flex;
+  flex-direction:column;
+
+  overflow:hidden;
+
+  border:
+    1px solid
+    rgba(37,57,80,.95);
+
+  border-radius:24px;
+
+  background:#050d16;
+
+  color:#d8e3ee;
+
+  box-shadow:
+    0 28px 75px
+    rgba(0,0,0,.28);
+
+  transition:
+    height .22s ease,
+    inset .22s ease,
+    border-radius .22s ease;
+}
+
+
+/* =========================================================
+   TERMINAL HEIGHT MODES
+   ========================================================= */
+
+.parasyteLinuxShell[data-size="normal"]{
+  height:
+    clamp(
+      520px,
+      68dvh,
+      720px
+    );
+}
+
+
+.parasyteLinuxShell[data-size="expanded"]{
+  height:
+    max(
+      650px,
+      calc(100dvh - 165px)
+    );
+}
+
+
+.parasyteLinuxShell[data-size="maximized"]{
+  position:fixed;
+
+  z-index:5000;
+
+  inset:8px;
+
+  width:auto;
+
+  height:auto;
+
+  max-width:none;
+  max-height:none;
+
+  border-radius:22px;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.parasyteLinuxHeader{
+  min-height:64px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:
+    space-between;
+
+  gap:18px;
+
+  padding:
+    10px 14px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.075);
+
+  background:
+    linear-gradient(
+      180deg,
+      #0c1b2c,
+      #091625
+    );
+}
+
+
+.parasyteLinuxBrand{
+  min-width:0;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:11px;
+}
+
+
+.parasyteLinuxMark{
+  width:40px;
+  height:40px;
+
+  flex:
+    0 0 40px;
+
+  display:grid;
+  place-items:center;
+
+  border:
+    1px solid
+    rgba(255,153,0,.38);
+
+  border-radius:12px;
+
+  color:#ff9900;
+
+  background:
+    rgba(255,153,0,.08);
+
+  box-shadow:
+    0 0 22px
+    rgba(255,153,0,.08);
+}
+
+
+.parasyteLinuxBrand span{
+  display:block;
+
+  margin-bottom:2px;
+
+  color:#7890a8;
+
+  font-size:8px;
+
+  font-weight:800;
+
+  letter-spacing:
+    .13em;
+}
+
+
+.parasyteLinuxBrand h2{
+  margin:0;
+
+  color:#fff;
+
+  font-size:18px;
+
+  line-height:1.1;
+}
+
+
+.parasyteLinuxHeaderActions{
+  display:flex;
+
+  align-items:center;
+
+  gap:8px;
+}
+
+
+.parasyteLinuxSize{
+  display:flex;
+
+  align-items:center;
+
+  gap:7px;
+
+  color:#8094a7;
+
+  font-size:9px;
+
+  font-weight:700;
+}
+
+
+.parasyteLinuxSize select{
+  height:34px;
+
+  border:
+    1px solid #263c55;
+
+  border-radius:10px;
+
+  outline:0;
+
+  padding:
+    0 28px 0 9px;
+
+  background:#0f2237;
+
+  color:#d9e4ef;
+
+  font:inherit;
+
+  cursor:pointer;
+}
+
+
+.parasyteLinuxIconButton{
+  width:34px;
+  height:34px;
+
+  display:grid;
+
+  place-items:center;
+
+  border:
+    1px solid #263c55;
+
+  border-radius:10px;
+
+  background:#0f2237;
+
+  color:#b5c5d5;
+
+  cursor:pointer;
+}
+
+
+.parasyteLinuxIconButton:hover,
+.parasyteLinuxSize select:hover{
+  border-color:#b77713;
+
+  color:#fff;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.parasyteLinuxStatusBar{
+  min-height:34px;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:18px;
+
+  padding:
+    6px 14px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.055);
+
+  background:#07121f;
+
+  color:#71869a;
+
+  font-size:9px;
+}
+
+
+.parasyteLinuxStatusBar > span{
+  display:flex;
+
+  align-items:center;
+
+  gap:5px;
+}
+
+
+.parasyteLinuxStatus i{
+  width:7px;
+  height:7px;
+
+  display:block;
+
+  border-radius:50%;
+
+  background:#7c8792;
+}
+
+
+.parasyteLinuxStatus.connected i{
+  background:#45cf88;
+
+  box-shadow:
+    0 0 9px
+    rgba(69,207,136,.6);
+}
+
+
+.parasyteLinuxStatus.connecting i{
+  background:#ffb84d;
+
+  box-shadow:
+    0 0 9px
+    rgba(255,184,77,.55);
+}
+
+
+.parasyteLinuxStatus.error i{
+  background:#ef6c6c;
+}
+
+
+/* =========================================================
+   TERMINAL
+   ========================================================= */
+
+.parasyteLinuxTerminal{
+  flex:1;
+
+  min-width:0;
+  min-height:0;
+
+  padding:
+    11px 12px 8px;
+
+  overflow:hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(27,62,93,.22),
+      transparent 40%
+    ),
+    #050d16;
+}
+
+
+.parasyteLinuxTerminal .xterm{
+  height:100%;
+}
+
+
+.parasyteLinuxTerminal
+.xterm-viewport{
+  scrollbar-color:
+    #31485f #07111c;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.parasyteLinuxFooter{
+  min-height:47px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:
+    space-between;
+
+  gap:14px;
+
+  padding:
+    7px 12px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.065);
+
+  background:#081522;
+
+  color:#71869a;
+
+  font-size:9px;
+}
+
+
+.parasyteLinuxMessage{
+  color:#dca744;
+}
+
+
+.parasyteLinuxControls{
+  display:flex;
+
+  align-items:center;
+
+  gap:6px;
+}
+
+
+.parasyteLinuxControls button{
+  min-height:31px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:5px;
+
+  padding:
+    0 10px;
+
+  border:
+    1px solid #263c55;
+
+  border-radius:9px;
+
+  background:#0f2237;
+
+  color:#c7d4e0;
+
+  font-size:9px;
+
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+
+.parasyteLinuxControls
+button.primary{
+  border-color:
+    rgba(255,153,0,.65);
+
+  background:#ff9900;
+
+  color:#07111d;
+}
+
+
+.parasyteLinuxControls
+button:hover{
+  filter:brightness(1.08);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:760px){
+
+  .parasyteLinuxShell[data-size="normal"],
+  .parasyteLinuxShell[data-size="expanded"]{
+    height:
+      calc(100dvh - 120px);
+
+    min-height:
+      560px;
+  }
+
+
+  .parasyteLinuxShell[data-size="maximized"]{
+    inset:0;
+
+    border-radius:0;
+  }
+
+
+  .parasyteLinuxHeader{
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+
+  .parasyteLinuxHeaderActions{
+    width:100%;
+
+    justify-content:
+      space-between;
+  }
+
+
+  .parasyteLinuxStatusBar{
+    overflow-x:auto;
+
+    white-space:nowrap;
+  }
+
+
+  .parasyteLinuxFooter{
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+
+  .parasyteLinuxControls{
+    width:100%;
+  }
+
+
+  .parasyteLinuxControls button{
+    flex:1;
+  }
+
+}

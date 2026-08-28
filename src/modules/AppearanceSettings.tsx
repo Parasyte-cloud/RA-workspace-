@@ -254,7 +254,7 @@ export function AppearanceSettings() {
             </div>
           </div>
 
-          <div className="appearanceChoices three">
+          <div className="appearanceChoices four">
             {(
               [
                 [
@@ -270,7 +270,12 @@ export function AppearanceSettings() {
                 [
                   'expanded',
                   'Expanded',
-                  'Maximum working area'
+                  'Large working area'
+                ],
+                [
+                  'maximized',
+                  'Maximized',
+                  'Use almost the entire display'
                 ]
               ] as const
             ).map(

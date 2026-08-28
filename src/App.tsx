@@ -79,6 +79,7 @@ import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
 import type { ParasyteOpenDetail } from './lib/parasyte'
 import {
   MarketingTeamWorkspace,
+  BrandLibrary,
   ParasyteBrowser,
   SupportTeamWorkspace,
   OperationsTeamWorkspace,
@@ -111,7 +112,7 @@ import {
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -177,6 +178,7 @@ const sectionAccess:Record<Section,Role[]>={
   calendar:allWorkspaceRoles,
   tasks:allWorkspaceRoles,
   files:allWorkspaceRoles,
+  brand:allWorkspaceRoles,
   knowledge:allWorkspaceRoles,
   apps:allWorkspaceRoles,
   parasyte:allWorkspaceRoles,
@@ -584,7 +586,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -793,6 +795,7 @@ function App(){
         {section==='tasks'&&<WorkDesk/>}
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
+        {section==='brand'&&<BrandLibrary/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}

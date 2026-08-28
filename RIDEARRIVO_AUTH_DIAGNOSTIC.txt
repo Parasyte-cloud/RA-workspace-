@@ -1,0 +1,1015 @@
+==================================================
+RIDEARRIVO AUTH / APPROVAL DIAGNOSTIC
+==================================================
+
+=== BRANCH / STATUS ===
+main
+ M supabase/functions/ridearrivo-support/index.ts
+?? RIDEARRIVO_AUTH_DIAGNOSTIC.txt
+?? RIDEARRIVO_ENTERPRISE_AUDIT.txt
+
+=== SUPABASE CLIENT ===
+import { createClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+
+export const supabaseConfigured = Boolean(url && anonKey)
+
+export const supabase: SupabaseClient | null =
+  supabaseConfigured
+    ? createClient(url!, anonKey!, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage:
+            typeof window !== 'undefined'
+              ? window.localStorage
+              : undefined,
+          storageKey: 'ridearrivo-workspace-auth',
+        },
+      })
+    : null
+
+=== SESSION KEEPER ===
+import {
+  useEffect,
+} from 'react'
+
+import type {
+  Session,
+  SupabaseClient,
+} from '@supabase/supabase-js'
+
+const REFRESH_WINDOW_SECONDS =
+  5 * 60
+
+const CHECK_INTERVAL_MS =
+  60 * 1000
+
+function expiresSoon(
+  session:Session
+){
+  if(!session.expires_at){
+    return false
+  }
+
+  const now =
+    Math.floor(Date.now()/1000)
+
+  return (
+    session.expires_at - now
+    <= REFRESH_WINDOW_SECONDS
+  )
+}
+
+export function useSessionKeeper(
+  client:SupabaseClient|null,
+  session:Session|null,
+  setSession:(
+    session:Session|null
+  )=>void
+){
+  useEffect(()=>{
+    if(
+      !client ||
+      !session
+    ){
+      return
+    }
+
+    let stopped=false
+    let refreshing=false
+
+    const refreshIfNeeded=
+      async(force=false)=>{
+        if(
+          stopped ||
+          refreshing
+        ){
+          return
+        }
+
+        try{
+          const {
+            data:{
+              session:current
+            },
+            error,
+          }=
+            await client.auth
+              .getSession()
+
+          if(stopped) return
+
+          if(error){
+            console.warn(
+              'Session check failed',
+              error.message
+            )
+
+            // Do NOT immediately log the
+            // employee out because of one
+            // temporary network failure.
+            return
+          }
+
+          if(!current){
+            return
+          }
+
+          if(
+            !force &&
+            !expiresSoon(current)
+          ){
+            if(
+              current.access_token !==
+              session.access_token
+            ){
+              setSession(current)
+            }
+
+            return
+          }
+
+          refreshing=true
+
+          const {
+            data,
+            error:refreshError,
+          }=
+            await client.auth
+              .refreshSession()
+
+          if(stopped) return
+
+          if(refreshError){
+            console.warn(
+              'Session refresh failed',
+              refreshError.message
+            )
+
+            return
+          }
+
+          if(data.session){
+            setSession(
+              data.session
+            )
+          }
+
+        }catch(error){
+          console.warn(
+            'Session keeper error',
+            error
+          )
+        }finally{
+          refreshing=false
+        }
+      }
+
+    const timer=
+      window.setInterval(
+        ()=>{
+          void refreshIfNeeded()
+        },
+        CHECK_INTERVAL_MS
+      )
+
+    const onVisibility=()=>{
+      if(
+        document.visibilityState===
+        'visible'
+      ){
+        void refreshIfNeeded()
+      }
+    }
+
+    const onFocus=()=>{
+      void refreshIfNeeded()
+    }
+
+    const onOnline=()=>{
+      void refreshIfNeeded(true)
+    }
+
+    document.addEventListener(
+      'visibilitychange',
+      onVisibility
+    )
+
+    window.addEventListener(
+      'focus',
+      onFocus
+    )
+
+    window.addEventListener(
+      'online',
+      onOnline
+    )
+
+    // Run immediately too.
+    void refreshIfNeeded()
+
+    return()=>{
+      stopped=true
+
+      window.clearInterval(
+        timer
+      )
+
+      document.removeEventListener(
+        'visibilitychange',
+        onVisibility
+      )
+
+      window.removeEventListener(
+        'focus',
+        onFocus
+      )
+
+      window.removeEventListener(
+        'online',
+        onOnline
+      )
+    }
+  },[
+    client,
+    session?.user?.id,
+    session?.access_token,
+    setSession,
+  ])
+}
+
+=== APP AUTH / ACCESS REFERENCES ===
+10-  UserCog, UserPlus, Users, Wrench
+11-} from 'lucide-react'
+12-import { supabase, supabaseConfigured } from './lib/supabase'
+13-import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/BusinessModules'
+14-import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
+15-import { SocialModule } from './modules/SocialModule'
+16-import { MailModule } from './modules/MailModule'
+17-import { ProfileModule } from './modules/ProfileModule'
+18-import ApplicationsHub from './modules/ApplicationsHub'
+19-import {
+20-
+21-  AnnouncementsModule,
+22-  CalendarModule,
+23-  TasksModule,
+24-  KnowledgeBaseModule,
+25-  CompanyFilesModule,
+26-} from './modules/Phase2Modules'
+27-
+28:import { useSessionKeeper } from './lib/useSessionKeeper'
+29-
+30-type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+31-type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
+32-type Workspace = { title:string; url:string; note?:string }
+33-type Profile = {
+34-  id:string
+35-  full_name:string
+36-  email:string
+37-  role:Role
+38-  department:string
+39-  job_title:string
+40-  phone?:string|null
+41-  whatsapp?:string|null
+42-  avatar_path?:string|null
+43-  avatar_url?:string|null
+44-  office_address?:string|null
+45-  website?:string|null
+46-  linkedin_url?:string|null
+--
+102-  {name:'Expo / EAS', purpose:'Mobile builds, signing and releases', mac:'npm install -g eas-cli', windows:'npm install -g eas-cli'},
+103-]
+104-
+105-
+106-function BrandLogo({className=''}:{className?:string}){
+107-  return (
+108-    <img
+109-      src="/ridearrivo-wordmark-transparent.png"
+110-      alt="RideArrivo"
+111-      className={`brandLogo ${className}`}
+112-    />
+113-  )
+114-}
+115-
+116-function App(){
+117-  const [session,setSession]=useState<Session|null>(null)
+118-
+119-
+120:  useSessionKeeper(
+121-    supabase,
+122-    session,
+123-    setSession
+124-  )
+125:  const [accessReady,setAccessReady]=useState(true)
+126:  const [accessApproved,setAccessApproved]=useState(true)
+127-
+128-  const [profile,setProfile]=useState<Profile>({
+129-    id:'',
+130-    full_name:'',
+131-    email:'',
+132-    role:'employee',
+133-    department:'',
+134-    job_title:''
+135-  })
+136-  const [authReady,setAuthReady]=useState(false)
+137-  const [section,setSection]=useState<Section>('overview')
+138-  const [workspace,setWorkspace]=useState<Workspace|null>(null)
+139-  const [deferredPrompt,setDeferredPrompt]=useState<any>(null)
+140-  const [online,setOnline]=useState(navigator.onLine)
+141-
+142-  useEffect(()=>{
+143-    const before=(e:any)=>{e.preventDefault();setDeferredPrompt(e)}
+144-    const connectivity=()=>setOnline(navigator.onLine)
+145-    window.addEventListener('beforeinstallprompt',before)
+146-    window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
+147-    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
+148-    if(!supabase){
+149-      setAuthReady(true)
+150-      return()=>{
+151-        window.removeEventListener('beforeinstallprompt',before)
+152-        window.removeEventListener('online',connectivity)
+153-        window.removeEventListener('offline',connectivity)
+154-      }
+155-    }
+156-
+157:    supabase.auth.getSession().then(({data})=>{
+158-      setSession(data.session)
+159-      setAuthReady(true)
+160-    })
+161-
+162-    const {data} =
+163:      supabase.auth.onAuthStateChange(
+164-        (event,next)=>{
+165-          console.info(
+166-            '[RideArrivo Auth]',
+167-            event,
+168-            next?.user?.email ||
+169-            'no session'
+170-          )
+171-
+172-          if(next){
+173-            setSession(next)
+174-          }else if(
+175-            event==='SIGNED_OUT'
+176-          ){
+177-            setSession(null)
+178-          }
+179-
+180-          setAuthReady(true)
+181-        }
+182-      )
+183-
+184-    return()=>{
+185-      data.subscription.unsubscribe()
+186-      window.removeEventListener('beforeinstallprompt',before)
+187-      window.removeEventListener('online',connectivity)
+188-      window.removeEventListener('offline',connectivity)
+189-    }
+190-  },[])
+191-
+192-  const loadProfile=async()=>{
+193-    if(!supabase || !session?.user) return
+194-
+195-    const {data,error}=await supabase
+196:      .from('employee_profiles')
+197-      .select(`
+198-        id,
+199-        full_name,
+200-        email,
+201-        role,
+202-        department,
+203-        job_title,
+204-        phone,
+205-        whatsapp,
+206-        avatar_path,
+207-        office_address,
+208-        website,
+209-        linkedin_url,
+210-        x_url,
+211-        instagram_url,
+212-        bio,
+213-        working_hours,
+214-        virtual_card_enabled,
+--
+250-    setProfile({
+251-      ...(data as Profile),
+252-      avatar_url
+253-    })
+254-  }
+255-
+256-  useEffect(()=>{
+257-    void loadProfile()
+258-  },[session])
+259-
+260-
+261-  // approval-poll
+262-  useEffect(()=>{
+263-    const client=supabase
+264-
+265-    if(
+266-      !client ||
+267-      !session?.user ||
+268:      !accessReady ||
+269:      accessApproved
+270-    ){
+271-      return
+272-    }
+273-
+274-    let cancelled=false
+275-
+276-    const checkApproval=async()=>{
+277-      const userId=session.user.id
+278-
+279-      const {
+280-        data,
+281-        error,
+282-      }=await client
+283:        .from('employee_profiles')
+284-        .select(
+285-          'id,full_name,email,role,department,job_title,active'
+286-        )
+287-        .eq('id',userId)
+288-        .maybeSingle()
+289-
+290-      if(
+291-        cancelled ||
+292-        error ||
+293-        !data
+294-      ){
+295-        return
+296-      }
+297-
+298-      if(data.active===true){
+299-        setProfile({
+300-          ...data,
+301-          id:String(data.id),
+302-          full_name:String(data.full_name || ''),
+303-          email:String(
+304-            data.email ||
+305-            session.user.email ||
+306-            ''
+307-          ),
+308-          role:data.role as Role,
+309-          department:String(
+310-            data.department ||
+311-            'Unassigned'
+312-          ),
+313-          job_title:String(
+314-            data.job_title ||
+315-            ''
+316-          ),
+317-          active:true,
+318-        } as Profile)
+319-
+320:        setAccessApproved(true)
+321-      }
+322-    }
+323-
+324-    void checkApproval()
+325-
+326-    const timer=
+327-      window.setInterval(
+328-        ()=>{
+329-          void checkApproval()
+330-        },
+331-        5000
+332-      )
+333-
+334-    return()=>{
+335-      cancelled=true
+336-      window.clearInterval(timer)
+337-    }
+338-  },[
+339-    session?.user?.id,
+340:    accessReady,
+341:    accessApproved
+342-  ])
+343-
+344-  const nav = useMemo(()=>{
+345-    const items = [
+346-      ['overview','Overview',Home],['profile','My Profile',UserCog],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+347-    ] as const
+348-    return items.filter(([id])=>canAccess(profile.role,id))
+349-  },[profile.role])
+350-
+351-  const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
+352-  const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
+353-  const signOut=()=>supabase?.auth.signOut()
+354-
+355-  if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
+356-  if(!supabaseConfigured) return <SetupRequired/>
+357-  if(!session) return <AuthGate/>
+358-
+359-  return <div className="appBackground"><div className="shell glassFrame">
+
+=== PROFILE TYPE / ROLE TYPE ===
+31:type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
+33:type Profile = {
+
+=== SIGN OUT REFERENCES ===
+src/App.tsx:353:  const signOut=()=>supabase?.auth.signOut()
+
+=== ACTIVE / APPROVAL REFERENCES ===
+src/App.tsx:126:  const [accessApproved,setAccessApproved]=useState(true)
+src/App.tsx:261:  // approval-poll
+src/App.tsx:269:      accessApproved
+src/App.tsx:276:    const checkApproval=async()=>{
+src/App.tsx:298:      if(data.active===true){
+src/App.tsx:317:          active:true,
+src/App.tsx:320:        setAccessApproved(true)
+src/App.tsx:324:    void checkApproval()
+src/App.tsx:329:          void checkApproval()
+src/App.tsx:341:    accessApproved
+src/App.tsx:622:  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
+src/App.tsx:624:function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+src/App.tsx:628:function Legal(){return <section><SectionTitle eyebrow="LEGAL & COMPLIANCE" title="Legal workspace" subtitle="Contracts, policies, privacy, renewals, approvals and controlled corporate records."/><div className="grid3"><Feature icon={<Scale/>} title="Contract Register" text="Counterparties, owners, status, renewal dates and approved versions."/><Feature icon={<FileCheck2/>} title="Policy Library" text="Privacy, terms, refunds, employment and operating policies."/><Feature icon={<ShieldCheck/>} title="Compliance Register" text="Obligations, evidence, due dates, owners and status."/><Feature icon={<Users/>} title="Driver & owner agreements" text="Executed agreements tied to verified people and vehicles."/><Feature icon={<CalendarDays/>} title="Renewal calendar" text="Contracts, licences, insurance and statutory deadlines."/><Feature icon={<FileText/>} title="Legal requests" text="Review queue for contracts, incidents, claims and internal advice."/></div></section>}
+src/modules/ApplicationsHub.tsx:132:        .eq('is_active', true)
+src/modules/BusinessModules.tsx:67:<Title eyebrow="FINANCE & ACCOUNTING" title="Finance Control Centre" subtitle="Receivables, payables, journals, expenses, budgets, assets, tax and period close under finance-grade controls."/><div className="stats"><KPI icon={<CircleDollarSign/>} label="Revenue control" value="AR" hint="Invoices, balances and aging"/><KPI icon={<ReceiptText/>} label="Payables" value="AP" hint="Bills, approvals and due dates"/><KPI icon={<WalletCards/>} label="Spend control" value="OPEX" hint="Expenses and reimbursements"/><KPI icon={<PieChart/>} label="Planning" value="Budget" hint="Budgets and variance readiness"/></div><Tabs items={tabs} active={tab} onChange={setTab}/>
+src/modules/BusinessModules.tsx:71:{tab==='Bills'&&<DataWorkbench table="finance_bills" title="Vendor bills" description="Vendor and operating obligations." createLabel="New bill" fields={[{key:'bill_number',label:'Bill number',required:true},{key:'vendor_name',label:'Vendor',required:true},{key:'bill_date',label:'Bill date',type:'date',required:true},{key:'due_date',label:'Due date',type:'date'},{key:'total_amount',label:'Amount (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['draft','pending_approval','approved','part_paid','paid','overdue','void'],required:true}]} columns={[{key:'bill_number',label:'Bill'},{key:'vendor_name',label:'Vendor'},{key:'due_date',label:'Due',render:r=>dateFmt(r.due_date)},{key:'total_amount',label:'Total',render:r=>money(r.total_amount)},{key:'balance_due',label:'Balance',render:r=>money(r.balance_due)},{key:'status',label:'Status'}]}/>} 
+src/modules/BusinessModules.tsx:75:{tab==='Assets'&&<DataWorkbench table="finance_assets" title="Fixed assets" description="Asset register and useful-life control." createLabel="Register asset" fields={[{key:'asset_code',label:'Asset code',required:true},{key:'name',label:'Asset name',required:true},{key:'category',label:'Category',required:true},{key:'purchase_date',label:'Purchase date',type:'date'},{key:'cost',label:'Cost (NGN)',type:'number',required:true},{key:'status',label:'Status',type:'select',options:['active','disposed','written_off'],required:true}]} columns={[{key:'asset_code',label:'Code'},{key:'name',label:'Asset'},{key:'category',label:'Category'},{key:'cost',label:'Cost',render:r=>money(r.cost)},{key:'status',label:'Status'}]}/>} 
+src/modules/BusinessModules.tsx:86:{tab==='Partners'&&<DataWorkbench table="partners" title="Partner directory" description="Master partner relationship record." createLabel="New partner" fields={[{key:'name',label:'Partner name',required:true},{key:'partner_type',label:'Partner type',type:'select',options:['hotel','corporate','travel_agency','airline','tourism','embassy','institution','technology','other'],required:true},{key:'status',label:'Status',type:'select',options:['prospect','engaged','active','paused','inactive'],required:true},{key:'website',label:'Website'},{key:'city',label:'City'},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'name',label:'Partner'},{key:'partner_type',label:'Type'},{key:'city',label:'City'},{key:'status',label:'Status'}]}/>} 
+src/modules/BusinessModules.tsx:88:{tab==='Agreements'&&<DataWorkbench table="partner_agreements" title="Agreements" description="Rates, commissions, SLA and renewal governance." createLabel="New agreement" fields={[{key:'partner_name',label:'Partner',required:true},{key:'agreement_type',label:'Agreement type',required:true},{key:'effective_date',label:'Effective date',type:'date'},{key:'expiry_date',label:'Expiry date',type:'date'},{key:'commission_rate',label:'Commission %',type:'number'},{key:'status',label:'Status',type:'select',options:['draft','review','signed','active','expired','terminated'],required:true},{key:'document_path',label:'Document path / URL'}]} columns={[{key:'partner_name',label:'Partner'},{key:'agreement_type',label:'Agreement'},{key:'expiry_date',label:'Expiry',render:r=>dateFmt(r.expiry_date)},{key:'commission_rate',label:'Commission %'},{key:'status',label:'Status'}]}/>} 
+src/modules/SocialModule.tsx:76:    const {data:profiles}=await supabase.from('employee_profiles').select('id,full_name,department,job_title').eq('active',true).limit(8)
+src/modules/AdminAccessManager.tsx:232:        'Approval failed.'
+src/modules/AdminAccessManager.tsx:527:                    : 'Awaiting approval'
+supabase/schema.sql:15:  active boolean not null default true,
+supabase/schema.sql:26:  select coalesce((select role from public.employee_profiles where id = auth.uid() and active = true),'employee');
+supabase/schema.sql:60:  active boolean not null default true,
+supabase/schema.sql:233:create policy "employees read directory" on public.employee_profiles for select to authenticated using(active=true);
+supabase/schema.sql:238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+supabase/schema.sql:324:  active boolean not null default true, created_at timestamptz not null default now()
+supabase/schema.sql:351:  status text not null default 'draft' check(status in ('draft','pending_approval','approved','part_paid','paid','overdue','void')),
+supabase/functions/workspace-user-admin/index.ts:175:      administrator.active !== true ||
+supabase/functions/workspace-user-admin/index.ts:334:                profile?.active === true,
+supabase/functions/workspace-user-admin/index.ts:508:              active:true,
+supabase/functions/workspace-user-admin/index.ts:542:          active:true,
+supabase/functions/workspace-user-admin/index.ts:588:            active:false,
+
+=== EMPLOYEE PROFILE SCHEMA ===
+1--- RideArrivo Workspace production schema
+2--- Run in a dedicated Supabase project after reviewing organization-specific retention and role assignments.
+3-
+4-create extension if not exists pgcrypto;
+5-
+6:create table if not exists public.employee_profiles (
+7-  id uuid primary key references auth.users(id) on delete cascade,
+8-  full_name text not null default '',
+9-  email text not null unique,
+10-  department text not null default 'Unassigned',
+11-  job_title text not null default '',
+12-  role text not null default 'employee' check (role in ('employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin')),
+13-  manager_id uuid references public.employee_profiles(id),
+14-  location text not null default 'Lagos',
+15-  active boolean not null default true,
+16-  start_date date,
+17-  created_at timestamptz not null default now(),
+18-  updated_at timestamptz not null default now()
+19-);
+20-
+21-alter table public.employee_profiles drop constraint if exists employee_profiles_role_check;
+22-alter table public.employee_profiles add constraint employee_profiles_role_check check (role in ('employee','support','engineer','manager','hr','legal','operations','finance','marketing','partnerships','admin'));
+23-
+24:create or replace function public.current_workspace_role()
+25-returns text language sql stable security definer set search_path=public as $$
+26-  select coalesce((select role from public.employee_profiles where id = auth.uid() and active = true),'employee');
+27-$$;
+28-
+29-create or replace function public.has_workspace_role(roles text[])
+30-returns boolean language sql stable security definer set search_path=public as $$
+31:  select public.current_workspace_role() = any(roles);
+32-$$;
+33-
+34:create or replace function public.handle_new_workspace_user()
+35-returns trigger language plpgsql security definer set search_path=public as $$
+36-declare
+37-  domain text;
+38-begin
+39-  domain := lower(split_part(new.email,'@',2));
+40-  if domain <> 'ridearrivo.com' then
+41-    raise exception 'Only RideArrivo company email accounts are allowed';
+42-  end if;
+43-  insert into public.employee_profiles(id,full_name,email)
+44-  values(new.id,coalesce(new.raw_user_meta_data->>'full_name',''),lower(new.email))
+45-  on conflict(id) do nothing;
+46-  return new;
+47-end;
+48-$$;
+49-
+50-drop trigger if exists on_auth_user_created_workspace on auth.users;
+51:create trigger on_auth_user_created_workspace after insert on auth.users for each row execute function public.handle_new_workspace_user();
+52-
+53-create table if not exists public.workspace_apps (
+54-  id uuid primary key default gen_random_uuid(),
+55-  name text not null,
+56-  slug text not null unique,
+57-  url text,
+58-  mode text not null default 'native' check (mode in ('native','embed','api','download')),
+59-  allowed_roles text[] not null default array['employee']::text[],
+60-  active boolean not null default true,
+61-  created_at timestamptz not null default now()
+62-);
+63-
+64--- CRM
+65-create table if not exists public.crm_accounts (
+66-  id uuid primary key default gen_random_uuid(),
+67-  name text not null,
+68-  account_type text not null default 'individual' check(account_type in ('individual','corporate','hotel','travel_partner','other')),
+69-  status text not null default 'active',
+70-  owner_id uuid references public.employee_profiles(id),
+71-  lifecycle_stage text not null default 'customer',
+72-  estimated_value numeric(14,2) not null default 0,
+73-  created_at timestamptz not null default now(),
+74-  updated_at timestamptz not null default now()
+75-);
+76-create table if not exists public.crm_contacts (
+77-  id uuid primary key default gen_random_uuid(),
+78-  account_id uuid references public.crm_accounts(id) on delete set null,
+79-  full_name text not null,
+80-  email text,
+81-  phone text,
+82-  contact_type text not null default 'rider',
+83-  preferred_channel text,
+84-  owner_id uuid references public.employee_profiles(id),
+85-  created_at timestamptz not null default now()
+86-);
+87-create table if not exists public.crm_leads (
+88-  id uuid primary key default gen_random_uuid(),
+89-  name text not null,
+90-  company text,
+91-  email text,
+92-  phone text,
+93-  source text,
+94-  stage text not null default 'new' check(stage in ('new','qualified','proposal','negotiation','won','lost')),
+95-  owner_id uuid references public.employee_profiles(id),
+96-  estimated_value numeric(14,2) not null default 0,
+97-  next_action_at timestamptz,
+98-  created_at timestamptz not null default now()
+99-);
+100-create table if not exists public.crm_opportunities (
+101-  id uuid primary key default gen_random_uuid(),
+102-  account_id uuid references public.crm_accounts(id) on delete cascade,
+103-  name text not null,
+104-  stage text not null default 'discovery',
+105-  amount numeric(14,2) not null default 0,
+106-  probability smallint not null default 10 check(probability between 0 and 100),
+107-  owner_id uuid references public.employee_profiles(id),
+108-  expected_close_date date,
+109-  created_at timestamptz not null default now()
+110-);
+111-create table if not exists public.crm_activities (
+112-  id uuid primary key default gen_random_uuid(),
+113-  account_id uuid references public.crm_accounts(id) on delete cascade,
+114-  contact_id uuid references public.crm_contacts(id) on delete set null,
+115-  activity_type text not null check(activity_type in ('call','email','meeting','note','task','support')),
+116-  subject text not null,
+117-  body text,
+118-  owner_id uuid references public.employee_profiles(id),
+119-  due_at timestamptz,
+120-  completed_at timestamptz,
+121-  created_at timestamptz not null default now()
+122-);
+123-
+124--- Support / operations
+125-create table if not exists public.support_cases (
+126-  id uuid primary key default gen_random_uuid(),
+127-  reference text not null unique,
+128-  subject text not null,
+129-  category text not null default 'general',
+130-  priority text not null default 'normal' check(priority in ('low','normal','high','critical')),
+131-  status text not null default 'open' check(status in ('open','in_progress','waiting','resolved','closed')),
+132-  rider_contact_id uuid references public.crm_contacts(id),
+133-  booking_reference text,
+134-  owner_id uuid references public.employee_profiles(id),
+135-  opened_at timestamptz not null default now(),
+136-  resolved_at timestamptz
+137-);
+138-create table if not exists public.incidents (
+139-  id uuid primary key default gen_random_uuid(),
+140-  reference text not null unique,
+141-  severity text not null default 'low' check(severity in ('low','medium','high','critical')),
+--
+218-alter table public.crm_contacts enable row level security;
+219-alter table public.crm_leads enable row level security;
+220-alter table public.crm_opportunities enable row level security;
+221-alter table public.crm_activities enable row level security;
+222-alter table public.support_cases enable row level security;
+223-alter table public.incidents enable row level security;
+224-alter table public.leave_requests enable row level security;
+225-alter table public.hr_requests enable row level security;
+226-alter table public.onboarding_tasks enable row level security;
+227-alter table public.legal_contracts enable row level security;
+228-alter table public.compliance_items enable row level security;
+229-alter table public.workspace_audit_log enable row level security;
+230-
+231--- Directory: active employees visible internally. Role changes are admin/HR only.
+232-drop policy if exists "employees read directory" on public.employee_profiles;
+233-create policy "employees read directory" on public.employee_profiles for select to authenticated using(active=true);
+234-drop policy if exists "admins manage employee profiles" on public.employee_profiles;
+235-create policy "admins manage employee profiles" on public.employee_profiles for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+236-
+237-drop policy if exists "employees read apps" on public.workspace_apps;
+238:create policy "employees read apps" on public.workspace_apps for select to authenticated using(active=true and (public.current_workspace_role() = any(allowed_roles) or 'employee'=any(allowed_roles)));
+239-drop policy if exists "admins manage apps" on public.workspace_apps;
+240-create policy "admins manage apps" on public.workspace_apps for all to authenticated using(public.has_workspace_role(array['admin'])) with check(public.has_workspace_role(array['admin']));
+241-
+242--- CRM visible to customer-facing and management roles.
+243-drop policy if exists "crm read" on public.crm_accounts;
+244-create policy "crm read" on public.crm_accounts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+245-drop policy if exists "crm write" on public.crm_accounts;
+246-create policy "crm write" on public.crm_accounts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+247-drop policy if exists "crm contacts read" on public.crm_contacts;
+248-create policy "crm contacts read" on public.crm_contacts for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+249-drop policy if exists "crm contacts write" on public.crm_contacts;
+250-create policy "crm contacts write" on public.crm_contacts for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+251-drop policy if exists "crm leads read" on public.crm_leads;
+252-create policy "crm leads read" on public.crm_leads for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+253-drop policy if exists "crm leads write" on public.crm_leads;
+254-create policy "crm leads write" on public.crm_leads for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+255-drop policy if exists "crm opp read" on public.crm_opportunities;
+256-create policy "crm opp read" on public.crm_opportunities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+257-drop policy if exists "crm opp write" on public.crm_opportunities;
+258-create policy "crm opp write" on public.crm_opportunities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+259-drop policy if exists "crm activity read" on public.crm_activities;
+260-create policy "crm activity read" on public.crm_activities for select to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+261-drop policy if exists "crm activity write" on public.crm_activities;
+262-create policy "crm activity write" on public.crm_activities for all to authenticated using(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin'])) with check(public.has_workspace_role(array['support','operations','marketing','partnerships','manager','admin']));
+263-
+264-drop policy if exists "support read" on public.support_cases;
+265-create policy "support read" on public.support_cases for select to authenticated using(public.has_workspace_role(array['support','operations','manager','admin']));
+266-drop policy if exists "support write" on public.support_cases;
+267-create policy "support write" on public.support_cases for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+268-drop policy if exists "incident read" on public.incidents;
+269-create policy "incident read" on public.incidents for select to authenticated using(public.has_workspace_role(array['support','operations','legal','manager','admin']));
+270-drop policy if exists "incident write" on public.incidents;
+271-create policy "incident write" on public.incidents for all to authenticated using(public.has_workspace_role(array['support','operations','manager','admin'])) with check(public.has_workspace_role(array['support','operations','manager','admin']));
+272-
+273-drop policy if exists "own leave read" on public.leave_requests;
+274-create policy "own leave read" on public.leave_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['manager','hr','admin']));
+275-drop policy if exists "own leave create" on public.leave_requests;
+276-create policy "own leave create" on public.leave_requests for insert to authenticated with check(employee_id=auth.uid());
+277-drop policy if exists "hr leave manage" on public.leave_requests;
+278-create policy "hr leave manage" on public.leave_requests for update to authenticated using(public.has_workspace_role(array['manager','hr','admin'])) with check(public.has_workspace_role(array['manager','hr','admin']));
+279-drop policy if exists "own hr requests" on public.hr_requests;
+280-create policy "own hr requests" on public.hr_requests for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+281-drop policy if exists "own hr request create" on public.hr_requests;
+282-create policy "own hr request create" on public.hr_requests for insert to authenticated with check(employee_id=auth.uid());
+283-drop policy if exists "hr request manage" on public.hr_requests;
+284-create policy "hr request manage" on public.hr_requests for update to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+285-drop policy if exists "onboarding read" on public.onboarding_tasks;
+286-create policy "onboarding read" on public.onboarding_tasks for select to authenticated using(employee_id=auth.uid() or public.has_workspace_role(array['hr','admin']));
+287-drop policy if exists "onboarding manage" on public.onboarding_tasks;
+288-create policy "onboarding manage" on public.onboarding_tasks for all to authenticated using(public.has_workspace_role(array['hr','admin'])) with check(public.has_workspace_role(array['hr','admin']));
+289-
+290-drop policy if exists "legal read" on public.legal_contracts;
+291-create policy "legal read" on public.legal_contracts for select to authenticated using(public.has_workspace_role(array['legal','manager','admin']));
+292-drop policy if exists "legal manage" on public.legal_contracts;
+293-create policy "legal manage" on public.legal_contracts for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+294-drop policy if exists "compliance read" on public.compliance_items;
+295-create policy "compliance read" on public.compliance_items for select to authenticated using(public.has_workspace_role(array['legal','operations','manager','admin']));
+296-drop policy if exists "compliance manage" on public.compliance_items;
+297-create policy "compliance manage" on public.compliance_items for all to authenticated using(public.has_workspace_role(array['legal','admin'])) with check(public.has_workspace_role(array['legal','admin']));
+298-drop policy if exists "audit admin read" on public.workspace_audit_log;
+299-create policy "audit admin read" on public.workspace_audit_log for select to authenticated using(public.has_workspace_role(array['admin']));
+300-
+301-create index if not exists idx_crm_contacts_account on public.crm_contacts(account_id);
+302-create index if not exists idx_crm_activities_account on public.crm_activities(account_id,created_at desc);
+303-create index if not exists idx_support_cases_status on public.support_cases(status,priority);
+304-create index if not exists idx_leave_employee on public.leave_requests(employee_id,start_date desc);
+305-create index if not exists idx_contract_renewal on public.legal_contracts(renewal_date);
+306-
+307-
+308--- Explicit grants for baseline tables because automatic Data API exposure is disabled.
+309-grant usage on schema public to authenticated;
+310:grant execute on function public.current_workspace_role() to authenticated;
+311-grant execute on function public.has_workspace_role(text[]) to authenticated;
+312-grant select,insert,update,delete on public.employee_profiles, public.workspace_apps, public.crm_accounts, public.crm_contacts, public.crm_leads, public.crm_opportunities, public.crm_activities, public.support_cases, public.incidents, public.leave_requests, public.hr_requests, public.onboarding_tasks, public.legal_contracts, public.compliance_items, public.workspace_audit_log to authenticated;
+313-grant usage,select on all sequences in schema public to authenticated;
+314-revoke all on all tables in schema public from anon;
+315-
+316--- ============================================================
+317--- Finance, Marketing and Partnerships applications
+318--- Additive, RLS-protected, safe to re-run.
+319--- ============================================================
+320-
+321-create table if not exists public.finance_accounts (
+322-  id uuid primary key default gen_random_uuid(), code text not null unique, name text not null,
+323-  account_type text not null check(account_type in ('asset','liability','equity','revenue','expense')),
+324-  active boolean not null default true, created_at timestamptz not null default now()
+325-);
+326-create table if not exists public.finance_journals (
+327-  id uuid primary key default gen_random_uuid(), journal_number text not null unique, journal_date date not null,
+328-  description text not null, status text not null default 'draft' check(status in ('draft','posted','reversed')),
+329-  created_by uuid references public.employee_profiles(id) on delete set null, approved_by uuid references public.employee_profiles(id) on delete set null,
+330-  posted_at timestamptz, created_at timestamptz not null default now()
+331-);
+332-create table if not exists public.finance_journal_lines (
+333-  id uuid primary key default gen_random_uuid(), journal_id uuid not null references public.finance_journals(id) on delete cascade,
+334-  account_id uuid not null references public.finance_accounts(id), description text,
+335-  debit numeric(14,2) not null default 0 check(debit>=0), credit numeric(14,2) not null default 0 check(credit>=0),
+336-  created_at timestamptz not null default now(), check(not(debit>0 and credit>0)), check(debit>0 or credit>0)
+337-);
+338-create table if not exists public.finance_invoices (
+339-  id uuid primary key default gen_random_uuid(), invoice_number text not null unique, customer_name text not null,
+340-  issue_date date not null, due_date date not null, total_amount numeric(14,2) not null check(total_amount>=0),
+341-  amount_paid numeric(14,2) not null default 0 check(amount_paid>=0),
+342-  balance_due numeric(14,2) generated always as (greatest(total_amount-amount_paid,0)) stored,
+343-  status text not null default 'draft' check(status in ('draft','sent','part_paid','paid','overdue','void')),
+344-  booking_reference text, notes text, created_at timestamptz not null default now()
+345-);
+346-create table if not exists public.finance_bills (
+347-  id uuid primary key default gen_random_uuid(), bill_number text not null unique, vendor_name text not null,
+348-  bill_date date not null, due_date date, total_amount numeric(14,2) not null check(total_amount>=0),
+349-  amount_paid numeric(14,2) not null default 0 check(amount_paid>=0),
+350-  balance_due numeric(14,2) generated always as (greatest(total_amount-amount_paid,0)) stored,
+351-  status text not null default 'draft' check(status in ('draft','pending_approval','approved','part_paid','paid','overdue','void')),
+352-  notes text, created_at timestamptz not null default now()
+353-);
+354-create table if not exists public.finance_expenses (
+355-  id uuid primary key default gen_random_uuid(), description text not null, category text not null, expense_date date not null,
+356-  amount numeric(14,2) not null check(amount>=0), payment_method text,
+357-  status text not null default 'draft' check(status in ('draft','submitted','approved','rejected','paid')),
+358-  claimant_id uuid references public.employee_profiles(id) on delete set null, approver_id uuid references public.employee_profiles(id) on delete set null,
+359-  receipt_path text, created_at timestamptz not null default now()
+360-);
+361-create table if not exists public.finance_budgets (
+362-  id uuid primary key default gen_random_uuid(), name text not null, fiscal_year int not null,
+363-  department text not null, category text not null, amount numeric(14,2) not null check(amount>=0),
+364-  status text not null default 'draft' check(status in ('draft','approved','closed')), created_at timestamptz not null default now()
+365-);
+366-create table if not exists public.finance_assets (
+367-  id uuid primary key default gen_random_uuid(), asset_code text not null unique, name text not null, category text not null,
+368-  purchase_date date, cost numeric(14,2) not null check(cost>=0), useful_life_months int,
+369-  status text not null default 'active' check(status in ('active','disposed','written_off')), created_at timestamptz not null default now()
+370-);
+371-create table if not exists public.finance_tax_obligations (
+372-  id uuid primary key default gen_random_uuid(), tax_type text not null, period_label text not null, due_date date not null,
+373-  amount numeric(14,2) not null default 0, status text not null default 'open' check(status in ('open','prepared','filed','paid','overdue')),
+374-  evidence_path text, created_at timestamptz not null default now()
+375-);
+376-create table if not exists public.finance_close_tasks (
+377-  id uuid primary key default gen_random_uuid(), period_label text not null, task_name text not null,
+378-  owner_id uuid references public.employee_profiles(id) on delete set null, due_date date,
+379-  status text not null default 'open' check(status in ('open','in_progress','review','complete')),
+380-  completed_at timestamptz, created_at timestamptz not null default now()
+381-);
+382-
+383-create table if not exists public.marketing_campaigns (
+384-  id uuid primary key default gen_random_uuid(), name text not null, objective text not null, channel text not null,
+385-  start_date date, end_date date, budget numeric(14,2) not null default 0, actual_spend numeric(14,2) not null default 0,
+386-  status text not null default 'draft' check(status in ('draft','planned','live','paused','completed','cancelled')),
+387-  owner_id uuid references public.employee_profiles(id) on delete set null, created_at timestamptz not null default now()
+388-);
+389-create table if not exists public.marketing_content (
+390-  id uuid primary key default gen_random_uuid(), campaign_id uuid references public.marketing_campaigns(id) on delete set null,
+391-  title text not null, content_type text not null, channel text not null, copy_text text, asset_path text, publish_at timestamptz,
+392-  status text not null default 'idea' check(status in ('idea','draft','review','approved','scheduled','published','archived')),
+393-  owner_id uuid references public.employee_profiles(id) on delete set null, created_at timestamptz not null default now()
+394-);
+395-create table if not exists public.marketing_attribution (
+396-  id uuid primary key default gen_random_uuid(), campaign_name text not null, source text not null, medium text not null,
+397-  spend numeric(14,2) not null default 0, leads int not null default 0, bookings int not null default 0,
+398-  revenue numeric(14,2) not null default 0, created_at timestamptz not null default now()
+399-);
+400-create table if not exists public.marketing_experiments (
+--
+461-end $$;
+462-DO $$ declare t text; begin
+463-  foreach t in array array['marketing_campaigns','marketing_content','marketing_attribution','marketing_experiments','marketing_assets'] loop
+464-    execute format('drop policy if exists "marketing read" on public.%I',t); execute format('drop policy if exists "marketing write" on public.%I',t);
+465-    execute format('create policy "marketing read" on public.%I for select to authenticated using(public.has_workspace_role(array[''marketing'',''partnerships'',''manager'',''admin'']))',t);
+466-    execute format('create policy "marketing write" on public.%I for all to authenticated using(public.has_workspace_role(array[''marketing'',''admin''])) with check(public.has_workspace_role(array[''marketing'',''admin'']))',t);
+467-  end loop;
+468-end $$;
+469-DO $$ declare t text; begin
+470-  foreach t in array array['partners','partner_opportunities','partner_agreements','partner_activities','partner_referrals','partner_onboarding_tasks'] loop
+471-    execute format('drop policy if exists "partnership read" on public.%I',t); execute format('drop policy if exists "partnership write" on public.%I',t);
+472-    execute format('create policy "partnership read" on public.%I for select to authenticated using(public.has_workspace_role(array[''partnerships'',''marketing'',''operations'',''finance'',''legal'',''manager'',''admin'']))',t);
+473-    execute format('create policy "partnership write" on public.%I for all to authenticated using(public.has_workspace_role(array[''partnerships'',''admin''])) with check(public.has_workspace_role(array[''partnerships'',''admin'']))',t);
+474-  end loop;
+475-end $$;
+476-DO $$ declare t text; begin
+477-  foreach t in array array['finance_accounts','finance_journals','finance_journal_lines','finance_invoices','finance_bills','finance_expenses','finance_budgets','finance_assets','finance_tax_obligations','finance_close_tasks','marketing_campaigns','marketing_content','marketing_attribution','marketing_experiments','marketing_assets','partners','partner_opportunities','partner_agreements','partner_activities','partner_referrals','partner_onboarding_tasks']
+478-  loop execute format('grant select,insert,update,delete on public.%I to authenticated',t); end loop;
+479-end $$;
+480-grant usage on schema public to authenticated;
+481:grant execute on function public.current_workspace_role() to authenticated;
+482-grant execute on function public.has_workspace_role(text[]) to authenticated;
+483-grant usage,select on all sequences in schema public to authenticated;
+484-revoke all on all tables in schema public from anon;
+485-
+486-create index if not exists idx_finance_invoice_due on public.finance_invoices(status,due_date);
+487-create index if not exists idx_finance_bill_due on public.finance_bills(status,due_date);
+488-create index if not exists idx_marketing_campaign_status on public.marketing_campaigns(status,start_date);
+489-create index if not exists idx_partner_opportunity_stage on public.partner_opportunities(stage,expected_close_date);
+490-create index if not exists idx_partner_agreement_expiry on public.partner_agreements(status,expiry_date);
+491-
+492--- -----------------------------------------------------------------------------
+493--- RideArrivo Pulse: internal social/news platform
+494--- -----------------------------------------------------------------------------
+495-create table if not exists public.social_posts (
+496-  id uuid primary key default gen_random_uuid(),
+497-  author_id uuid not null references public.employee_profiles(id) on delete cascade,
+498-  body text not null check(char_length(body) between 1 and 10000),
+499-  post_type text not null default 'post' check(post_type in ('post','news','announcement','reply','quote','poll')),
+500-  visibility text not null default 'employees' check(visibility in ('employees','department','leadership')),
+501-  reply_to_id uuid references public.social_posts(id) on delete cascade,
+502-  quote_post_id uuid references public.social_posts(id) on delete set null,
+503-  scheduled_for timestamptz,
+504-  published_at timestamptz not null default now(),
+505-  edited_at timestamptz,
+506-  deleted_at timestamptz,
+507-  is_pinned boolean not null default false,
+508-  created_at timestamptz not null default now()
+509-);
+510-create table if not exists public.social_post_media (
+511-  id uuid primary key default gen_random_uuid(), post_id uuid not null references public.social_posts(id) on delete cascade,
+512-  storage_path text not null, media_type text not null check(media_type in ('image','video','gif','file')),
+513-  alt_text text, sort_order int not null default 0, created_at timestamptz not null default now()
+514-);
+515-create table if not exists public.social_post_reactions (
+516-  post_id uuid not null references public.social_posts(id) on delete cascade,
+517-  user_id uuid not null references public.employee_profiles(id) on delete cascade,
+518-  reaction text not null default 'like' check(reaction in ('like')),
+519-  created_at timestamptz not null default now(), primary key(post_id,user_id,reaction)
+520-);
+521-create table if not exists public.social_reposts (
+522-  post_id uuid not null references public.social_posts(id) on delete cascade,
+523-  user_id uuid not null references public.employee_profiles(id) on delete cascade,
+524-  created_at timestamptz not null default now(), primary key(post_id,user_id)
+525-);
+526-create table if not exists public.social_bookmarks (
+527-  post_id uuid not null references public.social_posts(id) on delete cascade,
+528-  user_id uuid not null references public.employee_profiles(id) on delete cascade,
+529-  created_at timestamptz not null default now(), primary key(post_id,user_id)
+530-);
+531-create table if not exists public.social_follows (
+532-  follower_id uuid not null references public.employee_profiles(id) on delete cascade,
+533-  following_id uuid not null references public.employee_profiles(id) on delete cascade,
+534-  created_at timestamptz not null default now(), primary key(follower_id,following_id),
+535-  check(follower_id<>following_id)
+536-);
+537-create table if not exists public.social_hashtags (
+538-  id uuid primary key default gen_random_uuid(), tag text not null unique check(tag=lower(tag)), created_at timestamptz not null default now()
+539-);
+540-create table if not exists public.social_post_hashtags (
+541-  post_id uuid not null references public.social_posts(id) on delete cascade,
+542-  hashtag_id uuid not null references public.social_hashtags(id) on delete cascade,
+543-  primary key(post_id,hashtag_id)
+544-);
+545-create table if not exists public.social_mentions (
+546-  post_id uuid not null references public.social_posts(id) on delete cascade,
+547-  mentioned_user_id uuid not null references public.employee_profiles(id) on delete cascade,
+548-  created_at timestamptz not null default now(), primary key(post_id,mentioned_user_id)
+549-);
+550-create table if not exists public.social_polls (
+551-  id uuid primary key default gen_random_uuid(), post_id uuid not null unique references public.social_posts(id) on delete cascade,
+552-  question text not null, closes_at timestamptz, allow_multiple boolean not null default false, created_at timestamptz not null default now()
+553-);
+554-create table if not exists public.social_poll_options (
+555-  id uuid primary key default gen_random_uuid(), poll_id uuid not null references public.social_polls(id) on delete cascade,
+556-  label text not null, sort_order int not null default 0
+557-);
+558-create table if not exists public.social_poll_votes (
+559-  poll_id uuid not null references public.social_polls(id) on delete cascade,
+560-  option_id uuid not null references public.social_poll_options(id) on delete cascade,
+561-  user_id uuid not null references public.employee_profiles(id) on delete cascade,
+562-  created_at timestamptz not null default now(), primary key(poll_id,option_id,user_id)
+563-);
+564-create table if not exists public.social_notifications (
+565-  id uuid primary key default gen_random_uuid(), user_id uuid not null references public.employee_profiles(id) on delete cascade,
+566-  actor_id uuid references public.employee_profiles(id) on delete set null,
+567-  post_id uuid references public.social_posts(id) on delete cascade,
+568-  notification_type text not null check(notification_type in ('like','reply','repost','follow','mention','announcement','system')),
+569-  read_at timestamptz, created_at timestamptz not null default now()
+570-);
+571-create table if not exists public.social_reports (
+
+=== BUILD ===
+
+> ridearrivo-workspace@1.0.0 build
+> npm run prepare-brand && tsc -b && vite build
+
+
+> ridearrivo-workspace@1.0.0 prepare-brand
+> node scripts/prepare-brand-assets.mjs
+
+RideArrivo transparent brand assets generated.
+vite v6.4.3 building for production...
+transforming...
+✓ 1643 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.65 kB │ gzip:   0.37 kB
+dist/assets/index-Dx4DyZg7.css     76.22 kB │ gzip:  14.76 kB
+dist/assets/index-qwESrj02.js   1,883.88 kB │ gzip: 535.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.48s
