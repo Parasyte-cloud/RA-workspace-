@@ -32,6 +32,15 @@ import { HeaderAvatar } from './components/HeaderAvatar'
 import { HeadshotGallery } from './modules/HeadshotGallery'
 import { WorkspaceClock } from './components/WorkspaceClock'
 import { MarketingTeamWorkspace } from './modules/MarketingTeamWorkspace'
+import {
+  SupportTeamWorkspace,
+  OperationsTeamWorkspace,
+  PeopleTeamWorkspace,
+  EngineeringTeamWorkspace,
+  FinanceTeamWorkspace,
+  PartnershipsTeamWorkspace,
+  LegalTeamWorkspace
+} from './modules/DepartmentTeamWorkspace'
 type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
@@ -650,14 +659,14 @@ function App(){
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
-        {section==='support'&&<SupportModule/>}
-        {section==='engineering'&&<Engineering openWorkspace={openWorkspace}/>} 
-        {section==='people'&&<PeopleModule/>}
-        {section==='operations'&&<OperationsModule/>}
-        {section==='finance'&&<FinanceModule/>}
+        {section==='support'&&<SupportTeamWorkspace execution={<SupportModule/>}/>}
+        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering openWorkspace={openWorkspace}/>}/>} 
+        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>}/>}
+        {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>}/>}
+        {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>}/>}
         {section==='marketing'&&<MarketingTeamWorkspace/>}
-        {section==='partnerships'&&<PartnershipsModule/>}
-        {section==='legal'&&<LegalModule/>}
+        {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>}/>}
+        {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>}/>}
         {section==='admin'&&<AdminModule/>}
         {section==='apps'&&<ApplicationsHub/>} 
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
