@@ -5674,8 +5674,4 @@ textarea {
   max-width:72vw;
 }
 
-/* Retired text reconstruction. */
-.brandWordmark,
-.ridearrivoWordmark{
-  display:none !important;
-}
+

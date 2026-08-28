@@ -191,24 +191,14 @@ const engineers = [
 ]
 
 
-function BrandLogo({
-  className=''
-}:{
-  className?:string
-}){
+function BrandLogo({className=''}:{className?:string}){
   return (
-    <span
-      className={`ridearrivoWordmark ${className}`}
-      aria-label="RideArrivo"
-    >
-      <span className="ridearrivoRide">
-        Ride
-      </span>
-
-      <span className="ridearrivoArrivo">
-        Arrivo
-      </span>
-    </span>
+    <img
+      src="/ridearrivo-wordmark-workspace.png"
+      alt="RideArrivo"
+      className={`brandLogo ${className}`}
+      draggable={false}
+    />
   )
 }
 
