@@ -5675,3 +5675,51 @@ textarea {
 }
 
 
+
+/* =========================================================
+   STARTUP / SPLASH BRAND SIZING
+   Keep canonical artwork at controlled display size.
+   ========================================================= */
+
+.splash .brandLogo,
+.splashLogo{
+  width:180px !important;
+  max-width:58vw !important;
+  height:auto !important;
+  object-fit:contain !important;
+  flex:none !important;
+}
+
+@media (max-width:600px){
+  .splash .brandLogo,
+  .splashLogo{
+    width:150px !important;
+    max-width:62vw !important;
+  }
+}
+
+/* =========================================================
+   ROLE-AWARE OVERVIEW METRICS
+   ========================================================= */
+
+.overviewMetricsState{
+  margin:16px 0 22px;
+  padding:16px 18px;
+
+  border:1px solid rgba(7,26,56,.08);
+  border-radius:14px;
+
+  background:rgba(255,255,255,.68);
+
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.emptyDataState{
+  padding:18px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  border-top:1px solid rgba(7,26,56,.06);
+}

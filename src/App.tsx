@@ -26,6 +26,7 @@ import {
   CompanyFilesModule,
 } from './modules/Phase2Modules'
 import { useIdleSignOut } from './lib/useIdleSignOut'
+import { OverviewMetrics } from './modules/OverviewMetrics'
 
 type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
@@ -167,18 +168,21 @@ const canAccess=(
     ?.includes(role) === true
 
 
-const crmRows = [
-  {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
-  {name:'Vista Hotels Lagos', type:'Corporate', status:'Opportunity', value:'₦2.4m', last:'Proposal sent · Today'},
-  {name:'Daniel Okafor', type:'Rider', status:'Follow-up', value:'₦96,000', last:'Support recovery · Yesterday'},
-  {name:'Northpoint Travel', type:'Partner', status:'Negotiation', value:'₦3.1m', last:'Corporate rate review · Today'},
-]
+const crmRows: {
+  name:string
+  type:string
+  status:string
+  value:string
+  last:string
+}[] = []
 
-const supportQueue = [
-  {id:'RA-20491', rider:'M. Chen', route:'LOS → Ikoyi', state:'Awaiting driver', priority:'High'},
-  {id:'RA-20488', rider:'T. Adeyemi', route:'VI → LOS', state:'Driver assigned', priority:'Normal'},
-  {id:'RA-20485', rider:'A. Johnson', route:'LOS → Lekki', state:'Flight delayed', priority:'Normal'},
-]
+const supportQueue: {
+  id:string
+  rider:string
+  route:string
+  state:string
+  priority:string
+}[] = []
 
 const engineers = [
   {name:'VS Code', purpose:'Primary source-code editor', mac:'brew install --cask visual-studio-code', windows:'winget install Microsoft.VisualStudioCode'},
@@ -851,7 +855,6 @@ function AuthGate(){
 }
 
 function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
-  const stats=[['Open bookings','24','Support queue',Headphones],['Active rides','8','Live operations',Route],['CRM pipeline','₦5.5m','Open opportunities',CircleDollarSign],['Open HR requests','3','People operations',Users]] as const
   const launchers=[
     ['support','Support Station','Bookings, riders, drivers, live trips, safety and escalations.',Headphones],
     ['engineering','Engineering Station','Repos, deployments, mobile tooling, device bootstrap and APIs.',Code2],
@@ -860,17 +863,287 @@ function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
     ['marketing','Marketing','Campaigns, content, attribution, experiments and assets.',BarChart3],
     ['partnerships','Partnerships','Partners, agreements, pipeline, referrals and onboarding.',Building2]
   ] as const
-  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><div className="stats">{stats.map(([a,b,c,Icon])=><Metric key={a} icon={<Icon/>} label={a} value={b} hint={c}/>)}</div><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
+  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
 }
-function CRM(){return <section><SectionTitle eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint." actions={<button className="primaryButton"><UserPlus size={16}/>New lead</button>}/><div className="stats"><Metric icon={<Users/>} label="Contacts" value="2,184" hint="Riders and stakeholders"/><Metric icon={<Building2/>} label="Corporate accounts" value="38" hint="Hotels, travel and companies"/><Metric icon={<CircleDollarSign/>} label="Open pipeline" value="₦5.5m" hint="14 opportunities"/><Metric icon={<CalendarDays/>} label="Follow-ups due" value="12" hint="Today"/></div><div className="glassCard tableCard"><div className="tableToolbar"><div><h3>Relationship pipeline</h3><p>Sales, partnership and recovery work in one queue.</p></div><button className="glassButton"><ListChecks size={16}/>Activities</button></div><div className="dataTable"><div className="tr th"><span>Name / Account</span><span>Type</span><span>Status</span><span>Value</span><span>Last activity</span></div>{crmRows.map(r=><div className="tr" key={r.name}><span><strong>{r.name}</strong></span><span>{r.type}</span><span><StatusPill value={r.status}/></span><span>{r.value}</span><span>{r.last}</span></div>)}</div></div><div className="grid3"><Feature icon={<TicketCheck/>} title="Customer 360" text="Bookings, support cases, notes, payments and communications tied to one profile."/><Feature icon={<CircleDollarSign/>} title="Corporate sales" text="Track hotel, corporate and travel-agent opportunities from lead to signed account."/><Feature icon={<Activity/>} title="Activity timeline" text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."/></div></section>}
+function CRM(){
+  return <section>
+    <SectionTitle
+      eyebrow="CUSTOMER RELATIONSHIPS"
+      title="CRM"
+      subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint."
+      actions={
+        <button className="primaryButton">
+          <UserPlus size={16}/>
+          New lead
+        </button>
+      }
+    />
 
-function Support(){return <section><SectionTitle eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."/><div className="stats"><Metric icon={<LifeBuoy/>} label="Unassigned orders" value="7" hint="Needs dispatch"/><Metric icon={<Activity/>} label="Active rides" value="8" hint="Live tracking"/><Metric icon={<ShieldAlert/>} label="Panic alerts" value="0" hint="Safety queue"/><Metric icon={<Gauge/>} label="Avg response" value="2m" hint="Today"/></div><div className="grid2"><div className="glassCard"><h3>Priority booking queue</h3><p>Support owns intake until a driver is assigned.</p><div className="compactList">{supportQueue.map(q=><div key={q.id}><span><strong>{q.id}</strong><small>{q.rider} · {q.route}</small></span><span><StatusPill value={q.state}/><small>{q.priority}</small></span></div>)}</div></div><div className="glassCard"><h3>Support toolkit</h3><div className="toolGrid"><Feature icon={<TicketCheck/>} title="Cases & disputes" text="Refunds, complaints and incident-linked support cases."/><Feature icon={<Users/>} title="Rider & driver context" text="Profiles, trip history, verification and support notes."/><Feature icon={<ShieldCheck/>} title="Safety escalation" text="Panic alerts, escalation owners and resolution trail."/><Feature icon={<BarChart3/>} title="Service KPIs" text="First response, resolution time, CSAT and backlog."/></div></div></div></section>}
+    <div className="stats">
+      <Metric
+        icon={<Users/>}
+        label="Contacts"
+        value="0"
+        hint="Awaiting live CRM connection"
+      />
+      <Metric
+        icon={<Building2/>}
+        label="Corporate accounts"
+        value="0"
+        hint="Awaiting live CRM connection"
+      />
+      <Metric
+        icon={<CircleDollarSign/>}
+        label="Open pipeline"
+        value="₦0"
+        hint="Awaiting live CRM connection"
+      />
+      <Metric
+        icon={<CalendarDays/>}
+        label="Follow-ups due"
+        value="0"
+        hint="Awaiting live CRM connection"
+      />
+    </div>
+
+    <div className="glassCard tableCard">
+      <div className="tableToolbar">
+        <div>
+          <h3>Relationship pipeline</h3>
+          <p>
+            Live CRM records will appear here once the
+            production data source is connected.
+          </p>
+        </div>
+
+        <button className="glassButton">
+          <ListChecks size={16}/>
+          Activities
+        </button>
+      </div>
+
+      <div className="dataTable">
+        <div className="tr th">
+          <span>Name / Account</span>
+          <span>Type</span>
+          <span>Status</span>
+          <span>Value</span>
+          <span>Last activity</span>
+        </div>
+
+        {crmRows.map(r=>
+          <div className="tr" key={r.name}>
+            <span>
+              <strong>{r.name}</strong>
+            </span>
+            <span>{r.type}</span>
+            <span>
+              <StatusPill value={r.status}/>
+            </span>
+            <span>{r.value}</span>
+            <span>{r.last}</span>
+          </div>
+        )}
+      </div>
+
+      {!crmRows.length&&
+        <div className="emptyDataState">
+          No live CRM records connected yet.
+        </div>
+      }
+    </div>
+
+    <div className="grid3">
+      <Feature
+        icon={<TicketCheck/>}
+        title="Customer 360"
+        text="Bookings, support cases, notes, payments and communications tied to one profile."
+      />
+      <Feature
+        icon={<CircleDollarSign/>}
+        title="Corporate sales"
+        text="Track hotel, corporate and travel-agent opportunities from lead to signed account."
+      />
+      <Feature
+        icon={<Activity/>}
+        title="Activity timeline"
+        text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."
+      />
+    </div>
+  </section>
+}
+
+function Support(){
+  return <section>
+    <SectionTitle
+      eyebrow="SUPPORT CONTROL"
+      title="Support Station"
+      subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."
+    />
+
+    <div className="stats">
+      <Metric
+        icon={<LifeBuoy/>}
+        label="Unassigned orders"
+        value="0"
+        hint="Awaiting live Support connection"
+      />
+      <Metric
+        icon={<Activity/>}
+        label="Active rides"
+        value="0"
+        hint="Awaiting live Operations connection"
+      />
+      <Metric
+        icon={<ShieldAlert/>}
+        label="Panic alerts"
+        value="0"
+        hint="Awaiting live safety feed"
+      />
+      <Metric
+        icon={<Gauge/>}
+        label="Avg response"
+        value="0m"
+        hint="Awaiting live Support metrics"
+      />
+    </div>
+
+    <div className="grid2">
+      <div className="glassCard">
+        <h3>Priority booking queue</h3>
+        <p>
+          Live Support and booking records will appear here
+          when the production backend is connected.
+        </p>
+
+        <div className="compactList">
+          {supportQueue.map(q=>
+            <div key={q.id}>
+              <span>
+                <strong>{q.id}</strong>
+                <small>
+                  {q.rider} · {q.route}
+                </small>
+              </span>
+
+              <span>
+                <StatusPill value={q.state}/>
+                <small>{q.priority}</small>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {!supportQueue.length&&
+          <div className="emptyDataState">
+            No live Support queue connected yet.
+          </div>
+        }
+      </div>
+
+      <div className="glassCard">
+        <h3>Support toolkit</h3>
+
+        <div className="toolGrid">
+          <Feature
+            icon={<TicketCheck/>}
+            title="Cases & disputes"
+            text="Refunds, complaints and incident-linked support cases."
+          />
+          <Feature
+            icon={<Users/>}
+            title="Rider & driver context"
+            text="Profiles, trip history, verification and support notes."
+          />
+          <Feature
+            icon={<ShieldCheck/>}
+            title="Safety escalation"
+            text="Panic alerts, escalation owners and resolution trail."
+          />
+          <Feature
+            icon={<BarChart3/>}
+            title="Service KPIs"
+            text="First response, resolution time, CSAT and backlog."
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+}
 
 function Engineering({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){
   const copy=(text:string)=>navigator.clipboard?.writeText(text)
   return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
 
-function People(){return <section><SectionTitle eyebrow="PEOPLE & HR" title="People operations" subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."/><div className="stats"><Metric icon={<Users/>} label="Employees" value="24" hint="Active headcount"/><Metric icon={<CalendarDays/>} label="Leave requests" value="4" hint="2 awaiting approval"/><Metric icon={<ClipboardCheck/>} label="Onboarding" value="92%" hint="Current cohort"/><Metric icon={<LifeBuoy/>} label="HR requests" value="3" hint="Open"/></div><div className="grid3"><Feature icon={<Users/>} title="Directory & org chart" text="Roles, departments, managers, locations and company contact information."/><Feature icon={<CalendarDays/>} title="Leave & attendance" text="Balances, requests, approvals, holidays and employee availability."/><Feature icon={<ClipboardCheck/>} title="Onboarding & offboarding" text="IT setup, policy acknowledgement, probation and access removal."/><Feature icon={<Gauge/>} title="Performance" text="Goals, reviews, manager feedback and development plans."/><Feature icon={<BookOpen/>} title="Policies & handbook" text="Versioned policies with acknowledgement and controlled access."/><Feature icon={<LifeBuoy/>} title="HR service desk" text="Employment letters, data changes, welfare and internal requests."/></div></section>}
+function People(){
+  return <section>
+    <SectionTitle
+      eyebrow="PEOPLE & HR"
+      title="People operations"
+      subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."
+    />
+
+    <div className="stats">
+      <Metric
+        icon={<Users/>}
+        label="Employees"
+        value="0"
+        hint="Awaiting live HR data"
+      />
+      <Metric
+        icon={<CalendarDays/>}
+        label="Leave requests"
+        value="0"
+        hint="Awaiting live HR data"
+      />
+      <Metric
+        icon={<ClipboardCheck/>}
+        label="Onboarding"
+        value="0%"
+        hint="Awaiting live HR data"
+      />
+      <Metric
+        icon={<LifeBuoy/>}
+        label="HR requests"
+        value="0"
+        hint="Awaiting live HR data"
+      />
+    </div>
+
+    <div className="grid3">
+      <Feature
+        icon={<Users/>}
+        title="Directory & org chart"
+        text="Roles, departments, managers, locations and company contact information."
+      />
+      <Feature
+        icon={<CalendarDays/>}
+        title="Leave & attendance"
+        text="Balances, requests, approvals, holidays and employee availability."
+      />
+      <Feature
+        icon={<ClipboardCheck/>}
+        title="Onboarding & offboarding"
+        text="IT setup, policy acknowledgement, probation and access removal."
+      />
+      <Feature
+        icon={<Gauge/>}
+        title="Performance"
+        text="Goals, reviews, manager feedback and development plans."
+      />
+      <Feature
+        icon={<BookOpen/>}
+        title="Policies & handbook"
+        text="Versioned policies with acknowledgement and controlled access."
+      />
+      <Feature
+        icon={<LifeBuoy/>}
+        title="HR service desk"
+        text="Employment letters, data changes, welfare and internal requests."
+      />
+    </div>
+  </section>
+}
 
 function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch, driver readiness, fleet, airport pickup execution, incidents and operating performance."/><div className="grid3"><Feature icon={<Route/>} title="Dispatch Board" text="Unassigned bookings, driver matching, trip state and operational ownership."/><Feature icon={<BadgeCheck/>} title="Driver readiness" text="Verification, availability, documentation and compliance status."/><Feature icon={<PackageCheck/>} title="Fleet readiness" text="Vehicles, maintenance, papers, inspections and capacity."/><Feature icon={<Activity/>} title="Live operations" text="Active trips, location health, delayed flights and exceptions."/><Feature icon={<ShieldAlert/>} title="Incident management" text="Safety, service incidents, owners, severity and corrective actions."/><Feature icon={<BarChart3/>} title="Operations KPIs" text="Assignment time, completion, cancellation, utilisation and service quality."/></div></section>}
 

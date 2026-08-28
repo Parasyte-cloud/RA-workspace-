@@ -1,0 +1,67 @@
+/* ============================================================
+   RideArrivo canonical workspace branding
+   This file must load AFTER styles.css.
+   ============================================================ */
+
+.brandLogo{
+  display:block !important;
+  width:auto;
+  height:auto !important;
+  max-width:100%;
+  object-fit:contain;
+  flex:none !important;
+  filter:none !important;
+  user-select:none;
+}
+
+/* Main application sidebar */
+.brand .sidebarLogo,
+.sidebarLogo{
+  width:150px !important;
+  max-width:150px !important;
+}
+
+/* Login / verification / account screens */
+.authLogo,
+.verifyLogo,
+.setupWordmark{
+  width:190px !important;
+  max-width:min(190px,68vw) !important;
+}
+
+/* Startup loading screen */
+.splash .brandLogo,
+.splashLogo{
+  width:155px !important;
+  max-width:55vw !important;
+  height:auto !important;
+}
+
+/* The splash itself must never stretch the image. */
+.splash{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+@media (max-width:600px){
+  .brand .sidebarLogo,
+  .sidebarLogo{
+    width:130px !important;
+    max-width:130px !important;
+  }
+
+  .authLogo,
+  .verifyLogo,
+  .setupWordmark{
+    width:165px !important;
+    max-width:64vw !important;
+  }
+
+  .splash .brandLogo,
+  .splashLogo{
+    width:135px !important;
+    max-width:58vw !important;
+  }
+}

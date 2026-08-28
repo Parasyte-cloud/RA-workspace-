@@ -6,7 +6,8 @@ const SHELL = [
   '/favicon.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/ridearrivo-wordmark-transparent.png'
+  '/ridearrivo-wordmark-transparent.png',
+  '/ridearrivo-wordmark-workspace.png'
 ]
 
 self.addEventListener('install', event => {
