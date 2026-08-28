@@ -27,6 +27,7 @@ import {
 } from './modules/Phase2Modules'
 import { useIdleSignOut } from './lib/useIdleSignOut'
 import { OverviewMetrics } from './modules/OverviewMetrics'
+import { HeaderAvatar } from './components/HeaderAvatar'
 
 type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
@@ -574,21 +575,7 @@ function App(){
       current=>!current
     )}
   >
-    <div className="avatar">
-      {profile.avatar_url
-        ? <img
-            src={profile.avatar_url}
-            alt=""
-            style={{
-              width:'100%',
-              height:'100%',
-              objectFit:'cover',
-              borderRadius:'50%'
-            }}
-          />
-        : initials(profile.full_name)
-      }
-    </div>
+    <HeaderAvatar userId={session.user.id} name={profile.full_name}/>
 
     <span>
       <strong>{profile.full_name}</strong>

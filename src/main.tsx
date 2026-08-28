@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './styles.css'
 import './brand.css'
+import './workspace-shell.css'
 import './responsive.css'
 import './virtual-card.css'
 
