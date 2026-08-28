@@ -1,0 +1,43 @@
+html,
+body,
+#root{
+  min-height:100%;
+  background:#020817 !important;
+}
+
+body{
+  margin:0;
+
+  background:
+    radial-gradient(
+      circle at 10% 8%,
+      rgba(21,65,112,.45),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 92% 10%,
+      rgba(255,153,0,.08),
+      transparent 24%
+    ),
+    linear-gradient(
+      145deg,
+      #010611 0%,
+      #06172d 52%,
+      #020816 100%
+    ) !important;
+
+  background-attachment:fixed !important;
+}
+
+.appBackground{
+  background:transparent !important;
+}
+
+.glassFrame{
+  box-shadow:
+    0 36px 110px
+    rgba(0,0,0,.60),
+    0 0 0 1px
+    rgba(255,255,255,.06)
+    !important;
+}

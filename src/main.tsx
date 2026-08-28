@@ -7,6 +7,7 @@ import './workspace-shell.css'
 import './responsive.css'
 import './virtual-card.css'
 
+import './dark-shell.css'
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>
 )

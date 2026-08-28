@@ -1,0 +1,890 @@
+.marketingWorkspace{
+  display:grid;
+  gap:18px;
+}
+
+.marketingWorkspaceHero{
+  display:grid;
+  grid-template-columns:
+    minmax(0,1fr) 230px;
+  gap:22px;
+
+  padding:28px;
+
+  color:#fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #071a38,
+      #123b6c
+    );
+
+  border-radius:30px;
+
+  box-shadow:
+    0 18px 45px
+    rgba(4,17,39,.18);
+}
+
+.marketingWorkspaceHero h2{
+  max-width:780px;
+  margin:7px 0 10px;
+  font-size:31px;
+  line-height:1.08;
+}
+
+.marketingWorkspaceHero p{
+  max-width:760px;
+  margin:0;
+  color:#cbd8e9;
+  line-height:1.55;
+}
+
+.marketingWorkspaceIdentity{
+  display:grid;
+  align-content:center;
+  justify-items:start;
+  gap:4px;
+
+  padding:18px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.12);
+
+  border-radius:22px;
+
+  background:
+    rgba(255,255,255,.07);
+}
+
+.marketingWorkspaceIdentity>span{
+  color:#ffbf5f;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.marketingWorkspaceIdentity strong{
+  margin-top:7px;
+  font-size:38px;
+}
+
+.marketingWorkspaceIdentity small{
+  color:#cbd8e9;
+}
+
+.marketingWorkspaceIdentity button{
+  margin-top:10px;
+  border:0;
+  border-radius:12px;
+  padding:9px 11px;
+  background:#ff9900;
+  color:#071a38;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.marketingWorkspaceTabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+
+  padding:7px;
+
+  border:
+    1px solid #dfe5ed;
+
+  border-radius:18px;
+
+  background:#fff;
+}
+
+.marketingWorkspaceTabs button{
+  display:flex;
+  align-items:center;
+  gap:7px;
+
+  border:0;
+  border-radius:12px;
+
+  padding:9px 12px;
+
+  background:transparent;
+  color:#516074;
+
+  cursor:pointer;
+  font-weight:700;
+}
+
+.marketingWorkspaceTabs button.active{
+  background:#071a38;
+  color:#fff;
+}
+
+.marketingInviteStack{
+  display:grid;
+  gap:8px;
+}
+
+.marketingInvite{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+
+  padding:14px 16px !important;
+}
+
+.marketingInvite>div:first-child{
+  display:grid;
+  gap:3px;
+}
+
+.marketingInvite span{
+  color:#657386;
+  font-size:12px;
+}
+
+.marketingInvite>div:last-child{
+  display:flex;
+  gap:7px;
+}
+
+.marketingInvite button{
+  display:flex;
+  align-items:center;
+  gap:5px;
+
+  border:1px solid #dfe5ed;
+  border-radius:10px;
+
+  padding:8px 10px;
+
+  background:#fff;
+  cursor:pointer;
+}
+
+.marketingInvite button.accept{
+  background:#e9f8ef;
+  border-color:#c5ead2;
+  color:#17633a;
+}
+
+.marketingSectionHeading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+
+  margin-bottom:13px;
+}
+
+.marketingSectionHeading h3{
+  margin:3px 0 0;
+}
+
+.marketingSectionHeading>span{
+  color:#768495;
+  font-size:11px;
+}
+
+.marketingPeopleGrid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(230px,1fr)
+    );
+
+  gap:12px;
+}
+
+.marketingPerson{
+  display:flex;
+  align-items:center;
+  gap:12px;
+
+  padding:14px !important;
+}
+
+.marketingPersonAvatar{
+  width:48px;
+  height:48px;
+
+  flex:0 0 48px;
+
+  display:grid;
+  place-items:center;
+
+  overflow:hidden;
+
+  border-radius:50%;
+
+  background:#071a38;
+  color:#fff;
+
+  font-size:12px;
+  font-weight:800;
+}
+
+.marketingPersonAvatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.marketingPerson>div:last-child{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.marketingPerson span,
+.marketingPerson small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.marketingPerson span{
+  color:#526175;
+  font-size:12px;
+}
+
+.marketingPerson small{
+  color:#8792a1;
+  font-size:10px;
+}
+
+.marketingProjects{
+  display:grid;
+  grid-template-columns:
+    310px minmax(0,1fr);
+  gap:15px;
+}
+
+.marketingProjectCreator{
+  align-self:start;
+
+  display:grid;
+  gap:10px;
+
+  padding:18px !important;
+}
+
+.marketingProjectCreator h3{
+  margin:0;
+}
+
+.marketingProjectCreator p{
+  margin:0 0 4px;
+  color:#68778a;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.marketingProjectCreator label{
+  display:grid;
+  gap:5px;
+
+  color:#59697d;
+  font-size:11px;
+  font-weight:700;
+}
+
+.marketingProjectCreator input,
+.marketingProjectCreator textarea,
+.marketingCollaborator input,
+.marketingCollaborator select,
+.marketingDiscussion select{
+  width:100%;
+  box-sizing:border-box;
+
+  border:1px solid #dce3eb;
+  border-radius:11px;
+
+  padding:10px;
+
+  background:#fff;
+  color:#071a38;
+}
+
+.marketingProjectCreator textarea{
+  min-height:90px;
+  resize:vertical;
+}
+
+.marketingProjectList{
+  display:grid;
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(220px,1fr)
+    );
+  gap:11px;
+}
+
+.marketingProjectCard{
+  min-height:150px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+
+  padding:16px;
+
+  border:1px solid #dfe5ed;
+  border-radius:20px;
+
+  background:#fff;
+  color:#071a38;
+
+  text-align:left;
+  cursor:pointer;
+
+  box-shadow:
+    0 8px 22px
+    rgba(7,26,56,.06);
+}
+
+.marketingProjectCard.active{
+  border-color:#ffb344;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(255,153,0,.14);
+}
+
+.marketingProjectCard>span{
+  color:#a76b10;
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.marketingProjectCard strong{
+  margin-top:7px;
+}
+
+.marketingProjectCard p{
+  flex:1;
+
+  margin:6px 0;
+
+  color:#68778a;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.marketingProjectCard small{
+  color:#8a96a5;
+  font-size:9px;
+}
+
+.marketingCollaborator{
+  grid-column:1/-1;
+
+  display:grid;
+  grid-template-columns:
+    minmax(240px,1fr)
+    minmax(180px,280px)
+    minmax(180px,280px)
+    auto;
+  gap:10px;
+  align-items:end;
+
+  padding:17px !important;
+}
+
+.marketingCollaborator h3{
+  margin:3px 0;
+}
+
+.marketingCollaborator p{
+  margin:0;
+  max-width:520px;
+  color:#6c798b;
+  font-size:11px;
+}
+
+.marketingDiscussion{
+  padding:0 !important;
+  overflow:hidden;
+}
+
+.marketingDiscussionHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+
+  padding:16px 18px;
+
+  border-bottom:1px solid #e2e7ee;
+}
+
+.marketingDiscussionHeader h3{
+  margin:3px 0 0;
+}
+
+.marketingDiscussionHeader select{
+  max-width:280px;
+}
+
+.marketingMessages{
+  min-height:330px;
+  max-height:520px;
+
+  overflow:auto;
+
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+
+  padding:17px;
+
+  background:#f5f7fa;
+}
+
+.marketingMessage{
+  align-self:flex-start;
+
+  width:min(600px,84%);
+
+  padding:11px 13px;
+
+  border:
+    1px solid #e0e5ec;
+
+  border-radius:
+    16px 16px 16px 5px;
+
+  background:#fff;
+}
+
+.marketingMessage.mine{
+  align-self:flex-end;
+
+  border-color:#d5e4f5;
+
+  border-radius:
+    16px 16px 5px 16px;
+
+  background:#edf5ff;
+}
+
+.marketingMessage>div{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.marketingMessage small{
+  color:#8b95a3;
+  font-size:9px;
+}
+
+.marketingMessage p{
+  margin:6px 0 0;
+
+  color:#34455a;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.marketingComposer{
+  display:grid;
+  grid-template-columns:1fr 44px;
+  gap:8px;
+
+  padding:12px;
+
+  border-top:1px solid #e2e7ee;
+}
+
+.marketingComposer textarea{
+  min-height:54px;
+  resize:vertical;
+
+  border:1px solid #dce3eb;
+  border-radius:13px;
+
+  padding:10px;
+}
+
+.marketingComposer button{
+  align-self:end;
+
+  width:44px;
+  height:44px;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:12px;
+
+  background:#071a38;
+  color:#fff;
+
+  cursor:pointer;
+}
+
+.marketingPersonalStation{
+  display:grid;
+  gap:17px;
+}
+
+.marketingStationHero{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+
+  padding:22px 24px;
+
+  border-radius:25px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #102d50,
+      #1b5185
+    );
+
+  color:#fff;
+}
+
+.marketingStationHero.strategy{
+  background:
+    linear-gradient(
+      135deg,
+      #211b44,
+      #3f3975
+    );
+}
+
+.marketingStationHero h2{
+  margin:5px 0 7px;
+  font-size:25px;
+}
+
+.marketingStationHero p{
+  max-width:720px;
+  margin:0;
+  color:#cfdaea;
+  line-height:1.5;
+}
+
+.marketingCapabilityGrid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0,1fr)
+    );
+
+  gap:11px;
+}
+
+.marketingCapabilityGrid article{
+  display:grid;
+  gap:6px;
+
+  padding:16px;
+
+  border:1px solid #dfe5ed;
+  border-radius:18px;
+
+  background:#fff;
+}
+
+.marketingCapabilityGrid article svg{
+  color:#d67d00;
+}
+
+.marketingCapabilityGrid article span{
+  color:#6b798b;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.marketingUtility,
+.marketingStrategyCanvas{
+  padding:19px !important;
+}
+
+.marketingUtilityHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.marketingUtilityHeader h3,
+.marketingStrategyCanvas h3{
+  margin:4px 0;
+}
+
+.marketingUtilityHeader p{
+  margin:0;
+  color:#6d7a8d;
+  font-size:11px;
+}
+
+.marketingFormGrid{
+  display:grid;
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(0,1fr)
+    );
+  gap:8px;
+
+  margin-top:14px;
+}
+
+.marketingFormGrid label{
+  display:grid;
+  gap:5px;
+
+  color:#68778a;
+  font-size:10px;
+  font-weight:700;
+}
+
+.marketingFormGrid input{
+  min-width:0;
+
+  border:1px solid #dce3eb;
+  border-radius:10px;
+
+  padding:9px;
+}
+
+.marketingGeneratedUrl{
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  margin-top:10px;
+  padding:9px 10px;
+
+  border-radius:11px;
+
+  background:#f1f4f7;
+}
+
+.marketingGeneratedUrl span{
+  flex:1;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+
+  color:#506074;
+  font-size:10px;
+}
+
+.marketingGeneratedUrl button{
+  display:flex;
+  align-items:center;
+  gap:5px;
+
+  border:0;
+  background:transparent;
+
+  color:#071a38;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.marketingUtilityMessage{
+  display:block;
+  margin-top:8px;
+  color:#357052;
+}
+
+.marketingToolSection{
+  display:grid;
+  gap:4px;
+}
+
+.marketingToolGrid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(210px,1fr)
+    );
+
+  gap:10px;
+}
+
+.marketingToolCard{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+
+  padding:13px;
+
+  border:1px solid #dfe5ed;
+  border-radius:17px;
+
+  background:#fff;
+
+  color:#071a38;
+  text-align:left;
+
+  cursor:pointer;
+}
+
+.marketingToolCard:hover{
+  border-color:#ffbd5b;
+}
+
+.marketingToolIcon{
+  width:34px;
+  height:34px;
+
+  flex:0 0 34px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:10px;
+
+  background:#fff5e5;
+  color:#c87500;
+}
+
+.marketingToolCard>span:last-child{
+  display:grid;
+  gap:2px;
+}
+
+.marketingToolCard small{
+  color:#a16a1a;
+  font-size:9px;
+  text-transform:uppercase;
+}
+
+.marketingToolCard p{
+  margin:3px 0 0;
+  color:#6b798b;
+  font-size:10px;
+  line-height:1.4;
+}
+
+.marketingStrategySteps{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0,1fr)
+    );
+
+  gap:9px;
+
+  margin-top:13px;
+}
+
+.marketingStrategySteps>div{
+  display:grid;
+  gap:4px;
+
+  padding:13px;
+
+  border-radius:14px;
+
+  background:#f4f5f9;
+}
+
+.marketingStrategySteps span{
+  color:#6c798b;
+  font-size:10px;
+}
+
+.marketingEmpty,
+.marketingLoading{
+  padding:24px !important;
+  color:#748195;
+  text-align:center;
+}
+
+@media(max-width:1050px){
+
+  .marketingProjects{
+    grid-template-columns:1fr;
+  }
+
+  .marketingCollaborator{
+    grid-column:auto;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .marketingCapabilityGrid,
+  .marketingStrategySteps{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+  }
+
+  .marketingFormGrid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+  }
+}
+
+@media(max-width:700px){
+
+  .marketingWorkspaceHero{
+    grid-template-columns:1fr;
+    padding:21px;
+  }
+
+  .marketingWorkspaceHero h2{
+    font-size:26px;
+  }
+
+  .marketingWorkspaceTabs{
+    overflow:auto;
+    flex-wrap:nowrap;
+  }
+
+  .marketingWorkspaceTabs button{
+    flex:0 0 auto;
+  }
+
+  .marketingPeopleGrid,
+  .marketingCapabilityGrid,
+  .marketingStrategySteps,
+  .marketingFormGrid,
+  .marketingCollaborator{
+    grid-template-columns:1fr;
+  }
+
+  .marketingDiscussionHeader{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .marketingDiscussionHeader select{
+    max-width:none;
+  }
+
+  .marketingMessage{
+    width:88%;
+  }
+}

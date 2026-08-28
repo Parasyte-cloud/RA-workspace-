@@ -7,10 +7,10 @@ import {
   Download, ExternalLink, FileCheck2, FileText, Gauge, Headphones, Home, KeyRound,
   LayoutDashboard, LifeBuoy, ListChecks, LockKeyhole, Mail, MonitorCog, Network, PackageCheck,
   Route, Scale, Search, Settings, ShieldAlert, ShieldCheck, Smartphone, Sparkles, TicketCheck,
-  UserCog, UserPlus, Users, Wrench
+  UserCog, UserPlus, Users, Wrench, Images
 } from 'lucide-react'
 import { supabase, supabaseConfigured } from './lib/supabase'
-import { FinanceModule, MarketingModule, PartnershipsModule } from './modules/BusinessModules'
+import { FinanceModule, PartnershipsModule } from './modules/BusinessModules'
 import { AdminModule, CRMModule, LegalModule, OperationsModule, PeopleModule, SupportModule } from './modules/CoreModules'
 import { SocialModule } from './modules/SocialModule'
 import { MailModule } from './modules/MailModule'
@@ -29,7 +29,10 @@ import { useIdleSignOut } from './lib/useIdleSignOut'
 import { OverviewMetrics } from './modules/OverviewMetrics'
 import { HeaderAvatar } from './components/HeaderAvatar'
 
-type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
+import { HeadshotGallery } from './modules/HeadshotGallery'
+import { WorkspaceClock } from './components/WorkspaceClock'
+import { MarketingTeamWorkspace } from './modules/MarketingTeamWorkspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -88,6 +91,7 @@ const allWorkspaceRoles:Role[]=[
 const sectionAccess:Record<Section,Role[]>={
   overview:allWorkspaceRoles,
   profile:allWorkspaceRoles,
+  gallery:allWorkspaceRoles,
   social:allWorkspaceRoles,
   mail:allWorkspaceRoles,
   announcements:allWorkspaceRoles,
@@ -445,7 +449,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['apps','Applications',AppWindow],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -561,7 +565,7 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><NotificationCenter
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><button className="iconButton"><Search size={17}/></button><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
   }}
@@ -637,6 +641,7 @@ function App(){
             onProfileUpdated={loadProfile}
           />
         } 
+        {section==='gallery'&&<HeadshotGallery/>}
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
@@ -650,7 +655,7 @@ function App(){
         {section==='people'&&<PeopleModule/>}
         {section==='operations'&&<OperationsModule/>}
         {section==='finance'&&<FinanceModule/>}
-        {section==='marketing'&&<MarketingModule/>}
+        {section==='marketing'&&<MarketingTeamWorkspace/>}
         {section==='partnerships'&&<PartnershipsModule/>}
         {section==='legal'&&<LegalModule/>}
         {section==='admin'&&<AdminModule/>}

@@ -1,0 +1,335 @@
+.headshotGallery{
+  display:grid;
+  gap:18px;
+}
+
+.headshotGalleryHero{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+
+  padding:26px 28px;
+
+  border-radius:28px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0a2344,
+      #143b67
+    );
+
+  color:#fff;
+
+  box-shadow:
+    0 18px 42px
+    rgba(4,17,39,.16);
+}
+
+.headshotGalleryHero h2{
+  margin:7px 0 8px;
+  font-size:28px;
+}
+
+.headshotGalleryHero p{
+  margin:0;
+  max-width:720px;
+  color:#cedaea;
+  line-height:1.55;
+}
+
+.headshotGalleryActions{
+  flex:0 0 auto;
+}
+
+.headshotPolicy{
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  padding:12px 15px;
+
+  border-radius:15px;
+
+  background:#fff7e8;
+  border:1px solid #f4dfbd;
+
+  color:#77531c;
+  font-size:12px;
+}
+
+.headshotGrid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(210px,1fr)
+    );
+
+  gap:15px;
+}
+
+.headshotCard{
+  overflow:hidden;
+
+  border:
+    1px solid #dfe5ed;
+
+  border-radius:
+    24px;
+
+  background:
+    #fff;
+
+  box-shadow:
+    0 10px 30px
+    rgba(7,26,56,.075);
+
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+
+.headshotCard:hover{
+  transform:
+    translateY(-2px);
+
+  box-shadow:
+    0 16px 38px
+    rgba(7,26,56,.11);
+}
+
+.headshotPreview{
+  display:block;
+
+  width:100%;
+  aspect-ratio:4/5;
+
+  padding:0;
+  border:0;
+
+  overflow:hidden;
+
+  background:#e9eef4;
+
+  cursor:pointer;
+}
+
+.headshotPreview img{
+  display:block;
+
+  width:100%;
+  height:100%;
+
+  object-fit:cover;
+  object-position:center top;
+}
+
+.headshotPreview span{
+  width:100%;
+  height:100%;
+
+  display:grid;
+  place-items:center;
+
+  color:#718096;
+  font-size:12px;
+}
+
+.headshotInfo{
+  display:grid;
+  gap:3px;
+
+  padding:
+    14px 15px 10px;
+}
+
+.headshotInfo strong{
+  color:#071a38;
+}
+
+.headshotInfo span{
+  color:#657386;
+  font-size:12px;
+}
+
+.headshotInfo small{
+  margin-top:4px;
+  color:#8a96a5;
+  font-size:10px;
+}
+
+.headshotCardActions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:
+    0 12px 13px;
+}
+
+.headshotCardActions button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  border:
+    1px solid #dfe5ed;
+
+  border-radius:
+    11px;
+
+  background:#fff;
+
+  padding:
+    8px 10px;
+
+  color:#17304f;
+
+  cursor:pointer;
+}
+
+.headshotCardActions button.danger{
+  color:#a92f2f;
+}
+
+.headshotEmpty{
+  min-height:230px;
+
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:7px;
+
+  text-align:center;
+
+  color:#768495;
+}
+
+.headshotEmpty strong{
+  color:#071a38;
+}
+
+.headshotModal{
+  position:fixed;
+  inset:0;
+
+  z-index:800;
+
+  display:grid;
+  place-items:center;
+
+  padding:24px;
+
+  background:
+    rgba(2,10,23,.82);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+.headshotModalBody{
+  width:
+    min(760px,100%);
+
+  overflow:hidden;
+
+  border-radius:30px;
+
+  background:#fff;
+
+  box-shadow:
+    0 30px 90px
+    rgba(0,0,0,.42);
+}
+
+.headshotModalBody img{
+  display:block;
+
+  width:100%;
+  max-height:72vh;
+
+  object-fit:contain;
+
+  background:#071a38;
+}
+
+.headshotModalBody>div{
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  padding:18px 20px;
+}
+
+.headshotModalBody>div strong{
+  margin-right:auto;
+}
+
+.headshotModalBody>div span{
+  color:#748195;
+  font-size:12px;
+}
+
+.headshotModalClose{
+  position:fixed;
+  top:22px;
+  right:22px;
+
+  width:42px;
+  height:42px;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:50%;
+
+  background:#fff;
+  color:#071a38;
+
+  cursor:pointer;
+}
+
+@media(max-width:700px){
+
+  .headshotGalleryHero{
+    align-items:stretch;
+    flex-direction:column;
+
+    padding:21px;
+
+    border-radius:23px;
+  }
+
+  .headshotGrid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap:10px;
+  }
+
+  .headshotInfo{
+    padding:
+      11px 11px 8px;
+  }
+
+  .headshotCardActions{
+    padding:
+      0 9px 10px;
+  }
+
+  .headshotCardActions button{
+    padding:7px 8px;
+  }
+
+  .headshotModalBody>div{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}

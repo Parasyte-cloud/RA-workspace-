@@ -1,0 +1,76 @@
+.workspaceClock{
+  min-width:132px;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-end;
+
+  padding:
+    5px 10px;
+
+  border:
+    1px solid #e0e6ee;
+
+  border-radius:
+    14px;
+
+  background:
+    #f8fafc;
+
+  color:
+    #071a38;
+
+  line-height:
+    1.05;
+}
+
+.workspaceClock strong{
+  font-size:
+    14px;
+
+  font-weight:
+    800;
+
+  font-variant-numeric:
+    tabular-nums;
+
+  white-space:
+    nowrap;
+}
+
+.workspaceClock span{
+  margin-top:
+    4px;
+
+  color:
+    #6d7a8d;
+
+  font-size:
+    9px;
+
+  font-weight:
+    600;
+
+  white-space:
+    nowrap;
+}
+
+@media(max-width:850px){
+
+  .workspaceClock{
+    min-width:auto;
+    padding:5px 8px;
+  }
+
+  .workspaceClock span{
+    display:none;
+  }
+}
+
+@media(max-width:560px){
+
+  .workspaceClock{
+    display:none;
+  }
+}
