@@ -16,11 +16,12 @@ import { SocialModule } from './modules/SocialModule'
 import { MailModule } from './modules/MailModule'
 import { ProfileModule } from './modules/ProfileModule'
 import ApplicationsHub from './modules/ApplicationsHub'
+import { WorkDesk } from './modules/WorkDesk'
+import { NotificationCenter } from './components/NotificationCenter'
 import {
 
   AnnouncementsModule,
   CalendarModule,
-  TasksModule,
   KnowledgeBaseModule,
   CompanyFilesModule,
 } from './modules/Phase2Modules'
@@ -54,29 +55,117 @@ type Profile = {
 const allowedDomains = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || 'ridearrivo.com')
   .toLowerCase().split(',').map((v:string)=>v.trim()).filter(Boolean)
 
-const sectionAccess:Partial<Record<Section,Role[]>>={
-  profile:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  overview:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  social:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  mail:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  crm:['support','operations','marketing','partnerships','manager','admin'],
-  support:['support','manager','admin'],
-  engineering:['engineer','manager','admin'],
-  people:['hr','manager','admin'],
-  operations:['operations','manager','admin'],
-  finance:['finance','manager','admin'],
-  marketing:['marketing','manager','admin'],
-  partnerships:['partnerships','manager','admin'],
-  legal:['legal','manager','admin'],
-  announcements:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  calendar:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  tasks:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  files:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  knowledge:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  apps:['employee','support','engineer','hr','operations','finance','marketing','partnerships','legal','manager','admin'],
-  admin:['admin']
+const allWorkspaceRoles:Role[]=[
+  'employee',
+  'support',
+  'engineer',
+  'manager',
+  'hr',
+  'legal',
+  'operations',
+  'finance',
+  'marketing',
+  'partnerships',
+  'admin'
+]
+
+/*
+ * Workspace access is DEFAULT DENY.
+ *
+ * Shared employee services:
+ * overview, profile, social, mail, calendar,
+ * tasks, announcements, files, knowledge,
+ * applications.
+ *
+ * Department workstations:
+ * only the department role plus Manager/Admin.
+ *
+ * Admin:
+ * Admin only.
+ */
+const sectionAccess:Record<Section,Role[]>={
+  overview:allWorkspaceRoles,
+  profile:allWorkspaceRoles,
+  social:allWorkspaceRoles,
+  mail:allWorkspaceRoles,
+  announcements:allWorkspaceRoles,
+  calendar:allWorkspaceRoles,
+  tasks:allWorkspaceRoles,
+  files:allWorkspaceRoles,
+  knowledge:allWorkspaceRoles,
+  apps:allWorkspaceRoles,
+  workspace:allWorkspaceRoles,
+
+  /*
+   * CRM currently has no dedicated CRM role.
+   * Until one exists, it is management-only rather
+   * than leaking CRM records across departments.
+   */
+  crm:[
+    'manager',
+    'admin'
+  ],
+
+  support:[
+    'support',
+    'manager',
+    'admin'
+  ],
+
+  engineering:[
+    'engineer',
+    'manager',
+    'admin'
+  ],
+
+  people:[
+    'hr',
+    'manager',
+    'admin'
+  ],
+
+  operations:[
+    'operations',
+    'manager',
+    'admin'
+  ],
+
+  finance:[
+    'finance',
+    'manager',
+    'admin'
+  ],
+
+  marketing:[
+    'marketing',
+    'manager',
+    'admin'
+  ],
+
+  partnerships:[
+    'partnerships',
+    'manager',
+    'admin'
+  ],
+
+  legal:[
+    'legal',
+    'manager',
+    'admin'
+  ],
+
+  admin:[
+    'admin'
+  ]
 }
-const canAccess=(role:Role,section:Section)=>!sectionAccess[section]||sectionAccess[section]!.includes(role)
+
+const canAccess=(
+  role:Role,
+  section:Section
+)=>
+  sectionAccess[section]
+    ?.includes(role) === true
+
 
 const crmRows = [
   {name:'Amina Bello', type:'Traveller', status:'Active', value:'₦185,000', last:'Airport pickup · 2 days ago'},
@@ -109,22 +198,16 @@ function BrandLogo({
 }){
   return (
     <span
-      className={`brandImageWordmark ${className}`}
+      className={`ridearrivoWordmark ${className}`}
       aria-label="RideArrivo"
     >
-      <img
-        src="/ridearrivo-wordmark-transparent.png"
-        alt=""
-        className="brandImageBase"
-        aria-hidden="true"
-      />
+      <span className="ridearrivoRide">
+        Ride
+      </span>
 
-      <img
-        src="/ridearrivo-wordmark-transparent.png"
-        alt=""
-        className="brandImageRideWhite"
-        aria-hidden="true"
-      />
+      <span className="ridearrivoArrivo">
+        Arrivo
+      </span>
     </span>
   )
 }
@@ -483,7 +566,11 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<div className="profileMenuWrap">
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><NotificationCenter
+  onOpenWork={()=>{
+    setSection('tasks')
+  }}
+/>{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<div className="profileMenuWrap">
   <button
     type="button"
     className="profileButton"
@@ -571,7 +658,7 @@ function App(){
         } 
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
-        {section==='tasks'&&<TasksModule/>}
+        {section==='tasks'&&<WorkDesk/>}
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
