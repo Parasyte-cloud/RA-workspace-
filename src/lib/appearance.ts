@@ -11,11 +11,18 @@ export type GlowStrength =
   | 'off'
   | 'subtle'
   | 'medium'
+  | 'high'
+
+export type WorkstationSize =
+  | 'compact'
+  | 'balanced'
+  | 'expanded'
 
 export type AppearancePreferences = {
   theme: ThemeMode
   workspace: WorkspaceAppearance
   glow: GlowStrength
+  size: WorkstationSize
 }
 
 export const APPEARANCE_STORAGE_KEY =
@@ -24,7 +31,8 @@ export const APPEARANCE_STORAGE_KEY =
 export const defaultAppearance: AppearancePreferences = {
   theme: 'light',
   workspace: 'ambient',
-  glow: 'subtle'
+  glow: 'subtle',
+  size: 'balanced'
 }
 
 const themes: ThemeMode[] = [
@@ -41,7 +49,14 @@ const workspaces: WorkspaceAppearance[] = [
 const glows: GlowStrength[] = [
   'off',
   'subtle',
-  'medium'
+  'medium',
+  'high'
+]
+
+const workstationSizes: WorkstationSize[] = [
+  'compact',
+  'balanced',
+  'expanded'
 ]
 
 export function readAppearance(): AppearancePreferences {
@@ -79,7 +94,12 @@ export function readAppearance(): AppearancePreferences {
         parsed.glow &&
         glows.includes(parsed.glow)
           ? parsed.glow
-          : defaultAppearance.glow
+          : defaultAppearance.glow,
+      size:
+        parsed.size &&
+        workstationSizes.includes(parsed.size)
+          ? parsed.size
+          : defaultAppearance.size
     }
   } catch {
     return defaultAppearance
@@ -103,6 +123,9 @@ export function applyAppearance(
 
   root.dataset.raGlow =
     preferences.glow
+
+  root.dataset.raSize =
+    preferences.size
 
   root.style.colorScheme =
     preferences.theme

@@ -4634,3 +4634,435 @@ html[data-ra-theme='dark'] .authCopy p {
 
 }
 
+
+
+/* =========================================================
+   COMPACT SIDEBAR MINI RIDEARRIVO WORDMARK
+   ========================================================= */
+
+@media (min-width: 680px) and (max-width: 1279px) {
+
+  .shell.glassFrame .brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 58px !important;
+    min-height: 58px !important;
+
+    margin: 0 0 6px !important;
+    padding: 10px 3px 11px !important;
+
+    overflow: hidden !important;
+
+    border-bottom:
+      1px solid rgba(255,255,255,.09) !important;
+  }
+
+  .shell.glassFrame .brand .sidebarLogo,
+  .shell.glassFrame .sidebarLogo {
+    display: block !important;
+
+    width: 64px !important;
+    max-width: 64px !important;
+
+    height: auto !important;
+    max-height: 26px !important;
+
+    margin: 0 auto !important;
+
+    object-fit: contain !important;
+    object-position: center !important;
+
+    filter: none !important;
+
+    transform: none !important;
+
+    opacity: 1 !important;
+  }
+
+  .shell.glassFrame .brand > span {
+    display: none !important;
+  }
+
+}
+
+
+/* Slightly tighter on short minimized windows */
+
+@media
+  (min-width: 680px)
+  and (max-width: 1279px)
+  and (max-height: 720px) {
+
+  .shell.glassFrame .brand {
+    height: 47px !important;
+    min-height: 47px !important;
+
+    padding: 7px 3px 8px !important;
+  }
+
+  .shell.glassFrame .brand .sidebarLogo,
+  .shell.glassFrame .sidebarLogo {
+    width: 56px !important;
+    max-width: 56px !important;
+
+    max-height: 22px !important;
+  }
+
+}
+
+
+/* Full desktop keeps the normal full-size branding */
+
+@media (min-width: 1280px) {
+
+  .shell.glassFrame .brand .sidebarLogo,
+  .shell.glassFrame .sidebarLogo {
+    width: 176px !important;
+    max-width: 100% !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    object-fit: contain !important;
+    object-position: left center !important;
+
+    filter: none !important;
+  }
+
+}
+
+
+
+/* =========================================================
+   RIDEARRIVO WORKSTATION PERSONALISATION V1
+   ========================================================= */
+
+
+/* Four-option ring-light selector */
+
+.appearanceChoices.four {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+
+/* ---------------------------------------------------------
+   WORKSTATION SIZE PREVIEW
+   --------------------------------------------------------- */
+
+.sizeSwatch {
+  display: block;
+
+  width: 100%;
+  height: 42px;
+
+  margin-bottom: 7px;
+
+  border-radius: 9px;
+
+  position: relative;
+
+  background:
+    rgba(7, 26, 56, .07);
+
+  border:
+    1px solid rgba(7, 26, 56, .08);
+}
+
+.sizeSwatch::after {
+  content: "";
+
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  transform:
+    translate(-50%, -50%);
+
+  background:
+    linear-gradient(
+      135deg,
+      #0b2c54,
+      #284565
+    );
+
+  border:
+    1px solid rgba(255, 153, 0, .45);
+
+  box-shadow:
+    0 4px 10px rgba(7, 26, 56, .15);
+}
+
+.sizeSwatch.compact::after {
+  width: 55%;
+  height: 55%;
+
+  border-radius: 8px;
+}
+
+.sizeSwatch.balanced::after {
+  width: 72%;
+  height: 68%;
+
+  border-radius: 9px;
+}
+
+.sizeSwatch.expanded::after {
+  width: 89%;
+  height: 80%;
+
+  border-radius: 10px;
+}
+
+
+/* ---------------------------------------------------------
+   HIGH OUTER RING-LIGHT
+   --------------------------------------------------------- */
+
+html[data-ra-glow="high"] {
+  --ra-ring-shadow:
+    0 0 0 1px rgba(255,177,59,.62),
+    0 0 20px rgba(255,153,0,.34),
+    0 0 46px rgba(255,153,0,.25),
+    0 0 86px rgba(68,128,255,.22),
+    0 0 135px rgba(68,128,255,.14),
+    0 30px 90px rgba(2,17,40,.28);
+}
+
+.glowSwatch.high {
+  background:
+    radial-gradient(
+      circle,
+      rgba(255,255,255,.95) 0 15%,
+      rgba(255,177,59,.72) 24%,
+      rgba(255,153,0,.34) 44%,
+      rgba(70,130,255,.30) 67%,
+      transparent 83%
+    );
+}
+
+
+/* =========================================================
+   WORKSTATION SIZE — DESKTOP/LAPTOP
+   ========================================================= */
+
+@media (min-width: 761px) {
+
+
+  /* Compact */
+
+  html[data-ra-size="compact"]
+  .appBackground {
+    padding:
+      36px !important;
+  }
+
+  html[data-ra-size="compact"]
+  .shell.glassFrame {
+    width:
+      min(
+        1180px,
+        calc(100vw - 72px)
+      ) !important;
+
+    height:
+      calc(100dvh - 72px) !important;
+
+    max-height:
+      calc(100dvh - 72px) !important;
+
+    border-radius:
+      42px !important;
+  }
+
+  html[data-ra-size="compact"]
+  .shell.glassFrame > main {
+    border-radius:
+      0 42px 42px 0 !important;
+  }
+
+
+  /* Balanced */
+
+  html[data-ra-size="balanced"]
+  .appBackground {
+    padding:
+      22px !important;
+  }
+
+  html[data-ra-size="balanced"]
+  .shell.glassFrame {
+    width:
+      min(
+        1380px,
+        calc(100vw - 44px)
+      ) !important;
+
+    height:
+      calc(100dvh - 44px) !important;
+
+    max-height:
+      calc(100dvh - 44px) !important;
+
+    border-radius:
+      38px !important;
+  }
+
+  html[data-ra-size="balanced"]
+  .shell.glassFrame > main {
+    border-radius:
+      0 38px 38px 0 !important;
+  }
+
+
+  /* Expanded */
+
+  html[data-ra-size="expanded"]
+  .appBackground {
+    padding:
+      12px !important;
+  }
+
+  html[data-ra-size="expanded"]
+  .shell.glassFrame {
+    width:
+      min(
+        1640px,
+        calc(100vw - 24px)
+      ) !important;
+
+    height:
+      calc(100dvh - 24px) !important;
+
+    max-height:
+      calc(100dvh - 24px) !important;
+
+    border-radius:
+      34px !important;
+  }
+
+  html[data-ra-size="expanded"]
+  .shell.glassFrame > main {
+    border-radius:
+      0 34px 34px 0 !important;
+  }
+
+}
+
+
+/* =========================================================
+   SHORT LAPTOP SAFETY
+   ========================================================= */
+
+@media
+  (min-width: 761px)
+  and (max-height: 720px) {
+
+  html[data-ra-size="compact"]
+  .appBackground {
+    padding:
+      22px !important;
+  }
+
+  html[data-ra-size="compact"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 44px) !important;
+
+    height:
+      calc(100dvh - 44px) !important;
+
+    max-height:
+      calc(100dvh - 44px) !important;
+  }
+
+
+  html[data-ra-size="balanced"]
+  .appBackground {
+    padding:
+      16px !important;
+  }
+
+  html[data-ra-size="balanced"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 32px) !important;
+
+    height:
+      calc(100dvh - 32px) !important;
+
+    max-height:
+      calc(100dvh - 32px) !important;
+  }
+
+
+  html[data-ra-size="expanded"]
+  .appBackground {
+    padding:
+      9px !important;
+  }
+
+  html[data-ra-size="expanded"]
+  .shell.glassFrame {
+    width:
+      calc(100vw - 18px) !important;
+
+    height:
+      calc(100dvh - 18px) !important;
+
+    max-height:
+      calc(100dvh - 18px) !important;
+  }
+
+}
+
+
+/* Settings cards on smaller widths */
+
+@media (max-width: 1000px) {
+
+  .appearanceChoices.four {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+
+/* True mobile ignores workstation-size selection */
+
+@media (max-width: 760px) {
+
+  html[data-ra-size]
+  .appBackground {
+    padding:
+      0 !important;
+  }
+
+  html[data-ra-size]
+  .shell.glassFrame {
+    width:
+      100% !important;
+
+    height:
+      100dvh !important;
+
+    max-height:
+      100dvh !important;
+
+    border-radius:
+      0 !important;
+  }
+
+
+  .appearanceChoices.four {
+    grid-template-columns:
+      1fr !important;
+  }
+
+}
+

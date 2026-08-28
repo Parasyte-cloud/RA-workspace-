@@ -10,7 +10,8 @@ import type {
   AppearancePreferences,
   GlowStrength,
   ThemeMode,
-  WorkspaceAppearance
+  WorkspaceAppearance,
+  WorkstationSize
 } from '../lib/appearance'
 
 export function AppearanceSettings() {
@@ -50,6 +51,15 @@ export function AppearanceSettings() {
     apply({
       ...preferences,
       glow
+    })
+  }
+
+  const setSize = (
+    size: WorkstationSize
+  ) => {
+    apply({
+      ...preferences,
+      size
     })
   }
 
@@ -228,10 +238,79 @@ export function AppearanceSettings() {
           </div>
         </article>
 
-        <article className="appearanceSettingCard">
+                <article className="appearanceSettingCard">
           <div className="appearanceSettingCopy">
             <span className="appearanceSettingNumber">
               03
+            </span>
+            <div>
+              <h3>
+                Workstation size
+              </h3>
+              <p>
+                Choose how much of the display the
+                workstation should occupy.
+              </p>
+            </div>
+          </div>
+
+          <div className="appearanceChoices three">
+            {(
+              [
+                [
+                  'compact',
+                  'Compact',
+                  'More surrounding workspace'
+                ],
+                [
+                  'balanced',
+                  'Balanced',
+                  'Recommended everyday size'
+                ],
+                [
+                  'expanded',
+                  'Expanded',
+                  'Maximum working area'
+                ]
+              ] as const
+            ).map(
+              ([value, label, note]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={
+                    preferences.size === value
+                      ? 'appearanceChoice active'
+                      : 'appearanceChoice'
+                  }
+                  aria-pressed={
+                    preferences.size === value
+                  }
+                  onClick={() =>
+                    setSize(value)
+                  }
+                >
+                  <span
+                    className={
+                      `sizeSwatch ${value}`
+                    }
+                  />
+                  <strong>
+                    {label}
+                  </strong>
+                  <small>
+                    {note}
+                  </small>
+                </button>
+              )
+            )}
+          </div>
+        </article>
+
+<article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber">
+              04
             </span>
 
             <div>
@@ -246,12 +325,13 @@ export function AppearanceSettings() {
             </div>
           </div>
 
-          <div className="appearanceChoices three">
+          <div className="appearanceChoices four">
             {(
               [
                 ['off', 'Off', 'No outer glow'],
                 ['subtle', 'Subtle', 'Premium soft edge'],
-                ['medium', 'Medium', 'More visible aura']
+                ['medium', 'Medium', 'More visible aura'],
+                ['high', 'High', 'Strong workstation halo']
               ] as const
             ).map(
               ([value, label, note]) => (
