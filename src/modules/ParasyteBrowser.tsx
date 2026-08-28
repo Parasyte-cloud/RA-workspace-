@@ -212,6 +212,42 @@ export default function ParasyteBrowser({
   const [address,setAddress]=
     useState('')
 
+  type ParasyteLayout =
+    | 'comfortable'
+    | 'compact'
+    | 'focus'
+
+  const [layout,setLayout] =
+    useState<ParasyteLayout>(() => {
+      if (typeof window === 'undefined') {
+        return 'comfortable'
+      }
+
+      const saved =
+        window.localStorage.getItem(
+          'ridearrivo-parasyte-layout'
+        )
+
+      return saved === 'compact' ||
+        saved === 'focus' ||
+        saved === 'comfortable'
+        ? saved
+        : 'comfortable'
+    })
+
+  const changeLayout = (
+    next: ParasyteLayout
+  ) => {
+    setLayout(next)
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(
+        'ridearrivo-parasyte-layout',
+        next
+      )
+    }
+  }
+
   const [history,setHistory]=
     useState<string[]>([
       HOME
@@ -687,7 +723,10 @@ export default function ParasyteBrowser({
 
 
   return (
-    <section className="parasyteBrowser">
+    <section
+      className="parasyteBrowser"
+      data-layout={layout}
+    >
 
       <div className="parasyteChrome">
 
@@ -790,6 +829,27 @@ export default function ParasyteBrowser({
 
 
         <div className="parasyteActions">
+          <select
+            className="parasyteLayoutSelect"
+            value={layout}
+            aria-label="PArAsYtE browser layout"
+            title="PArAsYtE browser layout"
+            onChange={event=>{
+              changeLayout(
+                event.target.value as ParasyteLayout
+              )
+            }}
+          >
+            <option value="comfortable">
+              Comfortable
+            </option>
+            <option value="compact">
+              Compact
+            </option>
+            <option value="focus">
+              Focus
+            </option>
+          </select>
 
           <button
             type="button"
@@ -856,6 +916,8 @@ export default function ParasyteBrowser({
                   <button
                     type="button"
                     key={link.id}
+                    title={link.title}
+                    aria-label={link.title}
                     onClick={()=>{
                       navigate(
                         link.url

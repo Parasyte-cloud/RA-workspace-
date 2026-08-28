@@ -598,3 +598,601 @@
     display:none;
   }
 }
+
+
+/* =========================================================
+   PARASYTE ADAPTIVE BROWSER LAYOUT V1
+   =========================================================
+   Comfortable = standard browser
+   Compact     = slim sidebar / compact chrome
+   Focus       = minimal rail / maximum webpage area
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   LAYOUT SELECTOR
+   --------------------------------------------------------- */
+
+.parasyteLayoutSelect {
+  height:34px;
+
+  max-width:116px;
+
+  padding:
+    0 26px 0 9px;
+
+  border:
+    1px solid #263c55;
+
+  border-radius:
+    10px;
+
+  outline:
+    0;
+
+  background:
+    #0f2237;
+
+  color:
+    #d9e4ef;
+
+  font:
+    inherit;
+
+  font-size:
+    9px;
+
+  font-weight:
+    700;
+
+  cursor:
+    pointer;
+}
+
+.parasyteLayoutSelect:hover,
+.parasyteLayoutSelect:focus {
+  border-color:
+    #b77713;
+}
+
+
+/* =========================================================
+   COMFORTABLE
+   Existing proportions, explicitly retained.
+   ========================================================= */
+
+@media (min-width:700px) {
+
+  .parasyteBrowser[data-layout="comfortable"]
+  .parasyteBody {
+    grid-template-columns:
+      190px minmax(0,1fr);
+  }
+
+}
+
+
+/* =========================================================
+   COMPACT
+   Sidebar labels remain visible but considerably slimmer.
+   ========================================================= */
+
+@media (min-width:700px) {
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBody {
+    grid-template-columns:
+      118px minmax(0,1fr);
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteSidebar {
+    padding:
+      9px 6px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteSidebarTitle {
+    padding:
+      5px 6px;
+
+    font-size:
+      7px;
+
+    letter-spacing:
+      .8px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteSidebarTitle.personal {
+    margin-top:
+      10px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteLinkGroup {
+    gap:
+      2px;
+
+    margin-bottom:
+      7px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteLinkGroup small {
+    padding:
+      4px 5px 2px;
+
+    font-size:
+      7px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteLinkGroup button,
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBookmark > button:first-child {
+    gap:
+      5px;
+
+    padding:
+      7px 5px;
+
+    border-radius:
+      8px;
+
+    font-size:
+      8px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBookmark {
+    grid-template-columns:
+      minmax(0,1fr) 22px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBookmark .remove {
+    width:
+      21px;
+
+    height:
+      21px;
+  }
+
+
+  /* Compact browser chrome */
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteChrome {
+    min-height:
+      54px;
+
+    gap:
+      7px;
+
+    padding:
+      7px 9px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBrand {
+    min-width:
+      40px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBrand img {
+    width:
+      30px;
+
+    height:
+      30px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBrand span {
+    display:
+      none;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteNavButtons button,
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteActions button {
+    width:
+      30px;
+
+    height:
+      30px;
+
+    border-radius:
+      9px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteOmnibox {
+    height:
+      34px;
+
+    border-radius:
+      11px;
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteLayoutSelect {
+    height:
+      30px;
+
+    max-width:
+      92px;
+
+    font-size:
+      8px;
+  }
+
+}
+
+
+/* =========================================================
+   FOCUS
+   Very small browser sidebar.
+   This mode prioritises the embedded page.
+   ========================================================= */
+
+@media (min-width:700px) {
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBody {
+    grid-template-columns:
+      68px minmax(0,1fr);
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteSidebar {
+    padding:
+      8px 5px;
+
+    overflow-x:
+      hidden;
+  }
+
+
+  /* Category headings consume unnecessary width in Focus */
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteSidebarTitle,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup small,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteNoBookmarks {
+    display:
+      none;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup {
+    gap:
+      3px;
+
+    margin:
+      0 0 7px;
+  }
+
+
+  /*
+   * Keep a tiny label rather than making every Globe icon
+   * visually identical. Text truncates cleanly.
+   */
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup button,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark > button:first-child {
+    width:
+      54px;
+
+    min-height:
+      43px;
+
+    margin:
+      0 auto;
+
+    padding:
+      5px 3px;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    gap:
+      3px;
+
+    border-radius:
+      10px;
+
+    text-align:
+      center;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup button svg,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark > button:first-child svg {
+    flex:
+      0 0 auto;
+
+    width:
+      15px;
+
+    height:
+      15px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup button span,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark span {
+    display:
+      block;
+
+    width:
+      48px;
+
+    font-size:
+      7px;
+
+    line-height:
+      1.05;
+
+    overflow:
+      hidden;
+
+    text-overflow:
+      ellipsis;
+
+    white-space:
+      nowrap;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark {
+    display:
+      block;
+
+    margin-bottom:
+      3px;
+  }
+
+
+  /*
+   * Remove controls are hidden only in Focus mode.
+   * Switch to Compact/Comfortable to manage bookmarks.
+   */
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark .remove {
+    display:
+      none;
+  }
+
+
+  /* Maximum-width chrome */
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteChrome {
+    min-height:
+      48px;
+
+    grid-template-columns:
+      auto auto minmax(180px,1fr) auto;
+
+    gap:
+      5px;
+
+    padding:
+      6px 7px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBrand {
+    min-width:
+      28px;
+
+    gap:
+      0;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBrand img {
+    width:
+      26px;
+
+    height:
+      26px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBrand span {
+    display:
+      none;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteNavButtons,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteActions {
+    gap:
+      2px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteNavButtons button,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteActions button {
+    width:
+      27px;
+
+    height:
+      27px;
+
+    border-radius:
+      8px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteOmnibox {
+    height:
+      31px;
+
+    gap:
+      5px;
+
+    padding:
+      0 5px 0 8px;
+
+    border-radius:
+      10px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteOmnibox input {
+    font-size:
+      10px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteOmnibox button {
+    width:
+      25px;
+
+    height:
+      25px;
+
+    border-radius:
+      7px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLayoutSelect {
+    width:
+      62px;
+
+    max-width:
+      62px;
+
+    height:
+      27px;
+
+    padding:
+      0 16px 0 5px;
+
+    border-radius:
+      8px;
+
+    font-size:
+      7px;
+  }
+
+}
+
+
+/* =========================================================
+   NARROW DESKTOP SAFETY
+   Keep PArAsYtE usable when the browser window is reduced.
+   ========================================================= */
+
+@media
+  (min-width:700px)
+  and (max-width:900px) {
+
+  .parasyteBrowser[data-layout="comfortable"]
+  .parasyteBody {
+    grid-template-columns:
+      150px minmax(0,1fr);
+  }
+
+
+  .parasyteBrowser[data-layout="compact"]
+  .parasyteBody {
+    grid-template-columns:
+      100px minmax(0,1fr);
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBody {
+    grid-template-columns:
+      60px minmax(0,1fr);
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup button,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark > button:first-child {
+    width:
+      48px;
+  }
+
+
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteLinkGroup button span,
+  .parasyteBrowser[data-layout="focus"]
+  .parasyteBookmark span {
+    width:
+      43px;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   Existing PArAsYtE responsive behaviour remains authoritative.
+   ========================================================= */
+
+@media (max-width:699px) {
+
+  .parasyteLayoutSelect {
+    max-width:
+      86px;
+  }
+
+}
+
