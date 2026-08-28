@@ -67,11 +67,61 @@ async function removeDarkNavy(input, output, size) {
   await image.png().toFile(output)
 }
 
+
+async function makeWorkspaceWordmark(input, output) {
+  const { data, info } = await sharp(input)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+
+    const nearWhite =
+      r > 238 &&
+      g > 238 &&
+      b > 238
+
+    const navy =
+      r < 80 &&
+      g < 110 &&
+      b < 150
+
+    if (nearWhite) {
+      data[i + 3] = 0
+      continue
+    }
+
+    if (navy) {
+      data[i] = 255
+      data[i + 1] = 255
+      data[i + 2] = 255
+    }
+  }
+
+  await sharp(data, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: info.channels,
+    },
+  })
+    .png()
+    .toFile(output)
+}
+
 fs.mkdirSync('public/icons', { recursive: true })
 
 await removeNearWhite(
   'public/ridearrivo-wordmark.png',
   'public/ridearrivo-wordmark-transparent.png'
+)
+
+await makeWorkspaceWordmark(
+  'public/ridearrivo-wordmark.png',
+  'public/ridearrivo-wordmark-workspace.png'
 )
 
 await removeDarkNavy(

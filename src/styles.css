@@ -5638,3 +5638,44 @@ textarea {
     padding:14px;
   }
 }
+
+/* =========================================================
+   RIDEARRIVO CANONICAL WORKSPACE WORDMARK
+   Never replace with ordinary text.
+   ========================================================= */
+
+.brandLogo{
+  display:block;
+  width:auto;
+  max-width:100%;
+  height:auto;
+  object-fit:contain;
+  filter:none !important;
+  user-select:none;
+}
+
+.sidebarLogo{
+  width:190px;
+}
+
+.authLogo{
+  width:220px;
+  max-width:72vw;
+}
+
+.splashLogo{
+  width:240px;
+  max-width:72vw;
+}
+
+.setupWordmark,
+.verifyLogo{
+  width:220px;
+  max-width:72vw;
+}
+
+/* Retired text reconstruction. */
+.brandWordmark,
+.ridearrivoWordmark{
+  display:none !important;
+}
