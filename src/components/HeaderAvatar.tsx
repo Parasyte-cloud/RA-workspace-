@@ -5,6 +5,7 @@ import {
 } from 'react'
 
 import { supabase } from '../lib/supabase'
+import { resolveEmployeeAvatarUrl } from '../lib/employeeAvatar'
 
 type Props={
   userId:string
@@ -53,7 +54,7 @@ export function HeaderAvatar({
       }=
         await supabase
           .from('employee_profiles')
-          .select('avatar_url')
+          .select('avatar_path')
           .eq('id',userId)
           .maybeSingle()
 
@@ -67,15 +68,12 @@ export function HeaderAvatar({
         return
       }
 
-      const value=
-        typeof data?.avatar_url==='string'
-          ? data.avatar_url.trim()
-          : ''
+      const value =
+        await resolveEmployeeAvatarUrl(
+          data?.avatar_path
+        )
 
-      setAvatarUrl(
-        value || null
-      )
-
+      setAvatarUrl(value)
       setFailed(false)
 
     },[userId])

@@ -56,6 +56,7 @@ import {
 } from 'lucide-react'
 import { supabase,
   supabaseConfigured } from './lib/supabase'
+import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 
 
@@ -514,18 +515,10 @@ function App(){
       return
     }
 
-    let avatar_url:string|null=null
-
-    if(data.avatar_path){
-      const {
-        data:avatarData,
-      }=client.storage
-        .from('employee-avatars')
-        .getPublicUrl(data.avatar_path)
-
-      avatar_url=
-        avatarData?.publicUrl || null
-    }
+    const avatar_url =
+      await resolveEmployeeAvatarUrl(
+        data.avatar_path
+      )
 
     setProfile({
       ...(data as Profile),

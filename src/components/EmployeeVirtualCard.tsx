@@ -90,6 +90,7 @@ export function EmployeeVirtualCard({
 }:Props){
 
   const [back,setBack]=useState(false)
+  const [avatarFailed,setAvatarFailed]=useState(false)
 
   const fullName=
     profile.full_name ||
@@ -268,11 +269,13 @@ export function EmployeeVirtualCard({
 
                   <div className="virtualCardAvatar">
 
-                    {profile.avatar_url
+                    {profile.avatar_url && !avatarFailed
                       ? (
                         <img
                           src={profile.avatar_url}
                           alt=""
+                          referrerPolicy="no-referrer"
+                          onError={()=>setAvatarFailed(true)}
                         />
                       )
                       : (

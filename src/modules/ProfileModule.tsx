@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import { resolveEmployeeAvatarUrl } from '../lib/employeeAvatar'
 
 import {
   EmployeeVirtualCard,
@@ -111,7 +112,18 @@ export function ProfileModule({
       'Mon - Fri: 9:00 AM - 6:00 PM'
     )
     setAvatarPath(profile.avatar_path || '')
-    setAvatarUrl(profile.avatar_url || '')
+
+    if(profile.avatar_url){
+      setAvatarUrl(profile.avatar_url)
+    }else if(profile.avatar_path){
+      void resolveEmployeeAvatarUrl(
+        profile.avatar_path
+      ).then(url=>{
+        setAvatarUrl(url || '')
+      })
+    }else{
+      setAvatarUrl('')
+    }
   },[profile])
 
   async function save(){
