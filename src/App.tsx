@@ -24,8 +24,7 @@ import {
   KnowledgeBaseModule,
   CompanyFilesModule,
 } from './modules/Phase2Modules'
-
-import { useSessionKeeper } from './lib/useSessionKeeper'
+import { useIdleSignOut } from './lib/useIdleSignOut'
 
 type Section = 'profile'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
@@ -117,11 +116,11 @@ function App(){
   const [session,setSession]=useState<Session|null>(null)
 
 
-  useSessionKeeper(
+  useIdleSignOut(
     supabase,
-    session,
-    setSession
+    session
   )
+
   type AccessState =
     | 'loading'
     | 'approved'
@@ -160,10 +159,30 @@ function App(){
       }
     }
 
-    supabase.auth.getSession().then(({data})=>{
-      setSession(data.session)
-      setAuthReady(true)
-    })
+    supabase.auth
+      .getSession()
+      .then(({data,error})=>{
+        if(error){
+          console.error(
+            '[RideArrivo Auth] initial session error',
+            error
+          )
+        }
+
+        setSession(
+          data.session ?? null
+        )
+
+        setAuthReady(true)
+      })
+      .catch(error=>{
+        console.error(
+          '[RideArrivo Auth] initial session failure',
+          error
+        )
+
+        setAuthReady(true)
+      })
 
     const {data} =
       supabase.auth.onAuthStateChange(
@@ -292,7 +311,13 @@ function App(){
 
   const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
   const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
-  const signOut=()=>supabase?.auth.signOut()
+  const signOut=()=>{
+    window.localStorage.removeItem(
+      'ridearrivo-last-activity'
+    )
+
+    return supabase?.auth.signOut()
+  }
 
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
