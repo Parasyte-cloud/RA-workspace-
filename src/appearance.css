@@ -4539,3 +4539,98 @@ html[data-ra-theme='dark'] .authCopy p {
 
 }
 
+
+
+/* =========================================================
+   COMPACT SIDEBAR — MINI RIDEARRIVO WORDMARK
+   =========================================================
+   Full desktop:
+     normal RideArrivo branding.
+
+   Compact desktop/window:
+     retain the complete RideArrivo wordmark,
+     scaled down and centred above the icons.
+
+   Mobile:
+     existing mobile navigation remains unchanged.
+   ========================================================= */
+
+@media (min-width: 761px) and (max-width: 1279px) {
+
+  .shell.glassFrame .brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 62px !important;
+    min-height: 62px !important;
+
+    padding: 10px 4px 12px !important;
+    margin: 0 0 8px !important;
+
+    overflow: visible !important;
+
+    border-bottom:
+      1px solid rgba(255,255,255,.10) !important;
+  }
+
+  .shell.glassFrame .brand .sidebarLogo,
+  .shell.glassFrame .sidebarLogo {
+    display: block !important;
+
+    width: 62px !important;
+    max-width: 62px !important;
+
+    height: auto !important;
+    max-height: 30px !important;
+
+    margin: 0 auto !important;
+
+    object-fit: contain !important;
+    object-position: center center !important;
+
+    filter: none !important;
+
+    transform: none !important;
+
+    opacity: 1 !important;
+  }
+
+  .shell.glassFrame .brand > span {
+    display: none !important;
+  }
+
+  .shell.glassFrame .sidebar nav {
+    padding-top: 2px !important;
+  }
+
+}
+
+
+/* =========================================================
+   FULL DESKTOP SIDEBAR BRAND
+   ========================================================= */
+
+@media (min-width: 1280px) {
+
+  .shell.glassFrame .brand {
+    display: block !important;
+    height: auto !important;
+  }
+
+  .shell.glassFrame .brand .sidebarLogo,
+  .shell.glassFrame .sidebarLogo {
+    width: 176px !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+
+    object-fit: contain !important;
+    object-position: left center !important;
+
+    filter: none !important;
+  }
+
+}
+
