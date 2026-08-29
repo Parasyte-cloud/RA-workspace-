@@ -617,3 +617,33 @@ a:hover{
   }
 
 }
+
+.brandAssetPreviewPending,
+.brandAssetDocumentPreview{
+  width:100%;
+  min-height:125px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:7px;
+  padding:14px;
+  text-align:center;
+  color:var(--brand-muted);
+}
+.brandAssetPreviewPending svg,
+.brandAssetDocumentPreview svg{
+  color:#ff9900;
+}
+.brandAssetPreviewPending strong,
+.brandAssetDocumentPreview strong{
+  color:var(--brand-text);
+  font-size:12px;
+}
+.brandAssetPreviewPending span,
+.brandAssetDocumentPreview span{
+  max-width:100%;
+  overflow:hidden;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}

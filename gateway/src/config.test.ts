@@ -28,10 +28,17 @@ test('loads secure gateway defaults',()=>{
     true
   )
   assert.equal(
+    config.publicOrigin,
+    'https://linux.ridearrivo.com'
+  )
+  assert.equal(
     config.containerNetworkPrefix,
     'parasyte-engineer'
   )
   assert.equal(config.sessionMaxMs,3_600_000)
+  assert.equal(config.ideSessionMaxMs,3_600_000)
+  assert.equal(config.githubOrg,'Parasyte-cloud')
+  assert.equal(config.githubAppId,null)
 })
 
 test('refuses the root Docker socket',()=>{
@@ -51,5 +58,33 @@ test('rejects an unsafe network prefix',()=>{
       PARASYTE_CONTAINER_NETWORK_PREFIX:'bad prefix'
     }),
     /invalid characters/
+  )
+})
+
+test('requires complete GitHub App configuration',()=>{
+  assert.throws(
+    ()=>loadConfig({
+      ...environment(),
+      GITHUB_APP_ID:'123'
+    }),
+    /configured together/
+  )
+})
+
+test('rejects malformed GitHub identifiers and organization names',()=>{
+  assert.throws(
+    ()=>loadConfig({
+      ...environment(),
+      GITHUB_APP_ID:'not-a-number'
+    }),
+    /GITHUB_APP_ID must be numeric/
+  )
+
+  assert.throws(
+    ()=>loadConfig({
+      ...environment(),
+      GITHUB_ORG:'bad org name'
+    }),
+    /valid GitHub organization name/
   )
 })

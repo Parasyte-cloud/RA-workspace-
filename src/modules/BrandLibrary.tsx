@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -187,6 +188,9 @@ export default function BrandLibrary(){
 
   const [message,setMessage] =
     useState('')
+
+  const previewBackfillStarted =
+    useRef(false)
 
   const [query,setQuery] =
     useState('')
@@ -691,7 +695,7 @@ export default function BrandLibrary(){
 
 
   const buildMissingPreviews =
-    async()=>{
+    async(silent=false)=>{
       if(!supabase || !isAdmin){
         return
       }
@@ -703,12 +707,16 @@ export default function BrandLibrary(){
       )
 
       if(!missing.length){
-        setMessage('All image assets already have internal previews.')
+        if(!silent){
+          setMessage('All image assets already have internal previews.')
+        }
         return
       }
 
       setUploading(true)
-      setMessage('')
+      if(!silent){
+        setMessage('')
+      }
 
       try{
         for(const asset of missing){
@@ -748,14 +756,36 @@ export default function BrandLibrary(){
           if(updateError) throw updateError
         }
 
-        setMessage('Missing image previews generated. Originals remain protected.')
+        if(!silent){
+          setMessage('Missing image previews generated. Originals remain protected.')
+        }
         await load()
       }catch(error:any){
-        setMessage(error?.message || 'Unable to generate missing previews.')
+        if(!silent){
+          setMessage(error?.message || 'Unable to generate missing previews.')
+        }else{
+          console.error('Brand preview backfill',error)
+        }
       }finally{
         setUploading(false)
       }
     }
+
+
+  useEffect(()=>{
+    if(
+      !isAdmin ||
+      loading ||
+      uploading ||
+      previewBackfillStarted.current ||
+      !assets.some(asset=>asset.mime_type.startsWith('image/') && !asset.preview_path)
+    ){
+      return
+    }
+
+    previewBackfillStarted.current=true
+    void buildMissingPreviews(true)
+  },[assets,isAdmin,loading,uploading])
 
 
   const download =
@@ -1069,27 +1099,29 @@ export default function BrandLibrary(){
 
                 <div className="brandAssetPreview" onContextMenu={event=>event.preventDefault()} title="Internal preview. Original download requires approval.">
 
-                  {asset.preview_url &&
-                   asset.mime_type
-                     .startsWith(
-                       'image/'
-                     )
-                    ? (
-                      <img
-                        src={
-                          asset.preview_url
-                        }
-                        alt={
-                          asset.name
-                        }
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        draggable={false}
-                      />
-                    )
+                  {asset.mime_type.startsWith('image/')
+                    ? asset.preview_url
+                      ? (
+                        <img
+                          src={asset.preview_url}
+                          alt={asset.name}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          draggable={false}
+                        />
+                      )
+                      : (
+                        <div className="brandAssetPreviewPending">
+                          <FileImage size={34}/>
+                          <strong>Preview preparing</strong>
+                          <span>The protected original is not exposed.</span>
+                        </div>
+                      )
                     : (
-                      <div className="brandAssetFileIcon">
+                      <div className="brandAssetDocumentPreview">
                         <FileText size={36}/>
+                        <strong>{asset.mime_type==='application/pdf'?'PDF document':'Brand file'}</strong>
+                        <span>{asset.file_name}</span>
                       </div>
                     )
                   }

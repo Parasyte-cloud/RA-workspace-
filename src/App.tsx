@@ -814,7 +814,7 @@ function App(){
             profile={profile}
             onProfileUpdated={loadProfile}
           />
-        } 
+        }
         {section==='gallery'&&<HeadshotGallery/>}
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
@@ -828,7 +828,7 @@ function App(){
         {section==='crm'&&<CRMModule/>}
         {section==='executive'&&<ExecutiveTeamWorkspace onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='support'&&<SupportTeamWorkspace execution={<SupportModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering openWorkspace={openWorkspace}/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>} 
+        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='linux'&&<ParasyteLinux/>}
         {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
@@ -839,10 +839,10 @@ function App(){
         {section==='settings'&&<AppearanceSettings/>}
         {section==='admin'&&<AdminModule/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
-        {section==='apps'&&<ApplicationsHub/>} 
-        {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>} 
+        {section==='apps'&&<ApplicationsHub/>}
+        {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>}
       </div>
-    
+
         </Suspense>
 </main>
   </div></div>
@@ -1357,7 +1357,7 @@ function Support(){
   </section>
 }
 
-function Engineering({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){
+function Engineering(){
   const copy=(text:string)=>navigator.clipboard.writeText(text)
   const downloadBootstrap=async(key:string)=>{
     if(!supabase) return
@@ -1369,7 +1369,7 @@ function Engineering({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string
     const url=URL.createObjectURL(blob)
     const a=document.createElement('a');a.href=url;a.download=String(row.file_name||'ridearrivo-setup.txt');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
-  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'macos-bootstrap',resourceName:'RideArrivo macOS engineering setup'}} onGranted={()=>downloadBootstrap('macos-bootstrap')} label="macOS setup"/><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'windows-bootstrap',resourceName:'RideArrivo Windows engineering setup'}} onGranted={()=>downloadBootstrap('windows-bootstrap')} label="Windows setup"/></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed engineering setup</strong><p>Engineering setup packages are protected workspace assets. Employees request download access and an administrator grants time-bounded permission before the installer leaves the workspace.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Observability" text="Errors, performance, product analytics, logs and production health."/></div></div></div></section>
+  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'macos-bootstrap',resourceName:'RideArrivo macOS engineering setup'}} onGranted={()=>downloadBootstrap('macos-bootstrap')} label="macOS setup"/><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'windows-bootstrap',resourceName:'RideArrivo Windows engineering setup'}} onGranted={()=>downloadBootstrap('windows-bootstrap')} label="Windows setup"/></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed engineering setup</strong><p>Engineering setup packages are protected workspace assets. Employees request download access and an administrator grants time-bounded permission before the installer leaves the workspace.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Feature icon={<Code2/>} title="GitHub Engineering" text="Repositories, pull requests and Actions are available natively in the Engineering workspace through the secure gateway."/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Observability" text="Errors, performance, product analytics, logs and production health."/></div></div></div></section>
 }
 
 function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}

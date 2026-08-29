@@ -32,3 +32,4 @@
   letter-spacing:.08em;
   text-transform:uppercase;
 }
+.companyFilePreviewPending{min-height:220px;display:grid;place-items:center;align-content:center;gap:7px;padding:24px;text-align:center;color:var(--ra-muted)}.companyFilePreviewPending svg{color:var(--amber)}.companyFilePreviewPending strong{color:var(--ra-text)}.companyFilePreviewPending small{max-width:420px}.companyFileDocumentCard{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:14px;border:1px solid var(--ra-border);border-radius:14px;background:var(--ra-surface-muted)}.companyFileDocumentCard svg{flex:0 0 auto;color:var(--amber)}.companyFileDocumentCard strong,.companyFileDocumentCard small{display:block}.companyFileDocumentCard small{margin-top:3px;max-width:560px;overflow:hidden;color:var(--ra-muted);text-overflow:ellipsis;white-space:nowrap}

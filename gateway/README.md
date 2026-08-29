@@ -1,6 +1,6 @@
 # ParAsYtE Linux Gateway
 
-Authenticated WebSocket terminals for RideArrivo engineers. The gateway validates each employee's Supabase access token, asks the database RPC to verify an active `engineer` or `admin` role, then attaches that employee to a dedicated non-root container with a persistent `/workspace` volume.
+Authenticated engineering sessions for RideArrivo engineers. The gateway validates each employee's Supabase access token, asks the database RPC to verify an active `engineer` or `admin` role, then attaches that employee to a dedicated non-root container with a persistent `/workspace` volume. The same isolated container now powers the ParAsYtE terminal, an embedded code-server VS Code workbench, and local web-app previews.
 
 ## Security boundary
 
@@ -10,7 +10,10 @@ Authenticated WebSocket terminals for RideArrivo engineers. The gateway validate
 - A short-lived, network-disabled initializer gets only `CAP_CHOWN` when a new volume is created so the non-root shell can write to it.
 - Every engineer gets a separately labeled Docker network, so tooling keeps outbound access without sharing a container network with another employee.
 - Use a dedicated unprivileged Linux account with rootless Docker. That account must not own unrelated containers.
-- One active shell per employee is allowed. Idle containers stop automatically; sessions have a hard lifetime and reconnect with a freshly verified token.
+- One active terminal session per employee is allowed. The embedded IDE uses a separate short-lived, HttpOnly, Secure cookie issued only after the same server-side engineer/admin authorization check.
+- code-server is pinned from the official Coder image, runs as UID/GID `10001`, and starts with browser file downloads and uploads disabled.
+- GitHub integration uses a GitHub App on the gateway only. Never place the GitHub App private key or an installation token in Vite, browser storage, the tooling image or an engineer workspace volume.
+- Idle containers stop automatically; terminal and IDE sessions have hard lifetimes and reconnect with freshly verified authorization.
 
 ## Build and test
 
@@ -21,7 +24,7 @@ npm test
 docker build -t parasyte-linux-tooling:1.0.0 tooling
 ```
 
-The image contains Git, Node.js 22, Python 3 and a checksum-verified Supabase CLI. The engineer installs project dependencies into the persistent workspace; nothing is installed with elevated privileges in a session.
+The image contains Git, Node.js 22, Python 3, a checksum-verified Supabase CLI and code-server pinned to the official multi-architecture Coder image manifest. The engineer installs project dependencies into the persistent workspace; nothing is installed with elevated privileges in a session.
 
 ## Linux server setup
 
@@ -41,7 +44,7 @@ The image contains Git, Node.js 22, Python 3 and a checksum-verified Supabase CL
    docker build -t parasyte-linux-tooling:1.0.0 tooling
    ```
 
-4. Copy `.env.example` to `~/.config/parasyte-linux/gateway.env`, set the real Supabase URL, publishable/anon key, exact workspace origin and rootless Docker socket, then restrict it:
+4. Copy `.env.example` to `~/.config/parasyte-linux/gateway.env`, set the real Supabase URL, publishable/anon key, `PARASYTE_PUBLIC_ORIGIN`, exact workspace origin and rootless Docker socket, then restrict it:
 
    ```bash
    mkdir -p ~/.config/parasyte-linux ~/.config/systemd/user
@@ -58,8 +61,22 @@ The image contains Git, Node.js 22, Python 3 and a checksum-verified Supabase CL
    curl --fail http://127.0.0.1:8787/health
    ```
 
-6. Install the Nginx template, issue the TLS certificate, validate with `nginx -t`, and reload Nginx. Keep port `8787` bound to loopback; expose only HTTPS/WSS port `443`.
+6. Install the Nginx template, issue the TLS certificate, validate with `nginx -t`, and reload Nginx. The template proxies `/ws`, `/api/` and `/ide/` to the loopback-only gateway. Keep port `8787` and every dynamically allocated IDE port bound to loopback; expose only HTTPS/WSS port `443`.
 7. Apply `supabase/migrations/20260828223000_parasyte_linux_gateway.sql`, set the frontend variable to `wss://linux.ridearrivo.com/ws`, and rebuild the workspace.
+
+## Native GitHub console
+
+The Engineering workspace deliberately does **not** iframe `github.com`. Instead, the gateway renders repository, pull-request and Actions data through the GitHub REST API so GitHub credentials never enter the browser.
+
+Create a dedicated RideArrivo GitHub App, install it only on the repositories the workspace should expose, and grant the minimum read permissions required for the dashboard:
+
+- Metadata: read
+- Pull requests: read
+- Actions: read
+
+Then set `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID` and `GITHUB_APP_PRIVATE_KEY_BASE64` together in `gateway.env`. `GITHUB_ORG` defaults to `Parasyte-cloud`. Keep the private key only in the gateway environment file with mode `0600`.
+
+The native dashboard is intentionally read-only. Engineers who need to clone, push, review or merge should authenticate their own GitHub identity inside the embedded IDE/terminal; do not hand a shared organization write token to the browser or workspace.
 
 ## Operations
 

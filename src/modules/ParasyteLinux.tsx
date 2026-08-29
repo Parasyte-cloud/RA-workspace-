@@ -88,6 +88,18 @@ export default function ParasyteLinux(){
       'disconnected'
     )
 
+  const statusRef =
+    useRef<ConnectionState>(
+      'disconnected'
+    )
+
+  const updateStatus=(
+    next:ConnectionState
+  )=>{
+    statusRef.current=next
+    setStatus(next)
+  }
+
   const [message,setMessage] =
     useState('')
 
@@ -95,7 +107,7 @@ export default function ParasyteLinux(){
     String(
       import.meta.env
         .VITE_PARASYTE_LINUX_WS ||
-      ''
+      'wss://linux.ridearrivo.com/ws'
     ).trim()
 
 
@@ -157,7 +169,7 @@ export default function ParasyteLinux(){
 
     socketRef.current=null
 
-    setStatus(
+    updateStatus(
       'disconnected'
     )
   }
@@ -168,7 +180,7 @@ export default function ParasyteLinux(){
     setMessage('')
 
     if(!gateway){
-      setStatus('error')
+      updateStatus('error')
 
       setMessage(
         'ParAsYtE Linux gateway is not configured yet.'
@@ -189,7 +201,7 @@ export default function ParasyteLinux(){
       supabase
 
     if(!client){
-      setStatus('error')
+      updateStatus('error')
 
       setMessage(
         'Workspace authentication is unavailable.'
@@ -211,7 +223,7 @@ export default function ParasyteLinux(){
       error ||
       !session?.access_token
     ){
-      setStatus('error')
+      updateStatus('error')
 
       setMessage(
         'Your workspace session has expired. Sign in again.'
@@ -222,13 +234,17 @@ export default function ParasyteLinux(){
 
     if(
       socketRef.current &&
-      socketRef.current.readyState===
-        WebSocket.OPEN
+      (
+        socketRef.current.readyState===
+          WebSocket.OPEN ||
+        socketRef.current.readyState===
+          WebSocket.CONNECTING
+      )
     ){
       return
     }
 
-    setStatus(
+    updateStatus(
       'connecting'
     )
 
@@ -289,7 +305,7 @@ export default function ParasyteLinux(){
             payload?.type===
               'ready'
           ){
-            setStatus(
+            updateStatus(
               'connected'
             )
 
@@ -327,7 +343,7 @@ export default function ParasyteLinux(){
                 'Linux session error.'
               )
 
-            setStatus(
+            updateStatus(
               'error'
             )
 
@@ -337,6 +353,11 @@ export default function ParasyteLinux(){
 
             terminal.writeln(
               `\r\n\x1b[31m${detail}\x1b[0m`
+            )
+
+            socket.close(
+              4003,
+              'Session rejected'
             )
 
             return
@@ -357,7 +378,7 @@ export default function ParasyteLinux(){
 
       socket.onerror=()=>{
 
-        setStatus(
+        updateStatus(
           'error'
         )
 
@@ -371,7 +392,7 @@ export default function ParasyteLinux(){
 
         socketRef.current=null
 
-        setStatus(
+        updateStatus(
           event.code===1000
             ? 'disconnected'
             : 'error'
@@ -396,7 +417,7 @@ export default function ParasyteLinux(){
         error
       )
 
-      setStatus(
+      updateStatus(
         'error'
       )
 
@@ -532,19 +553,13 @@ export default function ParasyteLinux(){
 
     terminal.writeln('')
 
-    if(gateway){
-      terminal.writeln(
-        'Select Connect to start your isolated Linux session.'
-      )
-    }else{
-      terminal.writeln(
-        'Terminal client ready.'
-      )
+    terminal.writeln(
+      'Select Connect to start your isolated Linux session.'
+    )
 
-      terminal.writeln(
-        'Secure Linux gateway deployment is required before shell access becomes available.'
-      )
-    }
+    terminal.writeln(
+      'VS Code, terminal and local app previews use the same protected engineering container.'
+    )
 
 
     const input =
@@ -558,7 +573,7 @@ export default function ParasyteLinux(){
             !socket ||
             socket.readyState!==
               WebSocket.OPEN ||
-            status!==
+            statusRef.current!==
               'connected'
           ){
             return
@@ -618,7 +633,6 @@ export default function ParasyteLinux(){
 
   },[
     gateway,
-    status,
   ])
 
 

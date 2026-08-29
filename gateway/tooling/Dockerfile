@@ -1,4 +1,7 @@
-FROM node:22-bookworm-slim
+# Pin code-server to the current audited multi-architecture release manifest.
+FROM ghcr.io/coder/code-server:4.133.0-trixie@sha256:e073a441c61c85821a7f16b64cf93b4e77b4092899bb1f3bed906fbd558afd62 AS code_server
+
+FROM node:22.23.2-bookworm-slim
 
 ARG SUPABASE_CLI_VERSION=2.116.0
 ARG TARGETARCH
@@ -12,13 +15,21 @@ RUN apt-get update \
     ca-certificates \
     curl \
     git \
+    git-lfs \
     jq \
     less \
     openssh-client \
     python3 \
     python3-pip \
     python3-venv \
+  && git lfs install --system \
   && rm -rf /var/lib/apt/lists/*
+
+# Copy the signed/published code-server package from the pinned official image.
+COPY --from=code_server /usr/bin/code-server /usr/bin/code-server
+COPY --from=code_server /usr/lib/code-server /usr/lib/code-server
+
+RUN code-server --version
 
 RUN set -eux; \
   case "${TARGETARCH}" in \
@@ -52,9 +63,10 @@ ENV HOME=/workspace/.home \
   LC_ALL=C.UTF-8 \
   NODE_ENV=development \
   NPM_CONFIG_CACHE=/workspace/.home/.npm-cache \
-  PIP_CACHE_DIR=/workspace/.home/.cache/pip
+  PIP_CACHE_DIR=/workspace/.home/.cache/pip \
+  CS_DISABLE_GETTING_STARTED_OVERRIDE=1
 
 WORKDIR /workspace
 USER 10001:10001
 
-CMD ["sleep","infinity"]
+CMD ["code-server","--bind-addr","0.0.0.0:3000","--auth","none","--disable-file-downloads","--disable-file-uploads","--disable-telemetry","--disable-update-check","--disable-getting-started-override","--app-name","RideArrivo Engineering IDE","/workspace"]

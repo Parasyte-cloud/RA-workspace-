@@ -24,6 +24,7 @@ import {
 import { openInParasyte } from '../lib/parasyte'
 import SharedWorkspacesHub from './SharedWorkspacesHub'
 import { DataWorkbench } from './DataWorkbench'
+import EngineeringWorkbench from './EngineeringWorkbench'
 
 import '../department-workspace.css'
 
@@ -79,6 +80,7 @@ type Props={
   capabilities:Capability[]
   tools:Tool[]
   workspaceLinks?:WorkspaceLink[]
+  workstationContent?:ReactNode
   onNavigate?:(target:string)=>void
 
   execution:ReactNode
@@ -121,6 +123,7 @@ export function DepartmentTeamWorkspace({
   capabilities,
   tools,
   workspaceLinks=[],
+  workstationContent,
   onNavigate,
   execution
 }:Props){
@@ -599,6 +602,8 @@ export function DepartmentTeamWorkspace({
 
           </div>
 
+          {workstationContent}
+
           {onNavigate && workstationLinks.length>0 && <>
             <div className="departmentSectionHeader"><div>
               <span className="eyebrow">WORKSPACE ESSENTIALS</span>
@@ -919,7 +924,6 @@ export function EngineeringTeamWorkspace({
         {title:'Design & Architecture',description:'Figma, system design, ADRs, schemas and technical roadmap.'}
     ]}
     tools={[
-        {name:'GitHub',purpose:'Repositories, issues, pull requests, Actions, releases and code security.',url:'https://github.com/Parasyte-cloud'},
         {name:'Supabase',purpose:'Database, authentication, storage, realtime and Edge Functions.',url:'https://supabase.com/dashboard'},
         {name:'Render',purpose:'Backend services, deployment and runtime logs.',url:'https://dashboard.render.com/'},
         {name:'Cloudflare',purpose:'DNS, edge delivery, security and Pages deployments.',url:'https://dash.cloudflare.com/'},
@@ -933,6 +937,7 @@ export function EngineeringTeamWorkspace({
         {name:'PArAsYtE Browser',purpose:'Open approved engineering web consoles inside the workspace.',target:'parasyte'},
         {name:'Applications',purpose:'Approved internal and managed engineering applications.',target:'apps'}
       ]}
+      workstationContent={<EngineeringWorkbench/>}
       onNavigate={onNavigate}
       execution={execution}
     />

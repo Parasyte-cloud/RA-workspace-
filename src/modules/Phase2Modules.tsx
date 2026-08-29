@@ -75,6 +75,11 @@ type WorkspaceFile = {
   preview_url?: string|null
 }
 
+function workspaceFileLooksImage(file: WorkspaceFile) {
+  const type=String(file.file_type || '').toLowerCase()
+  return type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
+}
+
 function ModuleHeader({
   eyebrow,
   title,
@@ -459,6 +464,7 @@ export function CompanyFilesModule() {
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
   const inputRef = useRef<HTMLInputElement|null>(null)
+  const previewBackfillStarted = useRef(false)
 
   const canUpload = role === 'legal' || role === 'admin'
 
@@ -510,6 +516,82 @@ export function CompanyFilesModule() {
     setRole(String(profileResult.data?.role || 'employee').toLowerCase())
     setLoading(false)
   }
+
+  async function backfillMissingCompanyPreviews() {
+    if (!supabase || role !== 'admin' || previewBackfillStarted.current) return
+
+    const missing = items.filter(file =>
+      !file.preview_path &&
+      workspaceFileLooksImage(file)
+    )
+
+    if (!missing.length) return
+
+    previewBackfillStarted.current = true
+
+    try {
+      for (const file of missing) {
+        const { data: location, error: locationError } = await supabase.rpc(
+          'get_workspace_file_download_location',
+          { p_file_id: file.id }
+        )
+        if (locationError) throw locationError
+
+        const payload = location as {
+          provider?: string
+          storage_path?: string|null
+        } | null
+
+        if (payload?.provider !== 'supabase' || !payload.storage_path) continue
+
+        const { data: blob, error: downloadError } = await supabase.storage
+          .from('company-files')
+          .download(payload.storage_path)
+        if (downloadError) throw downloadError
+
+        const source = new File(
+          [blob],
+          file.name,
+          { type: blob.type || (String(file.file_type || '').startsWith('image/') ? file.file_type : 'image/png') }
+        )
+        const preview = await createInternalImagePreview(source)
+        if (!preview) continue
+
+        const previewPath = `company/${file.id}/preview.webp`
+        const { error: previewError } = await supabase.storage
+          .from('workspace-previews')
+          .upload(previewPath, preview, {
+            upsert: true,
+            contentType: 'image/webp',
+            cacheControl: '900',
+          })
+        if (previewError) throw previewError
+
+        const { error: updateError } = await supabase
+          .from('workspace_files')
+          .update({ preview_path: previewPath })
+          .eq('id', file.id)
+        if (updateError) throw updateError
+      }
+
+      await load()
+    } catch (error) {
+      console.error('Company preview backfill', error)
+    }
+  }
+
+  useEffect(() => {
+    if (
+      role === 'admin' &&
+      !loading &&
+      items.some(file =>
+        !file.preview_path &&
+        workspaceFileLooksImage(file)
+      )
+    ) {
+      void backfillMissingCompanyPreviews()
+    }
+  }, [items, loading, role])
 
   async function uploadCompanyFile(event: React.FormEvent) {
     event.preventDefault()
@@ -715,19 +797,35 @@ export function CompanyFilesModule() {
               </div>
             </div>
 
-            {file.preview_url && (
+            {workspaceFileLooksImage(file) ? (
               <div
                 className="companyFilePreview"
                 onContextMenu={(event) => event.preventDefault()}
                 title="Internal preview. Original download requires approval."
               >
-                <img
-                  src={file.preview_url}
-                  alt={`${file.name} preview`}
-                  loading="lazy"
-                  draggable={false}
-                />
+                {file.preview_url ? (
+                  <img
+                    src={file.preview_url}
+                    alt={`${file.name} preview`}
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="companyFilePreviewPending">
+                    <FileText size={30}/>
+                    <strong>Preview preparing</strong>
+                    <small>The protected original is not exposed.</small>
+                  </div>
+                )}
                 <span>Internal preview</span>
+              </div>
+            ) : (
+              <div className="companyFileDocumentCard">
+                <FileText size={28}/>
+                <div>
+                  <strong>{file.file_type || 'Document'}</strong>
+                  <small>{file.name}</small>
+                </div>
               </div>
             )}
 
