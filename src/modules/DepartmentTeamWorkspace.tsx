@@ -11,6 +11,7 @@ import type {
 
 import {
   ExternalLink,
+  FolderKanban,
   Layers3,
   RefreshCw,
   UsersRound,
@@ -21,6 +22,7 @@ import {
   supabase
 } from '../lib/supabase'
 import { openInParasyte } from '../lib/parasyte'
+import SharedWorkspacesHub from './SharedWorkspacesHub'
 
 import '../department-workspace.css'
 
@@ -56,6 +58,7 @@ type WorkspaceLink={
 
 const sharedWorkspaceLinks:WorkspaceLink[]=[
   {name:'My Tasks & Approvals',purpose:'Assignments, deadlines, approvals and progress.',target:'tasks'},
+  {name:'Shared Workspaces',purpose:'Project rooms and cross-department collaboration.',target:'shared'},
   {name:'Mail',purpose:'RideArrivo company email and team communication.',target:'mail'},
   {name:'Calendar',purpose:'Meetings, deadlines and scheduled work.',target:'calendar'},
   {name:'Company Files',purpose:'Controlled documents and shared department records.',target:'files'},
@@ -132,6 +135,7 @@ export function DepartmentTeamWorkspace({
     useState<
       'team'
       | 'workstation'
+      | 'shared'
       | 'execution'
     >('workstation')
 
@@ -448,9 +452,18 @@ export function DepartmentTeamWorkspace({
 
       <div className="departmentTabs">
         <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workstation</button>
+        <button type="button" className={view==='shared'?'active':''} onClick={()=>setView('shared')}><FolderKanban size={16}/>Shared Workspaces</button>
         <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Execution</button>
         <button type="button" className={view==='team'?'active':''} onClick={()=>setView('team')}><UsersRound size={16}/>Team</button>
       </div>
+
+      {view==='shared' &&
+        <SharedWorkspacesHub
+          embedded
+          onNavigate={onNavigate}
+        />
+      }
+
 
       {view==='team' &&
         <div className="departmentTeam">

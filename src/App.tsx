@@ -27,6 +27,7 @@ import {
   ExternalLink,
   FileCheck2,
   FileText,
+  FolderKanban,
   Gauge,
   Headphones,
   Home,
@@ -111,12 +112,13 @@ import {
   CompanyFilesModule,
   OverviewMetrics,
   HeadshotGallery,
-  AppearanceSettings
+  AppearanceSettings,
+  SharedWorkspacesHub
 } from './lazy-routes'
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -182,6 +184,7 @@ const sectionAccess:Record<Section,Role[]>={
   announcements:allWorkspaceRoles,
   calendar:allWorkspaceRoles,
   tasks:allWorkspaceRoles,
+  shared:allWorkspaceRoles,
   files:allWorkspaceRoles,
   brand:allWorkspaceRoles,
   knowledge:allWorkspaceRoles,
@@ -602,7 +605,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO Workspace',Crown],['support','Support Workspace',Headphones],['operations','Operations Workspace',BriefcaseBusiness],['people','People & HR Workspace',Users],['engineering','Engineering Workspace',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance Workspace',CircleDollarSign],['marketing','Marketing Workspace',BarChart3],['partnerships','Partnerships Workspace',Building2],['legal','Legal Workspace',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['shared','Shared Workspaces',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO Workspace',Crown],['support','Support Workspace',Headphones],['operations','Operations Workspace',BriefcaseBusiness],['people','People & HR Workspace',Users],['engineering','Engineering Workspace',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance Workspace',CircleDollarSign],['marketing','Marketing Workspace',BarChart3],['partnerships','Partnerships Workspace',Building2],['legal','Legal Workspace',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -809,6 +812,7 @@ function App(){
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
+        {section==='shared'&&<SharedWorkspacesHub onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
         {section==='brand'&&<BrandLibrary/>}

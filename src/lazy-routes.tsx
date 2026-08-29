@@ -1,6 +1,11 @@
 import { lazy } from 'react'
 import './lazy-routes.css'
 
+
+export const SharedWorkspacesHub = lazy(
+  () => import('./modules/SharedWorkspacesHub')
+)
+
 export const MarketingTeamWorkspace = lazy(
   () =>
     import('./modules/MarketingTeamWorkspace').then(
