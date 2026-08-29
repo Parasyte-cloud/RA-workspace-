@@ -111,3 +111,28 @@ The workspace now includes `Pulse`, an internal social/news feed for RideArrivo 
 RideArrivo uses department-first navigation. The sidebar names the department (Support, Operations, People & HR, Engineering, Finance, Marketing, Partnerships, Legal, CEO / Management) rather than adding separate department "Workspace" entries. Opening a department reveals its operating workspace, collaboration, execution tools and team context.
 
 Shared project workspaces are invitation-based and do not weaken department boundaries. Employee headshot collections are owner-private. Company Files uploads are restricted to Legal/Admin, and protected downloads require administrator approval before files leave the workspace.
+
+## Personalized Dashboard, KPI and Recognition
+
+`Overview` is now the employee `Dashboard`. Every active employee sees a personalized greeting, daily encouragement, their primary workstation, a transparent rolling 30-day KPI, the current year-to-date KPI, and a performance message derived from recorded work. Employees with no assigned work show `insufficient data` rather than an artificial zero.
+
+Administration can assign or reassign a primary workstation independently of job title/role. The Administration workstation includes identity/access controls, workstation assignment, KPI oversight and file-download governance.
+
+Monthly recognition is generated from the previous calendar month's recorded work only when there is enough evidence for a fair comparison. The current Top Performer badge stays active until a replacement winner is successfully generated. The winner also receives a notification and a company-wide recognition announcement. Annual KPI snapshots are refreshed daily and preserved by year.
+
+These KPI signals are for coaching, workload visibility and recognition. They do not automatically make compensation, promotion, discipline or termination decisions.
+
+## Paystack + Flutterwave Finance integration
+
+The Finance workstation includes a native read-only Payments Control Centre backed by the `finance-payments` Supabase Edge Function. Provider secret keys must be stored only as Supabase function secrets:
+
+```text
+PAYSTACK_SECRET_KEY
+FLUTTERWAVE_SECRET_KEY
+```
+
+Do not place either secret in `.env`, Vite variables, Cloudflare Pages variables or browser storage. The first release exposes read-only transaction and settlement visibility; refunds, transfers and other money-moving actions are intentionally excluded.
+
+### KPI period integrity
+
+Rolling, monthly and annual KPI calculations use evidence that falls inside the relevant evaluation window. Completion and acknowledgement timestamps after a closed period do not retroactively improve that period. On 1 January the previous year's KPI is refreshed one final time and marked final; the historical annual record then remains available by evaluation year.

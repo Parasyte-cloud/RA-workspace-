@@ -211,6 +211,10 @@ export const WorkDesk = lazy(
     )
 )
 
+export const ProjectManagementModule = lazy(
+  () => import('./modules/ProjectManagementModule')
+)
+
 
 export const AnnouncementsModule = lazy(
   () =>

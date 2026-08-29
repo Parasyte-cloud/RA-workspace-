@@ -27,6 +27,7 @@ import {
   ExternalLink,
   FileCheck2,
   FileText,
+  FolderKanban,
   Gauge,
   Headphones,
   Home,
@@ -70,6 +71,8 @@ import { useIdleSignOut } from './lib/useIdleSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
 import ControlledDownloadButton from './components/ControlledDownloadButton'
+import PersonalDashboard from './modules/PersonalDashboard'
+import DevicePresence from './components/DevicePresence'
 
 
 import { WorkspaceClock } from './components/WorkspaceClock'
@@ -106,6 +109,7 @@ import {
   ProfileModule,
   ApplicationsHub,
   WorkDesk,
+  ProjectManagementModule,
   AnnouncementsModule,
   CalendarModule,
   KnowledgeBaseModule,
@@ -118,9 +122,10 @@ import {
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
+type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
 type Profile = {
   id:string
   full_name:string
@@ -184,6 +189,7 @@ const sectionAccess:Record<Section,Role[]>={
   announcements:allWorkspaceRoles,
   calendar:allWorkspaceRoles,
   tasks:allWorkspaceRoles,
+  projects:allWorkspaceRoles,
   shared:allWorkspaceRoles,
   files:allWorkspaceRoles,
   brand:allWorkspaceRoles,
@@ -280,12 +286,25 @@ const sectionAccess:Record<Section,Role[]>={
   ]
 }
 
-const canAccess=(
-  role:Role,
-  section:Section
-)=>
-  sectionAccess[section]
-    ?.includes(role) === true
+const workstationForSection:Partial<Record<Section,string>>={
+  support:'support',
+  operations:'operations',
+  people:'people',
+  engineering:'engineering',
+  linux:'engineering',
+  finance:'finance',
+  marketing:'marketing',
+  partnerships:'partnerships',
+  legal:'legal',
+  executive:'executive',
+  admin:'administration',
+}
+
+const canAccess=(role:Role,section:Section,assignments:WorkstationAssignment[]=[])=>{
+  if(sectionAccess[section]?.includes(role)===true) return true
+  const workstation=workstationForSection[section]
+  return Boolean(workstation && assignments.some(item=>item.active && item.workstation===workstation))
+}
 
 
 const crmRows: {
@@ -354,6 +373,7 @@ function App(){
     job_title:''
   })
   const [authReady,setAuthReady]=useState(false)
+  const [workstationAssignments,setWorkstationAssignments]=useState<WorkstationAssignment[]>([])
   const [section,setSection]=useState<Section>('overview')
 
   const [parasyteUrl,setParasyteUrl]=
@@ -561,6 +581,28 @@ function App(){
     session?.user?.id
   ])
 
+  useEffect(()=>{
+    const client=supabase
+    if(!client || accessState!=='approved' || !profile.id){
+      setWorkstationAssignments([])
+      return
+    }
+
+    void client
+      .from('workspace_workstation_assignments')
+      .select('workstation,is_primary,active')
+      .eq('employee_id',profile.id)
+      .eq('active',true)
+      .then(({data,error})=>{
+        if(error){
+          console.error('[RideArrivo Workstation] assignment load failed',error)
+          setWorkstationAssignments([])
+          return
+        }
+        setWorkstationAssignments((data || []) as WorkstationAssignment[])
+      })
+  },[accessState,profile.id])
+
 
   const [profileMenuOpen,setProfileMenuOpen]=useState(false)
 
@@ -611,10 +653,10 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
-    return items.filter(([id])=>canAccess(profile.role,id))
-  },[profile.role])
+    return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
+  },[profile.role,workstationAssignments])
 
   const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
   const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
@@ -725,7 +767,7 @@ function App(){
     <aside className="sidebar glassPanel">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
-      <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
+      <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
     <main>
         {/* ridearrivo-route-suspense */}
@@ -808,7 +850,7 @@ function App(){
   }
 </div></div></header>
       <div className="content">
-        {section==='overview'&&<Overview setSection={setSection} role={profile.role}/>}
+        {section==='overview'&&<Overview setSection={setSection} role={profile.role} profile={profile} assignments={workstationAssignments}/>}
         {section==='profile'&&
           <ProfileModule
             profile={profile}
@@ -819,6 +861,7 @@ function App(){
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
+        {section==='projects'&&<ProjectManagementModule onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='shared'&&<SharedWorkspacesHub onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
@@ -1112,12 +1155,15 @@ function AuthGate(){
 
           <button
             type="button"
-            className="glassButton"
+            className="authRecoveryButton"
             disabled={busy}
             onClick={()=>void sendPasswordReset()}
-            style={{width:'100%',marginTop:'10px'}}
           >
-            Forgot password / Reset password
+            <KeyRound size={18}/>
+            <span>
+              <strong>Forgot / Reset Password</strong>
+              <small>Send one secure recovery link to your work email</small>
+            </span>
           </button>
 
           <p
@@ -1137,228 +1183,8 @@ function AuthGate(){
   )
 }
 
-function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
-  const launchers=[
-    ['executive','CEO / Management','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
-    ['support','Support','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
-    ['operations','Operations','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
-    ['people','People & HR','Recruitment, onboarding, leave, performance and employee operations.',Users],
-    ['engineering','Engineering','Repos, deployments, infrastructure, mobile delivery, security and APIs.',Code2],
-    ['finance','Finance','Accounting, banking, receivables, payables, budgets, tax and close.',CircleDollarSign],
-    ['marketing','Marketing','Campaigns, content, acquisition, analytics, projects and brand execution.',BarChart3],
-    ['partnerships','Partnerships','Partners, agreements, pipeline, referrals, launch and renewals.',Building2],
-    ['legal','Legal & Compliance','Contracts, privacy, compliance, filings, evidence and legal requests.',Scale]
-  ] as const
-  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Your department workstation is the primary place to work. Managers and administrators can open the cross-functional workstations they oversee."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
-}
-function CRM(){
-  return <section>
-    <SectionTitle
-      eyebrow="CUSTOMER RELATIONSHIPS"
-      title="CRM"
-      subtitle="A single view of travellers, riders, corporate accounts, partners, opportunities and every customer touchpoint."
-      actions={
-        <button className="primaryButton">
-          <UserPlus size={16}/>
-          New lead
-        </button>
-      }
-    />
-
-    <div className="stats">
-      <Metric
-        icon={<Users/>}
-        label="Contacts"
-        value="0"
-        hint="Awaiting live CRM connection"
-      />
-      <Metric
-        icon={<Building2/>}
-        label="Corporate accounts"
-        value="0"
-        hint="Awaiting live CRM connection"
-      />
-      <Metric
-        icon={<CircleDollarSign/>}
-        label="Open pipeline"
-        value="₦0"
-        hint="Awaiting live CRM connection"
-      />
-      <Metric
-        icon={<CalendarDays/>}
-        label="Follow-ups due"
-        value="0"
-        hint="Awaiting live CRM connection"
-      />
-    </div>
-
-    <div className="glassCard tableCard">
-      <div className="tableToolbar">
-        <div>
-          <h3>Relationship pipeline</h3>
-          <p>
-            Live CRM records will appear here once the
-            production data source is connected.
-          </p>
-        </div>
-
-        <button className="glassButton">
-          <ListChecks size={16}/>
-          Activities
-        </button>
-      </div>
-
-      <div className="dataTable">
-        <div className="tr th">
-          <span>Name / Account</span>
-          <span>Type</span>
-          <span>Status</span>
-          <span>Value</span>
-          <span>Last activity</span>
-        </div>
-
-        {crmRows.map(r=>
-          <div className="tr" key={r.name}>
-            <span>
-              <strong>{r.name}</strong>
-            </span>
-            <span>{r.type}</span>
-            <span>
-              <StatusPill value={r.status}/>
-            </span>
-            <span>{r.value}</span>
-            <span>{r.last}</span>
-          </div>
-        )}
-      </div>
-
-      {!crmRows.length&&
-        <div className="emptyDataState">
-          No live CRM records connected yet.
-        </div>
-      }
-    </div>
-
-    <div className="grid3">
-      <Feature
-        icon={<TicketCheck/>}
-        title="Customer 360"
-        text="Bookings, support cases, notes, payments and communications tied to one profile."
-      />
-      <Feature
-        icon={<CircleDollarSign/>}
-        title="Corporate sales"
-        text="Track hotel, corporate and travel-agent opportunities from lead to signed account."
-      />
-      <Feature
-        icon={<Activity/>}
-        title="Activity timeline"
-        text="Calls, emails, tasks, meetings and ownership changes with a clear audit history."
-      />
-    </div>
-  </section>
-}
-
-function Support(){
-  return <section>
-    <SectionTitle
-      eyebrow="SUPPORT CONTROL"
-      title="Support Station"
-      subtitle="Booking intake, assignment, live-trip support, safety and post-trip resolution."
-    />
-
-    <div className="stats">
-      <Metric
-        icon={<LifeBuoy/>}
-        label="Unassigned orders"
-        value="0"
-        hint="Awaiting live Support connection"
-      />
-      <Metric
-        icon={<Activity/>}
-        label="Active rides"
-        value="0"
-        hint="Awaiting live Operations connection"
-      />
-      <Metric
-        icon={<ShieldAlert/>}
-        label="Panic alerts"
-        value="0"
-        hint="Awaiting live safety feed"
-      />
-      <Metric
-        icon={<Gauge/>}
-        label="Avg response"
-        value="0m"
-        hint="Awaiting live Support metrics"
-      />
-    </div>
-
-    <div className="grid2">
-      <div className="glassCard">
-        <h3>Priority booking queue</h3>
-        <p>
-          Live Support and booking records will appear here
-          when the production backend is connected.
-        </p>
-
-        <div className="compactList">
-          {supportQueue.map(q=>
-            <div key={q.id}>
-              <span>
-                <strong>{q.id}</strong>
-                <small>
-                  {q.rider} · {q.route}
-                </small>
-              </span>
-
-              <span>
-                <StatusPill value={q.state}/>
-                <small>{q.priority}</small>
-              </span>
-            </div>
-          )}
-        </div>
-
-        {!supportQueue.length&&
-          <div className="emptyDataState">
-            No live Support queue connected yet.
-          </div>
-        }
-      </div>
-
-      <div className="glassCard">
-        <h3>Support toolkit</h3>
-
-        <div className="toolGrid">
-          <Feature
-            icon={<TicketCheck/>}
-            title="Cases & disputes"
-            text="Refunds, complaints and incident-linked support cases."
-          />
-          <Feature
-            icon={<Users/>}
-            title="Rider & driver context"
-            text="Profiles, trip history, verification and support notes."
-          />
-          <Feature
-            icon={<ShieldCheck/>}
-            title="Safety escalation"
-            text="Panic alerts, escalation owners and resolution trail."
-          />
-          <Feature
-            icon={<BarChart3/>}
-            title="Service KPIs"
-            text="First response, resolution time, CSAT and backlog."
-          />
-        </div>
-      </div>
-    </div>
-  </section>
-}
-
 function Engineering(){
-  const copy=(text:string)=>navigator.clipboard.writeText(text)
+  const copy=(value:string)=>navigator.clipboard.writeText(value)
   const downloadBootstrap=async(key:string)=>{
     if(!supabase) return
     const {data,error}=await supabase.rpc('get_controlled_text_asset',{p_asset_key:key})
@@ -1367,16 +1193,71 @@ function Engineering(){
     if(!row) throw new Error('Engineering setup asset not found.')
     const blob=new Blob([String(row.content||'')],{type:String(row.mime_type||'text/plain')})
     const url=URL.createObjectURL(blob)
-    const a=document.createElement('a');a.href=url;a.download=String(row.file_name||'ridearrivo-setup.txt');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+    const anchor=document.createElement('a')
+    anchor.href=url
+    anchor.download=String(row.file_name||'ridearrivo-setup.txt')
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
-  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'macos-bootstrap',resourceName:'RideArrivo macOS engineering setup'}} onGranted={()=>downloadBootstrap('macos-bootstrap')} label="macOS setup"/><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'windows-bootstrap',resourceName:'RideArrivo Windows engineering setup'}} onGranted={()=>downloadBootstrap('windows-bootstrap')} label="Windows setup"/></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed engineering setup</strong><p>Engineering setup packages are protected workspace assets. Employees request download access and an administrator grants time-bounded permission before the installer leaves the workspace.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Feature icon={<Code2/>} title="GitHub Engineering" text="Repositories, pull requests and Actions are available natively in the Engineering workspace through the secure gateway."/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Observability" text="Errors, performance, product analytics, logs and production health."/></div></div></div></section>
+
+  return <section>
+    <SectionTitle
+      eyebrow="ENGINEERING EXECUTION"
+      title="Engineering Delivery"
+      subtitle="Source control, release execution, APIs, observability and controlled device setup."
+      actions={<div className="buttonRow">
+        <ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'macos-bootstrap',resourceName:'RideArrivo macOS engineering setup'}} onGranted={()=>downloadBootstrap('macos-bootstrap')} label="macOS setup"/>
+        <ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'windows-bootstrap',resourceName:'RideArrivo Windows engineering setup'}} onGranted={()=>downloadBootstrap('windows-bootstrap')} label="Windows setup"/>
+      </div>}
+    />
+    <div className="callout glassCard"><Wrench/><div><strong>Managed engineering setup</strong><p>Engineering setup packages remain protected assets. Use the embedded Engineering workbench for VS Code, GitHub and app preview once the Linux gateway is deployed.</p></div></div>
+    <div className="grid2">
+      <div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(tool=><div key={tool.name}><span><strong>{tool.name}</strong><small>{tool.purpose}</small></span><button className="copyBtn" onClick={()=>copy(tool.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div>
+      <div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Feature icon={<Code2/>} title="GitHub Engineering" text="Repositories, pull requests and Actions are available through the secure Engineering gateway."/><Feature icon={<Network/>} title="API Centre" text="API contracts, environment endpoints and service health."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Builds, deployments, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Observability" text="Errors, performance, logs and production health."/></div></div>
+    </div>
+  </section>
 }
 
-function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
+function WorkspaceView({workspace}:{workspace:Workspace}){
+  return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts" referrerPolicy="strict-origin-when-cross-origin"/></section>
+}
 
-function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts" referrerPolicy="strict-origin-when-cross-origin"/></section>}
+function SectionTitle({eyebrow,title,subtitle,actions}:{eyebrow:string;title:string;subtitle:string;actions?:ReactNode}){
+  return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div>{actions}</div>
+}
 
-function SectionTitle({eyebrow,title,subtitle,actions}:{eyebrow:string;title:string;subtitle:string;actions?:ReactNode}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div>{actions}</div>}
+function Overview({setSection,role,profile,assignments}:{setSection:(s:Section)=>void;role:Role;profile:Profile;assignments:WorkstationAssignment[]}){
+  const launchers=[
+    ['executive','CEO / Management','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
+    ['support','Support','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
+    ['operations','Operations','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
+    ['people','People & HR','Recruitment, onboarding, leave, performance and employee operations.',Users],
+    ['engineering','Engineering','Source control, releases, environments, observability and secure development.',Code2],
+    ['finance','Finance','Accounting, banking, Paystack, Flutterwave, budgets and close.',CircleDollarSign],
+    ['marketing','Marketing','Campaigns, content, growth analytics, brand and acquisition.',BarChart3],
+    ['partnerships','Partnerships','Partner CRM, pipeline, agreements, referrals and performance.',Building2],
+    ['legal','Legal','Contracts, privacy, compliance, regulation and evidence.',Scale],
+    ['admin','Administration','Identity, workstation assignment, KPI oversight, files and security controls.',Settings],
+  ] as const
+
+  return <>
+    <PersonalDashboard
+      profile={profile}
+      assignments={assignments}
+      onNavigate={target=>setSection(target as Section)}
+    />
+    <OverviewMetrics role={role}/>
+    <section>
+      <SectionTitle eyebrow="WORKSPACE OVERVIEW" title="Your authorised command centres" subtitle="Open the departments and control surfaces assigned to your role or primary workstation."/>
+      <div className="grid3">
+        {launchers.filter(([id])=>canAccess(role,id,assignments)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}
+      </div>
+    </section>
+  </>
+}
+
 function Metric({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}
 function Feature({icon,title,text}:{icon:ReactNode;title:string;text:string}){return <div className="glassCard feature"><div className="iconBox">{icon}</div><h3>{title}</h3><p>{text}</p></div>}
 function Launch({title,text,icon,onClick}:{title:string;text:string;icon:ReactNode;onClick:()=>void}){return <button className="launch glassCard" onClick={onClick}><div className="iconBox">{icon}</div><div><strong>{title}</strong><p>{text}</p></div><ChevronRight/></button>}

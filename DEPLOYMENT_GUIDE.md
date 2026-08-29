@@ -96,3 +96,59 @@ After the base migrations, apply these migrations in order:
 The legacy `public/bootstrap` directory must not be deployed after download governance is enabled. Engineering bootstrap scripts are served only through the controlled-download RPC after administrator approval.
 
 Department names remain the primary sidebar entries. Employees click their department and work inside the department surface, where Workspace, Collaboration, Operations and Team views are available. The CEO/Manager surface includes live priorities, decision log and enterprise risk records plus cross-functional navigation.
+
+## Personalized dashboard, workstations, KPI and recognition release
+
+Apply these migrations after `20260829041000_company_file_visibility_hardening.sql`:
+
+- `20260829103000_workstations_kpi_personal_dashboard.sql`
+- `20260829110000_annual_kpi_recognition_payments.sql`
+
+The first migration creates Admin-managed primary workstation assignments and transparent 30-day KPI snapshots. The second adds year-to-date/annual KPI snapshots, monthly Top Performer recognition, winner notifications and the company recognition announcement. KPI cron jobs run after the existing daily KPI refresh.
+
+After deployment verify:
+
+- an Admin receives/has an `Administration` primary workstation;
+- Admin can assign and reassign employee workstations;
+- an assigned workstation appears in the employee sidebar without changing their job title;
+- Dashboard greets the employee by first name and shows the daily note;
+- rolling and annual KPI cards do not show a synthetic zero when no work exists;
+- a current recognition winner sees the badge and all employees see the recognition announcement;
+- the prior winner remains active until a new eligible winner is generated.
+
+## Finance payments Edge Function
+
+Set provider credentials as Supabase Edge Function secrets, never frontend variables:
+
+```bash
+supabase secrets set PAYSTACK_SECRET_KEY='YOUR_PAYSTACK_SECRET'
+supabase secrets set FLUTTERWAVE_SECRET_KEY='YOUR_FLUTTERWAVE_SECRET'
+```
+
+Do not paste live secrets into shell history on shared machines; use your organisation's approved secret-management process when available.
+
+Deploy the function:
+
+```bash
+supabase functions deploy finance-payments
+```
+
+The function validates the employee session and requires Finance, Manager/Admin, or an explicit Finance workstation assignment. It returns read-only transaction/settlement data to the Finance workstation. Do not add refund/transfer actions without a separate approval and audit design.
+
+## Release verification
+
+Before pushing `main`:
+
+```bash
+git diff --check
+npm ci
+npm run build
+npm run gateway:test
+supabase db push --linked --dry-run
+```
+
+The dry run for this release should show only migrations that have not yet been applied to the linked project. Review that list before running a real `supabase db push --linked`.
+
+### Annual KPI finalisation
+
+The annual KPI refresh runs daily for the current year. A separate 1 January cron finalises the previous calendar year after 31 December has fully closed. Monthly recognition evaluates the previous calendar month and will not replace the currently active badge unless at least one employee has enough recorded evidence to produce an eligible winner.

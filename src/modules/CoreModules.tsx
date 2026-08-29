@@ -6,6 +6,9 @@ import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
 import AdminAccessManager from './AdminAccessManager'
 import AdminDownloadAccessManager from './AdminDownloadAccessManager'
+import WorkstationAssignmentManager from './WorkstationAssignmentManager'
+import KpiManagementPanel from './KpiManagementPanel'
+import DeviceAssetCenter from './DeviceAssetCenter'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -18,6 +21,7 @@ export function SupportModule(){
   return <section>
     <Title eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Omnichannel service, SLA control, booking context, handovers, reusable responses and quality review."/>
     <SupportOperationsPanel/>
+    <DeviceAssetCenter/>
     <div className="supportActions glassCard"><div><h3>RideArrivo Support Communications</h3><p>Contact customers and manage approved support communications directly from the Support Station.</p></div><div className="buttonRow"><button className="whatsappButton" onClick={openWhatsApp}><MessageCircle size={17}/>WhatsApp</button><button className="glassButton" onClick={callSupport}><Phone size={17}/>Call</button></div></div>
     <div className="grid2">
       <DataWorkbench table="support_cases" title="Support cases" orderBy="opened_at" description="Customer and booking issues from intake through closure." createLabel="New case" fields={[{key:'reference',label:'Reference',required:true},{key:'subject',label:'Subject',required:true},{key:'category',label:'Category',required:true},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','in_progress','waiting','resolved','closed'],required:true},{key:'booking_reference',label:'Booking reference'}]} columns={[{key:'reference',label:'Reference'},{key:'subject',label:'Subject'},{key:'category',label:'Category'},{key:'priority',label:'Priority'},{key:'status',label:'Status'}]}/>
@@ -81,11 +85,14 @@ export function AdminModule(){
     <section>
       <Title
         eyebrow="ADMINISTRATION"
-        title="RideArrivo Admin"
-        subtitle="Operational admin console, workspace applications and security controls."
+        title="Administration Workstation"
+        subtitle="Identity, workstation assignment, people performance, file governance, applications and security controls."
       />
 
       <AdminAccessManager/>
+      <WorkstationAssignmentManager/>
+      <KpiManagementPanel/>
+      <DeviceAssetCenter/>
       <AdminDownloadAccessManager/>
 
       <div className="adminConsoleCard glassCard">

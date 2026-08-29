@@ -25,6 +25,7 @@ import { openInParasyte } from '../lib/parasyte'
 import SharedWorkspacesHub from './SharedWorkspacesHub'
 import { DataWorkbench } from './DataWorkbench'
 import EngineeringWorkbench from './EngineeringWorkbench'
+import FinancePaymentsPanel from './FinancePaymentsPanel'
 
 import '../department-workspace.css'
 
@@ -981,13 +982,14 @@ export function FinanceTeamWorkspace({
     ]}
     tools={[
         {name:'ProvidusBank',purpose:'RideArrivo corporate banking and statement access.',url:'https://ibank.providusbank.com/provipay#/login'},
-        {name:'Paystack',purpose:'Transactions, settlements, refunds, transfers and disputes.',url:'https://dashboard.paystack.com/'},
-        {name:'Flutterwave',purpose:'Payment collections, settlements and payment operations.',url:'https://app.flutterwave.com/'},
+        {name:'Paystack',purpose:'Transactions and settlements. Live read-only data is available natively below.'},
+        {name:'Flutterwave',purpose:'Collections and settlements. Live read-only data is available natively below.'},
         {name:'FIRS TaxPro MAX',purpose:'Federal tax filing and compliance administration.',url:'https://taxpromax.firs.gov.ng/'},
         {name:'LIRS eTax',purpose:'Lagos PAYE and state tax administration.',url:'https://etax.lirs.net/'},
         {name:'PenCom Employer Hub',purpose:'Pension employer compliance and clearance.',url:'https://ehub.pencom.gov.ng/'},
         {name:'Google Sheets',purpose:'Controlled finance modelling and reconciliations.',url:'https://sheets.google.com/'}
       ]}
+      workstationContent={<FinancePaymentsPanel/>}
       onNavigate={onNavigate}
       execution={execution}
     />
