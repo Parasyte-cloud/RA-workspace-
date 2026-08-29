@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   Building2,
   Clock3,
-  Download,
   ExternalLink,
   Globe2,
   Linkedin,
@@ -15,6 +14,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import ControlledDownloadButton from './ControlledDownloadButton'
 
 export type EmployeeCardProfile = {
   id:string
@@ -444,14 +444,16 @@ export function EmployeeVirtualCard({
 
                 </div>
 
-                <button
-                  type="button"
+                <ControlledDownloadButton
                   className="virtualCardSave"
-                  onClick={downloadVCard}
-                >
-                  <Download size={18}/>
-                  Save Contact
-                </button>
+                  resource={{
+                    resourceType:'virtual_card',
+                    resourceKey:profile.id,
+                    resourceName:`${fullName} RideArrivo contact card`
+                  }}
+                  label="Save Contact"
+                  onGranted={downloadVCard}
+                />
 
                 <button
                   type="button"

@@ -10,7 +10,6 @@ import type {
 } from 'react'
 
 import {
-  Download,
   ExternalLink,
   FileImage,
   FileText,
@@ -22,6 +21,7 @@ import {
 import {
   supabase,
 } from '../lib/supabase'
+import ControlledDownloadButton from '../components/ControlledDownloadButton'
 
 import '../brand-library.css'
 
@@ -723,12 +723,11 @@ export default function BrandLibrary(){
 
           <div>
             <strong>
-              Company access
+              Governed access
             </strong>
 
             <span>
-              Available to active RideArrivo
-              employees.
+              Metadata is visible to employees; original files require administrator download approval.
             </span>
           </div>
 
@@ -992,17 +991,17 @@ export default function BrandLibrary(){
 
                   <div className="brandAssetActions">
 
-                    <button
-                      type="button"
-                      onClick={()=>
-                        void download(
-                          asset
-                        )
-                      }
-                    >
-                      <Download size={14}/>
-                      Download
-                    </button>
+                    <ControlledDownloadButton
+                      compact
+                      className="glassButton"
+                      resource={{
+                        resourceType:'brand_asset',
+                        resourceKey:asset.id,
+                        resourceName:asset.name
+                      }}
+                      label="Download"
+                      onGranted={()=>download(asset)}
+                    />
 
 
                     {asset.signed_url &&

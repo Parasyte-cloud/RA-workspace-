@@ -23,6 +23,7 @@ import {
 } from '../lib/supabase'
 import { openInParasyte } from '../lib/parasyte'
 import SharedWorkspacesHub from './SharedWorkspacesHub'
+import { DataWorkbench } from './DataWorkbench'
 
 import '../department-workspace.css'
 
@@ -58,7 +59,6 @@ type WorkspaceLink={
 
 const sharedWorkspaceLinks:WorkspaceLink[]=[
   {name:'My Tasks & Approvals',purpose:'Assignments, deadlines, approvals and progress.',target:'tasks'},
-  {name:'Shared Workspaces',purpose:'Project rooms and cross-department collaboration.',target:'shared'},
   {name:'Mail',purpose:'RideArrivo company email and team communication.',target:'mail'},
   {name:'Calendar',purpose:'Meetings, deadlines and scheduled work.',target:'calendar'},
   {name:'Company Files',purpose:'Controlled documents and shared department records.',target:'files'},
@@ -451,9 +451,9 @@ export function DepartmentTeamWorkspace({
 
 
       <div className="departmentTabs">
-        <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workstation</button>
-        <button type="button" className={view==='shared'?'active':''} onClick={()=>setView('shared')}><FolderKanban size={16}/>Shared Workspaces</button>
-        <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Execution</button>
+        <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workspace</button>
+        <button type="button" className={view==='shared'?'active':''} onClick={()=>setView('shared')}><FolderKanban size={16}/>Collaboration</button>
+        <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Operations</button>
         <button type="button" className={view==='team'?'active':''} onClick={()=>setView('team')}><UsersRound size={16}/>Team</button>
       </div>
 
@@ -560,7 +560,7 @@ export function DepartmentTeamWorkspace({
           <div className="departmentStationIntro">
 
             <span className="eyebrow">
-              SPECIALIST WORKSTATION
+              DEPARTMENT WORKSPACE
             </span>
 
             <h3>
@@ -617,16 +617,15 @@ export function DepartmentTeamWorkspace({
             <div>
 
               <span className="eyebrow">
-                TOOLKIT
+                CONNECTED SERVICES
               </span>
 
               <h3>
-                Work tools
+                Specialist & regulatory tools
               </h3>
 
               <p>
-                Specialist external tools open through PArAsYtE so
-                department work stays inside the controlled workspace.
+                Core work is handled natively in RideArrivo. Specialist and regulatory consoles open through PArAsYtE or their secured provider when browser policy requires it.
               </p>
 
             </div>
@@ -695,7 +694,13 @@ function ExecutiveExecution({onNavigate}:{onNavigate?:(target:string)=>void}){
     {name:'Engineering',purpose:'Product delivery, infrastructure, security and releases.',target:'engineering'}
   ]
   return <div className="departmentExecutiveExecution">
-    <div className="departmentStationIntro"><span className="eyebrow">EXECUTIVE EXECUTION</span><h3>CEO cross-functional control</h3><p>Open the live departmental control centres required for decisions, approvals, escalation and company-wide follow-through. No placeholder figures are shown here; each destination uses its live authorised workspace data.</p></div>
+    <div className="departmentStationIntro"><span className="eyebrow">EXECUTIVE EXECUTION</span><h3>CEO cross-functional control</h3><p>Run priorities, decisions and enterprise risks directly here, then drill into the authorised department control centres for evidence and execution.</p></div>
+    <div className="grid2">
+      <DataWorkbench table="executive_priorities" title="Company priorities" description="Strategic objectives, accountable owners, deadlines and progress." createLabel="Add priority" fields={[{key:'title',label:'Priority',required:true},{key:'objective',label:'Objective',type:'textarea'},{key:'owner',label:'Owner'},{key:'quarter',label:'Quarter / period'},{key:'due_date',label:'Due date',type:'date'},{key:'status',label:'Status',type:'select',options:['on_track','at_risk','blocked','complete'],required:true},{key:'progress',label:'Progress %',type:'number',required:true}]} columns={[{key:'title',label:'Priority'},{key:'owner',label:'Owner'},{key:'quarter',label:'Period'},{key:'status',label:'Status'},{key:'progress',label:'Progress %'}]}/>
+      <DataWorkbench table="executive_decisions" title="Decision log" description="Material leadership decisions, rationale, owners and review dates." createLabel="Record decision" fields={[{key:'title',label:'Decision title',required:true},{key:'decision',label:'Decision',type:'textarea',required:true},{key:'rationale',label:'Rationale',type:'textarea'},{key:'owner',label:'Owner'},{key:'decision_date',label:'Decision date',type:'date',required:true},{key:'review_date',label:'Review date',type:'date'}]} columns={[{key:'title',label:'Decision'},{key:'owner',label:'Owner'},{key:'decision_date',label:'Date'},{key:'review_date',label:'Review'}]}/>
+      <DataWorkbench table="enterprise_risks" title="Enterprise risk register" description="Material business, operational, legal, financial and technology risks." createLabel="Add risk" fields={[{key:'risk_title',label:'Risk',required:true},{key:'category',label:'Category',required:true},{key:'likelihood',label:'Likelihood',required:true},{key:'impact',label:'Impact',required:true},{key:'owner',label:'Owner'},{key:'mitigation',label:'Mitigation',type:'textarea'},{key:'status',label:'Status',type:'select',options:['open','mitigating','accepted','closed'],required:true},{key:'review_date',label:'Review date',type:'date'}]} columns={[{key:'risk_title',label:'Risk'},{key:'category',label:'Category'},{key:'likelihood',label:'Likelihood'},{key:'impact',label:'Impact'},{key:'status',label:'Status'}]}/>
+    </div>
+    <div className="departmentSectionHeader"><div><span className="eyebrow">CROSS-FUNCTIONAL CONTROL</span><h3>Open department control centres</h3><p>Use the departmental systems for the underlying live records, approvals and operational evidence.</p></div></div>
     <div className="departmentTools">{controls.map(control=><button key={control.target} type="button" disabled={!onNavigate} onClick={()=>onNavigate?.(control.target)}><span><strong>{control.name}</strong><small>{control.purpose}</small></span><Layers3 size={17}/></button>)}</div>
   </div>
 }
@@ -710,17 +715,21 @@ export function ExecutiveTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
     workstationTitle="CEO Executive Workstation"
     workstationDescription="A focused leadership environment for company priorities, decisions, approvals, financial stewardship, service performance, growth, people and governance."
     capabilities={[
-      {title:'Company Priorities',description:'Strategic objectives, ownership, deadlines and cross-functional follow-through.'},
-      {title:'Approvals & Decisions',description:'Review work requiring executive approval, resolve blockers and record accountable decisions.'},
-      {title:'Financial Stewardship',description:'Revenue, cash, budgets, obligations and financial control through the authorised finance workspace.'},
-      {title:'Service Performance',description:'Support, operations, safety and service-quality visibility without bypassing departmental controls.'},
-      {title:'Growth & Partnerships',description:'Marketing performance, commercial pipeline, strategic partners and expansion readiness.'},
-      {title:'People & Organisation',description:'Headcount, leadership accountability, onboarding, performance and organisation health.'},
-      {title:'Governance & Risk',description:'Legal, privacy, compliance, incidents and material business risks requiring leadership attention.'},
-      {title:'Technology & Delivery',description:'Product delivery, reliability, security and release readiness through Engineering.'}
+      {title:'Executive Scorecard',description:'Company KPIs, trends and exceptions across finance, service, growth and people.'},
+      {title:'Strategy & Priorities',description:'Company objectives, owners, milestones and cross-functional follow-through.'},
+      {title:'Approvals & Decisions',description:'Executive approval queue, decision log, blockers and accountable outcomes.'},
+      {title:'Financial Stewardship',description:'Revenue, cash, budgets, obligations, runway and financial controls.'},
+      {title:'Service & Operations',description:'Bookings, service quality, fleet, safety and operational performance.'},
+      {title:'Growth & Commercial',description:'CRM, acquisition, marketing ROI, partnerships and commercial pipeline.'},
+      {title:'People & Organisation',description:'Headcount, leadership accountability, performance, succession and organisation health.'},
+      {title:'Enterprise Risk',description:'Legal, privacy, compliance, security and material operational risks.'},
+      {title:'Board & Governance',description:'Board packs, statutory actions, resolutions and executive reporting.'},
+      {title:'Technology & Delivery',description:'Product roadmap, reliability, security posture and release readiness.'}
     ]}
     tools={[
+      {name:'Power BI',purpose:'Executive dashboards and governed cross-functional analytics.',url:'https://app.powerbi.com/'},
       {name:'ProvidusBank',purpose:'Authorised corporate banking access.',url:'https://ibank.providusbank.com/provipay#/login'},
+      {name:'HubSpot',purpose:'Executive CRM, commercial pipeline and customer visibility when connected.',url:'https://app.hubspot.com/'},
       {name:'Google Drive',purpose:'Executive documents and controlled collaboration.',url:'https://drive.google.com/'},
       {name:'Google Meet',purpose:'Leadership, partner and stakeholder meetings.',url:'https://meet.google.com/'},
       {name:'LinkedIn',purpose:'Executive network, partnerships and market intelligence.',url:'https://www.linkedin.com/'}
@@ -757,53 +766,21 @@ export function SupportTeamWorkspace({
       workstationTitle="Customer Support Workstation"
       workstationDescription="Everything required to resolve rider and booking issues while maintaining service context and escalation history."
       capabilities={[
-        {
-          title:'Support Queue',
-          description:
-            'Case intake, prioritisation, assignment and resolution.'
-        },
-        {
-          title:'Live Ride Context',
-          description:
-            'Bookings, rides, riders and drivers from the read-only RideArrivo backend gateway.'
-        },
-        {
-          title:'Customer Communication',
-          description:
-            'Mail, WhatsApp and approved customer communication channels.'
-        },
-        {
-          title:'Safety Escalation',
-          description:
-            'Incident and safety handoff with clear operational ownership.'
-        },
-        {
-          title:'Knowledge & Macros',
-          description:
-            'Reusable answers, operating procedures and support guidance.'
-        },
-        {
-          title:'Service Quality',
-          description:
-            'Backlog, resolution patterns and service improvement.'
-        }
-      ]}
-      tools={[
-        {
-          name:'Zoho Mail',
-          purpose:'RideArrivo company email.',
-          url:'https://mail.zoho.com/'
-        },
-        {
-          name:'WhatsApp Web',
-          purpose:'Approved support communication.',
-          url:'https://web.whatsapp.com/'
-        },
-        {
-          name:'Google Maps',
-          purpose:'Route and pickup context.',
-          url:'https://maps.google.com/'
-        }
+        {title:'Omnichannel Queue',description:'Email, WhatsApp and other support requests consolidated into one prioritised queue.'},
+        {title:'Ticketing & SLA',description:'Ownership, priority, routing, first-response targets, resolution clocks and escalations.'},
+        {title:'Customer 360',description:'Rider profile, bookings, payments, communication history and prior support context.'},
+        {title:'Live Ride Context',description:'Bookings, rides, drivers and operational exceptions from the RideArrivo backend.'},
+        {title:'Refund & Dispute Handoff',description:'Structured handoff to Finance for refunds, payment disputes and evidence.'},
+        {title:'Safety Escalation',description:'Panic/safety incidents routed to Operations with severity and audit trail.'},
+        {title:'Knowledge & Macros',description:'Approved responses, procedures, troubleshooting and reusable service guidance.'},
+        {title:'CSAT & Quality',description:'Customer feedback, resolution quality, repeat-contact patterns and coaching signals.'},
+        {title:'Capacity & Scheduling',description:'Agent availability, workload, handovers and queue coverage.'}
+    ]}
+    tools={[
+        {name:'HubSpot Help Desk',purpose:'Omnichannel ticketing, SLA, routing and customer context when connected.',url:'https://app.hubspot.com/'},
+        {name:'Zoho Mail',purpose:'RideArrivo company email and case communication.',url:'https://mail.zoho.com/'},
+        {name:'WhatsApp Web',purpose:'Approved customer support communication.',url:'https://web.whatsapp.com/'},
+        {name:'Google Maps',purpose:'Route, pickup and service-location context.',url:'https://maps.google.com/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}
@@ -834,53 +811,22 @@ export function OperationsTeamWorkspace({
       workstationTitle="Mobility Operations Workstation"
       workstationDescription="Coordinate the physical RideArrivo service from booking readiness through trip completion and incident resolution."
       capabilities={[
-        {
-          title:'Dispatch',
-          description:
-            'Booking allocation, driver matching and trip ownership.'
-        },
-        {
-          title:'Live Trips',
-          description:
-            'Active journey context and operational exceptions.'
-        },
-        {
-          title:'Driver Readiness',
-          description:
-            'Availability, verification and operational readiness.'
-        },
-        {
-          title:'Fleet Readiness',
-          description:
-            'Vehicle availability, documents, inspections and maintenance.'
-        },
-        {
-          title:'Airport Operations',
-          description:
-            'Flight-linked pickups, arrival coordination and exceptions.'
-        },
-        {
-          title:'Incident Control',
-          description:
-            'Safety and operational incidents with corrective action.'
-        }
-      ]}
-      tools={[
-        {
-          name:'RideArrivo Admin',
-          purpose:'Operational backend console.',
-          url:'https://admin.ridearrivo.com'
-        },
-        {
-          name:'Google Maps',
-          purpose:'Routes, locations and pickup context.',
-          url:'https://maps.google.com/'
-        },
-        {
-          name:'FlightRadar24',
-          purpose:'Operational flight-arrival context.',
-          url:'https://www.flightradar24.com/'
-        }
+        {title:'Dispatch Board',description:'Booking allocation, driver matching, assignment ownership and exception handling.'},
+        {title:'Live Trips & GPS',description:'Active journey state, location health, ETAs and operational exceptions.'},
+        {title:'Driver Assignment',description:'Availability, shift/vehicle assignment, readiness and accountability.'},
+        {title:'Fleet Maintenance',description:'Preventive maintenance, work orders, defects, downtime and service history.'},
+        {title:'Inspections & Documents',description:'Vehicle inspections, papers, insurance, permits and expiry control.'},
+        {title:'Airport Operations',description:'Flight status, arrival alerts, pickup staging and delay/cancellation handling.'},
+        {title:'Safety & Incidents',description:'Incident capture, severity, evidence, response, investigation and corrective action.'},
+        {title:'Fuel & Utilisation',description:'Vehicle utilisation, fuel/energy cost signals, idle time and capacity planning.'},
+        {title:'Shift & Handover',description:'Operational rosters, coverage, handover notes and unresolved exceptions.'},
+        {title:'Operations Analytics',description:'Assignment time, completion, cancellations, utilisation and service-quality KPIs.'}
+    ]}
+    tools={[
+        {name:'RideArrivo Admin',purpose:'Operational backend console for bookings, riders, drivers and trips.',url:'https://admin.ridearrivo.com'},
+        {name:'Google Maps',purpose:'Routing, pickup points, geocoding and traffic context.',url:'https://maps.google.com/'},
+        {name:'FlightAware',purpose:'Flight status and alert context for airport pickup operations.',url:'https://www.flightaware.com/'},
+        {name:'FlightRadar24',purpose:'Live flight movement cross-check for airport operations.',url:'https://www.flightradar24.com/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}
@@ -913,53 +859,22 @@ export function PeopleTeamWorkspace({
       workstationTitle="People Operations Workstation"
       workstationDescription="Run the complete employee lifecycle while keeping confidential people information inside HR controls."
       capabilities={[
-        {
-          title:'Recruitment',
-          description:
-            'Candidates, interviews, offers and hiring coordination.'
-        },
-        {
-          title:'Onboarding',
-          description:
-            'Accounts, equipment, documents and first-day readiness.'
-        },
-        {
-          title:'Leave & Attendance',
-          description:
-            'Requests, approvals, absence and availability.'
-        },
-        {
-          title:'Performance',
-          description:
-            'Objectives, reviews, development and feedback.'
-        },
-        {
-          title:'Employee Services',
-          description:
-            'People requests, letters, records and internal support.'
-        },
-        {
-          title:'Offboarding',
-          description:
-            'Access removal, handover and exit controls.'
-        }
-      ]}
-      tools={[
-        {
-          name:'LinkedIn',
-          purpose:'Recruitment and professional sourcing.',
-          url:'https://www.linkedin.com/'
-        },
-        {
-          name:'Google Meet',
-          purpose:'Interviews and employee meetings.',
-          url:'https://meet.google.com/'
-        },
-        {
-          name:'Google Docs',
-          purpose:'Collaborative people documents.',
-          url:'https://docs.google.com/'
-        }
+        {title:'Employee Records',description:'Secure employee system of record, organisation structure and self-service updates.'},
+        {title:'Recruitment & ATS',description:'Candidates, roles, interviews, scorecards, offers and hiring pipeline.'},
+        {title:'Onboarding & Offboarding',description:'Role-based checklists, documents, accounts, equipment, handover and access removal.'},
+        {title:'Time, Leave & Attendance',description:'Leave balances, requests, approvals, schedules and attendance controls.'},
+        {title:'Performance & Goals',description:'Objectives, reviews, feedback, development plans and manager accountability.'},
+        {title:'Payroll & Compensation Inputs',description:'Approved salary changes, allowances, payroll inputs and compensation planning.'},
+        {title:'Benefits & Pension',description:'Benefits administration, pension compliance and employee enrolment records.'},
+        {title:'Learning & Compliance',description:'Training assignments, policy acknowledgement and mandatory compliance records.'},
+        {title:'Employee Relations',description:'HR requests, welfare, grievances, letters and confidential case handling.'}
+    ]}
+    tools={[
+        {name:'LinkedIn',purpose:'Recruitment, sourcing and employer-brand research.',url:'https://www.linkedin.com/'},
+        {name:'Google Meet',purpose:'Interviews, 1:1s and employee meetings.',url:'https://meet.google.com/'},
+        {name:'Google Docs',purpose:'Controlled HR letters, policies and collaborative people documents.',url:'https://docs.google.com/'},
+        {name:'PenCom Employer Hub',purpose:'Nigeria employer pension compliance and clearance workflows.',url:'https://ehub.pencom.gov.ng/'},
+        {name:'LIRS eTax',purpose:'Lagos PAYE and employer tax administration.',url:'https://etax.lirs.net/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}
@@ -992,58 +907,26 @@ export function EngineeringTeamWorkspace({
       workstationTitle="Engineering & CTO Workstation"
       workstationDescription="Build, deploy, secure and operate RideArrivo software while preserving controlled engineering ownership."
       capabilities={[
-        {
-          title:'Source Control',
-          description:
-            'Repositories, pull requests, reviews and release branches.'
-        },
-        {
-          title:'CI/CD',
-          description:
-            'Build, test, deployment and release health.'
-        },
-        {
-          title:'Infrastructure',
-          description:
-            'Render, Supabase, Cloudflare and production services.'
-        },
-        {
-          title:'Mobile Delivery',
-          description:
-            'Android/iOS builds, signing and release management.'
-        },
-        {
-          title:'Security',
-          description:
-            'Secrets, dependencies, access, incidents and hardening.'
-        },
-        {
-          title:'Architecture',
-          description:
-            'APIs, schemas, engineering decisions and technical roadmap.'
-        }
-      ]}
-      tools={[
-        {
-          name:'GitHub',
-          purpose:'Repositories, PRs, Actions and releases.',
-          url:'https://github.com/Parasyte-cloud'
-        },
-        {
-          name:'Supabase',
-          purpose:'Database, authentication and Edge Functions.',
-          url:'https://supabase.com/dashboard'
-        },
-        {
-          name:'Render',
-          purpose:'Backend services and deployment.',
-          url:'https://dashboard.render.com/'
-        },
-        {
-          name:'Cloudflare',
-          purpose:'DNS, edge and workspace delivery.',
-          url:'https://dash.cloudflare.com/'
-        }
+        {title:'Source Control & Review',description:'Repositories, issues, pull requests, branch protection and review workflows.'},
+        {title:'Planning & Delivery',description:'Backlog, milestones, technical tasks, release scope and engineering ownership.'},
+        {title:'CI/CD & Releases',description:'Builds, tests, deployments, approvals, release notes and rollback readiness.'},
+        {title:'Infrastructure',description:'Supabase, Render, Cloudflare, environments, DNS and production services.'},
+        {title:'Observability',description:'Errors, tracing, performance, logs, uptime and production diagnostics.'},
+        {title:'Product Analytics',description:'Feature adoption, funnels, session replay, experiments and feature flags.'},
+        {title:'API & Integration Centre',description:'OpenAPI, Postman collections, webhooks, health checks and third-party integrations.'},
+        {title:'Security & DevSecOps',description:'Secrets, dependencies, access, code scanning, audit and incident hardening.'},
+        {title:'Mobile Delivery',description:'Android/iOS builds, signing, store releases and device testing.'},
+        {title:'Design & Architecture',description:'Figma, system design, ADRs, schemas and technical roadmap.'}
+    ]}
+    tools={[
+        {name:'GitHub',purpose:'Repositories, issues, pull requests, Actions, releases and code security.',url:'https://github.com/Parasyte-cloud'},
+        {name:'Supabase',purpose:'Database, authentication, storage, realtime and Edge Functions.',url:'https://supabase.com/dashboard'},
+        {name:'Render',purpose:'Backend services, deployment and runtime logs.',url:'https://dashboard.render.com/'},
+        {name:'Cloudflare',purpose:'DNS, edge delivery, security and Pages deployments.',url:'https://dash.cloudflare.com/'},
+        {name:'Sentry',purpose:'Application errors, tracing, performance and production diagnostics.',url:'https://sentry.io/'},
+        {name:'PostHog',purpose:'Product analytics, session replay, experiments and feature flags.',url:'https://app.posthog.com/'},
+        {name:'Figma',purpose:'Product design, prototypes and design-system collaboration.',url:'https://www.figma.com/'},
+        {name:'Postman',purpose:'API collections, testing and integration diagnostics.',url:'https://www.postman.com/'}
       ]}
       workspaceLinks={[
         {name:'ParAsYtE Linux',purpose:'Secure engineering terminal and persistent project workspace.',target:'linux'},
@@ -1080,48 +963,25 @@ export function FinanceTeamWorkspace({
       workstationTitle="Finance & Accounting Workstation"
       workstationDescription="Maintain financial control, reconciliation and planning without exposing finance data outside authorised roles."
       capabilities={[
-        {
-          title:'Receivables',
-          description:
-            'Invoices, collections, balances and ageing.'
-        },
-        {
-          title:'Payables',
-          description:
-            'Bills, approvals, obligations and payment readiness.'
-        },
-        {
-          title:'Cash & Banking',
-          description:
-            'Banking controls and reconciliation.'
-        },
-        {
-          title:'Budgeting',
-          description:
-            'Department budgets, variance and planning.'
-        },
-        {
-          title:'Assets',
-          description:
-            'Fixed assets, lifecycle and accountability.'
-        },
-        {
-          title:'Tax & Close',
-          description:
-            'Tax obligations and period-close controls.'
-        }
-      ]}
-      tools={[
-        {
-          name:'ProvidusBank',
-          purpose:'RideArrivo banking portal.',
-          url:'https://ibank.providusbank.com/provipay#/login'
-        },
-        {
-          name:'Google Sheets',
-          purpose:'Controlled finance analysis and models.',
-          url:'https://sheets.google.com/'
-        }
+        {title:'General Ledger & Reporting',description:'Chart of accounts, journals, trial balance, P&L, balance sheet and cash flow.'},
+        {title:'Receivables',description:'Invoices, corporate balances, collections, ageing and follow-up.'},
+        {title:'Payables',description:'Bills, vendors, approvals, obligations and payment readiness.'},
+        {title:'Cash & Banking',description:'Providus balances, statements, transaction categorisation and reconciliation.'},
+        {title:'Payments & Settlements',description:'Paystack/Flutterwave collections, settlements, refunds, transfers and disputes.'},
+        {title:'Budget & Forecast',description:'Department budgets, scenario planning, variance and cash runway.'},
+        {title:'Expenses & Payroll',description:'Expense control, reimbursements, payroll journals and approved payment inputs.'},
+        {title:'Tax & Statutory',description:'FIRS, LIRS, pension and statutory obligation calendar with evidence.'},
+        {title:'Assets',description:'Fixed assets, useful life, custody, disposals and accountability.'},
+        {title:'Close & Audit',description:'Month-end/year-end close, reconciliations, evidence and audit trail.'}
+    ]}
+    tools={[
+        {name:'ProvidusBank',purpose:'RideArrivo corporate banking and statement access.',url:'https://ibank.providusbank.com/provipay#/login'},
+        {name:'Paystack',purpose:'Transactions, settlements, refunds, transfers and disputes.',url:'https://dashboard.paystack.com/'},
+        {name:'Flutterwave',purpose:'Payment collections, settlements and payment operations.',url:'https://app.flutterwave.com/'},
+        {name:'FIRS TaxPro MAX',purpose:'Federal tax filing and compliance administration.',url:'https://taxpromax.firs.gov.ng/'},
+        {name:'LIRS eTax',purpose:'Lagos PAYE and state tax administration.',url:'https://etax.lirs.net/'},
+        {name:'PenCom Employer Hub',purpose:'Pension employer compliance and clearance.',url:'https://ehub.pencom.gov.ng/'},
+        {name:'Google Sheets',purpose:'Controlled finance modelling and reconciliations.',url:'https://sheets.google.com/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}
@@ -1153,53 +1013,22 @@ export function PartnershipsTeamWorkspace({
       workstationTitle="Partnerships & Business Development Workstation"
       workstationDescription="Move partner relationships from prospecting through agreement, launch, referrals and renewal."
       capabilities={[
-        {
-          title:'Partner CRM',
-          description:
-            'Relationship records, contacts and account context.'
-        },
-        {
-          title:'Pipeline',
-          description:
-            'Opportunities, value, stage and next actions.'
-        },
-        {
-          title:'Proposals',
-          description:
-            'Commercial proposals and negotiation support.'
-        },
-        {
-          title:'Agreements',
-          description:
-            'Commercial handoff into Legal and approval.'
-        },
-        {
-          title:'Onboarding',
-          description:
-            'Cross-functional partner launch readiness.'
-        },
-        {
-          title:'Partner Health',
-          description:
-            'Activity, referrals, renewals and relationship quality.'
-        }
-      ]}
-      tools={[
-        {
-          name:'LinkedIn',
-          purpose:'Partner research and professional outreach.',
-          url:'https://www.linkedin.com/'
-        },
-        {
-          name:'Google Maps',
-          purpose:'Hotels, organisations and geographic research.',
-          url:'https://maps.google.com/'
-        },
-        {
-          name:'Google Meet',
-          purpose:'Partner meetings.',
-          url:'https://meet.google.com/'
-        }
+        {title:'Partner CRM',description:'Accounts, stakeholders, contacts, relationship history and account ownership.'},
+        {title:'Prospecting & Research',description:'Target organisations, qualification, stakeholder mapping and outreach preparation.'},
+        {title:'Pipeline & Forecast',description:'Opportunities, stage, value, probability, next actions and expected close.'},
+        {title:'Proposals & Commercials',description:'Proposal versions, pricing, commissions, business case and negotiation history.'},
+        {title:'Agreements & Approvals',description:'Commercial terms, Legal handoff, approvals, signature and obligations.'},
+        {title:'Partner Onboarding',description:'Commercial, legal, finance, operations, technology and marketing launch readiness.'},
+        {title:'Referrals & Commission',description:'Booking attribution, partner earnings, settlement status and disputes.'},
+        {title:'Partner Performance',description:'Revenue, referrals, service quality, activity and relationship health.'},
+        {title:'Renewals & Expansion',description:'Renewal dates, expansion opportunities, QBRs and next-phase planning.'}
+    ]}
+    tools={[
+        {name:'HubSpot CRM',purpose:'Partner accounts, contacts, activity history and pipeline when connected.',url:'https://app.hubspot.com/'},
+        {name:'LinkedIn',purpose:'Partner research, stakeholder mapping and professional outreach.',url:'https://www.linkedin.com/'},
+        {name:'Google Maps',purpose:'Hotels, institutions, travel businesses and geographic prospecting.',url:'https://maps.google.com/'},
+        {name:'Google Meet',purpose:'Partner discovery, negotiation and review meetings.',url:'https://meet.google.com/'},
+        {name:'DocuSign',purpose:'Proposal and agreement signature workflows.',url:'https://app.docusign.com/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}
@@ -1231,48 +1060,21 @@ export function LegalTeamWorkspace({
       workstationTitle="Legal & Compliance Workstation"
       workstationDescription="Manage contracts and regulatory obligations with controlled evidence, deadlines and cross-functional review."
       capabilities={[
-        {
-          title:'Contracts',
-          description:
-            'Drafting, review, status, counterparties and renewals.'
-        },
-        {
-          title:'Compliance',
-          description:
-            'Obligations, evidence, deadlines and ownership.'
-        },
-        {
-          title:'Privacy',
-          description:
-            'Data protection, requests, processing and governance.'
-        },
-        {
-          title:'Corporate',
-          description:
-            'Board, CAC and corporate documentation.'
-        },
-        {
-          title:'Legal Requests',
-          description:
-            'Internal legal review and advice workflow.'
-        },
-        {
-          title:'Regulatory Calendar',
-          description:
-            'Renewals, filings and deadline visibility.'
-        }
-      ]}
-      tools={[
-        {
-          name:'CAC Nigeria',
-          purpose:'Corporate registration and filing services.',
-          url:'https://www.cac.gov.ng/'
-        },
-        {
-          name:'Google Docs',
-          purpose:'Collaborative document review.',
-          url:'https://docs.google.com/'
-        }
+        {title:'Legal Intake',description:'Structured requests, requester, priority, owner, due date and legal-service status.'},
+        {title:'Contract Lifecycle',description:'Drafting, review, negotiation, version control, approvals, signature and repository.'},
+        {title:'Templates & Playbooks',description:'Approved clauses, fallback positions, standard agreements and negotiation guidance.'},
+        {title:'Corporate & CAC',description:'Board/corporate records, annual returns, directors, address and post-incorporation actions.'},
+        {title:'Privacy & NDPC',description:'Data-processing register, rights requests, incidents, DPCO/CAR evidence and privacy governance.'},
+        {title:'Compliance Register',description:'Obligations, owners, evidence, due dates, filings and remediation.'},
+        {title:'Regulatory Calendar',description:'Licence, filing, policy, contract and statutory renewal deadlines.'},
+        {title:'Evidence & Investigations',description:'Legal holds, incident evidence, privileged notes and investigation records.'},
+        {title:'E-signature & Audit',description:'Approvals, signatures, completion evidence and immutable agreement history.'}
+    ]}
+    tools={[
+        {name:'CAC iCRP',purpose:'Corporate records, annual returns and post-incorporation filings.',url:'https://icrp.cac.gov.ng/'},
+        {name:'NDPC',purpose:'Nigeria data-protection compliance, audit and regulatory guidance.',url:'https://ndpc.gov.ng/'},
+        {name:'DocuSign',purpose:'Agreement approvals, signature and audit trails.',url:'https://app.docusign.com/'},
+        {name:'Google Docs',purpose:'Controlled drafting, redlining and collaborative legal review.',url:'https://docs.google.com/'}
       ]}
       onNavigate={onNavigate}
       execution={execution}

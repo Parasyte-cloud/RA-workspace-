@@ -27,7 +27,6 @@ import {
   ExternalLink,
   FileCheck2,
   FileText,
-  FolderKanban,
   Gauge,
   Headphones,
   Home,
@@ -70,6 +69,7 @@ import { NotificationCenter } from './components/NotificationCenter'
 import { useIdleSignOut } from './lib/useIdleSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
+import ControlledDownloadButton from './components/ControlledDownloadButton'
 
 
 import { WorkspaceClock } from './components/WorkspaceClock'
@@ -605,7 +605,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['shared','Shared Workspaces',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO Workspace',Crown],['support','Support Workspace',Headphones],['operations','Operations Workspace',BriefcaseBusiness],['people','People & HR Workspace',Users],['engineering','Engineering Workspace',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance Workspace',CircleDollarSign],['marketing','Marketing Workspace',BarChart3],['partnerships','Partnerships Workspace',Building2],['legal','Legal Workspace',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -716,7 +716,7 @@ function App(){
 
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
-      <div className="brand"><BrandLogo className="sidebarLogo"/><span>Internal Workspace</span></div>
+      <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small></div>
     </aside>
@@ -1023,15 +1023,15 @@ function AuthGate(){
 
 function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
   const launchers=[
-    ['executive','CEO Workspace','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
-    ['support','Support Workstation','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
-    ['operations','Operations Workstation','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
-    ['people','People & HR Workstation','Recruitment, onboarding, leave, performance and employee operations.',Users],
-    ['engineering','Engineering Workstation','Repos, deployments, infrastructure, mobile delivery, security and APIs.',Code2],
-    ['finance','Finance Workstation','Accounting, banking, receivables, payables, budgets, tax and close.',CircleDollarSign],
-    ['marketing','Marketing Workstation','Campaigns, content, acquisition, analytics, projects and brand execution.',BarChart3],
-    ['partnerships','Partnerships Workstation','Partners, agreements, pipeline, referrals, launch and renewals.',Building2],
-    ['legal','Legal & Compliance Workstation','Contracts, privacy, compliance, filings, evidence and legal requests.',Scale]
+    ['executive','CEO / Management','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
+    ['support','Support','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
+    ['operations','Operations','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
+    ['people','People & HR','Recruitment, onboarding, leave, performance and employee operations.',Users],
+    ['engineering','Engineering','Repos, deployments, infrastructure, mobile delivery, security and APIs.',Code2],
+    ['finance','Finance','Accounting, banking, receivables, payables, budgets, tax and close.',CircleDollarSign],
+    ['marketing','Marketing','Campaigns, content, acquisition, analytics, projects and brand execution.',BarChart3],
+    ['partnerships','Partnerships','Partners, agreements, pipeline, referrals, launch and renewals.',Building2],
+    ['legal','Legal & Compliance','Contracts, privacy, compliance, filings, evidence and legal requests.',Scale]
   ] as const
   return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Your department workstation is the primary place to work. Managers and administrators can open the cross-functional workstations they oversee."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
 }
@@ -1242,86 +1242,23 @@ function Support(){
 }
 
 function Engineering({openWorkspace}:{openWorkspace:(t:string,u:string,n?:string)=>void}){
-  const copy=(text:string)=>navigator.clipboard?.writeText(text)
-  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><a className="glassButton" href="/bootstrap/macos.sh" download><Download size={16}/>macOS setup</a><a className="glassButton" href="/bootstrap/windows.ps1" download><Download size={16}/>Windows setup</a></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed setup, not silent browser installation</strong><p>Browsers cannot install VS Code, Docker, Xcode or Android Studio silently. Use the provided bootstrap scripts now; move to Intune/Jamf later for controlled company device provisioning.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Browser IDE" text="Integrate code-server or GitHub Codespaces for in-workspace code editing."/></div></div></div></section>}
-
-function People(){
-  return <section>
-    <SectionTitle
-      eyebrow="PEOPLE & HR"
-      title="People operations"
-      subtitle="Employee directory, leave, onboarding, performance, policies and HR service delivery."
-    />
-
-    <div className="stats">
-      <Metric
-        icon={<Users/>}
-        label="Employees"
-        value="0"
-        hint="Awaiting live HR data"
-      />
-      <Metric
-        icon={<CalendarDays/>}
-        label="Leave requests"
-        value="0"
-        hint="Awaiting live HR data"
-      />
-      <Metric
-        icon={<ClipboardCheck/>}
-        label="Onboarding"
-        value="0%"
-        hint="Awaiting live HR data"
-      />
-      <Metric
-        icon={<LifeBuoy/>}
-        label="HR requests"
-        value="0"
-        hint="Awaiting live HR data"
-      />
-    </div>
-
-    <div className="grid3">
-      <Feature
-        icon={<Users/>}
-        title="Directory & org chart"
-        text="Roles, departments, managers, locations and company contact information."
-      />
-      <Feature
-        icon={<CalendarDays/>}
-        title="Leave & attendance"
-        text="Balances, requests, approvals, holidays and employee availability."
-      />
-      <Feature
-        icon={<ClipboardCheck/>}
-        title="Onboarding & offboarding"
-        text="IT setup, policy acknowledgement, probation and access removal."
-      />
-      <Feature
-        icon={<Gauge/>}
-        title="Performance"
-        text="Goals, reviews, manager feedback and development plans."
-      />
-      <Feature
-        icon={<BookOpen/>}
-        title="Policies & handbook"
-        text="Versioned policies with acknowledgement and controlled access."
-      />
-      <Feature
-        icon={<LifeBuoy/>}
-        title="HR service desk"
-        text="Employment letters, data changes, welfare and internal requests."
-      />
-    </div>
-  </section>
+  const copy=(text:string)=>navigator.clipboard.writeText(text)
+  const downloadBootstrap=async(key:string)=>{
+    if(!supabase) return
+    const {data,error}=await supabase.rpc('get_controlled_text_asset',{p_asset_key:key})
+    if(error) throw error
+    const row=Array.isArray(data)?data[0]:data
+    if(!row) throw new Error('Engineering setup asset not found.')
+    const blob=new Blob([String(row.content||'')],{type:String(row.mime_type||'text/plain')})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a');a.href=url;a.download=String(row.file_name||'ridearrivo-setup.txt');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
+  return <section><SectionTitle eyebrow="ENGINEERING WORKSTATION" title="Software & Mobile Engineering" subtitle="A central workstation for source control, APIs, environments, releases, native tooling and device setup." actions={<div className="buttonRow"><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'macos-bootstrap',resourceName:'RideArrivo macOS engineering setup'}} onGranted={()=>downloadBootstrap('macos-bootstrap')} label="macOS setup"/><ControlledDownloadButton resource={{resourceType:'engineering_asset',resourceKey:'windows-bootstrap',resourceName:'RideArrivo Windows engineering setup'}} onGranted={()=>downloadBootstrap('windows-bootstrap')} label="Windows setup"/></div>}/><div className="callout glassCard"><Wrench/><div><strong>Managed engineering setup</strong><p>Engineering setup packages are protected workspace assets. Employees request download access and an administrator grants time-bounded permission before the installer leaves the workspace.</p></div></div><div className="grid2"><div className="glassCard"><div className="cardHeader"><h3>Engineering tools</h3><span className="pill">Device kit</span></div><div className="compactList tools">{engineers.map(t=><div key={t.name}><span><strong>{t.name}</strong><small>{t.purpose}</small></span><button className="copyBtn" onClick={()=>copy(t.mac)} title="Copy macOS command"><Copy size={14}/></button></div>)}</div></div><div className="glassCard"><div className="cardHeader"><h3>Delivery control</h3><span className="pill">In workspace</span></div><div className="toolGrid"><Launch title="GitHub Engineering" text="Repositories, pull requests, Actions and releases." icon={<Code2/>} onClick={()=>openWorkspace('GitHub Engineering','https://github.com/Parasyte-cloud','GitHub may block iframe embedding. The production version should use the GitHub API for native PR, Actions and repository views.')}/><Feature icon={<Network/>} title="API Centre" text="OpenAPI docs, environment endpoints, Postman collections and health checks."/><Feature icon={<PackageCheck/>} title="Release Centre" text="Web deployments, mobile builds, versions and release approvals."/><Feature icon={<MonitorCog/>} title="Observability" text="Errors, performance, product analytics, logs and production health."/></div></div></div></section>
 }
-
-function Operations(){return <section><SectionTitle eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch, driver readiness, fleet, airport pickup execution, incidents and operating performance."/><div className="grid3"><Feature icon={<Route/>} title="Dispatch Board" text="Unassigned bookings, driver matching, trip state and operational ownership."/><Feature icon={<BadgeCheck/>} title="Driver readiness" text="Verification, availability, documentation and compliance status."/><Feature icon={<PackageCheck/>} title="Fleet readiness" text="Vehicles, maintenance, papers, inspections and capacity."/><Feature icon={<Activity/>} title="Live operations" text="Active trips, location health, delayed flights and exceptions."/><Feature icon={<ShieldAlert/>} title="Incident management" text="Safety, service incidents, owners, severity and corrective actions."/><Feature icon={<BarChart3/>} title="Operations KPIs" text="Assignment time, completion, cancellation, utilisation and service quality."/></div></section>}
-
-function Legal(){return <section><SectionTitle eyebrow="LEGAL & COMPLIANCE" title="Legal workspace" subtitle="Contracts, policies, privacy, renewals, approvals and controlled corporate records."/><div className="grid3"><Feature icon={<Scale/>} title="Contract Register" text="Counterparties, owners, status, renewal dates and approved versions."/><Feature icon={<FileCheck2/>} title="Policy Library" text="Privacy, terms, refunds, employment and operating policies."/><Feature icon={<ShieldCheck/>} title="Compliance Register" text="Obligations, evidence, due dates, owners and status."/><Feature icon={<Users/>} title="Driver & owner agreements" text="Executed agreements tied to verified people and vehicles."/><Feature icon={<CalendarDays/>} title="Renewal calendar" text="Contracts, licences, insurance and statutory deadlines."/><Feature icon={<FileText/>} title="Legal requests" text="Review queue for contracts, incidents, claims and internal advice."/></div></section>}
 
 function Admin(){return <section><SectionTitle eyebrow="ADMINISTRATION" title="Workspace administration" subtitle="Identity, roles, applications, integrations, devices, audit and security configuration."/><div className="grid3"><Feature icon={<UserCog/>} title="Identity & access" text="Employee activation, role grants, departments and offboarding."/><Feature icon={<AppWindow/>} title="Application registry" text="Native modules, embedded apps, API integrations and availability."/><Feature icon={<KeyRound/>} title="SSO & authentication" text="RideArrivo email enforcement, session policy and identity integration."/><Feature icon={<Smartphone/>} title="Device management" text="Bootstrap scripts now, MDM policy and compliance later."/><Feature icon={<ShieldCheck/>} title="Audit & security" text="Privileged actions, login history, policy changes and incident review."/><Feature icon={<Settings/>} title="Workspace settings" text="Branding, environment configuration, notifications and feature controls."/></div></section>}
 
-function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads" referrerPolicy="strict-origin-when-cross-origin"/></section>}
+function WorkspaceView({workspace}:{workspace:Workspace}){return <section className="workspace glassCard"><div className="workspaceBar"><div><strong>{workspace.title}</strong><span>{workspace.url}</span></div><span className="pill">Embedded workspace</span></div>{workspace.note&&<div className="embedNote">{workspace.note}</div>}<iframe title={workspace.title} src={workspace.url} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts" referrerPolicy="strict-origin-when-cross-origin"/></section>}
 
 function SectionTitle({eyebrow,title,subtitle,actions}:{eyebrow:string;title:string;subtitle:string;actions?:ReactNode}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div>{actions}</div>}
 function Metric({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}

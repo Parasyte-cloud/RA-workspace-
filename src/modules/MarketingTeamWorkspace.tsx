@@ -115,6 +115,12 @@ const digitalTools=[
     note:'Facebook and Instagram publishing and performance.'
   },
   {
+    name:'HubSpot Marketing',
+    category:'CRM & automation',
+    url:'https://app.hubspot.com/',
+    note:'Campaign orchestration, forms, lifecycle automation and lead handoff when connected.'
+  },
+  {
     name:'Google Trends',
     category:'Research',
     url:'https://trends.google.com/',
@@ -1672,7 +1678,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
           }}
         >
           <FolderKanban size={16}/>
-          Projects
+          Collaboration
         </button>
 
         <button
@@ -1734,10 +1740,9 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
       </div>
 
       {onNavigate && <div className="marketingEssentials glassCard">
-        <div className="marketingEssentialsHeader"><span className="eyebrow">WORKSPACE ESSENTIALS</span><h3>Daily operating stack</h3><p>Tasks, communication, planning, files and brand resources stay one click away from the Marketing workspace.</p></div>
+        <div className="marketingEssentialsHeader"><span className="eyebrow">WORKSPACE ESSENTIALS</span><h3>Daily operating stack</h3><p>Tasks, communication, planning, files and brand resources stay one click away. Project collaboration is built directly into Marketing.</p></div>
         <div className="marketingEssentialsGrid">{[
           ['tasks','My Tasks & Approvals','Assignments, deadlines and approvals.'],
-          ['shared','Shared Workspaces','Company-wide project and cross-department collaboration.'],
           ['mail','Mail','RideArrivo company email.'],
           ['calendar','Calendar','Campaign dates, meetings and deadlines.'],
           ['files','Company Files','Controlled team documents and assets.'],

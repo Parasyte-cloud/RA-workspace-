@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Download, ExternalLink, FileSpreadsheet, FileText, Landmark, RefreshCw, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import ControlledDownloadButton from '../components/ControlledDownloadButton'
 
 type BankTransaction = {
   id?: string
@@ -467,8 +468,10 @@ export function FinanceBanking() {
       <input className="bankingSearch" placeholder="Search description, reference, category..." value={query} onChange={e => setQuery(e.target.value)}/>
       <div className="buttonRow">
         <button className="glassButton" onClick={() => void load()}><RefreshCw size={15}/>Refresh</button>
-        <button className="glassButton" onClick={() => void exportExcel()} disabled={!visible.length}><FileSpreadsheet size={15}/>Excel</button>
-        <button className="glassButton" onClick={() => void exportWord()} disabled={!visible.length}><FileText size={15}/>Word</button>
+        {visible.length>0&&<>
+          <ControlledDownloadButton compact resource={{resourceType:'finance_export',resourceKey:'providus-excel',resourceName:'Providus transaction report (Excel)'}} onGranted={exportExcel} label="Excel"/>
+          <ControlledDownloadButton compact resource={{resourceType:'finance_export',resourceKey:'providus-word',resourceName:'Providus transaction report (Word)'}} onGranted={exportWord} label="Word"/>
+        </>}
       </div>
     </div>
 

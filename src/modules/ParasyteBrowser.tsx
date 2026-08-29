@@ -1127,7 +1127,6 @@ export default function ParasyteBrowser({
                     allow-scripts
                     allow-popups
                     allow-popups-to-escape-sandbox
-                    allow-downloads
                   "
                 />
               )

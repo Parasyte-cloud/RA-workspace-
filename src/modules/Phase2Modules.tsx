@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
   BookOpen,
   CalendarDays,
   CheckCircle2,
   Clock3,
-  ExternalLink,
   FileText,
+  FileUp,
   FolderOpen,
+  ExternalLink,
   Search,
+  ShieldCheck,
+  X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import ControlledDownloadButton from '../components/ControlledDownloadButton'
 
 type Announcement = {
   id: string
@@ -61,6 +65,7 @@ type WorkspaceFile = {
   description?: string
   provider: string
   provider_url?: string
+  storage_path?: string
   folder_path?: string
   department?: string
   file_type?: string
@@ -441,21 +446,151 @@ export function CompanyFilesModule() {
   const [items, setItems] = useState<WorkspaceFile[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState('employee')
+  const [showUpload, setShowUpload] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File|null>(null)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [department, setDepartment] = useState('Company-wide')
+  const [folderPath, setFolderPath] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [notice, setNotice] = useState('')
+  const inputRef = useRef<HTMLInputElement|null>(null)
+
+  const canUpload = role === 'legal' || role === 'admin'
 
   useEffect(() => {
-    load()
+    void load()
   }, [])
 
   async function load() {
     if (!supabase) return
 
-    const { data } = await supabase
-      .from('workspace_files')
-      .select('*')
-      .order('created_at', { ascending: false })
+    setLoading(true)
+    setNotice('')
 
-    setItems((data || []) as WorkspaceFile[])
+    const { data: authData } = await supabase.auth.getUser()
+    const userId = authData.user?.id
+
+    const [catalogResult, profileResult] = await Promise.all([
+      supabase.rpc('list_workspace_files'),
+      userId
+        ? supabase
+            .from('employee_profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ])
+
+    if (catalogResult.error) {
+      setNotice(catalogResult.error.message)
+      setItems([])
+    } else {
+      setItems((catalogResult.data || []) as WorkspaceFile[])
+    }
+
+    setRole(String(profileResult.data?.role || 'employee').toLowerCase())
     setLoading(false)
+  }
+
+  async function uploadCompanyFile(event: React.FormEvent) {
+    event.preventDefault()
+    if (!supabase || !selectedFile || !canUpload) return
+
+    setUploading(true)
+    setNotice('')
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Your session has expired.')
+
+      const fileId = crypto.randomUUID()
+      const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]+/g, '-')
+      const storagePath = `${fileId}/${safeName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-files')
+        .upload(storagePath, selectedFile, {
+          upsert: false,
+          contentType: selectedFile.type || undefined,
+          cacheControl: '3600',
+        })
+
+      if (uploadError) throw uploadError
+
+      const { error: rowError } = await supabase
+        .from('workspace_files')
+        .insert({
+          id: fileId,
+          name: title.trim() || selectedFile.name,
+          description: description.trim() || null,
+          provider: 'supabase',
+          provider_url: null,
+          storage_path: storagePath,
+          folder_path: folderPath.trim() || null,
+          department,
+          file_type: selectedFile.type || selectedFile.name.split('.').pop() || 'file',
+          size_bytes: selectedFile.size,
+          uploaded_by: authData.user.id,
+          is_active: true,
+        })
+
+      if (rowError) {
+        await supabase.storage.from('company-files').remove([storagePath])
+        throw rowError
+      }
+
+      setSelectedFile(null)
+      setTitle('')
+      setDescription('')
+      setFolderPath('')
+      setDepartment('Company-wide')
+      setShowUpload(false)
+      setNotice('File uploaded. Employees can see the record, but downloading still requires administrator approval.')
+      await load()
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unable to upload company file.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function openApprovedFile(file: WorkspaceFile) {
+    if (!supabase) return
+
+    const { data: location, error: locationError } = await supabase.rpc(
+      'get_workspace_file_download_location',
+      { p_file_id: file.id }
+    )
+
+    if (locationError) throw locationError
+
+    const payload = location as {
+      provider?: string
+      provider_url?: string|null
+      storage_path?: string|null
+    } | null
+
+    if (payload?.provider === 'supabase' && payload.storage_path) {
+      const { data, error } = await supabase.storage
+        .from('company-files')
+        .createSignedUrl(payload.storage_path, 60, { download: file.name })
+
+      if (error) throw error
+      if (!data?.signedUrl) throw new Error('Unable to create the approved download link.')
+
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    if (payload?.provider_url) {
+      window.open(payload.provider_url, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    throw new Error('This file has no available storage location.')
   }
 
   const filtered = useMemo(() => {
@@ -483,19 +618,36 @@ export function CompanyFilesModule() {
       <ModuleHeader
         eyebrow="COMPANY"
         title="Company Files"
-        subtitle="The central file directory for RideArrivo documents, department records and shared resources."
+        subtitle="The controlled RideArrivo repository for policies, contracts, department records and shared company documents."
       />
 
       <div className="glassCard companyFilesNotice">
         <FolderOpen size={20} />
         <div>
-          <strong>RideArrivo Company Repository</strong>
+          <strong>Controlled company repository</strong>
           <p>
-            Microsoft SharePoint / OneDrive integration will become the official
-            underlying company file store. This page is the workspace interface.
+            Legal and Admin can upload files for now. Employees can discover authorised records here, but every protected download must be approved by an administrator before the file can leave the workspace.
           </p>
         </div>
+        {canUpload && (
+          <button
+            type="button"
+            className="primaryButton"
+            onClick={() => setShowUpload(true)}
+          >
+            <FileUp size={16} /> Upload file
+          </button>
+        )}
       </div>
+
+      {!canUpload && (
+        <div className="glassCard companyFilePermissionNote">
+          <ShieldCheck size={18} />
+          <span>Upload permission is currently restricted to Legal and Admin.</span>
+        </div>
+      )}
+
+      {notice && <div className="moduleNotice">{notice}</div>}
 
       <label className="phase2Search glassCard">
         <Search size={17} />
@@ -529,16 +681,20 @@ export function CompanyFilesModule() {
             <div className="phase2Meta">
               {file.folder_path && <span>{file.folder_path}</span>}
               {file.file_type && <span>{file.file_type}</span>}
-
-              {file.provider_url && (
-                <a
-                  href={file.provider_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open file <ExternalLink size={13} />
-                </a>
+              {typeof file.size_bytes === 'number' && (
+                <span>{Math.max(1, Math.round(file.size_bytes / 1024))} KB</span>
               )}
+
+              <ControlledDownloadButton
+                compact
+                resource={{
+                  resourceType:'company_file',
+                  resourceKey:file.id,
+                  resourceName:file.name
+                }}
+                label="Download approved file"
+                onGranted={() => openApprovedFile(file)}
+              />
             </div>
           </article>
         ))}
@@ -547,6 +703,74 @@ export function CompanyFilesModule() {
       {!loading && filtered.length === 0 && (
         <EmptyState text="No company files have been registered yet." />
       )}
+
+      {showUpload && canUpload && (
+        <div className="downloadAccessOverlay" role="dialog" aria-modal="true">
+          <form className="downloadAccessModal glassCard companyFileUploadModal" onSubmit={(event) => void uploadCompanyFile(event)}>
+            <div className="downloadAccessModalHead">
+              <FileUp size={22} />
+              <div>
+                <h3>Upload company file</h3>
+                <p>Only Legal and Admin can add records. Download access remains separately controlled by Admin approval.</p>
+              </div>
+            </div>
+
+            <input
+              ref={inputRef}
+              hidden
+              type="file"
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null
+                setSelectedFile(file)
+                if (file && !title) setTitle(file.name)
+              }}
+            />
+
+            <button
+              type="button"
+              className="glassButton companyFilePicker"
+              onClick={() => inputRef.current?.click()}
+            >
+              <FileUp size={16} />
+              {selectedFile ? selectedFile.name : 'Choose file'}
+            </button>
+
+            <label>
+              File title
+              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Driver Partner Agreement Template" required />
+            </label>
+
+            <label>
+              Description
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What is this document for?" />
+            </label>
+
+            <label>
+              Department / audience
+              <select value={department} onChange={(event) => setDepartment(event.target.value)}>
+                {['Company-wide','Administration','Legal','Finance','Operations','Support','People & HR','Marketing','Partnerships','Engineering'].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Folder
+              <input value={folderPath} onChange={(event) => setFolderPath(event.target.value)} placeholder="e.g. Legal / Contracts / Templates" />
+            </label>
+
+            <div className="downloadAccessModalActions">
+              <button type="button" className="glassButton" onClick={() => setShowUpload(false)} disabled={uploading}>
+                <X size={15} /> Cancel
+              </button>
+              <button type="submit" className="primaryButton" disabled={uploading || !selectedFile}>
+                <FileUp size={15} /> {uploading ? 'Uploading...' : 'Upload securely'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </section>
   )
 }
+
