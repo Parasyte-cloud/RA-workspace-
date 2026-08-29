@@ -248,8 +248,9 @@ export function AppearanceSettings() {
                 Workstation size
               </h3>
               <p>
-                Choose how much of the display the
-                workstation should occupy.
+                RideArrivo keeps laptop layouts stable
+                automatically. Size preferences are
+                reserved for larger displays.
               </p>
             </div>
           </div>
