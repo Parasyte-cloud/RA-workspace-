@@ -1,0 +1,554 @@
+/* =========================================================
+   RIDEARRIVO SHELL STABILITY V2
+   Final ownership layer for application geometry and scroll.
+
+   Rules:
+   - the browser document never scrolls while authenticated
+   - the workstation frame is anchored to the viewport
+   - the sidebar never owns a desktop scrollbar
+   - the header and sidebar stay fixed inside the frame
+   - main content is the only desktop scroll surface
+   - the main scrollbar is visually hidden but wheel, trackpad,
+     keyboard and touch scrolling remain available
+   - narrow/mobile layouts keep their existing navigation model
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+.appBackground {
+  --ra-shell-gutter: 16px;
+
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-height: 100dvh !important;
+
+  margin: 0 !important;
+  padding: var(--ra-shell-gutter) !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.shell.glassFrame {
+  --ra-sidebar-width: clamp(210px, 15vw, 232px);
+
+  width: min(1600px, calc(100vw - (2 * var(--ra-shell-gutter)))) !important;
+  max-width: min(1600px, calc(100vw - (2 * var(--ra-shell-gutter)))) !important;
+
+  height: calc(100dvh - (2 * var(--ra-shell-gutter))) !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - (2 * var(--ra-shell-gutter))) !important;
+
+  margin: 0 !important;
+
+  display: grid !important;
+  grid-template-columns: var(--ra-sidebar-width) minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+
+  align-items: stretch !important;
+
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.shell.glassFrame > main {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.shell.glassFrame .topbar {
+  position: relative !important;
+  inset: auto !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  flex: none !important;
+
+  overflow: visible !important;
+}
+
+/* Main content is intentionally the only desktop scroll owner. */
+.shell.glassFrame .content {
+  width: 100% !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 auto !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: contain !important;
+  scroll-behavior: auto !important;
+
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+.shell.glassFrame .content::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* =========================================================
+   DESKTOP SIDEBAR
+   The sidebar is a fixed control rail, not a scroll surface.
+   Secondary destinations live in one-open-at-a-time groups.
+   ========================================================= */
+
+@media (min-width: 1080px) {
+  .shell.glassFrame > .sidebar {
+    position: relative !important;
+    inset: auto !important;
+
+    width: var(--ra-sidebar-width) !important;
+    min-width: var(--ra-sidebar-width) !important;
+    max-width: var(--ra-sidebar-width) !important;
+
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+
+    padding: 12px 11px 9px !important;
+
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
+
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .shell.glassFrame .brand {
+    min-height: 0 !important;
+    margin: 0 0 7px !important;
+    padding: 6px 7px 10px !important;
+
+    overflow: hidden !important;
+  }
+
+  .shell.glassFrame .sidebarLogo,
+  .shell.glassFrame .brand .sidebarLogo {
+    width: min(154px, 100%) !important;
+    max-height: 40px !important;
+  }
+
+  .shell.glassFrame .brand > span {
+    margin-top: 3px !important;
+    font-size: 7px !important;
+    line-height: 1.2 !important;
+    letter-spacing: .13em !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .sidebarNavPrimary,
+  .sidebarNavGroups,
+  .sidebarNavSystem,
+  .sidebarNavGroupItems {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sidebarNavPrimary,
+  .sidebarNavSystem,
+  .sidebarNavGroupItems {
+    display: grid;
+    gap: 2px;
+  }
+
+  .sidebarNavGroups {
+    display: grid;
+    gap: 2px;
+  }
+
+  .sidebarNavSystem {
+    margin-top: auto;
+    padding-top: 3px;
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+
+  .sidebarNavGroup {
+    min-width: 0;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: clamp(24px, 3.2dvh, 30px) !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 8px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+
+    border: 0 !important;
+    border-radius: 9px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    color: rgba(235,243,255,.62) !important;
+    cursor: pointer;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle:hover,
+  .shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavGroup.open > button.sidebarNavGroupToggle {
+    background: rgba(255,255,255,.055) !important;
+    color: #fff !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle span {
+    display: inline !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+
+    overflow: hidden !important;
+    clip: auto !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+
+    font-size: 8px !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    letter-spacing: .11em !important;
+    text-transform: uppercase !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle svg {
+    width: 13px !important;
+    height: 13px !important;
+    flex: 0 0 13px !important;
+    transition: transform .16s ease;
+  }
+
+  .sidebarNavGroup.open > .sidebarNavGroupToggle svg {
+    transform: rotate(90deg);
+  }
+
+  .sidebarNavGroup:not(.open) > .sidebarNavGroupItems {
+    display: none !important;
+  }
+
+  .sidebarNavGroup.open > .sidebarNavGroupItems {
+    display: grid !important;
+    margin-top: 2px;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    height: clamp(27px, 3.7dvh, 34px) !important;
+    min-height: 0 !important;
+    max-height: 34px !important;
+
+    margin: 0 !important;
+    padding: 0 9px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+
+    border-radius: 10px !important;
+
+    text-align: left !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavGroupItems button.sidebarNavItem {
+    padding-left: 12px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px !important;
+    margin: 0 !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem span {
+    display: inline !important;
+    position: static !important;
+
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+    clip: auto !important;
+
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+
+    font-size: 9.5px !important;
+    line-height: 1.1 !important;
+  }
+
+  .shell.glassFrame .sidebarFooter {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    margin: 7px 0 0 !important;
+    padding: 7px 7px 2px !important;
+
+    overflow: hidden !important;
+  }
+
+  .shell.glassFrame .sidebarFooter .status {
+    margin: 0 0 2px !important;
+    font-size: 9px !important;
+  }
+
+  .shell.glassFrame .sidebarFooter small {
+    display: block !important;
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+
+    font-size: 8px !important;
+  }
+}
+
+/* Short Windows laptop viewports get density, not another scrollbar. */
+@media (min-width: 1080px) and (max-height: 760px) {
+  .appBackground {
+    --ra-shell-gutter: 8px;
+  }
+
+  .shell.glassFrame {
+    --ra-sidebar-width: 198px;
+  }
+
+  .shell.glassFrame > .sidebar {
+    padding: 7px 8px 6px !important;
+  }
+
+  .shell.glassFrame .brand {
+    margin-bottom: 4px !important;
+    padding: 3px 6px 5px !important;
+  }
+
+  .shell.glassFrame .sidebarLogo,
+  .shell.glassFrame .brand .sidebarLogo {
+    width: 134px !important;
+    max-height: 31px !important;
+  }
+
+  .shell.glassFrame .brand > span {
+    font-size: 6.5px !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav,
+  .sidebarNavPrimary,
+  .sidebarNavGroups,
+  .sidebarNavSystem,
+  .sidebarNavGroupItems {
+    gap: 1px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    height: 22px !important;
+    padding-inline: 7px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem {
+    height: 24px !important;
+    max-height: 24px !important;
+    padding-inline: 7px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavGroupItems button.sidebarNavItem {
+    padding-left: 10px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem span {
+    font-size: 8.5px !important;
+  }
+
+  .shell.glassFrame .sidebarFooter {
+    margin-top: 4px !important;
+    padding: 5px 6px 1px !important;
+  }
+}
+
+/* =========================================================
+   COMPACT DESKTOP / TABLET RAIL
+   There may be too many destinations to fit vertically here.
+   Keep access, but remove the visible nested scrollbar.
+   ========================================================= */
+
+@media (min-width: 641px) and (max-width: 1079px) {
+  .appBackground {
+    --ra-shell-gutter: 8px;
+  }
+
+  .shell.glassFrame {
+    --ra-sidebar-width: 74px;
+  }
+
+  .shell.glassFrame > .sidebar {
+    width: var(--ra-sidebar-width) !important;
+    min-width: var(--ra-sidebar-width) !important;
+    max-width: var(--ra-sidebar-width) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav {
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  .sidebarNavPrimary,
+  .sidebarNavGroups,
+  .sidebarNavSystem,
+  .sidebarNavGroup,
+  .sidebarNavGroupItems {
+    display: contents !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    display: none !important;
+  }
+}
+
+/* =========================================================
+   PHONE NAVIGATION
+   Flatten groups back into the existing horizontal rail.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  body {
+    position: static;
+    inset: auto;
+  }
+
+  .appBackground {
+    --ra-shell-gutter: 0px;
+
+    position: fixed !important;
+    inset: 0 !important;
+    padding: 0 !important;
+  }
+
+  .shell.glassFrame {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+
+    border-radius: 0 !important;
+  }
+
+  .sidebarNavPrimary,
+  .sidebarNavGroups,
+  .sidebarNavSystem,
+  .sidebarNavGroup,
+  .sidebarNavGroupItems {
+    display: contents !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    display: none !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
