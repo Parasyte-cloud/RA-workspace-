@@ -181,8 +181,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
           <p>{profile.job_title || profile.department || 'RideArrivo team member'} · Your priorities, KPI, recognition and primary workstation in one place.</p>
           <div className="personalHeroActions">
             {primaryTarget&&<button className="primaryButton" onClick={()=>onNavigate(primaryTarget)}>Open {primaryLabel}</button>}
-            <button className="glassButton" onClick={()=>onNavigate('tasks')}><ClipboardList size={16}/>My tasks</button>
-            <button className="glassButton" onClick={()=>onNavigate('projects')}><FolderKanban size={16}/>Projects</button>
+            <button type="button" className="glassButton personalHeroSecondaryAction" onClick={()=>onNavigate('tasks')}><ClipboardList size={16}/>My Tasks</button>
+            <button type="button" className="glassButton personalHeroSecondaryAction" onClick={()=>onNavigate('projects')}><FolderKanban size={16}/>Projects</button>
           </div>
         </div>
 
