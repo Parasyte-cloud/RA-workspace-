@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
+import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
 
 type Announcement = {
   id: string
@@ -70,6 +71,8 @@ type WorkspaceFile = {
   department?: string
   file_type?: string
   size_bytes?: number
+  preview_path?: string|null
+  preview_url?: string|null
 }
 
 function ModuleHeader({
@@ -465,17 +468,18 @@ export function CompanyFilesModule() {
 
   async function load() {
     if (!supabase) return
+    const client = supabase
 
     setLoading(true)
     setNotice('')
 
-    const { data: authData } = await supabase.auth.getUser()
+    const { data: authData } = await client.auth.getUser()
     const userId = authData.user?.id
 
     const [catalogResult, profileResult] = await Promise.all([
-      supabase.rpc('list_workspace_files'),
+      client.rpc('list_workspace_files'),
       userId
-        ? supabase
+        ? client
             .from('employee_profiles')
             .select('role')
             .eq('id', userId)
@@ -487,7 +491,20 @@ export function CompanyFilesModule() {
       setNotice(catalogResult.error.message)
       setItems([])
     } else {
-      setItems((catalogResult.data || []) as WorkspaceFile[])
+      const rows = (catalogResult.data || []) as WorkspaceFile[]
+      const resolved = await Promise.all(
+        rows.map(async (file) => {
+          if (!file.preview_path) return file
+          const { data, error } = await client.storage
+            .from('workspace-previews')
+            .createSignedUrl(file.preview_path, 15 * 60)
+          return {
+            ...file,
+            preview_url: error ? null : data?.signedUrl || null,
+          }
+        })
+      )
+      setItems(resolved)
     }
 
     setRole(String(profileResult.data?.role || 'employee').toLowerCase())
@@ -509,6 +526,12 @@ export function CompanyFilesModule() {
       const fileId = crypto.randomUUID()
       const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]+/g, '-')
       const storagePath = `${fileId}/${safeName}`
+      const previewBlob = isPreviewableImage(selectedFile)
+        ? await createInternalImagePreview(selectedFile)
+        : null
+      const previewPath = previewBlob
+        ? `company/${fileId}/preview.webp`
+        : null
 
       const { error: uploadError } = await supabase.storage
         .from('company-files')
@@ -519,6 +542,20 @@ export function CompanyFilesModule() {
         })
 
       if (uploadError) throw uploadError
+
+      if (previewBlob && previewPath) {
+        const { error: previewError } = await supabase.storage
+          .from('workspace-previews')
+          .upload(previewPath, previewBlob, {
+            upsert: false,
+            contentType: 'image/webp',
+            cacheControl: '900',
+          })
+        if (previewError) {
+          await supabase.storage.from('company-files').remove([storagePath])
+          throw previewError
+        }
+      }
 
       const { error: rowError } = await supabase
         .from('workspace_files')
@@ -533,12 +570,14 @@ export function CompanyFilesModule() {
           department,
           file_type: selectedFile.type || selectedFile.name.split('.').pop() || 'file',
           size_bytes: selectedFile.size,
+          preview_path: previewPath,
           uploaded_by: authData.user.id,
           is_active: true,
         })
 
       if (rowError) {
         await supabase.storage.from('company-files').remove([storagePath])
+        if (previewPath) await supabase.storage.from('workspace-previews').remove([previewPath])
         throw rowError
       }
 
@@ -675,6 +714,22 @@ export function CompanyFilesModule() {
                 <h3>{file.name}</h3>
               </div>
             </div>
+
+            {file.preview_url && (
+              <div
+                className="companyFilePreview"
+                onContextMenu={(event) => event.preventDefault()}
+                title="Internal preview. Original download requires approval."
+              >
+                <img
+                  src={file.preview_url}
+                  alt={`${file.name} preview`}
+                  loading="lazy"
+                  draggable={false}
+                />
+                <span>Internal preview</span>
+              </div>
+            )}
 
             {file.description && <p>{file.description}</p>}
 

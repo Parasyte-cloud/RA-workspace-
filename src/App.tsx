@@ -328,6 +328,7 @@ function BrandLogo({className=''}:{className?:string}){
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
+  const [passwordRecovery,setPasswordRecovery]=useState(false)
 
 
   useIdleSignOut(
@@ -457,12 +458,17 @@ function App(){
             'no session'
           )
 
+          if(event==='PASSWORD_RECOVERY'){
+            setPasswordRecovery(true)
+          }
+
           if(next){
             setSession(next)
           }else if(
             event==='SIGNED_OUT'
           ){
             setSession(null)
+            setPasswordRecovery(false)
           }
 
           setAuthReady(true)
@@ -623,6 +629,7 @@ function App(){
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
   if(!session) return <AuthGate/>
+  if(passwordRecovery) return <PasswordRecoveryGate onDone={()=>setPasswordRecovery(false)}/>
 
   if(accessState==='loading'){
     return (
@@ -860,6 +867,74 @@ function SetupRequired(){
   </div>
 }
 
+function PasswordRecoveryGate({onDone}:{onDone:()=>void}){
+  const [password,setPassword]=useState('')
+  const [confirm,setConfirm]=useState('')
+  const [message,setMessage]=useState('')
+  const [busy,setBusy]=useState(false)
+
+  const updatePassword=async(event:FormEvent)=>{
+    event.preventDefault()
+    setMessage('')
+
+    if(!supabase){
+      setMessage('Authentication service is unavailable.')
+      return
+    }
+
+    if(password.length<12){
+      setMessage('Use a password with at least 12 characters.')
+      return
+    }
+
+    if(password!==confirm){
+      setMessage('The two passwords do not match.')
+      return
+    }
+
+    setBusy(true)
+
+    try{
+      const {error}=await supabase.auth.updateUser({password})
+      if(error) throw error
+      setMessage('Password updated. Returning to sign in...')
+      await supabase.auth.signOut()
+      onDone()
+    }catch(error){
+      setMessage(error instanceof Error ? error.message : 'Unable to update password.')
+    }finally{
+      setBusy(false)
+    }
+  }
+
+  return <div className="authPage">
+    <div className="authGlass glassPanel">
+      <div className="authBrand">
+        <BrandLogo className="authLogo"/>
+        <span>RideArrivo Internal Workspace</span>
+      </div>
+      <div className="authCopy">
+        <span className="eyebrow">PASSWORD RECOVERY</span>
+        <h1>Choose a new password.</h1>
+        <p>This recovery session can only be used to update the password for the account that opened the reset link.</p>
+      </div>
+      <form onSubmit={updatePassword}>
+        <label>
+          New password
+          <input type="password" value={password} onChange={event=>setPassword(event.target.value)} autoComplete="new-password" required/>
+        </label>
+        <label>
+          Confirm new password
+          <input type="password" value={confirm} onChange={event=>setConfirm(event.target.value)} autoComplete="new-password" required/>
+        </label>
+        {message&&<div className="authMessage">{message}</div>}
+        <button className="primaryButton" disabled={busy}>{busy?'Updating...':'Update password'}</button>
+      </form>
+    </div>
+  </div>
+}
+
+
 function AuthGate(){
 
   const [email,setEmail]=useState('')
@@ -873,6 +948,37 @@ function AuthGate(){
     allowedDomains.some((d:string)=>
       value.endsWith(`@${d}`)
     )
+
+  const sendPasswordReset=async()=>{
+    setMessage('')
+
+    if(!supabase){
+      setMessage('Authentication service is unavailable.')
+      return
+    }
+
+    if(!cleanEmail || !validDomain(cleanEmail)){
+      setMessage('Enter your approved RideArrivo work email first.')
+      return
+    }
+
+    setBusy(true)
+
+    try{
+      const {error}=await supabase.auth.resetPasswordForEmail(
+        cleanEmail,
+        {redirectTo:`${window.location.origin}/`}
+      )
+
+      if(error) throw error
+
+      setMessage('If this account exists, a password reset link has been sent to the work email address.')
+    }catch(error){
+      setMessage(error instanceof Error ? error.message : 'Unable to send password reset email.')
+    }finally{
+      setBusy(false)
+    }
+  }
 
   const submit=async(e:FormEvent)=>{
     e.preventDefault()
@@ -1001,7 +1107,17 @@ function AuthGate(){
             className="primaryButton"
             disabled={busy}
           >
-            {busy?'Signing in...':'Sign in'}
+            {busy?'Please wait...':'Sign in'}
+          </button>
+
+          <button
+            type="button"
+            className="glassButton"
+            disabled={busy}
+            onClick={()=>void sendPasswordReset()}
+            style={{width:'100%',marginTop:'10px'}}
+          >
+            Forgot password / Reset password
           </button>
 
           <p

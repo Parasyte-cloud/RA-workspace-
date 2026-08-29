@@ -22,6 +22,7 @@ import {
   supabase,
 } from '../lib/supabase'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
+import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
 
 import '../brand-library.css'
 
@@ -90,7 +91,8 @@ type BrandAsset = {
   file_size:number
   uploaded_by:string
   created_at:string
-  signed_url?:string|null
+  preview_path?:string|null
+  preview_url?:string|null
 }
 
 
@@ -180,6 +182,9 @@ export default function BrandLibrary(){
   const [canManage,setCanManage] =
     useState(false)
 
+  const [isAdmin,setIsAdmin] =
+    useState(false)
+
   const [message,setMessage] =
     useState('')
 
@@ -227,7 +232,7 @@ export default function BrandLibrary(){
                 'brand_assets'
               )
               .select(
-                'id,name,description,category,file_name,storage_path,mime_type,file_size,uploaded_by,created_at'
+                'id,name,description,category,file_name,storage_path,preview_path,mime_type,file_size,uploaded_by,created_at'
               )
               .eq(
                 'is_active',
@@ -256,21 +261,28 @@ export default function BrandLibrary(){
               rows.map(
                 async asset=>{
 
+                  if(!asset.preview_path){
+                    return {
+                      ...asset,
+                      preview_url:null,
+                    }
+                  }
+
                   const {
                     data:signed,
                     error:signedError,
                   } =
                     await supabase!
                       .storage
-                      .from(BUCKET)
+                      .from('workspace-previews')
                       .createSignedUrl(
-                        asset.storage_path,
-                        60 * 60
+                        asset.preview_path,
+                        15 * 60
                       )
 
                   return {
                     ...asset,
-                    signed_url:
+                    preview_url:
                       signedError
                         ? null
                         : signed?.signedUrl ||
@@ -368,6 +380,11 @@ export default function BrandLibrary(){
               role === 'manager' ||
               role === 'admin'
             )
+          )
+
+          setIsAdmin(
+            data?.active === true &&
+            role === 'admin'
           )
         }
 
@@ -509,11 +526,22 @@ export default function BrandLibrary(){
               file.name
             )
 
+          const assetId = crypto.randomUUID()
           const path =
             `${uploadCategory}/` +
             `${Date.now()}-` +
-            `${crypto.randomUUID()}-` +
+            `${assetId}-` +
             cleaned
+
+          const previewBlob =
+            isPreviewableImage(file)
+              ? await createInternalImagePreview(file)
+              : null
+
+          const previewPath =
+            previewBlob
+              ? `brand/${assetId}/preview.webp`
+              : null
 
 
           const {
@@ -539,6 +567,28 @@ export default function BrandLibrary(){
             throw uploadError
           }
 
+          if(previewBlob && previewPath){
+            const {
+              error:previewError,
+            } = await supabase
+              .storage
+              .from('workspace-previews')
+              .upload(
+                previewPath,
+                previewBlob,
+                {
+                  contentType:'image/webp',
+                  cacheControl:'900',
+                  upsert:false,
+                }
+              )
+
+            if(previewError){
+              await supabase.storage.from(BUCKET).remove([path])
+              throw previewError
+            }
+          }
+
 
           const displayName =
             file.name
@@ -559,6 +609,9 @@ export default function BrandLibrary(){
                 'brand_assets'
               )
               .insert({
+                id:
+                  assetId,
+
                 name:
                   displayName,
 
@@ -570,6 +623,9 @@ export default function BrandLibrary(){
 
                 storage_path:
                   path,
+
+                preview_path:
+                  previewPath,
 
                 mime_type:
                   file.type,
@@ -590,6 +646,15 @@ export default function BrandLibrary(){
               .remove([
                 path,
               ])
+
+            if(previewPath){
+              await supabase
+                .storage
+                .from('workspace-previews')
+                .remove([
+                  previewPath,
+                ])
+            }
 
             throw metadataError
           }
@@ -621,6 +686,74 @@ export default function BrandLibrary(){
 
         setUploading(false)
 
+      }
+    }
+
+
+  const buildMissingPreviews =
+    async()=>{
+      if(!supabase || !isAdmin){
+        return
+      }
+
+      const missing = assets.filter(
+        asset=>
+          asset.mime_type.startsWith('image/') &&
+          !asset.preview_path
+      )
+
+      if(!missing.length){
+        setMessage('All image assets already have internal previews.')
+        return
+      }
+
+      setUploading(true)
+      setMessage('')
+
+      try{
+        for(const asset of missing){
+          const {data:blob,error:downloadError}=await supabase
+            .storage
+            .from(BUCKET)
+            .download(asset.storage_path)
+
+          if(downloadError) throw downloadError
+
+          const source = new File(
+            [blob],
+            asset.file_name,
+            {type:asset.mime_type}
+          )
+
+          const preview = await createInternalImagePreview(source)
+          if(!preview) continue
+
+          const previewPath = `brand/${asset.id}/preview.webp`
+          const {error:previewError}=await supabase
+            .storage
+            .from('workspace-previews')
+            .upload(previewPath,preview,{
+              upsert:true,
+              contentType:'image/webp',
+              cacheControl:'900',
+            })
+
+          if(previewError) throw previewError
+
+          const {error:updateError}=await supabase
+            .from('brand_assets')
+            .update({preview_path:previewPath})
+            .eq('id',asset.id)
+
+          if(updateError) throw updateError
+        }
+
+        setMessage('Missing image previews generated. Originals remain protected.')
+        await load()
+      }catch(error:any){
+        setMessage(error?.message || 'Unable to generate missing previews.')
+      }finally{
+        setUploading(false)
       }
     }
 
@@ -754,6 +887,18 @@ export default function BrandLibrary(){
 
         </label>
 
+
+        {isAdmin && assets.some(asset=>asset.mime_type.startsWith('image/') && !asset.preview_path) &&
+          <button
+            type="button"
+            className="glassButton"
+            disabled={uploading}
+            onClick={()=>void buildMissingPreviews()}
+          >
+            <FileImage size={16}/>
+            Build missing previews
+          </button>
+        }
 
         {canManage &&
           <div className="brandLibraryUpload">
@@ -922,9 +1067,9 @@ export default function BrandLibrary(){
                 className="brandAssetCard"
               >
 
-                <div className="brandAssetPreview">
+                <div className="brandAssetPreview" onContextMenu={event=>event.preventDefault()} title="Internal preview. Original download requires approval.">
 
-                  {asset.signed_url &&
+                  {asset.preview_url &&
                    asset.mime_type
                      .startsWith(
                        'image/'
@@ -932,13 +1077,14 @@ export default function BrandLibrary(){
                     ? (
                       <img
                         src={
-                          asset.signed_url
+                          asset.preview_url
                         }
                         alt={
                           asset.name
                         }
                         loading="lazy"
                         referrerPolicy="no-referrer"
+                        draggable={false}
                       />
                     )
                     : (
@@ -1004,16 +1150,16 @@ export default function BrandLibrary(){
                     />
 
 
-                    {asset.signed_url &&
+                    {asset.preview_url &&
                       <a
                         href={
-                          asset.signed_url
+                          asset.preview_url
                         }
                         target="_blank"
                         rel="noreferrer"
                       >
                         <ExternalLink size={14}/>
-                        Open
+                        Open preview
                       </a>
                     }
 
