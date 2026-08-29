@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 const BUCKET = 'employee-headshots'
-const SIGNED_URL_SECONDS = 60 * 60 * 8
+const SIGNED_URL_SECONDS = 15 * 60
 
 export async function resolveEmployeeAvatarUrl(
   avatarPath?: string | null

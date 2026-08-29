@@ -395,3 +395,7 @@
     font-size:21px;
   }
 }
+
+
+/* Approved RideArrivo card wordmark: Ride white, Arrivo amber. */
+.virtualCardBrandLogo{display:block;width:min(190px,52%);height:44px;object-fit:contain;object-position:left center}.virtualCardBackLogo{width:min(220px,72%);height:64px;margin:3px auto 12px}.virtualCardBackLogo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}@media (max-width:520px){.virtualCardBrandLogo{width:min(168px,58%);height:40px}.virtualCardBackLogo{width:min(190px,74%);height:58px}}

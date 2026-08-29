@@ -253,16 +253,8 @@ export function EmployeeVirtualCard({
               <article className="virtualCardFace virtualCardFront">
 
                 <div className="virtualCardBrand">
-
-                  <strong>
-                    <span>Ride</span>
-                    <b>Arrivo</b>
-                  </strong>
-
-                  <span>
-                    INTERNAL IDENTITY
-                  </span>
-
+                  <img className="virtualCardBrandLogo" src="/ridearrivo-wordmark-workspace.png" alt="RideArrivo"/>
+                  <span>INTERNAL IDENTITY</span>
                 </div>
 
                 <div className="virtualCardIdentity">
@@ -380,7 +372,7 @@ export function EmployeeVirtualCard({
               <article className="virtualCardFace virtualCardBack">
 
                 <div className="virtualCardBackLogo">
-                  <MapPin size={50}/>
+                  <img src="/ridearrivo-wordmark-workspace.png" alt="RideArrivo"/>
                 </div>
 
                 <h2>

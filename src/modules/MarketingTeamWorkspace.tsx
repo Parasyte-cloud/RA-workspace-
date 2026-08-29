@@ -47,7 +47,6 @@ type Profile={
   role:string
   department:string|null
   job_title:string|null
-  avatar_url:string|null
 }
 
 type Space={
@@ -797,7 +796,7 @@ function StrategyContentWorkstation(){
 }
 
 
-export function MarketingTeamWorkspace(){
+export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)=>void}){
 
   const [profile,setProfile]=
     useState<Profile|null>(null)
@@ -818,7 +817,7 @@ export function MarketingTeamWorkspace(){
     useState<Message[]>([])
 
   const [view,setView]=
-    useState<View>('team')
+    useState<View>('projects')
 
   const [
     selectedSpaceId,
@@ -891,7 +890,7 @@ export function MarketingTeamWorkspace(){
           await client
             .from('employee_profiles')
             .select(
-              'id,full_name,email,role,department,job_title,avatar_url'
+              'id,full_name,email,role,department,job_title'
             )
             .eq(
               'id',
@@ -924,7 +923,7 @@ export function MarketingTeamWorkspace(){
           await client
             .from('employee_profiles')
             .select(
-              'id,full_name,email,role,department,job_title,avatar_url'
+              'id,full_name,email,role,department,job_title'
             )
             .eq(
               'active',
@@ -1701,7 +1700,7 @@ export function MarketingTeamWorkspace(){
           }}
         >
           <Megaphone size={16}/>
-          Digital Marketer
+          Digital Workstation
         </button>
 
         <button
@@ -1715,7 +1714,7 @@ export function MarketingTeamWorkspace(){
           }}
         >
           <Telescope size={16}/>
-          Strategy & Content
+          Strategy Workstation
         </button>
 
         <button
@@ -1734,6 +1733,17 @@ export function MarketingTeamWorkspace(){
 
       </div>
 
+      {onNavigate && <div className="marketingEssentials glassCard">
+        <div className="marketingEssentialsHeader"><span className="eyebrow">WORKSPACE ESSENTIALS</span><h3>Daily operating stack</h3><p>Tasks, communication, planning, files and brand resources stay one click away from the Marketing workspace.</p></div>
+        <div className="marketingEssentialsGrid">{[
+          ['tasks','My Tasks & Approvals','Assignments, deadlines and approvals.'],
+          ['mail','Mail','RideArrivo company email.'],
+          ['calendar','Calendar','Campaign dates, meetings and deadlines.'],
+          ['files','Company Files','Controlled team documents and assets.'],
+          ['brand','Brand Library','Approved logos, graphics and brand assets.'],
+          ['knowledge','Knowledge Base','Playbooks, procedures and reusable guidance.']
+        ].map(([target,name,purpose])=><button key={target} type="button" onClick={()=>onNavigate(target)}><span><strong>{name}</strong><small>{purpose}</small></span><ExternalLink size={16}/></button>)}</div>
+      </div>}
 
       {view==='team' &&
         <div className="marketingTeamView">
@@ -1777,17 +1787,9 @@ export function MarketingTeamWorkspace(){
 
                 <div className="marketingPersonAvatar">
 
-                  {employee.avatar_url
-                    ? (
-                      <img
-                        src={employee.avatar_url}
-                        alt=""
-                      />
-                    )
-                    : initials(
-                        employee.full_name
-                      )
-                  }
+                  {initials(
+                    employee.full_name
+                  )}
 
                 </div>
 

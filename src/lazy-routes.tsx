@@ -58,6 +58,15 @@ export const EngineeringTeamWorkspace = lazy(
     )
 )
 
+export const ExecutiveTeamWorkspace = lazy(
+  () =>
+    import('./modules/DepartmentTeamWorkspace').then(
+      module => ({
+        default: module.ExecutiveTeamWorkspace
+      })
+    )
+)
+
 export const FinanceTeamWorkspace = lazy(
   () =>
     import('./modules/DepartmentTeamWorkspace').then(

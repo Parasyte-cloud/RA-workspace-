@@ -227,18 +227,7 @@ export default function BrandLibrary(){
                 'brand_assets'
               )
               .select(
-                [
-                  'id',
-                  'name',
-                  'description',
-                  'category',
-                  'file_name',
-                  'storage_path',
-                  'mime_type',
-                  'file_size',
-                  'uploaded_by',
-                  'created_at',
-                ].join(',')
+                'id,name,description,category,file_name,storage_path,mime_type,file_size,uploaded_by,created_at'
               )
               .eq(
                 'is_active',

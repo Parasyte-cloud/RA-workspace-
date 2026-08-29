@@ -22,6 +22,7 @@ import {
   Code2,
   ContactRound,
   Copy,
+  Crown,
   Download,
   ExternalLink,
   FileCheck2,
@@ -47,6 +48,7 @@ import {
   Smartphone,
   Sparkles,
   TicketCheck,
+  TerminalSquare,
   UserCog,
   UserPlus,
   Users,
@@ -80,11 +82,13 @@ import type { ParasyteOpenDetail } from './lib/parasyte'
 import {
   MarketingTeamWorkspace,
   BrandLibrary,
+  ParasyteLinux,
   ParasyteBrowser,
   SupportTeamWorkspace,
   OperationsTeamWorkspace,
   PeopleTeamWorkspace,
   EngineeringTeamWorkspace,
+  ExecutiveTeamWorkspace,
   FinanceTeamWorkspace,
   PartnershipsTeamWorkspace,
   LegalTeamWorkspace,
@@ -112,7 +116,7 @@ import {
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'mail'|'announcements'|'calendar'|'tasks'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type Profile = {
@@ -144,6 +148,7 @@ const allWorkspaceRoles:Role[]=[
   'employee',
   'support',
   'engineer',
+  'cto',
   'manager',
   'hr',
   'legal',
@@ -202,7 +207,13 @@ const sectionAccess:Record<Section,Role[]>={
 
   engineering:[
     'engineer',
+    'cto',
     'manager',
+    'admin'
+  ],
+
+  linux:[
+    'engineer',
     'admin'
   ],
 
@@ -238,6 +249,11 @@ const sectionAccess:Record<Section,Role[]>={
 
   legal:[
     'legal',
+    'manager',
+    'admin'
+  ],
+
+  executive:[
     'manager',
     'admin'
   ],
@@ -586,7 +602,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['support','Support',Headphones],['engineering','Engineering',Code2],['people','People & HR',Users],['operations','Operations',BriefcaseBusiness],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
+      ['overview','Overview',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO Workspace',Crown],['support','Support Workspace',Headphones],['operations','Operations Workspace',BriefcaseBusiness],['people','People & HR Workspace',Users],['engineering','Engineering Workspace',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance Workspace',CircleDollarSign],['marketing','Marketing Workspace',BarChart3],['partnerships','Partnerships Workspace',Building2],['legal','Legal Workspace',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Admin',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id))
   },[profile.role])
@@ -799,14 +815,16 @@ function App(){
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
-        {section==='support'&&<SupportTeamWorkspace execution={<SupportModule/>}/>}
-        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering openWorkspace={openWorkspace}/>}/>} 
-        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>}/>}
-        {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>}/>}
-        {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>}/>}
-        {section==='marketing'&&<MarketingTeamWorkspace/>}
-        {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>}/>}
-        {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>}/>}
+        {section==='executive'&&<ExecutiveTeamWorkspace onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='support'&&<SupportTeamWorkspace execution={<SupportModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering openWorkspace={openWorkspace}/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>} 
+        {section==='linux'&&<ParasyteLinux/>}
+        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='marketing'&&<MarketingTeamWorkspace onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
         {section==='settings'&&<AppearanceSettings/>}
         {section==='admin'&&<AdminModule/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
@@ -1001,14 +1019,17 @@ function AuthGate(){
 
 function Overview({setSection,role}:{setSection:(s:Section)=>void;role:Role}){
   const launchers=[
-    ['support','Support Station','Bookings, riders, drivers, live trips, safety and escalations.',Headphones],
-    ['engineering','Engineering Station','Repos, deployments, mobile tooling, device bootstrap and APIs.',Code2],
-    ['crm','CRM','Leads, riders, corporate accounts and opportunities.',ContactRound],
-    ['finance','Finance','Accounting, receivables, payables, budgets, tax and close.',CircleDollarSign],
-    ['marketing','Marketing','Campaigns, content, attribution, experiments and assets.',BarChart3],
-    ['partnerships','Partnerships','Partners, agreements, pipeline, referrals and onboarding.',Building2]
+    ['executive','CEO Workspace','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
+    ['support','Support Workstation','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
+    ['operations','Operations Workstation','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
+    ['people','People & HR Workstation','Recruitment, onboarding, leave, performance and employee operations.',Users],
+    ['engineering','Engineering Workstation','Repos, deployments, infrastructure, mobile delivery, security and APIs.',Code2],
+    ['finance','Finance Workstation','Accounting, banking, receivables, payables, budgets, tax and close.',CircleDollarSign],
+    ['marketing','Marketing Workstation','Campaigns, content, acquisition, analytics, projects and brand execution.',BarChart3],
+    ['partnerships','Partnerships Workstation','Partners, agreements, pipeline, referrals, launch and renewals.',Building2],
+    ['legal','Legal & Compliance Workstation','Contracts, privacy, compliance, filings, evidence and legal requests.',Scale]
   ] as const
-  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Only workstations permitted for your role are shown."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
+  return <><section className="hero glassHero"><div><span className="eyebrow">RIDEARRIVO CONTROL PLANE</span><h2>Every team. Every workflow. One workspace.</h2><p>Operate bookings, customers, engineering, people, finance, marketing, partnerships, compliance and internal applications without leaving the RideArrivo workspace.</p><div className="heroActions">{canAccess(role,'support')&&<button className="primaryButton" onClick={()=>setSection('support')}>Open Support Station</button>}<button className="glassButton" onClick={()=>setSection('apps')}>Applications</button></div></div><img src="/ridearrivo-mark.png"/></section><OverviewMetrics role={role}/><section><SectionTitle eyebrow="WORKSTATIONS" title="Team command centres" subtitle="Your department workstation is the primary place to work. Managers and administrators can open the cross-functional workstations they oversee."/><div className="grid3">{launchers.filter(([id])=>canAccess(role,id)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}</div></section></>
 }
 function CRM(){
   return <section>

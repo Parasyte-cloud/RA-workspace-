@@ -32,7 +32,6 @@ type Employee={
   role:string
   department:string|null
   job_title:string|null
-  avatar_url:string|null
 }
 
 type Tool={
@@ -49,6 +48,20 @@ type Capability={
   description:string
 }
 
+type WorkspaceLink={
+  name:string
+  purpose:string
+  target:string
+}
+
+const sharedWorkspaceLinks:WorkspaceLink[]=[
+  {name:'My Tasks & Approvals',purpose:'Assignments, deadlines, approvals and progress.',target:'tasks'},
+  {name:'Mail',purpose:'RideArrivo company email and team communication.',target:'mail'},
+  {name:'Calendar',purpose:'Meetings, deadlines and scheduled work.',target:'calendar'},
+  {name:'Company Files',purpose:'Controlled documents and shared department records.',target:'files'},
+  {name:'Knowledge Base',purpose:'Policies, procedures, playbooks and reusable guidance.',target:'knowledge'}
+]
+
 type Props={
   eyebrow:string
   title:string
@@ -62,6 +75,8 @@ type Props={
 
   capabilities:Capability[]
   tools:Tool[]
+  workspaceLinks?:WorkspaceLink[]
+  onNavigate?:(target:string)=>void
 
   execution:ReactNode
 }
@@ -102,6 +117,8 @@ export function DepartmentTeamWorkspace({
   workstationDescription,
   capabilities,
   tools,
+  workspaceLinks=[],
+  onNavigate,
   execution
 }:Props){
 
@@ -116,7 +133,7 @@ export function DepartmentTeamWorkspace({
       'team'
       | 'workstation'
       | 'execution'
-    >('team')
+    >('workstation')
 
   const [loading,setLoading]=
     useState(true)
@@ -166,7 +183,7 @@ export function DepartmentTeamWorkspace({
           await client
             .from('employee_profiles')
             .select(
-              'id,full_name,email,role,department,job_title,avatar_url'
+              'id,full_name,email,role,department,job_title'
             )
             .eq(
               'id',
@@ -197,7 +214,7 @@ export function DepartmentTeamWorkspace({
           await client
             .from('employee_profiles')
             .select(
-              'id,full_name,email,role,department,job_title,avatar_url'
+              'id,full_name,email,role,department,job_title'
             )
             .eq(
               'active',
@@ -335,6 +352,17 @@ export function DepartmentTeamWorkspace({
     ])
 
 
+  const workstationLinks=
+    useMemo(()=>{
+      const combined=[...sharedWorkspaceLinks,...workspaceLinks]
+      const seen=new Set<string>()
+      return combined.filter(link=>{
+        if(seen.has(link.target)) return false
+        seen.add(link.target)
+        return true
+      })
+    },[workspaceLinks])
+
   const openTool=(tool:Tool)=>{
 
     if(!tool.url){
@@ -419,54 +447,10 @@ export function DepartmentTeamWorkspace({
 
 
       <div className="departmentTabs">
-
-        <button
-          type="button"
-          className={
-            view==='team'
-              ? 'active'
-              : ''
-          }
-          onClick={()=>{
-            setView('team')
-          }}
-        >
-          <UsersRound size={16}/>
-          Team
-        </button>
-
-        <button
-          type="button"
-          className={
-            view==='workstation'
-              ? 'active'
-              : ''
-          }
-          onClick={()=>{
-            setView('workstation')
-          }}
-        >
-          <Wrench size={16}/>
-          Workstation
-        </button>
-
-        <button
-          type="button"
-          className={
-            view==='execution'
-              ? 'active'
-              : ''
-          }
-          onClick={()=>{
-            setView('execution')
-          }}
-        >
-          <Layers3 size={16}/>
-          Execution
-        </button>
-
+        <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workstation</button>
+        <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Execution</button>
+        <button type="button" className={view==='team'?'active':''} onClick={()=>setView('team')}><UsersRound size={16}/>Team</button>
       </div>
-
 
       {view==='team' &&
         <div className="departmentTeam">
@@ -516,17 +500,9 @@ export function DepartmentTeamWorkspace({
 
                 <div className="departmentAvatar">
 
-                  {employee.avatar_url
-                    ? (
-                      <img
-                        src={employee.avatar_url}
-                        alt=""
-                      />
-                    )
-                    : initials(
-                        employee.full_name
-                      )
-                  }
+                  {initials(
+                    employee.full_name
+                  )}
 
                 </div>
 
@@ -610,6 +586,18 @@ export function DepartmentTeamWorkspace({
 
           </div>
 
+          {onNavigate && workstationLinks.length>0 && <>
+            <div className="departmentSectionHeader"><div>
+              <span className="eyebrow">WORKSPACE ESSENTIALS</span>
+              <h3>Daily operating stack</h3>
+              <p>Core RideArrivo tools stay one click away so the department can execute without leaving its workstation flow.</p>
+            </div></div>
+            <div className="departmentTools">
+              {workstationLinks.map(link=><button key={link.target} type="button" onClick={()=>onNavigate(link.target)}>
+                <span><strong>{link.name}</strong><small>{link.purpose}</small></span><Layers3 size={17}/>
+              </button>)}
+            </div>
+          </>}
 
           <div className="departmentSectionHeader">
 
@@ -624,8 +612,8 @@ export function DepartmentTeamWorkspace({
               </h3>
 
               <p>
-                These launchers move into PArAsYtE in
-                the next build tranche.
+                Specialist external tools open through PArAsYtE so
+                department work stays inside the controlled workspace.
               </p>
 
             </div>
@@ -682,10 +670,63 @@ export function DepartmentTeamWorkspace({
 }
 
 
+function ExecutiveExecution({onNavigate}:{onNavigate?:(target:string)=>void}){
+  const controls:WorkspaceLink[]=[
+    {name:'Company CRM',purpose:'Customer, corporate account and opportunity visibility.',target:'crm'},
+    {name:'Finance Control',purpose:'Cash, receivables, payables, budgets and statutory control.',target:'finance'},
+    {name:'Operations Control',purpose:'Dispatch, fleet, drivers, live service and incidents.',target:'operations'},
+    {name:'Growth & Marketing',purpose:'Acquisition, campaigns, content and commercial growth.',target:'marketing'},
+    {name:'Partnerships',purpose:'Commercial pipeline, agreements, onboarding and renewals.',target:'partnerships'},
+    {name:'People & HR',purpose:'Headcount, onboarding, performance and employee operations.',target:'people'},
+    {name:'Legal & Compliance',purpose:'Contracts, privacy, regulatory obligations and risk.',target:'legal'},
+    {name:'Engineering',purpose:'Product delivery, infrastructure, security and releases.',target:'engineering'}
+  ]
+  return <div className="departmentExecutiveExecution">
+    <div className="departmentStationIntro"><span className="eyebrow">EXECUTIVE EXECUTION</span><h3>CEO cross-functional control</h3><p>Open the live departmental control centres required for decisions, approvals, escalation and company-wide follow-through. No placeholder figures are shown here; each destination uses its live authorised workspace data.</p></div>
+    <div className="departmentTools">{controls.map(control=><button key={control.target} type="button" disabled={!onNavigate} onClick={()=>onNavigate?.(control.target)}><span><strong>{control.name}</strong><small>{control.purpose}</small></span><Layers3 size={17}/></button>)}</div>
+  </div>
+}
+
+export function ExecutiveTeamWorkspace({onNavigate}:{onNavigate?:(target:string)=>void}){
+  return <DepartmentTeamWorkspace
+    eyebrow="EXECUTIVE LEADERSHIP"
+    title="CEO & Management Workspace"
+    subtitle="Company-wide leadership, approvals, risk, operating performance and cross-functional decision control."
+    departmentAliases={['executive','management','leadership','office of the ceo']}
+    roleAliases={['manager']}
+    workstationTitle="CEO Executive Workstation"
+    workstationDescription="A focused leadership environment for company priorities, decisions, approvals, financial stewardship, service performance, growth, people and governance."
+    capabilities={[
+      {title:'Company Priorities',description:'Strategic objectives, ownership, deadlines and cross-functional follow-through.'},
+      {title:'Approvals & Decisions',description:'Review work requiring executive approval, resolve blockers and record accountable decisions.'},
+      {title:'Financial Stewardship',description:'Revenue, cash, budgets, obligations and financial control through the authorised finance workspace.'},
+      {title:'Service Performance',description:'Support, operations, safety and service-quality visibility without bypassing departmental controls.'},
+      {title:'Growth & Partnerships',description:'Marketing performance, commercial pipeline, strategic partners and expansion readiness.'},
+      {title:'People & Organisation',description:'Headcount, leadership accountability, onboarding, performance and organisation health.'},
+      {title:'Governance & Risk',description:'Legal, privacy, compliance, incidents and material business risks requiring leadership attention.'},
+      {title:'Technology & Delivery',description:'Product delivery, reliability, security and release readiness through Engineering.'}
+    ]}
+    tools={[
+      {name:'ProvidusBank',purpose:'Authorised corporate banking access.',url:'https://ibank.providusbank.com/provipay#/login'},
+      {name:'Google Drive',purpose:'Executive documents and controlled collaboration.',url:'https://drive.google.com/'},
+      {name:'Google Meet',purpose:'Leadership, partner and stakeholder meetings.',url:'https://meet.google.com/'},
+      {name:'LinkedIn',purpose:'Executive network, partnerships and market intelligence.',url:'https://www.linkedin.com/'}
+    ]}
+    workspaceLinks={[
+      {name:'Company CRM',purpose:'Customer, corporate account and opportunity control.',target:'crm'},
+      {name:'Applications',purpose:'Approved internal and managed company applications.',target:'apps'}
+    ]}
+    onNavigate={onNavigate}
+    execution={<ExecutiveExecution onNavigate={onNavigate}/>}
+  />
+}
+
 export function SupportTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -751,6 +792,7 @@ export function SupportTeamWorkspace({
           url:'https://maps.google.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -758,9 +800,11 @@ export function SupportTeamWorkspace({
 
 
 export function OperationsTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -825,6 +869,7 @@ export function OperationsTeamWorkspace({
           url:'https://www.flightradar24.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -832,9 +877,11 @@ export function OperationsTeamWorkspace({
 
 
 export function PeopleTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -901,6 +948,7 @@ export function PeopleTeamWorkspace({
           url:'https://docs.google.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -908,9 +956,11 @@ export function PeopleTeamWorkspace({
 
 
 export function EngineeringTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -982,6 +1032,12 @@ export function EngineeringTeamWorkspace({
           url:'https://dash.cloudflare.com/'
         }
       ]}
+      workspaceLinks={[
+        {name:'ParAsYtE Linux',purpose:'Secure engineering terminal and persistent project workspace.',target:'linux'},
+        {name:'PArAsYtE Browser',purpose:'Open approved engineering web consoles inside the workspace.',target:'parasyte'},
+        {name:'Applications',purpose:'Approved internal and managed engineering applications.',target:'apps'}
+      ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -989,9 +1045,11 @@ export function EngineeringTeamWorkspace({
 
 
 export function FinanceTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -1052,6 +1110,7 @@ export function FinanceTeamWorkspace({
           url:'https://sheets.google.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -1059,9 +1118,11 @@ export function FinanceTeamWorkspace({
 
 
 export function PartnershipsTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -1127,6 +1188,7 @@ export function PartnershipsTeamWorkspace({
           url:'https://meet.google.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
@@ -1134,9 +1196,11 @@ export function PartnershipsTeamWorkspace({
 
 
 export function LegalTeamWorkspace({
-  execution
+  execution,
+  onNavigate
 }:{
   execution:ReactNode
+  onNavigate?:(target:string)=>void
 }){
 
   return (
@@ -1197,6 +1261,7 @@ export function LegalTeamWorkspace({
           url:'https://docs.google.com/'
         }
       ]}
+      onNavigate={onNavigate}
       execution={execution}
     />
   )
