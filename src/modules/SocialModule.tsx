@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import {
   AtSign, BarChart3, Bell, Bookmark, BookmarkCheck, CalendarClock, Camera, CheckCircle2,
@@ -38,46 +38,177 @@ export function SocialModule(){
   const [trends,setTrends]=useState<{tag:string;count:number}[]>([])
   const [people,setPeople]=useState<{id:string;full_name:string;department:string;job_title:string}[]>([])
   const fileRef=useRef<HTMLInputElement|null>(null)
+  const loadRequestRef=useRef(0)
+  const hasLoadedFeedRef=useRef(false)
+  const [refreshing,setRefreshing]=useState(false)
 
-  const load=async()=>{
-    if(!supabase){setLoading(false);return}
-    setLoading(true);setNotice(null)
-    const {data:sessionData}=await supabase.auth.getSession();const uid=sessionData.session?.user.id
-    let q=supabase.from('social_posts').select(`id,author_id,body,post_type,visibility,reply_to_id,quote_post_id,created_at,edited_at,scheduled_for,author:employee_profiles!social_posts_author_id_fkey(full_name,email,department,job_title),media:social_post_media(id,storage_path,media_type,alt_text)`).is('deleted_at',null).is('reply_to_id',null).order('created_at',{ascending:false}).limit(80)
-    if(tab==='News') q=q.in('post_type',['news','announcement'])
-    if(tab==='Following'&&uid){const {data:f}=await supabase.from('social_follows').select('following_id').eq('follower_id',uid);const ids=(f||[]).map(x=>x.following_id);q=ids.length?q.in('author_id',ids):q.eq('author_id',uid)}
-    const {data,error}=await q
-    if(error){setNotice({kind:'error',text:error.message});setPosts([]);setLoading(false);return}
-    let base=(data||[]) as unknown as SocialPost[]
-    const mediaPaths=base.flatMap(p=>(p.media||[]).map(m=>m.storage_path)).filter(Boolean)
-    if(mediaPaths.length){
-      const {data:signed}=await supabase.storage.from('social-media').createSignedUrls(mediaPaths,3600)
-      const urlMap=new Map((signed||[]).map(x=>[x.path,x.signedUrl]))
-      base=base.map(p=>({...p,media:(p.media||[]).map(m=>({...m,signed_url:urlMap.get(m.storage_path)||null}))}))
+  const load=useCallback(async()=>{
+    const client=supabase
+    if(!client){
+      setLoading(false)
+      setRefreshing(false)
+      return
     }
-    const ids=base.map(p=>p.id)
-    const [likes,replies,reposts,bookmarks,myLikes,myBookmarks,myReposts]=await Promise.all([
-      ids.length?supabase.from('social_post_reactions').select('post_id').in('post_id',ids).eq('reaction','like'):Promise.resolve({data:[]}),
-      ids.length?supabase.from('social_posts').select('reply_to_id').in('reply_to_id',ids).is('deleted_at',null):Promise.resolve({data:[]}),
-      ids.length?supabase.from('social_reposts').select('post_id').in('post_id',ids):Promise.resolve({data:[]}),
-      ids.length?supabase.from('social_bookmarks').select('post_id').in('post_id',ids):Promise.resolve({data:[]}),
-      uid&&ids.length?supabase.from('social_post_reactions').select('post_id').eq('user_id',uid).eq('reaction','like').in('post_id',ids):Promise.resolve({data:[]}),
-      uid&&ids.length?supabase.from('social_bookmarks').select('post_id').eq('user_id',uid).in('post_id',ids):Promise.resolve({data:[]}),
-      uid&&ids.length?supabase.from('social_reposts').select('post_id').eq('user_id',uid).in('post_id',ids):Promise.resolve({data:[]}),
-    ])
-    const count=(rows:any[]|null|undefined,key:string,id:string)=>rows?.filter(r=>r[key]===id).length||0
-    const mine=(rows:any[]|null|undefined,id:string)=>!!rows?.some(r=>r.post_id===id)
-    let enhanced=base.map(p=>({...p,likes:count(likes.data,'post_id',p.id),replies:count(replies.data,'reply_to_id',p.id),reposts:count(reposts.data,'post_id',p.id),liked:mine(myLikes.data,p.id),bookmarked:mine(myBookmarks.data,p.id),reposted:mine(myReposts.data,p.id)}))
-    if(tab==='Bookmarks'&&uid) enhanced=enhanced.filter(p=>p.bookmarked)
-    setPosts(enhanced)
-    const {data:tagRows}=await supabase.from('social_post_hashtags').select('hashtag:social_hashtags(tag)').limit(400)
-    const counts=new Map<string,number>();(tagRows||[]).forEach((r:any)=>{const tag=r.hashtag?.tag;if(tag)counts.set(tag,(counts.get(tag)||0)+1)})
-    setTrends([...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([tag,count])=>({tag,count})))
-    const {data:profiles}=await supabase.from('employee_profiles').select('id,full_name,department,job_title').eq('active',true).limit(8)
-    setPeople((profiles||[]) as any)
-    setLoading(false)
-  }
-  useEffect(()=>{void load()},[tab])
+
+    const requestSequence=++loadRequestRef.current
+    if(hasLoadedFeedRef.current){
+      setRefreshing(true)
+    }else{
+      setLoading(true)
+    }
+    setNotice(null)
+
+    try{
+      const {data:sessionData,error:sessionError}=await client.auth.getSession()
+      if(sessionError) throw sessionError
+      if(requestSequence!==loadRequestRef.current) return
+
+      const uid=sessionData.session?.user.id
+      let queryBuilder=client
+        .from('social_posts')
+        .select(`id,author_id,body,post_type,visibility,reply_to_id,quote_post_id,created_at,edited_at,scheduled_for,author:employee_profiles!social_posts_author_id_fkey(full_name,email,department,job_title),media:social_post_media(id,storage_path,media_type,alt_text)`)
+        .is('deleted_at',null)
+        .is('reply_to_id',null)
+        .order('created_at',{ascending:false})
+        .limit(80)
+
+      if(tab==='News'){
+        queryBuilder=queryBuilder.in('post_type',['news','announcement'])
+      }
+
+      if(tab==='Following'&&uid){
+        const {data:follows,error:followsError}=await client
+          .from('social_follows')
+          .select('following_id')
+          .eq('follower_id',uid)
+
+        if(followsError) throw followsError
+        if(requestSequence!==loadRequestRef.current) return
+
+        const ids=(follows||[]).map(row=>row.following_id)
+        queryBuilder=ids.length
+          ? queryBuilder.in('author_id',ids)
+          : queryBuilder.eq('author_id',uid)
+      }
+
+      const {data,error}=await queryBuilder
+      if(requestSequence!==loadRequestRef.current) return
+      if(error) throw error
+
+      let base=(data||[]) as unknown as SocialPost[]
+      const mediaPaths=base
+        .flatMap(post=>(post.media||[]).map(media=>media.storage_path))
+        .filter(Boolean)
+
+      if(mediaPaths.length){
+        const {data:signed,error:signedError}=await client.storage
+          .from('social-media')
+          .createSignedUrls(mediaPaths,3600)
+
+        if(requestSequence!==loadRequestRef.current) return
+
+        if(signedError){
+          console.error('[RideArrivo Pulse] media URLs failed',signedError)
+        }else{
+          const urlMap=new Map(
+            (signed||[]).map(item=>[item.path,item.signedUrl])
+          )
+          base=base.map(post=>({
+            ...post,
+            media:(post.media||[]).map(media=>({
+              ...media,
+              signed_url:urlMap.get(media.storage_path)||null
+            }))
+          }))
+        }
+      }
+
+      const ids=base.map(post=>post.id)
+      const [likes,replies,reposts,bookmarks,myLikes,myBookmarks,myReposts]=await Promise.all([
+        ids.length?client.from('social_post_reactions').select('post_id').in('post_id',ids).eq('reaction','like'):Promise.resolve({data:[]}),
+        ids.length?client.from('social_posts').select('reply_to_id').in('reply_to_id',ids).is('deleted_at',null):Promise.resolve({data:[]}),
+        ids.length?client.from('social_reposts').select('post_id').in('post_id',ids):Promise.resolve({data:[]}),
+        ids.length?client.from('social_bookmarks').select('post_id').in('post_id',ids):Promise.resolve({data:[]}),
+        uid&&ids.length?client.from('social_post_reactions').select('post_id').eq('user_id',uid).eq('reaction','like').in('post_id',ids):Promise.resolve({data:[]}),
+        uid&&ids.length?client.from('social_bookmarks').select('post_id').eq('user_id',uid).in('post_id',ids):Promise.resolve({data:[]}),
+        uid&&ids.length?client.from('social_reposts').select('post_id').eq('user_id',uid).in('post_id',ids):Promise.resolve({data:[]}),
+      ])
+
+      if(requestSequence!==loadRequestRef.current) return
+
+      const count=(rows:any[]|null|undefined,key:string,id:string)=>
+        rows?.filter(row=>row[key]===id).length||0
+      const mine=(rows:any[]|null|undefined,id:string)=>
+        !!rows?.some(row=>row.post_id===id)
+
+      let enhanced=base.map(post=>({
+        ...post,
+        likes:count(likes.data,'post_id',post.id),
+        replies:count(replies.data,'reply_to_id',post.id),
+        reposts:count(reposts.data,'post_id',post.id),
+        liked:mine(myLikes.data,post.id),
+        bookmarked:mine(myBookmarks.data,post.id),
+        reposted:mine(myReposts.data,post.id)
+      }))
+
+      if(tab==='Bookmarks'&&uid){
+        enhanced=enhanced.filter(post=>post.bookmarked)
+      }
+
+      setPosts(enhanced)
+      hasLoadedFeedRef.current=true
+
+      const [tagResult,profileResult]=await Promise.all([
+        client
+          .from('social_post_hashtags')
+          .select('hashtag:social_hashtags(tag)')
+          .limit(400),
+        client
+          .from('employee_profiles')
+          .select('id,full_name,department,job_title')
+          .eq('active',true)
+          .limit(8)
+      ])
+
+      if(requestSequence!==loadRequestRef.current) return
+
+      if(!tagResult.error){
+        const counts=new Map<string,number>()
+        ;(tagResult.data||[]).forEach((row:any)=>{
+          const tag=row.hashtag?.tag
+          if(tag){
+            counts.set(tag,(counts.get(tag)||0)+1)
+          }
+        })
+        setTrends(
+          [...counts.entries()]
+            .sort((left,right)=>right[1]-left[1])
+            .slice(0,8)
+            .map(([tag,count])=>({tag,count}))
+        )
+      }
+
+      if(!profileResult.error){
+        setPeople((profileResult.data||[]) as any)
+      }
+    }catch(error:any){
+      if(requestSequence!==loadRequestRef.current) return
+
+      console.error('[RideArrivo Pulse] feed load failed',error)
+      // Keep the last known-good feed visible instead of blanking it.
+      setNotice({
+        kind:'error',
+        text:error?.message || 'Unable to refresh RideArrivo Pulse.'
+      })
+    }finally{
+      if(requestSequence===loadRequestRef.current){
+        setLoading(false)
+        setRefreshing(false)
+      }
+    }
+  },[tab])
+
+  useEffect(()=>{void load();return()=>{loadRequestRef.current+=1}},[load])
 
   const filtered=useMemo(()=>{const q=query.trim().toLowerCase();return q?posts.filter(p=>p.body.toLowerCase().includes(q)||String(p.author?.full_name||'').toLowerCase().includes(q)):posts},[posts,query])
 
@@ -112,7 +243,7 @@ export function SocialModule(){
   const sendReply=async(e:FormEvent)=>{e.preventDefault();if(!supabase||!replyTo||!replyBody.trim())return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;const {error}=await supabase.from('social_posts').insert({author_id:uid,body:replyBody.trim(),post_type:'reply',visibility:replyTo.visibility,reply_to_id:replyTo.id});if(error)setNotice({kind:'error',text:error.message});else{setReplyBody('');setReplyTo(null);await load()}}
   const follow=async(id:string)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid||uid===id)return;await supabase.from('social_follows').upsert({follower_id:uid,following_id:id});setNotice({kind:'ok',text:'Following updated.'})}
 
-  return <section className="socialModule">
+  return <section className="socialModule" aria-busy={loading||refreshing}>
     <div className="sectionTitle"><div><span className="eyebrow">RIDEARRIVO SOCIAL & NEWS</span><h2>RideArrivo Pulse</h2><p>Company news, conversations, announcements and team knowledge in a fast social feed.</p></div><div className="buttonRow"><button className="glassButton"><Bell size={16}/>Notifications</button><button className="primaryButton" onClick={()=>document.getElementById('social-composer')?.scrollIntoView({behavior:'smooth'})}><Plus size={16}/>Post</button></div></div>
     <div className="socialLayout">
       <div className="socialMain">
@@ -125,7 +256,7 @@ export function SocialModule(){
         </form>
         {notice&&<div className={notice.kind==='ok'?'moduleNotice':'moduleError'}>{notice.text}</div>}
         <div className="glassCard socialSearch"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search posts and people"/></div>
-        <div className="socialFeed">{loading?<div className="glassCard socialEmpty">Loading feed…</div>:filtered.length===0?<div className="glassCard socialEmpty"><Newspaper/><strong>No posts yet</strong><span>Start the RideArrivo conversation.</span></div>:filtered.map(p=><article key={p.id} className="glassCard socialPost">
+        <div className="socialFeed">{loading&&!hasLoadedFeedRef.current?<div className="glassCard socialEmpty">Loading feed…</div>:filtered.length===0?<div className="glassCard socialEmpty"><Newspaper/><strong>No posts yet</strong><span>Start the RideArrivo conversation.</span></div>:filtered.map(p=><article key={p.id} className="glassCard socialPost">
           <div className="postAvatar">{initials(p.author?.full_name)}</div><div className="postBody"><div className="postMeta"><strong>{p.author?.full_name||'RideArrivo Employee'}</strong><span>@{String(p.author?.email||'employee').split('@')[0]} · {timeAgo(p.created_at)}</span>{p.post_type!=='post'&&<span className="postType">{p.post_type}</span>}<button className="postMore"><Ellipsis size={17}/></button></div><p className="postText">{p.body}</p>{p.media&&p.media.length>0&&<div className={`postMedia mediaCount${Math.min(4,p.media.length)}`}>{p.media.slice(0,4).map(m=>m.media_type==='video'?<video key={m.id} src={m.signed_url||''} controls/>:<img key={m.id} src={m.signed_url||''} alt={m.alt_text||'Post media'}/>)}</div>}<div className="postActions"><button onClick={()=>setReplyTo(p)}><MessageCircle size={17}/><span>{p.replies||0}</span></button><button className={p.reposted?'active repost':''} onClick={()=>void toggleRepost(p)}><Repeat2 size={17}/><span>{p.reposts||0}</span></button><button className={p.liked?'active like':''} onClick={()=>void toggleLike(p)}><Heart size={17}/><span>{p.likes||0}</span></button><button className={p.bookmarked?'active':''} onClick={()=>void toggleBookmark(p)}>{p.bookmarked?<BookmarkCheck size={17}/>:<Bookmark size={17}/>}</button><button title="Report"><Flag size={16}/></button></div></div>
         </article>)}</div>
       </div>

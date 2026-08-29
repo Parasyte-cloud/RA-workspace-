@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -92,6 +92,8 @@ export default function ProjectManagementModule({onNavigate}:{onNavigate?:(targe
   const [newTaskOpen,setNewTaskOpen]=useState(false)
   const [projectForm,setProjectForm]=useState({name:'',description:''})
   const [taskForm,setTaskForm]=useState({title:'',description:'',assignee_id:'',priority:'normal',due_at:''})
+  const projectListRequestRef=useRef(0)
+  const projectDataRequestRef=useRef(0)
 
   const selectedProject=useMemo(
     ()=>projects.find(project=>project.id===selectedProjectId) || null,
@@ -101,27 +103,46 @@ export default function ProjectManagementModule({onNavigate}:{onNavigate?:(targe
   const loadProjects=useCallback(async()=>{
     const client=supabase
     if(!client) return
+
+    const requestSequence=++projectListRequestRef.current
     const {data,error}=await client
       .from('collaboration_spaces')
       .select('id,name,description,space_type,created_by,created_at')
       .in('space_type',['project','cross_department'])
       .is('archived_at',null)
       .order('updated_at',{ascending:false})
+
+    if(requestSequence!==projectListRequestRef.current) return
     if(error) throw error
+
     const next=(data || []) as Project[]
     setProjects(next)
-    setSelectedProjectId(current=>current && next.some(project=>project.id===current) ? current : (next[0]?.id || ''))
+    setSelectedProjectId(current=>
+      current && next.some(project=>project.id===current)
+        ? current
+        : (next[0]?.id || '')
+    )
   },[])
 
   const loadProjectData=useCallback(async(projectId:string)=>{
     const client=supabase
-    if(!client || !projectId){ setMembers([]); setItems([]); return }
+    const requestSequence=++projectDataRequestRef.current
+
+    if(!client || !projectId){
+      setMembers([])
+      setItems([])
+      return
+    }
+
     const [memberResult,itemResult]=await Promise.all([
       client.from('collaboration_space_members').select('user_id,member_role,profile:employee_profiles!collaboration_space_members_user_id_fkey(id,full_name,email,department,job_title)').eq('space_id',projectId).order('joined_at'),
       client.from('work_items').select('id,title,description,status,priority,due_at,completed_at,created_at,kanban_rank,project_space_id,work_item_assignees(assignee_id,assignee:employee_profiles!work_item_assignees_assignee_id_fkey(id,full_name,email))').eq('project_space_id',projectId).neq('status','cancelled').order('kanban_rank',{ascending:true}).order('created_at',{ascending:true})
     ])
+
+    if(requestSequence!==projectDataRequestRef.current) return
     if(memberResult.error) throw memberResult.error
     if(itemResult.error) throw itemResult.error
+
     setMembers((memberResult.data || []) as unknown as Member[])
     setItems((itemResult.data || []) as unknown as WorkItem[])
   },[])
@@ -138,15 +159,41 @@ export default function ProjectManagementModule({onNavigate}:{onNavigate?:(targe
     }
   },[loadProjects])
 
-  useEffect(()=>{ void refresh() },[refresh])
+  useEffect(()=>{
+    void refresh()
+    return()=>{
+      projectListRequestRef.current+=1
+    }
+  },[refresh])
 
   useEffect(()=>{
-    if(!selectedProjectId){ setMembers([]); setItems([]); return }
+    if(!selectedProjectId){
+      projectDataRequestRef.current+=1
+      setMembers([])
+      setItems([])
+      return
+    }
+
+    let active=true
     setLoading(true)
     setMessage('')
+
     void loadProjectData(selectedProjectId)
-      .catch((error:any)=>setMessage(error?.message || 'Unable to load project board.'))
-      .finally(()=>setLoading(false))
+      .catch((error:any)=>{
+        if(active){
+          setMessage(error?.message || 'Unable to load project board.')
+        }
+      })
+      .finally(()=>{
+        if(active){
+          setLoading(false)
+        }
+      })
+
+    return()=>{
+      active=false
+      projectDataRequestRef.current+=1
+    }
   },[selectedProjectId,loadProjectData])
 
   const createProject=async()=>{

@@ -2,12 +2,16 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 
 import {
   AlertTriangle,
+  BadgeCheck,
   Check,
+  CircleX,
+  Clock3,
   Download,
   Eye,
   FileText,
@@ -15,7 +19,7 @@ import {
   Paperclip,
   Plus,
   Send,
-  Trash2,
+  ShieldCheck,
   UserPlus,
   Users,
   X
@@ -30,6 +34,7 @@ type Employee = {
   email:string
   department:string
   job_title:string
+  role?:string
 }
 
 
@@ -78,6 +83,28 @@ type Attachment = {
 }
 
 
+type Approval = {
+  id:string
+  approver_id:string
+  requested_by:string
+  status:'pending'|'approved'|'rejected'|'cancelled'
+  request_note:string|null
+  decision_note:string|null
+  requested_at:string
+  decided_at:string|null
+  approval_round:number
+  approver?:Employee|null
+  requester?:Employee|null
+}
+
+
+type DeadlineEvent = {
+  id:string
+  event_type:'due_24h'|'overdue'|'overdue_24h_escalation'
+  created_at:string
+}
+
+
 type WorkItem = {
   id:string
   title:string
@@ -98,12 +125,14 @@ export function WorkItemDetail({
   item,
   people,
   currentUserId,
+  currentUserRole,
   onClose,
   onChanged
 }:{
   item:WorkItem
   people:Employee[]
   currentUserId:string
+  currentUserRole:string
   onClose:()=>void
   onChanged:()=>void
 }){
@@ -111,11 +140,18 @@ export function WorkItemDetail({
   const [watchers,setWatchers]=useState<Watcher[]>([])
   const [activity,setActivity]=useState<Activity[]>([])
   const [attachments,setAttachments]=useState<Attachment[]>([])
+  const [approvals,setApprovals]=useState<Approval[]>([])
+  const [deadlineEvents,setDeadlineEvents]=useState<DeadlineEvent[]>([])
+  const [approvalCandidates,setApprovalCandidates]=useState<Employee[]>([])
+  const detailRequestRef=useRef(0)
 
   const [comment,setComment]=useState('')
   const [newAssignee,setNewAssignee]=useState('')
   const [newWatcher,setNewWatcher]=useState('')
   const [escalationReason,setEscalationReason]=useState('')
+  const [selectedApprover,setSelectedApprover]=useState('')
+  const [approvalNote,setApprovalNote]=useState('')
+  const [decisionNotes,setDecisionNotes]=useState<Record<string,string>>({})
 
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
@@ -124,6 +160,14 @@ export function WorkItemDetail({
 
   const assignees=
     item.work_item_assignees || []
+
+  const isManager=
+    currentUserRole==='manager' ||
+    currentUserRole==='admin'
+
+  const canRequestApproval=
+    item.created_by===currentUserId ||
+    isManager
 
 
   const availableAssignees=useMemo(()=>{
@@ -159,118 +203,206 @@ export function WorkItemDetail({
 
 
   const loadDetail=useCallback(async()=>{
-    if(!supabase){
+    const client=supabase
+    if(!client){
       return
     }
 
+    const requestSequence=++detailRequestRef.current
     setLoading(true)
+    setMessage('')
 
-    const [
-      commentsResult,
-      watchersResult,
-      activityResult,
-      attachmentsResult
-    ]=await Promise.all([
-      supabase
-        .from('work_item_comments')
-        .select(`
-          id,
-          body,
-          created_at,
-          author_id,
-          author:employee_profiles!work_item_comments_author_id_fkey(
+    try{
+      const [
+        commentsResult,
+        watchersResult,
+        activityResult,
+        attachmentsResult,
+        approvalsResult,
+        deadlinesResult
+      ]=await Promise.all([
+        client
+          .from('work_item_comments')
+          .select(`
             id,
-            full_name,
-            email,
-            department,
-            job_title
-          )
-        `)
-        .eq('work_item_id',item.id)
-        .order('created_at',{
-          ascending:true
-        }),
-
-      supabase
-        .from('work_item_watchers')
-        .select(`
-          user_id,
-          user:employee_profiles!work_item_watchers_user_id_fkey(
+            body,
+            created_at,
+            author_id,
+            author:employee_profiles!work_item_comments_author_id_fkey(
+              id,
+              full_name,
+              email,
+              department,
+              job_title
+            )
+          `)
+          .eq('work_item_id',item.id)
+          .order('created_at',{ascending:true}),
+        client
+          .from('work_item_watchers')
+          .select(`
+            user_id,
+            user:employee_profiles!work_item_watchers_user_id_fkey(
+              id,
+              full_name,
+              email,
+              department,
+              job_title
+            )
+          `)
+          .eq('work_item_id',item.id),
+        client
+          .from('work_item_activity')
+          .select(`
             id,
-            full_name,
-            email,
-            department,
-            job_title
+            action,
+            metadata,
+            created_at,
+            actor:employee_profiles!work_item_activity_actor_id_fkey(
+              full_name,
+              email
+            )
+          `)
+          .eq('work_item_id',item.id)
+          .order('created_at',{ascending:false}),
+        client
+          .from('work_item_attachments')
+          .select(`
+            id,
+            file_name,
+            storage_path,
+            mime_type,
+            file_size,
+            created_at,
+            uploaded_by
+          `)
+          .eq('work_item_id',item.id)
+          .order('created_at',{ascending:false}),
+        client
+          .from('work_item_approvals')
+          .select(`
+            id,
+            approver_id,
+            requested_by,
+            status,
+            request_note,
+            decision_note,
+            requested_at,
+            decided_at,
+            approval_round,
+            approver:employee_profiles!work_item_approvals_approver_id_fkey(
+              id,
+              full_name,
+              email,
+              department,
+              job_title
+            ),
+            requester:employee_profiles!work_item_approvals_requested_by_fkey(
+              id,
+              full_name,
+              email,
+              department,
+              job_title
+            )
+          `)
+          .eq('work_item_id',item.id)
+          .order('requested_at',{ascending:false}),
+        client
+          .from('work_item_deadline_events')
+          .select('id,event_type,created_at')
+          .eq('work_item_id',item.id)
+          .order('created_at',{ascending:false})
+      ])
+
+      if(requestSequence!==detailRequestRef.current){
+        return
+      }
+
+      const errors=[
+        commentsResult.error,
+        watchersResult.error,
+        activityResult.error,
+        attachmentsResult.error,
+        approvalsResult.error,
+        deadlinesResult.error
+      ].filter(Boolean)
+
+      if(errors.length){
+        setMessage(errors[0]!.message)
+      }
+
+      if(!commentsResult.error){
+        setComments(
+          ((commentsResult.data || []) as unknown) as Comment[]
+        )
+      }
+
+      if(!watchersResult.error){
+        setWatchers(
+          ((watchersResult.data || []) as unknown) as Watcher[]
+        )
+      }
+
+      if(!activityResult.error){
+        setActivity(
+          ((activityResult.data || []) as unknown) as Activity[]
+        )
+      }
+
+      if(!attachmentsResult.error){
+        setAttachments(
+          (attachmentsResult.data || []) as Attachment[]
+        )
+      }
+
+      if(!approvalsResult.error){
+        setApprovals(
+          ((approvalsResult.data || []) as unknown) as Approval[]
+        )
+      }
+
+      if(!deadlinesResult.error){
+        setDeadlineEvents(
+          (deadlinesResult.data || []) as DeadlineEvent[]
+        )
+      }
+
+      if(canRequestApproval){
+        const {data,error}=await client.rpc(
+          'get_work_approval_candidates',
+          {target_work_item:item.id}
+        )
+
+        if(requestSequence!==detailRequestRef.current){
+          return
+        }
+
+        if(error){
+          setMessage(error.message)
+        }else{
+          setApprovalCandidates(
+            (data || []) as Employee[]
           )
-        `)
-        .eq('work_item_id',item.id),
-
-      supabase
-        .from('work_item_activity')
-        .select(`
-          id,
-          action,
-          metadata,
-          created_at,
-          actor:employee_profiles!work_item_activity_actor_id_fkey(
-            full_name,
-            email
-          )
-        `)
-        .eq('work_item_id',item.id)
-        .order('created_at',{
-          ascending:false
-        }),
-
-      supabase
-        .from('work_item_attachments')
-        .select(`
-          id,
-          file_name,
-          storage_path,
-          mime_type,
-          file_size,
-          created_at,
-          uploaded_by
-        `)
-        .eq('work_item_id',item.id)
-        .order('created_at',{
-          ascending:false
-        })
-    ])
-
-    const firstError=
-      commentsResult.error ||
-      watchersResult.error ||
-      activityResult.error ||
-      attachmentsResult.error
-
-    if(firstError){
-      setMessage(firstError.message)
+        }
+      }else{
+        setApprovalCandidates([])
+      }
+    }finally{
+      if(requestSequence===detailRequestRef.current){
+        setLoading(false)
+      }
     }
-
-    setComments(
-      ((commentsResult.data || []) as unknown) as Comment[]
-    )
-
-    setWatchers(
-      ((watchersResult.data || []) as unknown) as Watcher[]
-    )
-
-    setActivity(
-      ((activityResult.data || []) as unknown) as Activity[]
-    )
-
-    setAttachments(
-      (attachmentsResult.data || []) as Attachment[]
-    )
-
-    setLoading(false)
-  },[item.id])
+  },[
+    item.id,
+    canRequestApproval
+  ])
 
 
   useEffect(()=>{
     void loadDetail()
+    return()=>{
+      detailRequestRef.current+=1
+    }
   },[loadDetail])
 
 
@@ -303,6 +435,30 @@ export function WorkItemDetail({
           event:'*',
           schema:'public',
           table:'work_item_watchers',
+          filter:`work_item_id=eq.${item.id}`
+        },
+        ()=>{
+          void loadDetail()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event:'*',
+          schema:'public',
+          table:'work_item_approvals',
+          filter:`work_item_id=eq.${item.id}`
+        },
+        ()=>{
+          void loadDetail()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event:'*',
+          schema:'public',
+          table:'work_item_deadline_events',
           filter:`work_item_id=eq.${item.id}`
         },
         ()=>{
@@ -427,6 +583,109 @@ export function WorkItemDetail({
       setMessage(error.message)
     }else{
       setEscalationReason('')
+      await onChanged()
+      await loadDetail()
+    }
+
+    setBusy(false)
+  }
+
+
+  const requestApproval=async()=>{
+    if(
+      !supabase ||
+      !selectedApprover ||
+      !canRequestApproval
+    ){
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    const {error}=await supabase.rpc(
+      'request_work_approval',
+      {
+        target_work_item:item.id,
+        target_approver:selectedApprover,
+        note:approvalNote.trim() || null
+      }
+    )
+
+    if(error){
+      setMessage(error.message)
+    }else{
+      setSelectedApprover('')
+      setApprovalNote('')
+      await onChanged()
+      await loadDetail()
+    }
+
+    setBusy(false)
+  }
+
+
+  const decideApproval=async(
+    approvalId:string,
+    decision:'approved'|'rejected'
+  )=>{
+    if(!supabase){
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    const {error}=await supabase.rpc(
+      'decide_work_approval',
+      {
+        target_approval:approvalId,
+        decision,
+        note:
+          decisionNotes[approvalId]
+            ?.trim() || null
+      }
+    )
+
+    if(error){
+      setMessage(error.message)
+    }else{
+      setDecisionNotes(current=>{
+        const next={...current}
+        delete next[approvalId]
+        return next
+      })
+      await onChanged()
+      await loadDetail()
+    }
+
+    setBusy(false)
+  }
+
+
+  const cancelApproval=async(
+    approvalId:string
+  )=>{
+    if(!supabase){
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    const {error}=await supabase.rpc(
+      'cancel_work_approval',
+      {
+        target_approval:approvalId,
+        note:
+          decisionNotes[approvalId]
+            ?.trim() || null
+      }
+    )
+
+    if(error){
+      setMessage(error.message)
+    }else{
       await onChanged()
       await loadDetail()
     }
@@ -641,6 +900,25 @@ export function WorkItemDetail({
                 </strong>
               </span>
             </div>
+
+            {deadlineEvents.length>0&&
+              <div className="workDeadlineEvents">
+                {deadlineEvents.map(event=>
+                  <span
+                    key={event.id}
+                    className={event.event_type}
+                  >
+                    <Clock3 size={13}/>
+                    {event.event_type==='due_24h'
+                      ? 'Due within 24 hours'
+                      : event.event_type==='overdue'
+                        ? 'Overdue alert sent'
+                        : 'Automatically escalated'
+                    }
+                  </span>
+                )}
+              </div>
+            }
           </section>
 
 
@@ -845,6 +1123,204 @@ export function WorkItemDetail({
                 </small>
               }
             </div>
+          </section>
+
+
+          <section className="workDetailSection workApprovalSection">
+            <h3>
+              <ShieldCheck size={17}/>
+              Approvals
+            </h3>
+
+            <div className="workApprovalList">
+              {approvals.map(approval=>{
+                const canDecide=
+                  approval.status==='pending' &&
+                  (
+                    approval.approver_id===currentUserId ||
+                    isManager
+                  )
+
+                const canCancel=
+                  approval.status==='pending' &&
+                  (
+                    approval.requested_by===currentUserId ||
+                    isManager
+                  )
+
+                return (
+                  <article
+                    key={approval.id}
+                    className={'workApproval '+approval.status}
+                  >
+                    <div className="workApprovalHeader">
+                      <span>
+                        {approval.status==='approved'
+                          ? <BadgeCheck size={18}/>
+                          : approval.status==='rejected'
+                            ? <CircleX size={18}/>
+                            : <Clock3 size={18}/>
+                        }
+
+                        <strong>
+                          {approval.approver?.full_name ||
+                            approval.approver?.email ||
+                            'Approver'}
+                        </strong>
+                      </span>
+
+                      <span className="workApprovalStatus">
+                        Round {approval.approval_round}
+                        {' · '}
+                        {approval.status}
+                      </span>
+                    </div>
+
+                    {approval.request_note&&
+                      <p>{approval.request_note}</p>
+                    }
+
+                    {approval.decision_note&&
+                      <p className="workApprovalDecision">
+                        Decision note: {approval.decision_note}
+                      </p>
+                    }
+
+                    <small>
+                      Requested by {
+                        approval.requester?.full_name ||
+                        approval.requester?.email ||
+                        'employee'
+                      } on {
+                        new Date(
+                          approval.requested_at
+                        ).toLocaleString()
+                      }
+                    </small>
+
+                    {(canDecide||canCancel)&&
+                      <div className="workApprovalActions">
+                        <textarea
+                          value={decisionNotes[approval.id] || ''}
+                          onChange={event=>
+                            setDecisionNotes(current=>({
+                              ...current,
+                              [approval.id]:event.target.value
+                            }))
+                          }
+                          placeholder="Optional decision note"
+                        />
+
+                        <div className="buttonRow">
+                          {canDecide&&
+                            <>
+                              <button
+                                type="button"
+                                className="glassButton approvalReject"
+                                disabled={busy}
+                                onClick={()=>
+                                  void decideApproval(
+                                    approval.id,
+                                    'rejected'
+                                  )
+                                }
+                              >
+                                <CircleX size={15}/>
+                                Reject
+                              </button>
+
+                              <button
+                                type="button"
+                                className="primaryButton"
+                                disabled={busy}
+                                onClick={()=>
+                                  void decideApproval(
+                                    approval.id,
+                                    'approved'
+                                  )
+                                }
+                              >
+                                <Check size={15}/>
+                                Approve
+                              </button>
+                            </>
+                          }
+
+                          {canCancel&&
+                            <button
+                              type="button"
+                              className="glassButton"
+                              disabled={busy}
+                              onClick={()=>
+                                void cancelApproval(
+                                  approval.id
+                                )
+                              }
+                            >
+                              Cancel request
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </article>
+                )
+              })}
+
+              {!loading&&!approvals.length&&
+                <small>No approval requested.</small>
+              }
+            </div>
+
+            {canRequestApproval&&
+              <div className="workApprovalRequest">
+                <select
+                  value={selectedApprover}
+                  onChange={event=>
+                    setSelectedApprover(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    Select approver...
+                  </option>
+
+                  {approvalCandidates.map(person=>
+                    <option
+                      key={person.id}
+                      value={person.id}
+                    >
+                      {person.full_name}
+                      {' — '}
+                      {person.department}
+                    </option>
+                  )}
+                </select>
+
+                <textarea
+                  value={approvalNote}
+                  onChange={event=>
+                    setApprovalNote(
+                      event.target.value
+                    )
+                  }
+                  placeholder="What should the approver verify?"
+                />
+
+                <button
+                  type="button"
+                  className="primaryButton"
+                  disabled={busy||!selectedApprover}
+                  onClick={()=>
+                    void requestApproval()
+                  }
+                >
+                  <ShieldCheck size={16}/>
+                  Request approval
+                </button>
+              </div>
+            }
           </section>
 
 

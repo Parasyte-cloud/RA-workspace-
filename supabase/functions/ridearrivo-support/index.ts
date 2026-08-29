@@ -32,6 +32,9 @@ const allowedParams = new Set([
 
 let cachedBackendToken = ""
 let cachedBackendTokenUntil = 0
+let backendLoginPromise: Promise<string> | null = null
+
+const UPSTREAM_TIMEOUT_MS = 15_000
 
 function cors(req: Request) {
   const origin = req.headers.get("origin") || ""
@@ -74,16 +77,49 @@ function json(
   )
 }
 
-async function getBackendToken(
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = UPSTREAM_TIMEOUT_MS,
+) {
+  const controller = new AbortController()
+  const timeout = setTimeout(
+    () => controller.abort(),
+    timeoutMs,
+  )
+
+  try {
+    return await fetch(
+      url,
+      {
+        ...init,
+        signal: controller.signal,
+      },
+    )
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === "AbortError"
+    ) {
+      throw new Error(
+        `RideArrivo backend timed out after ${Math.round(timeoutMs / 1000)} seconds.`,
+      )
+    }
+
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function invalidateBackendToken() {
+  cachedBackendToken = ""
+  cachedBackendTokenUntil = 0
+}
+
+async function loginToBackend(
   requestId: string,
 ) {
-  if (
-    cachedBackendToken &&
-    Date.now() < cachedBackendTokenUntil
-  ) {
-    return cachedBackendToken
-  }
-
   const backendUrl =
     Deno.env.get("RIDEARRIVO_BACKEND_URL")
       ?.replace(/\/$/, "")
@@ -109,16 +145,14 @@ async function getBackendToken(
     )
   }
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${backendUrl}/api/auth/login`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-
       body: JSON.stringify({
         email,
         password,
@@ -170,14 +204,34 @@ async function getBackendToken(
   }
 
   cachedBackendToken = token
-
-  // Avoid logging into Render for every dashboard request.
-  // Keep this deliberately short in case the upstream token
-  // has a short expiry.
   cachedBackendTokenUntil =
     Date.now() + 5 * 60 * 1000
 
   return token
+}
+
+async function getBackendToken(
+  requestId: string,
+) {
+  if (
+    cachedBackendToken &&
+    Date.now() < cachedBackendTokenUntil
+  ) {
+    return cachedBackendToken
+  }
+
+  /*
+   * Multiple Support cards can load at the same time. They must share one
+   * service-account login rather than stampeding the upstream auth endpoint.
+   */
+  if (!backendLoginPromise) {
+    backendLoginPromise = loginToBackend(requestId)
+      .finally(() => {
+        backendLoginPromise = null
+      })
+  }
+
+  return await backendLoginPromise
 }
 
 async function getWorkspaceProfile(
@@ -423,24 +477,53 @@ serve(async req => {
         .toLowerCase()
 
     /*
-     * Support data remains department-controlled.
+     * Support data remains department-controlled. Explicit Support workstation
+     * assignments are first-class access grants in the rest of the workspace,
+     * so the Edge Function must enforce the same model instead of role-only
+     * authorization.
      *
-     * Operations has its own workstation and should not
-     * automatically inherit Support customer data.
+     * Operations has its own workstation and does not automatically inherit
+     * Support customer data.
      */
-    const allowedRoles =
-      new Set([
-        "support",
-        "manager",
-        "admin",
-      ])
+    const allowedRoles = new Set([
+      "support",
+      "manager",
+      "admin",
+    ])
+
+    let hasSupportWorkstation = false
 
     if (!allowedRoles.has(role)) {
+      const assignment = await admin
+        .from("workspace_workstation_assignments")
+        .select("id")
+        .eq("employee_id", profile.id)
+        .eq("workstation", "support")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle()
+
+      if (assignment.error) {
+        console.error(
+          requestId,
+          "Support workstation authorization lookup failed",
+          assignment.error.message,
+        )
+      } else {
+        hasSupportWorkstation = Boolean(assignment.data)
+      }
+    }
+
+    if (
+      !allowedRoles.has(role) &&
+      !hasSupportWorkstation
+    ) {
       console.warn(
         requestId,
-        "Support role rejected",
+        "Support access rejected",
         {
           userId: user.id,
+          profileId: profile.id,
           role,
         },
       )
@@ -449,7 +532,7 @@ serve(async req => {
         req,
         {
           error:
-            "Your workspace role does not permit Support Operations access.",
+            "Your workspace role or workstation assignment does not permit Support Operations access.",
         },
         403,
         requestId,
@@ -556,54 +639,60 @@ serve(async req => {
      * --------------------------------------------------------
      */
 
-    let response =
-      await fetch(
+    const fetchResource = (token: string) =>
+      fetchWithTimeout(
         upstreamUrl.toString(),
         {
           method: "GET",
-
           headers: {
-            Authorization:
-              `Bearer ${backendToken}`,
-
-            Accept:
-              "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
           },
         },
       )
 
+    let response = await fetchResource(backendToken)
+
     /*
-     * A 401 can mean the cached upstream token expired.
-     * Re-authenticate once, then retry the same GET.
+     * A 401 can mean the cached upstream token expired. Invalidate once,
+     * share one fresh login across concurrent requests, and retry the same
+     * read-only request once.
      */
     if (response.status === 401) {
-      cachedBackendToken = ""
-      cachedBackendTokenUntil = 0
+      invalidateBackendToken()
 
-      const freshToken =
-        await getBackendToken(
-          requestId,
-        )
-
-      response =
-        await fetch(
-          upstreamUrl.toString(),
-          {
-            method: "GET",
-
-            headers: {
-              Authorization:
-                `Bearer ${freshToken}`,
-
-              Accept:
-                "application/json",
-            },
-          },
-        )
+      const freshToken = await getBackendToken(requestId)
+      response = await fetchResource(freshToken)
     }
 
-    const responseText =
-      await response.text()
+    const responseText = await response.text()
+    let responseBody: unknown = null
+
+    try {
+      responseBody = responseText
+        ? JSON.parse(responseText)
+        : null
+    } catch {
+      console.error(
+        requestId,
+        "Render Support returned non-JSON content",
+        {
+          resource,
+          status: response.status,
+          path: endpoint,
+        },
+      )
+
+      return json(
+        req,
+        {
+          error:
+            "RideArrivo Support backend returned an unexpected response.",
+        },
+        502,
+        requestId,
+      )
+    }
 
     if (!response.ok) {
       console.error(
@@ -615,28 +704,36 @@ serve(async req => {
           path: endpoint,
         },
       )
+
+      const upstream =
+        responseBody &&
+        typeof responseBody === "object"
+          ? responseBody as Record<string, unknown>
+          : {}
+
+      const upstreamMessage =
+        typeof upstream.error === "string"
+          ? upstream.error
+          : typeof upstream.message === "string"
+            ? upstream.message
+            : `RideArrivo Support backend error (${response.status}).`
+
+      return json(
+        req,
+        {
+          error: upstreamMessage,
+          upstreamStatus: response.status,
+        },
+        response.status,
+        requestId,
+      )
     }
 
-    return new Response(
-      responseText,
-      {
-        status: response.status,
-
-        headers: {
-          ...cors(req),
-
-          "Content-Type":
-            response.headers
-              .get("content-type") ||
-            "application/json",
-
-          "Cache-Control":
-            "no-store",
-
-          "X-Request-ID":
-            requestId,
-        },
-      },
+    return json(
+      req,
+      responseBody,
+      200,
+      requestId,
     )
   } catch (error) {
     console.error(

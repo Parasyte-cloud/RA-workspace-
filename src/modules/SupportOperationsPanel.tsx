@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   AlertCircle,
   Car,
@@ -16,6 +22,12 @@ import {
 type Tab = {
   key: SupportResource
   label: string
+}
+
+type CachedSupportView = {
+  records: any[]
+  raw: any
+  loadedAt: number
 }
 
 const tabs: Tab[] = [
@@ -148,32 +160,114 @@ export default function SupportOperationsPanel() {
   const [raw, setRaw] = useState<any>(null)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null)
 
-  async function load(resource = active) {
-    setLoading(true)
+  const cacheRef = useRef(
+    new Map<SupportResource, CachedSupportView>()
+  )
+  const requestSequenceRef = useRef(0)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      requestSequenceRef.current += 1
+    }
+  }, [])
+
+  const load = useCallback(async (
+    resource: SupportResource,
+    options: { force?: boolean } = {}
+  ) => {
+    const requestSequence = ++requestSequenceRef.current
+    const cached = cacheRef.current.get(resource)
+
+    if (cached && !options.force) {
+      setRecords(cached.records)
+      setRaw(cached.raw)
+      setLastUpdatedAt(cached.loadedAt)
+    }
+
+    const hasVisibleData = Boolean(cached)
+    if (hasVisibleData) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+
     setError('')
 
     try {
       const result = await getRideArrivoSupportData(resource)
-      setRaw(result)
-      setRecords(asArray(result))
+
+      if (
+        !mountedRef.current ||
+        requestSequence !== requestSequenceRef.current
+      ) {
+        return
+      }
+
+      const next: CachedSupportView = {
+        records: asArray(result),
+        raw: result,
+        loadedAt: Date.now(),
+      }
+
+      cacheRef.current.set(resource, next)
+      setRaw(next.raw)
+      setRecords(next.records)
+      setLastUpdatedAt(next.loadedAt)
     } catch (err) {
-      setRaw(null)
-      setRecords([])
+      if (
+        !mountedRef.current ||
+        requestSequence !== requestSequenceRef.current
+      ) {
+        return
+      }
+
+      // Keep the last known-good snapshot visible. A temporary upstream
+      // failure must not blank the Support Station and create a flash.
+      const fallback = cacheRef.current.get(resource)
+      if (fallback) {
+        setRaw(fallback.raw)
+        setRecords(fallback.records)
+        setLastUpdatedAt(fallback.loadedAt)
+      }
+
       setError(
         err instanceof Error
           ? err.message
           : 'Unable to load Support Operations.'
       )
     } finally {
-      setLoading(false)
+      if (
+        mountedRef.current &&
+        requestSequence === requestSequenceRef.current
+      ) {
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
-  }
+  }, [])
 
   useEffect(() => {
-    load(active)
-  }, [active])
+    const cached = cacheRef.current.get(active)
+    if (cached) {
+      setRecords(cached.records)
+      setRaw(cached.raw)
+      setLastUpdatedAt(cached.loadedAt)
+    } else {
+      setRecords([])
+      setRaw(null)
+      setLastUpdatedAt(null)
+    }
+
+    void load(active)
+  }, [active, load])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -184,8 +278,11 @@ export default function SupportOperationsPanel() {
     )
   }, [records, query])
 
+  const initialLoading = loading && records.length === 0 && !raw
+  const hasData = filtered.length > 0
+
   return (
-    <div className="supportOps">
+    <div className="supportOps" aria-busy={initialLoading || refreshing}>
       <div className="supportOpsHeader glassCard">
         <div>
           <span className="eyebrow">LIVE OPERATIONS</span>
@@ -196,14 +293,28 @@ export default function SupportOperationsPanel() {
           </p>
         </div>
 
-        <button
-          className="glassButton"
-          onClick={() => load()}
-          disabled={loading}
-        >
-          <RefreshCw size={16} />
-          Refresh
-        </button>
+        <div className="supportOpsRefreshBlock">
+          {lastUpdatedAt && (
+            <small>
+              Updated {new Date(lastUpdatedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </small>
+          )}
+          <button
+            className="glassButton"
+            type="button"
+            onClick={() => void load(active, { force: true })}
+            disabled={loading || refreshing}
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? 'supportRefreshSpin' : undefined}
+            />
+            {refreshing ? 'Refreshing' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       <div className="supportMetrics">
@@ -222,15 +333,18 @@ export default function SupportOperationsPanel() {
         <div className="glassCard supportMetric">
           <Users size={18} />
           <span>Source</span>
-          <strong>Live backend</strong>
+          <strong>{error ? 'Last known good' : 'Live backend'}</strong>
         </div>
       </div>
 
       <div className="supportOpsToolbar glassCard">
-        <div className="supportTabs">
+        <div className="supportTabs" role="tablist" aria-label="Support views">
           {tabs.map((tab) => (
             <button
               key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={active === tab.key}
               className={active === tab.key ? 'supportTab active' : 'supportTab'}
               onClick={() => setActive(tab.key)}
             >
@@ -250,43 +364,51 @@ export default function SupportOperationsPanel() {
       </div>
 
       {error && (
-        <div className="glassCard supportOpsError">
+        <div className="glassCard supportOpsError" role="status">
           <AlertCircle size={18} />
           <div>
-            <strong>Unable to load live Support data</strong>
+            <strong>
+              {records.length
+                ? 'Live refresh failed — showing the last successful snapshot'
+                : 'Unable to load live Support data'}
+            </strong>
             <p>{error}</p>
           </div>
         </div>
       )}
 
-      {!error && loading && (
-        <div className="glassCard supportOpsState">
+      {initialLoading && (
+        <div className="glassCard supportOpsState" role="status">
           Loading RideArrivo operations…
         </div>
       )}
 
-      {!error && !loading && filtered.length === 0 && (
+      {!initialLoading && !hasData && (
         <div className="glassCard supportOpsState">
           <UserRound size={22} />
           <strong>No records found</strong>
           <span>
             {records.length === 0
-              ? 'The backend returned no records for this view.'
+              ? error
+                ? 'No cached records are available for this view yet.'
+                : 'The backend returned no records for this view.'
               : 'Try another search.'}
           </span>
 
-          {records.length === 0 && raw && (
+          {records.length === 0 && raw && !error && (
             <small>Connection succeeded.</small>
           )}
         </div>
       )}
 
-      {!error && !loading && filtered.length > 0 && (
+      {!initialLoading && hasData && (
         <div className="supportOpsList">
           {filtered.map((row, index) => (
             <article
               className="glassCard supportRecord"
-              key={String(row?.id ?? row?.reference ?? index)}
+              key={`${active}:${String(
+                row?.id ?? row?.reference ?? row?.booking_reference ?? index
+              )}`}
             >
               <div className="supportRecordHeader">
                 <div>

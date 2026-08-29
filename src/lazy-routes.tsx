@@ -27,13 +27,8 @@ export const ParasyteBrowser = lazy(
   () => import('./modules/ParasyteBrowser')
 )
 
-export const SupportTeamWorkspace = lazy(
-  () =>
-    import('./modules/DepartmentTeamWorkspace').then(
-      module => ({
-        default: module.SupportTeamWorkspace
-      })
-    )
+export const SupportWorkspaceRoute = lazy(
+  () => import('./modules/SupportWorkspaceRoute')
 )
 
 export const OperationsTeamWorkspace = lazy(
@@ -95,15 +90,6 @@ export const LegalTeamWorkspace = lazy(
     import('./modules/DepartmentTeamWorkspace').then(
       module => ({
         default: module.LegalTeamWorkspace
-      })
-    )
-)
-
-export const SupportModule = lazy(
-  () =>
-    import('./modules/CoreModules').then(
-      module => ({
-        default: module.SupportModule
       })
     )
 )

@@ -1,7 +1,9 @@
 import {
   Suspense } from 'react'
-import { useEffect,
+import { useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState } from 'react'
 import type { FormEvent,
   ReactNode } from 'react'
@@ -73,6 +75,7 @@ import { HeaderAvatar } from './components/HeaderAvatar'
 import ControlledDownloadButton from './components/ControlledDownloadButton'
 import PersonalDashboard from './modules/PersonalDashboard'
 import DevicePresence from './components/DevicePresence'
+import RouteErrorBoundary from './components/RouteErrorBoundary'
 
 
 import { WorkspaceClock } from './components/WorkspaceClock'
@@ -88,7 +91,7 @@ import {
   BrandLibrary,
   ParasyteLinux,
   ParasyteBrowser,
-  SupportTeamWorkspace,
+  SupportWorkspaceRoute,
   OperationsTeamWorkspace,
   PeopleTeamWorkspace,
   EngineeringTeamWorkspace,
@@ -96,7 +99,6 @@ import {
   FinanceTeamWorkspace,
   PartnershipsTeamWorkspace,
   LegalTeamWorkspace,
-  SupportModule,
   PeopleModule,
   OperationsModule,
   FinanceModule,
@@ -375,6 +377,8 @@ function App(){
   const [authReady,setAuthReady]=useState(false)
   const [workstationAssignments,setWorkstationAssignments]=useState<WorkstationAssignment[]>([])
   const [section,setSection]=useState<Section>('overview')
+  const [openNavGroup,setOpenNavGroup]=useState<string|null>(null)
+  const contentRef=useRef<HTMLDivElement|null>(null)
 
   const [parasyteUrl,setParasyteUrl]=
     useState('')
@@ -425,6 +429,10 @@ function App(){
 
 
   const [workspace,setWorkspace]=useState<Workspace|null>(null)
+  const navigateToSection=useCallback((target:string)=>{
+    setWorkspace(null)
+    setSection(target as Section)
+  },[])
   const [deferredPrompt,setDeferredPrompt]=useState<any>(null)
   const [online,setOnline]=useState(navigator.onLine)
 
@@ -658,6 +666,33 @@ function App(){
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
 
+  const groupedNav=useMemo(()=>{
+    const byId=new Map<Section,typeof nav[number]>()
+    nav.forEach(item=>byId.set(item[0] as Section,item))
+    const pick=(ids:readonly Section[])=>ids.map(id=>byId.get(id)).filter(Boolean) as (typeof nav[number])[]
+
+    return {
+      primary:pick(['overview','tasks','projects']),
+      groups:[
+        {id:'communication',label:'Communication',items:pick(['social','mail','calendar','announcements'])},
+        {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','knowledge','crm','parasyte','apps'])},
+        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','marketing','partnerships','legal'])}
+      ].filter(group=>group.items.length>0),
+      system:pick(['settings','admin'])
+    }
+  },[nav])
+
+  useEffect(()=>{
+    const activeGroup=groupedNav.groups.find(group=>group.items.some(([id])=>id===section))
+    if(activeGroup){
+      setOpenNavGroup(activeGroup.id)
+    }
+  },[section,groupedNav])
+
+  useEffect(()=>{
+    contentRef.current?.scrollTo({top:0,left:0,behavior:'auto'})
+  },[section,workspace?.url])
+
   const openWorkspace=(title:string,url:string,note?:string)=>{setWorkspace({title,url,note});setSection('workspace')}
   const install=async()=>{if(!deferredPrompt)return;await deferredPrompt.prompt();setDeferredPrompt(null)}
   const signOut=()=>{
@@ -766,21 +801,30 @@ function App(){
   return <div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
-      <nav>{nav.map(([id,label,Icon])=><button key={id} className={section===id?'active':''} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}</nav>
+      <nav className="sidebarNav" aria-label="Workspace navigation">
+        <div className="sidebarNavPrimary">
+          {groupedNav.primary.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+        </div>
+        <div className="sidebarNavGroups">
+          {groupedNav.groups.map(group=>{
+            const isOpen=openNavGroup===group.id
+            return <div key={group.id} className={`sidebarNavGroup ${isOpen?'open':''}`}>
+              <button type="button" className="sidebarNavGroupToggle" aria-expanded={isOpen} onClick={()=>setOpenNavGroup(current=>current===group.id?null:group.id)}>
+                <span>{group.label}</span><ChevronRight size={14}/>
+              </button>
+              <div className="sidebarNavGroupItems">
+                {group.items.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+              </div>
+            </div>
+          })}
+        </div>
+        <div className="sidebarNavSystem">
+          {groupedNav.system.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+        </div>
+      </nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
     <main>
-        {/* ridearrivo-route-suspense */}
-        <Suspense
-          fallback={
-            <div className="routeLoading glassCard">
-              <span className="routeLoadingSpinner"/>
-              <strong>Opening workspace...</strong>
-              <small>Loading only the tools required for this section.</small>
-            </div>
-          }
-        >
-
       <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><button className="iconButton"><Search size={17}/></button><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
@@ -849,7 +893,17 @@ function App(){
     </div>
   }
 </div></div></header>
-      <div className="content">
+      <RouteErrorBoundary resetKey={`${section}:${workspace?.url || ''}`}>
+        <Suspense
+          fallback={
+            <div className="routeLoading glassCard">
+              <span className="routeLoadingSpinner"/>
+              <strong>Opening workspace...</strong>
+              <small>Loading only the tools required for this section.</small>
+            </div>
+          }
+        >
+      <div className="content" ref={contentRef}>
         {section==='overview'&&<Overview setSection={setSection} role={profile.role} profile={profile} assignments={workstationAssignments}/>}
         {section==='profile'&&
           <ProfileModule
@@ -861,32 +915,32 @@ function App(){
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
-        {section==='projects'&&<ProjectManagementModule onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='shared'&&<SharedWorkspacesHub onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='projects'&&<ProjectManagementModule onNavigate={navigateToSection}/>}
+        {section==='shared'&&<SharedWorkspacesHub onNavigate={navigateToSection}/>}
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
         {section==='brand'&&<BrandLibrary/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
-        {section==='executive'&&<ExecutiveTeamWorkspace onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='support'&&<SupportTeamWorkspace execution={<SupportModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='executive'&&<ExecutiveTeamWorkspace onNavigate={navigateToSection}/>}
+        {section==='support'&&<SupportWorkspaceRoute onNavigate={navigateToSection}/>}
+        {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering/>} onNavigate={navigateToSection}/>}
         {section==='linux'&&<ParasyteLinux/>}
-        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='marketing'&&<MarketingTeamWorkspace onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
-        {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={(target)=>{setWorkspace(null);setSection(target as Section)}}/>}
+        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>} onNavigate={navigateToSection}/>}
+        {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={navigateToSection}/>}
+        {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>} onNavigate={navigateToSection}/>}
+        {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}
+        {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
+        {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
         {section==='settings'&&<AppearanceSettings/>}
         {section==='admin'&&<AdminModule/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>}
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>}
       </div>
-
         </Suspense>
+      </RouteErrorBoundary>
 </main>
   </div></div>
 }

@@ -1,0 +1,80 @@
+/* =========================================================
+   RIDEARRIVO RUNTIME STABILITY
+   Defensive UI rules for asynchronous workspaces.
+   ========================================================= */
+
+.routeFailure {
+  margin: 22px;
+  min-height: 180px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.routeFailure > svg {
+  flex: 0 0 auto;
+  color: #b86c00;
+}
+
+.routeFailure strong,
+.routeFailure p {
+  display: block;
+}
+
+.routeFailure p {
+  max-width: 760px;
+  margin: 7px 0 14px;
+}
+
+.supportOps {
+  min-width: 0;
+  min-height: 360px;
+  align-content: start;
+}
+
+.supportOpsHeader,
+.supportOpsToolbar,
+.supportOpsList,
+.supportRecord {
+  min-width: 0;
+}
+
+.supportOpsRefreshBlock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.supportOpsRefreshBlock small {
+  color: var(--ra-muted, #6f7b8a);
+  white-space: nowrap;
+}
+
+.supportRefreshSpin {
+  animation: ridearrivo-support-spin .8s linear infinite;
+}
+
+@keyframes ridearrivo-support-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Background refreshes must not collapse a stable Support layout. */
+.supportOps[aria-busy="true"] .supportOpsList,
+.workbench[aria-busy="true"] .moduleTableWrap {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supportRefreshSpin {
+    animation: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .supportOpsRefreshBlock {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

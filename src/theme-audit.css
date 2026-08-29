@@ -1,0 +1,483 @@
+/* Final semantic-theme coverage. Loaded after all legacy shell styles. */
+
+:root{
+  --ra-control:var(--ra-surface);
+  --ra-control-hover:var(--ra-surface-muted);
+  --ra-positive:#197647;
+  --ra-positive-bg:#e7f8ee;
+  --ra-warning:#9a5c00;
+  --ra-warning-bg:#fff2dc;
+  --ra-danger:#a92f2f;
+  --ra-danger-bg:#ffe9e9;
+}
+
+html[data-ra-theme='dark']{
+  --ra-control:#101f32;
+  --ra-control-hover:#172941;
+  --ra-positive:#72d69d;
+  --ra-positive-bg:rgba(50,177,106,.14);
+  --ra-warning:#ffc66d;
+  --ra-warning-bg:rgba(255,174,64,.13);
+  --ra-danger:#ff8c8c;
+  --ra-danger-bg:rgba(222,72,72,.14);
+}
+
+/* Canonical branding: always render the complete written wordmark. */
+.brand .brandLogo,
+.sidebarLogo{
+  clip-path:none !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  filter:none !important;
+  transform:none !important;
+}
+
+/* Shared controls and overlays that live outside .content. */
+html[data-ra-theme='light'] .setupCard,
+html[data-ra-theme='light'] .verifyCard{
+  border-color:rgba(255,255,255,.18) !important;
+  background:
+    radial-gradient(circle at 85% 12%,rgba(53,116,205,.24),transparent 38%),
+    linear-gradient(135deg,#071a38,#0c3565) !important;
+  color:#fff !important;
+}
+
+html[data-ra-theme='light']
+:where(.setupCard,.verifyCard) p{
+  color:#cbd7e7 !important;
+}
+
+html[data-ra-theme='dark']
+:where(
+  .profileMenu,
+  .notificationMenu,
+  .setupCard,
+  .verifyCard,
+  .verifyPanel form,
+  .workModal,
+  .workDetailPanel,
+  .replyModal
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+:where(.profileMenu,.notificationMenu,.workDetailPanel)
+:where(p,span,small){
+  color:var(--ra-muted);
+}
+
+html[data-ra-theme='dark']
+:where(.profileMenu,.notificationMenu)
+button{
+  color:var(--ra-text);
+}
+
+html[data-ra-theme='dark']
+:where(.profileMenu,.notificationMenu)
+button:hover{
+  background:var(--ra-control-hover);
+}
+
+html[data-ra-theme='dark']
+:where(.profileMenuDivider,.notificationHeader,.workDetailHeader){
+  border-color:var(--ra-border) !important;
+}
+
+/* Generic module chrome. */
+html[data-ra-theme='dark']
+.content :where(
+  .moduleTabs,
+  .moduleSearch,
+  .quickForm,
+  .moduleTableWrap,
+  .phase2Record,
+  .phase2Search,
+  .overviewMetricsState,
+  .supportRecord,
+  .supportStatus,
+  .appHubSearch,
+  .appCategory,
+  .appIcon,
+  .adminAccessUser,
+  .adminConsoleFrameWrap,
+  .adminConsoleFrame,
+  .providusBanking,
+  .bankingSearch,
+  .bankingCellInput,
+  .routeLoading
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(
+  .moduleTabs,
+  .socialTabs,
+  .supportTabs,
+  .workDeskTabs
+) button{
+  color:var(--ra-muted);
+}
+
+html[data-ra-theme='dark']
+.content :where(
+  .moduleTabs,
+  .socialTabs,
+  .supportTabs,
+  .workDeskTabs
+) button.active{
+  background:var(--ra-control-hover) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(
+  .moduleTable th,
+  .moduleTable td,
+  .bankingTable th,
+  .bankingTable td,
+  .supportRecord,
+  .phase2Record
+){
+  border-color:var(--ra-border) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(.moduleError,.supportOpsError){
+  background:var(--ra-danger-bg) !important;
+  color:var(--ra-danger) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(.moduleNotice,.mailNotice,.companyFilesNotice){
+  border-color:rgba(255,174,64,.22) !important;
+  background:var(--ra-warning-bg) !important;
+  color:var(--ra-warning) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(input,select,textarea){
+  color-scheme:dark;
+}
+
+html[data-ra-theme='dark']
+.content :where(select option){
+  background:#101f32;
+  color:var(--ra-text);
+}
+
+/* Company files, knowledge, applications and phase-two records. */
+html[data-ra-theme='dark']
+.content :where(
+  .knowledgeCard,
+  .knowledgeContent,
+  .appCard,
+  .phase2Record,
+  .phase2Icon,
+  .fileButton
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.content :where(
+  .knowledgeCard,
+  .appCard,
+  .phase2Record
+) :where(p,span,small){
+  color:var(--ra-muted);
+}
+
+/* Department workstations. */
+html[data-ra-theme='dark']
+.departmentWorkspace :where(
+  .departmentTabs,
+  .departmentStationIntro,
+  .departmentTool,
+  .departmentEmpty,
+  .departmentLoading
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.departmentWorkspace :where(
+  .departmentTabs button,
+  .departmentSectionHeader p,
+  .departmentPerson span,
+  .departmentPerson small,
+  .departmentStationIntro p,
+  .departmentCapabilities p,
+  .departmentTool small
+){
+  color:var(--ra-muted);
+}
+
+html[data-ra-theme='dark']
+.departmentWorkspace .departmentTabs button.active{
+  background:#1d3553 !important;
+  color:#fff !important;
+}
+
+/* Headshot gallery and its modal. */
+html[data-ra-theme='dark']
+.headshotGallery :where(
+  .headshotCard,
+  .headshotCardActions button,
+  .headshotEmpty
+),
+html[data-ra-theme='dark'] .headshotModalBody,
+html[data-ra-theme='dark'] .headshotModalClose{
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark'] .headshotPreview{
+  background:var(--ra-surface-muted) !important;
+}
+
+html[data-ra-theme='dark']
+.headshotGallery :where(
+  .headshotInfo span,
+  .headshotInfo small,
+  .headshotEmpty,
+  .headshotPreview span
+),
+html[data-ra-theme='dark'] .headshotModalBody>div span{
+  color:var(--ra-muted) !important;
+}
+
+html[data-ra-theme='dark'] .headshotPolicy{
+  border-color:rgba(255,174,64,.22) !important;
+  background:var(--ra-warning-bg) !important;
+  color:var(--ra-warning) !important;
+}
+
+/* Marketing collaboration and personal stations. */
+html[data-ra-theme='dark']
+.marketingWorkspace :where(
+  .marketingWorkspaceTabs,
+  .marketingProjectCard,
+  .marketingMessages,
+  .marketingMessage,
+  .marketingCapabilityGrid article,
+  .marketingGeneratedUrl,
+  .marketingToolCard,
+  .marketingStrategySteps>div,
+  .marketingInvite button
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.marketingWorkspace .marketingMessage.mine{
+  border-color:rgba(73,137,221,.26) !important;
+  background:#152a45 !important;
+}
+
+html[data-ra-theme='dark']
+.marketingWorkspace :where(
+  .marketingWorkspaceTabs button,
+  .marketingInvite span,
+  .marketingSectionHeading>span,
+  .marketingPerson span,
+  .marketingPerson small,
+  .marketingProjectCreator p,
+  .marketingProjectCreator label,
+  .marketingProjectCard p,
+  .marketingProjectCard small,
+  .marketingCollaborator p,
+  .marketingMessage p,
+  .marketingMessage small,
+  .marketingCapabilityGrid article span,
+  .marketingUtilityHeader p,
+  .marketingFormGrid label,
+  .marketingGeneratedUrl span,
+  .marketingToolCard p,
+  .marketingStrategySteps span,
+  .marketingEmpty,
+  .marketingLoading
+){
+  color:var(--ra-muted) !important;
+}
+
+html[data-ra-theme='dark']
+.marketingWorkspace .marketingWorkspaceTabs button.active{
+  background:#1d3553 !important;
+  color:#fff !important;
+}
+
+html[data-ra-theme='dark']
+.marketingWorkspace .marketingInvite button.accept{
+  border-color:rgba(50,177,106,.24) !important;
+  background:var(--ra-positive-bg) !important;
+  color:var(--ra-positive) !important;
+}
+
+/* Mail. */
+html[data-ra-theme='dark']
+.mailModule :where(
+  .mailWorkspace,
+  .mailFolders,
+  .mailListPane,
+  .mailReader,
+  .mailSearchBarInner,
+  .mailComposer
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.mailModule :where(
+  .mailFolders button:hover,
+  .mailFolders button.active,
+  .mailMessageSummary:hover
+){
+  background:var(--ra-control-hover) !important;
+}
+
+html[data-ra-theme='dark']
+.mailModule :where(
+  .mailFolderTitle,
+  .mailMessageTime,
+  .mailMessageSummary,
+  .mailEmpty,
+  .mailSecurity
+){
+  color:var(--ra-muted) !important;
+}
+
+/* Employee profile and virtual-card launcher. */
+html[data-ra-theme='dark']
+.employeeProfilePage :where(
+  .profileIdentityCard,
+  .profileDetailsCard,
+  .profileInfo,
+  .employeeProfileButton
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.employeeProfilePage :where(
+  .profileIdentityEmail,
+  .profileBio,
+  .profileField label,
+  .profileTextareaField label
+){
+  color:var(--ra-muted) !important;
+}
+
+/* Work desk, detail drawer and approval workflow. */
+html[data-ra-theme='dark']
+:where(.workDetailSection,.workInlineAction select,.workCommentComposer textarea,.dangerSection textarea){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+:where(.workPeopleList>div,.workAttachmentList button,.workCommentList article,.workActivity>div){
+  border-color:var(--ra-border) !important;
+}
+
+/* Pulse/social surfaces. */
+html[data-ra-theme='dark']
+.socialModule :where(
+  .socialComposer,
+  .socialPost,
+  .railCard,
+  .trend,
+  .quotedPost,
+  .composerOptions select,
+  .composerOptions input
+){
+  border-color:var(--ra-border) !important;
+  background:var(--ra-surface-soft) !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.socialModule :where(.postMeta,.postText,.postType,.socialEmpty){
+  color:var(--ra-muted) !important;
+}
+
+/* PArAsYtE browser: keep chrome dark and make its home dark too. */
+html[data-ra-theme='dark'] .parasyteViewport,
+html[data-ra-theme='dark'] .parasyteHome,
+html[data-ra-theme='dark'] .parasyteExternalNotice{
+  background:
+    radial-gradient(circle at 50% 20%,rgba(255,153,0,.07),transparent 30%),
+    #091522 !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.parasyteBrowser :where(
+  .parasyteHomeSearch,
+  .parasyteHomeLinks button,
+  .parasyteExternalNotice code
+){
+  border-color:rgba(255,255,255,.10) !important;
+  background:#102238 !important;
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.parasyteBrowser :where(
+  .parasyteHome h2,
+  .parasyteExternalNotice h3
+){
+  color:var(--ra-text) !important;
+}
+
+html[data-ra-theme='dark']
+.parasyteBrowser :where(
+  .parasyteHome p,
+  .parasyteExternalNotice p
+){
+  color:var(--ra-muted) !important;
+}
+
+/* Status colours must remain readable in both themes. */
+html[data-ra-theme='dark']
+:where(.statusPill.active,.statusPill.driver-assigned){
+  background:var(--ra-positive-bg) !important;
+  color:var(--ra-positive) !important;
+}
+
+html[data-ra-theme='dark']
+:where(.statusPill.high,.statusPill.awaiting-driver,.statusPill.follow-up){
+  background:var(--ra-warning-bg) !important;
+  color:var(--ra-warning) !important;
+}
+
+html[data-ra-theme='dark']
+:where(.dangerButton,.profileMenuDanger,.headshotCardActions button.danger){
+  color:var(--ra-danger) !important;
+}
+
+@media (min-width:680px) and (max-width:1279px){
+  .shell.glassFrame .brand .sidebarLogo{
+    width:64px !important;
+    max-width:64px !important;
+    height:auto !important;
+    max-height:28px !important;
+  }
+}

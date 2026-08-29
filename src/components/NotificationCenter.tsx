@@ -35,6 +35,7 @@ export function NotificationCenter({
   const [loading,setLoading]=useState(false)
 
   const rootRef=useRef<HTMLDivElement|null>(null)
+  const loadRequestRef=useRef(0)
 
   const unreadCount=useMemo(
     ()=>items.filter(item=>!item.read_at).length,
@@ -42,13 +43,15 @@ export function NotificationCenter({
   )
 
   const loadNotifications=useCallback(async()=>{
-    if(!supabase){
+    const client=supabase
+    if(!client){
       return
     }
 
+    const requestSequence=++loadRequestRef.current
     setLoading(true)
 
-    const {data,error}=await supabase
+    const {data,error}=await client
       .from('notifications')
       .select(`
         id,
@@ -66,6 +69,10 @@ export function NotificationCenter({
       })
       .limit(30)
 
+    if(requestSequence!==loadRequestRef.current){
+      return
+    }
+
     if(error){
       console.error(
         '[RideArrivo Notifications]',
@@ -81,6 +88,9 @@ export function NotificationCenter({
 
   useEffect(()=>{
     void loadNotifications()
+    return()=>{
+      loadRequestRef.current+=1
+    }
   },[loadNotifications])
 
   useEffect(()=>{
@@ -302,13 +312,13 @@ export function NotificationCenter({
           </div>
 
           <div className="notificationList">
-            {loading&&
+            {loading&&!items.length&&
               <div className="notificationEmpty">
                 Loading notifications...
               </div>
             }
 
-            {!loading&&items.map(item=>
+            {items.map(item=>
               <button
                 type="button"
                 className={

@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 
@@ -146,218 +147,222 @@ export function DepartmentTeamWorkspace({
   const [loading,setLoading]=
     useState(true)
 
+  const [refreshing,setRefreshing]=
+    useState(false)
+
   const [message,setMessage]=
     useState('')
 
+  const requestSequenceRef=useRef(0)
+  const hasLoadedRef=useRef(false)
+  const ensuredDepartmentSpaceRef=useRef(false)
 
-  const load=
-    useCallback(async()=>{
+  const departmentAliasKey=departmentAliases
+    .map(normalise)
+    .filter(Boolean)
+    .sort()
+    .join('|')
 
-      const client=supabase
+  const roleAliasKey=roleAliases
+    .map(normalise)
+    .filter(Boolean)
+    .sort()
+    .join('|')
 
-      if(!client){
-        setLoading(false)
+  const normalisedDepartmentAliases=useMemo(
+    ()=>departmentAliasKey
+      ? departmentAliasKey.split('|')
+      : [],
+    [departmentAliasKey]
+  )
+
+  const normalisedRoleAliases=useMemo(
+    ()=>roleAliasKey
+      ? roleAliasKey.split('|')
+      : [],
+    [roleAliasKey]
+  )
+
+  const load=useCallback(async()=>{
+    const client=supabase
+
+    if(!client){
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
+
+    const requestSequence=++requestSequenceRef.current
+    const initialLoad=!hasLoadedRef.current
+
+    if(initialLoad){
+      setLoading(true)
+    }else{
+      setRefreshing(true)
+    }
+
+    setMessage('')
+
+    try{
+      const {
+        data:{user},
+        error:userError
+      }=await client.auth.getUser()
+
+      if(userError){
+        throw userError
+      }
+
+      if(!user){
+        throw new Error(
+          'Your workspace session has expired.'
+        )
+      }
+
+      const [profileResult,directoryResult]=await Promise.all([
+        client
+          .from('employee_profiles')
+          .select(
+            'id,full_name,email,role,department,job_title'
+          )
+          .eq('id',user.id)
+          .maybeSingle(),
+        client
+          .from('employee_profiles')
+          .select(
+            'id,full_name,email,role,department,job_title'
+          )
+          .eq('active',true)
+          .order('full_name')
+      ])
+
+      if(
+        requestSequence !== requestSequenceRef.current
+      ){
         return
       }
 
-      setLoading(true)
-      setMessage('')
-
-      try{
-
-        const {
-          data:{
-            user
-          },
-          error:userError
-        }=
-          await client.auth.getUser()
-
-        if(userError){
-          throw userError
-        }
-
-        if(!user){
-          throw new Error(
-            'Your workspace session has expired.'
-          )
-        }
-
-
-        const {
-          data:profileRow,
-          error:profileError
-        }=
-          await client
-            .from('employee_profiles')
-            .select(
-              'id,full_name,email,role,department,job_title'
-            )
-            .eq(
-              'id',
-              user.id
-            )
-            .maybeSingle()
-
-        if(profileError){
-          throw profileError
-        }
-
-        if(!profileRow){
-          throw new Error(
-            'Employee profile not found.'
-          )
-        }
-
-        const current=
-          profileRow as Employee
-
-        setProfile(current)
-
-
-        const {
-          data:employeeRows,
-          error:directoryError
-        }=
-          await client
-            .from('employee_profiles')
-            .select(
-              'id,full_name,email,role,department,job_title'
-            )
-            .eq(
-              'active',
-              true
-            )
-            .order(
-              'full_name'
-            )
-
-        if(directoryError){
-          throw directoryError
-        }
-
-        setDirectory(
-          (employeeRows || []) as Employee[]
-        )
-
-
-        const currentDepartment=
-          normalise(
-            current.department
-          )
-
-        const belongsHere=
-          departmentAliases.some(
-            alias=>
-              currentDepartment.includes(
-                normalise(alias)
-              )
-          )
-          ||
-          roleAliases.includes(
-            normalise(
-              current.role
-            )
-          )
-
-        /*
-         * Only an employee actually belonging to this
-         * department should initialise/synchronise its
-         * automatic department collaboration space.
-         *
-         * Manager/Admin may view a department workstation
-         * without being inserted into that department team.
-         */
-        if(belongsHere){
-
-          const {
-            error:spaceError
-          }=
-            await client.rpc(
-              'ensure_department_space'
-            )
-
-          if(spaceError){
-
-            console.warn(
-              `${title} department space:`,
-              spaceError.message
-            )
-
-          }
-
-        }
-
-      }catch(error){
-
-        console.error(
-          `${title} workspace load failed:`,
-          error
-        )
-
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : 'Unable to load team workspace.'
-        )
-
-      }finally{
-
-        setLoading(false)
-
+      if(profileResult.error){
+        throw profileResult.error
       }
 
-    },[
-      departmentAliases,
-      roleAliases,
-      title
-    ])
+      if(directoryResult.error){
+        throw directoryResult.error
+      }
 
+      if(!profileResult.data){
+        throw new Error(
+          'Employee profile not found.'
+        )
+      }
 
-  useEffect(()=>{
+      const current=
+        profileResult.data as Employee
 
-    void load()
-
-  },[
-    load
-  ])
-
-
-  const team=
-    useMemo(()=>{
-
-      return directory.filter(
-        employee=>{
-
-          const department=
-            normalise(
-              employee.department
-            )
-
-          const role=
-            normalise(
-              employee.role
-            )
-
-          return (
-            departmentAliases.some(
-              alias=>
-                department.includes(
-                  normalise(alias)
-                )
-            )
-            ||
-            roleAliases.includes(role)
-          )
-
-        }
+      setProfile(current)
+      setDirectory(
+        (directoryResult.data || []) as Employee[]
       )
 
-    },[
-      directory,
-      departmentAliases,
-      roleAliases
-    ])
+      const currentDepartment=
+        normalise(current.department)
+
+      const belongsHere=
+        normalisedDepartmentAliases.some(
+          alias=>currentDepartment.includes(alias)
+        )
+        ||
+        normalisedRoleAliases.includes(
+          normalise(current.role)
+        )
+
+      /*
+       * Department-space creation is idempotent, but it should not run on
+       * every parent re-render or background refresh. Run it at most once
+       * for this mounted department workspace.
+       */
+      if(
+        belongsHere &&
+        !ensuredDepartmentSpaceRef.current
+      ){
+        ensuredDepartmentSpaceRef.current=true
+
+        const {error:spaceError}=await client.rpc(
+          'ensure_department_space'
+        )
+
+        if(spaceError){
+          ensuredDepartmentSpaceRef.current=false
+          console.warn(
+            `${title} department space:`,
+            spaceError.message
+          )
+        }
+      }
+
+      hasLoadedRef.current=true
+    }catch(error){
+      if(
+        requestSequence !== requestSequenceRef.current
+      ){
+        return
+      }
+
+      console.error(
+        `${title} workspace load failed:`,
+        error
+      )
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load team workspace.'
+      )
+    }finally{
+      if(
+        requestSequence === requestSequenceRef.current
+      ){
+        setLoading(false)
+        setRefreshing(false)
+      }
+    }
+  },[
+    normalisedDepartmentAliases,
+    normalisedRoleAliases,
+    title
+  ])
+
+  useEffect(()=>{
+    void load()
+
+    return()=>{
+      requestSequenceRef.current+=1
+    }
+  },[load])
+
+  const team=useMemo(()=>{
+    return directory.filter(employee=>{
+      const department=normalise(
+        employee.department
+      )
+
+      const role=normalise(
+        employee.role
+      )
+
+      return (
+        normalisedDepartmentAliases.some(
+          alias=>department.includes(alias)
+        )
+        ||
+        normalisedRoleAliases.includes(role)
+      )
+    })
+  },[
+    directory,
+    normalisedDepartmentAliases,
+    normalisedRoleAliases
+  ])
 
 
   const workstationLinks=
@@ -385,7 +390,7 @@ export function DepartmentTeamWorkspace({
   }
 
 
-  if(loading){
+  if(loading && !hasLoadedRef.current && !profile){
 
     return (
       <section className="departmentWorkspace">
@@ -495,12 +500,13 @@ export function DepartmentTeamWorkspace({
             <button
               type="button"
               className="glassButton"
+              disabled={refreshing}
               onClick={()=>{
                 void load()
               }}
             >
               <RefreshCw size={15}/>
-              Refresh
+              {refreshing?'Refreshing...':'Refresh'}
             </button>
 
           </div>

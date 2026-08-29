@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CircleDollarSign, Landmark, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import '../payments-dashboard.css'
@@ -115,35 +115,58 @@ function ProviderBlock({name,data}:{name:string;data:ProviderData}){
 export default function FinancePaymentsPanel(){
   const [data,setData]=useState<Payload|null>(null)
   const [loading,setLoading]=useState(true)
+  const [refreshing,setRefreshing]=useState(false)
   const [message,setMessage]=useState('')
   const [days,setDays]=useState(30)
+  const requestSequenceRef=useRef(0)
+  const hasDataRef=useRef(false)
 
   const load=useCallback(async()=>{
     const client=supabase
     if(!client){
       setLoading(false)
+      setRefreshing(false)
       setMessage('Supabase is not configured.')
       return
     }
 
-    setLoading(true)
+    const requestSequence=++requestSequenceRef.current
+
+    if(hasDataRef.current){
+      setRefreshing(true)
+    }else{
+      setLoading(true)
+    }
+
     setMessage('')
 
-    const {data,error}=await client.functions.invoke('finance-payments',{
+    const {data:nextData,error}=await client.functions.invoke('finance-payments',{
       body:{days},
     })
 
+    if(requestSequence!==requestSequenceRef.current){
+      return
+    }
+
     if(error){
-      setData(null)
+      // Keep the previous successful provider snapshot visible on a
+      // transient refresh failure.
       setMessage(error.message || 'Unable to load payment providers.')
     }else{
-      setData(data as Payload)
+      setData(nextData as Payload)
+      hasDataRef.current=true
     }
 
     setLoading(false)
+    setRefreshing(false)
   },[days])
 
-  useEffect(()=>{ void load() },[load])
+  useEffect(()=>{
+    void load()
+    return()=>{
+      requestSequenceRef.current+=1
+    }
+  },[load])
 
   return (
     <section className="financePaymentsPanel">
@@ -160,8 +183,8 @@ export default function FinancePaymentsPanel(){
             <option value={60}>Last 60 days</option>
             <option value={90}>Last 90 days</option>
           </select>
-          <button className="glassButton" type="button" onClick={()=>void load()} disabled={loading}>
-            <RefreshCw size={15}/>{loading?'Refreshing...':'Refresh'}
+          <button className="glassButton" type="button" onClick={()=>void load()} disabled={loading||refreshing}>
+            <RefreshCw size={15}/>{loading||refreshing?'Refreshing...':'Refresh'}
           </button>
         </div>
       </div>

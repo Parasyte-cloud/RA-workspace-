@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 
@@ -149,19 +150,31 @@ export default function SharedWorkspacesHub({
   const [messageText,setMessageText]=useState('')
 
   const [loading,setLoading]=useState(true)
+  const [refreshing,setRefreshing]=useState(false)
   const [busy,setBusy]=useState(false)
   const [notice,setNotice]=useState('')
 
+  const baseRequestRef=useRef(0)
+  const spaceRequestRef=useRef(0)
+  const hasLoadedBaseRef=useRef(false)
 
   const loadBase=useCallback(async()=>{
     const client=supabase
 
     if(!client){
       setLoading(false)
+      setRefreshing(false)
       return
     }
 
-    setLoading(true)
+    const requestSequence=++baseRequestRef.current
+
+    if(hasLoadedBaseRef.current){
+      setRefreshing(true)
+    }else{
+      setLoading(true)
+    }
+
     setNotice('')
 
     try{
@@ -202,6 +215,10 @@ export default function SharedWorkspacesHub({
             .order('created_at',{ascending:false})
         ])
 
+      if(requestSequence!==baseRequestRef.current){
+        return
+      }
+
       if(profileResult.error){
         throw profileResult.error
       }
@@ -230,6 +247,7 @@ export default function SharedWorkspacesHub({
       setPeople((peopleResult.data || []) as Profile[])
       setSpaces(sharedSpaces)
       setInvites((inviteResult.data || []) as Invite[])
+      hasLoadedBaseRef.current=true
 
       setSelectedSpaceId(current=>{
         if(
@@ -242,6 +260,10 @@ export default function SharedWorkspacesHub({
         return sharedSpaces[0]?.id || ''
       })
     }catch(error){
+      if(requestSequence!==baseRequestRef.current){
+        return
+      }
+
       console.error('Shared workspaces load failed:',error)
       setNotice(
         error instanceof Error
@@ -249,13 +271,16 @@ export default function SharedWorkspacesHub({
           : 'Unable to load shared workspaces.'
       )
     }finally{
-      setLoading(false)
+      if(requestSequence===baseRequestRef.current){
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
   },[])
 
-
   const loadSpace=useCallback(async(spaceId:string)=>{
     const client=supabase
+    const requestSequence=++spaceRequestRef.current
 
     if(!client || !spaceId){
       setMembers([])
@@ -277,6 +302,10 @@ export default function SharedWorkspacesHub({
         .limit(300)
     ])
 
+    if(requestSequence!==spaceRequestRef.current){
+      return
+    }
+
     if(memberResult.error){
       setNotice(memberResult.error.message)
       return
@@ -291,26 +320,32 @@ export default function SharedWorkspacesHub({
     setMessages((messageResult.data || []) as Message[])
   },[])
 
-
   useEffect(()=>{
     void loadBase()
+    return()=>{
+      baseRequestRef.current+=1
+    }
   },[loadBase])
-
 
   useEffect(()=>{
     void loadSpace(selectedSpaceId)
+    return()=>{
+      spaceRequestRef.current+=1
+    }
   },[selectedSpaceId,loadSpace])
 
 
   useEffect(()=>{
     const client=supabase
 
-    if(!client || !profile){
+    const profileId=profile?.id
+
+    if(!client || !profileId){
       return
     }
 
     const channel=client
-      .channel(`shared-workspaces-${profile.id}`)
+      .channel(`shared-workspaces-${profileId}`)
       .on(
         'postgres_changes',
         {
@@ -342,7 +377,7 @@ export default function SharedWorkspacesHub({
       void client.removeChannel(channel)
     }
   },[
-    profile,
+    profile?.id,
     selectedSpaceId,
     loadBase,
     loadSpace
@@ -787,7 +822,7 @@ export default function SharedWorkspacesHub({
   ])
 
 
-  if(loading){
+  if(loading && !hasLoadedBaseRef.current){
     return (
       <section className={`sharedHub ${embedded?'embedded':''}`}>
         <div className="glassCard sharedLoading">
@@ -969,7 +1004,8 @@ export default function SharedWorkspacesHub({
               <button
                 type="button"
                 className="iconButton"
-                title="Refresh"
+                title={refreshing?'Refreshing':'Refresh'}
+                disabled={loading||refreshing}
                 onClick={()=>void loadBase()}
               >
                 <RefreshCw size={16}/>

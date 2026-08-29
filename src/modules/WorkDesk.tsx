@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 
@@ -42,6 +43,9 @@ type WorkItem = {
   due_at:string|null
   completed_at:string|null
   created_at:string
+  escalation_level:number
+  escalated_at:string|null
+  escalation_reason:string|null
   work_item_assignees?:{
     assignee_id:string
     assigned_by:string
@@ -95,6 +99,9 @@ export function WorkDesk(){
 
   const [view,setView]=useState<View>('my')
   const [loading,setLoading]=useState(true)
+  const [refreshing,setRefreshing]=useState(false)
+  const workRequestRef=useRef(0)
+  const hasLoadedWorkRef=useRef(false)
   const [saving,setSaving]=useState(false)
 
   const [message,setMessage]=useState('')
@@ -183,15 +190,23 @@ export function WorkDesk(){
 
 
   const loadWork=useCallback(async()=>{
-    if(!supabase){
-      return
+    const client=supabase
+    if(!client){
+      return null
     }
 
-    setLoading(true)
+    const requestSequence=++workRequestRef.current
+
+    if(hasLoadedWorkRef.current){
+      setRefreshing(true)
+    }else{
+      setLoading(true)
+    }
+
     setMessage('')
 
     try{
-      const {data,error}=await supabase
+      const {data,error}=await client
         .from('work_items')
         .select(`
           id,
@@ -204,6 +219,9 @@ export function WorkDesk(){
           due_at,
           completed_at,
           created_at,
+          escalation_level,
+          escalated_at,
+          escalation_reason,
           work_item_assignees(
             assignee_id,
             assigned_by,
@@ -216,27 +234,45 @@ export function WorkDesk(){
             )
           )
         `)
-        .order('created_at',{
-          ascending:false
-        })
+        .order('created_at',{ascending:false})
+
+      if(requestSequence!==workRequestRef.current){
+        return null
+      }
 
       if(error){
         throw error
       }
 
-      setItems((data || []) as unknown as WorkItem[])
+      const nextItems=
+        (data || []) as unknown as WorkItem[]
+
+      setItems(nextItems)
+      hasLoadedWorkRef.current=true
+
+      return nextItems
     }catch(error:any){
+      if(requestSequence!==workRequestRef.current){
+        return null
+      }
+
       console.error(
         '[RideArrivo Work]',
         error
       )
 
+      // Preserve the last successful work list during realtime/network errors.
       setMessage(
         error?.message ||
         'Unable to load work.'
       )
+
+      return null
     }finally{
-      setLoading(false)
+      if(requestSequence===workRequestRef.current){
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
   },[])
 
@@ -271,6 +307,9 @@ export function WorkDesk(){
 
   useEffect(()=>{
     void initialise()
+    return()=>{
+      workRequestRef.current+=1
+    }
   },[initialise])
 
 
@@ -497,12 +536,13 @@ export function WorkDesk(){
           <button
             type="button"
             className="glassButton"
+            disabled={loading||refreshing}
             onClick={()=>
               void loadWork()
             }
           >
             <RefreshCw size={16}/>
-            Refresh
+            {refreshing?'Refreshing...':'Refresh'}
           </button>
 
           <button
@@ -575,7 +615,7 @@ export function WorkDesk(){
       </div>
 
 
-      {loading?
+      {loading && !hasLoadedWorkRef.current?
         <div className="glassCard workEmpty">
           Loading work...
         </div>
@@ -718,18 +758,19 @@ export function WorkDesk(){
           item={selectedWork}
           people={people}
           currentUserId={profile.id}
+          currentUserRole={profile.role}
           onClose={()=>
             setSelectedWork(null)
           }
           onChanged={async()=>{
-            await loadWork()
+            const nextItems=await loadWork()
 
             setSelectedWork(current=>{
               if(!current){
                 return null
               }
 
-              return items.find(
+              return nextItems?.find(
                 item=>item.id===current.id
               ) || current
             })
