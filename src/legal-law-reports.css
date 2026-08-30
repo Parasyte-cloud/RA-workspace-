@@ -1,0 +1,331 @@
+.legalReportsShell{
+  display:grid;
+  gap:18px;
+}
+
+.legalReportsNav{
+  display:flex;
+  align-items:flex-end;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.legalReportsNav>div:first-child{
+  flex:1 1 300px;
+}
+
+.legalReportsNav h3{
+  margin:4px 0;
+}
+
+.legalReportsNav p{
+  margin:0;
+  opacity:.76;
+}
+
+.legalReportsTabs{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+
+.legalReportsTabs button{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.035);
+  color:inherit;
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+}
+
+.legalReportsTabs button.active{
+  background:rgba(255,255,255,.12);
+}
+
+.legalReportStats{
+  display:grid;
+  grid-template-columns:
+    repeat(4,minmax(0,1fr));
+  gap:14px;
+}
+
+.legalReportStats .glassCard{
+  display:grid;
+  gap:6px;
+}
+
+.legalReportStats svg{
+  width:20px;
+  height:20px;
+}
+
+.legalReportStats span{
+  font-size:.82rem;
+  opacity:.7;
+}
+
+.legalReportStats strong{
+  font-size:1.65rem;
+}
+
+.legalOverviewCard{
+  min-height:180px;
+}
+
+.legalControlList{
+  display:grid;
+  gap:11px;
+  margin-top:18px;
+}
+
+.legalControlList span{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.legalControlList strong{
+  min-width:34px;
+  font-size:1.15rem;
+}
+
+.legalLoading{
+  padding:32px;
+  text-align:center;
+}
+
+.legalReportFilters{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) 180px 190px;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+.legalReportFilters label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  padding:0 12px;
+}
+
+.legalReportFilters label input{
+  width:100%;
+  border:0;
+  background:transparent;
+}
+
+.legalReportFilters select{
+  min-height:44px;
+}
+
+.lawReportEditor{
+  display:grid;
+  gap:18px;
+}
+
+.lawReportEditorHead,
+.lawReportReaderHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.lawReportEditorHead h3,
+.lawReportReaderHead h2{
+  margin:5px 0;
+}
+
+.lawReportFormGrid{
+  display:grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.lawReportFormGrid label{
+  display:grid;
+  gap:7px;
+  font-size:.84rem;
+}
+
+.lawReportFormGrid .wide{
+  grid-column:1 / -1;
+}
+
+.lawReportFormGrid input,
+.lawReportFormGrid select,
+.lawReportFormGrid textarea{
+  width:100%;
+}
+
+.lawReportFormGrid textarea{
+  resize:vertical;
+  min-height:110px;
+}
+
+.lawReportMeta{
+  display:grid;
+  grid-template-columns:
+    repeat(5,minmax(0,1fr));
+  gap:10px;
+  margin:18px 0;
+}
+
+.lawReportMeta span{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  display:grid;
+  gap:5px;
+}
+
+.lawReportMeta strong{
+  font-size:.74rem;
+  text-transform:uppercase;
+  opacity:.65;
+}
+
+.lawReportBody{
+  display:grid;
+  gap:3px;
+}
+
+.lawReportSection{
+  padding:19px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.lawReportSection h4{
+  margin:0 0 8px;
+}
+
+.lawReportSection p{
+  white-space:pre-wrap;
+  margin:0;
+  line-height:1.65;
+}
+
+.lawReportSources{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  align-items:center;
+  padding-top:20px;
+}
+
+.lawReportSources h4{
+  width:100%;
+  margin:0;
+}
+
+.legalReviewQueue{
+  display:grid;
+  gap:12px;
+}
+
+.legalReviewItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:14px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.legalReviewItem>div:first-child{
+  display:grid;
+  gap:5px;
+}
+
+.legalReviewItem span{
+  opacity:.7;
+  font-size:.84rem;
+}
+
+.legalEmpty{
+  min-height:180px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:8px;
+  text-align:center;
+  opacity:.78;
+}
+
+@media(max-width:980px){
+  .legalReportStats{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+
+  .lawReportMeta{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  .legalReportStats,
+  .lawReportFormGrid,
+  .legalReportFilters,
+  .lawReportMeta{
+    grid-template-columns:1fr;
+  }
+
+  .lawReportFormGrid .wide{
+    grid-column:auto;
+  }
+
+  .legalReviewItem{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+.legalPrivilegeToggle{
+  display:flex !important;
+  grid-template-columns:auto 1fr !important;
+  align-items:flex-start;
+  gap:12px !important;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+}
+
+.legalPrivilegeToggle input{
+  width:auto;
+  margin-top:3px;
+}
+
+.legalPrivilegeToggle span{
+  display:grid;
+  gap:3px;
+}
+
+.legalPrivilegeToggle small{
+  opacity:.68;
+}
+
+.legalPrivilegeNotice{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  margin-top:20px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+}
+
+.legalPrivilegeNotice div{
+  display:grid;
+  gap:4px;
+}
+
+.legalPrivilegeNotice span{
+  font-size:.84rem;
+  opacity:.72;
+}

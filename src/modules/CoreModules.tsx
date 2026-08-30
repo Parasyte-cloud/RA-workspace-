@@ -7,6 +7,7 @@ import SupportOperationsPanel from './SupportOperationsPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
 import AdministrationControlPlane from './AdministrationControlPlane'
 import OperationsReceiptsPanel from './OperationsReceiptsPanel'
+import LegalLawReportsPanel from './LegalLawReportsPanel'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -47,15 +48,48 @@ export function OperationsModule(){
 }
 
 export function LegalModule(){
+  const [tab,setTab]=useState<'law-reports'|'operations'>('law-reports')
+
   return <section>
-    <Title eyebrow="LEGAL & COMPLIANCE" title="Legal & Compliance" subtitle="Contract lifecycle, legal intake, privacy requests, regulatory filings, evidence and renewal control."/>
-    <div className="grid2">
-      <DataWorkbench table="legal_contracts" title="Contract register" description="Counterparties, status and renewal dates." createLabel="New contract" fields={[{key:'title',label:'Contract title',required:true},{key:'counterparty',label:'Counterparty',required:true},{key:'status',label:'Status',required:true},{key:'effective_date',label:'Effective date',type:'date'},{key:'renewal_date',label:'Renewal date',type:'date'},{key:'document_path',label:'Document path / URL'}]} columns={[{key:'title',label:'Contract'},{key:'counterparty',label:'Counterparty'},{key:'status',label:'Status'},{key:'effective_date',label:'Effective'},{key:'renewal_date',label:'Renewal'}]}/>
-      <DataWorkbench table="legal_requests" title="Legal request intake" description="Internal legal requests with priority, due date and review status." createLabel="New request" fields={[{key:'title',label:'Request title',required:true},{key:'request_type',label:'Request type',required:true},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','triage','in_review','waiting','complete','closed'],required:true},{key:'requester_id',label:'Requester',type:'employee'},{key:'owner_id',label:'Legal owner',type:'employee'},{key:'due_date',label:'Due date',type:'date'},{key:'summary',label:'Summary',type:'textarea'}]} columns={[{key:'title',label:'Request'},{key:'request_type',label:'Type'},{key:'priority',label:'Priority'},{key:'status',label:'Status'},{key:'due_date',label:'Due'}]}/>
-      <DataWorkbench table="privacy_requests" title="Privacy rights requests" orderBy="received_at" description="Data-subject requests, identity verification, statutory due dates and resolution evidence." createLabel="Log privacy request" fields={[{key:'request_type',label:'Request type',required:true},{key:'data_subject_reference',label:'Data subject reference',required:true},{key:'status',label:'Status',type:'select',options:['received','identity_verification','in_progress','extended','complete','rejected'],required:true},{key:'owner_id',label:'Owner',type:'employee'},{key:'due_date',label:'Due date',type:'date'},{key:'resolution_notes',label:'Resolution notes',type:'textarea'}]} columns={[{key:'data_subject_reference',label:'Subject'},{key:'request_type',label:'Type'},{key:'status',label:'Status'},{key:'due_date',label:'Due'}]}/>
-      <DataWorkbench table="regulatory_filings" title="Regulatory filings" description="CAC, privacy, tax and other regulatory filings with due-date and evidence control." createLabel="Add filing" fields={[{key:'regulator',label:'Regulator',required:true},{key:'filing_name',label:'Filing',required:true},{key:'period_label',label:'Period'},{key:'due_date',label:'Due date',type:'date',required:true},{key:'status',label:'Status',type:'select',options:['open','preparing','review','filed','accepted','overdue'],required:true},{key:'owner_id',label:'Owner',type:'employee'},{key:'evidence_path',label:'Evidence path / URL'}]} columns={[{key:'regulator',label:'Regulator'},{key:'filing_name',label:'Filing'},{key:'period_label',label:'Period'},{key:'due_date',label:'Due'},{key:'status',label:'Status'}]}/>
-      <DataWorkbench table="compliance_items" title="Compliance register" description="Obligations, evidence and due dates." createLabel="Add compliance item" fields={[{key:'title',label:'Obligation',required:true},{key:'due_date',label:'Due date',type:'date'},{key:'status',label:'Status',required:true},{key:'evidence_path',label:'Evidence path / URL'}]} columns={[{key:'title',label:'Obligation'},{key:'due_date',label:'Due date'},{key:'status',label:'Status'},{key:'evidence_path',label:'Evidence'}]}/>
+    <Title
+      eyebrow="LEGAL & COMPLIANCE"
+      title="Legal & Compliance"
+      subtitle="Legal intelligence, case law, contracts, privacy, regulatory filings, evidence and compliance control."
+    />
+
+    <div className="buttonRow" style={{marginBottom:18}}>
+      <button
+        className={tab==='law-reports'?'primaryButton':'glassButton'}
+        onClick={()=>setTab('law-reports')}
+      >
+        Law Reports
+      </button>
+
+      <button
+        className={tab==='operations'?'primaryButton':'glassButton'}
+        onClick={()=>setTab('operations')}
+      >
+        Legal Operations
+      </button>
     </div>
+
+    {tab==='law-reports'&&(
+      <LegalLawReportsPanel/>
+    )}
+
+    {tab==='operations'&&(
+      <div className="grid2">
+        <DataWorkbench table="legal_contracts" title="Contract register" description="Counterparties, status and renewal dates." createLabel="New contract" fields={[{key:'title',label:'Contract title',required:true},{key:'counterparty',label:'Counterparty',required:true},{key:'status',label:'Status',required:true},{key:'effective_date',label:'Effective date',type:'date'},{key:'renewal_date',label:'Renewal date',type:'date'},{key:'document_path',label:'Document path / URL'}]} columns={[{key:'title',label:'Contract'},{key:'counterparty',label:'Counterparty'},{key:'status',label:'Status'},{key:'effective_date',label:'Effective'},{key:'renewal_date',label:'Renewal'}]}/>
+
+        <DataWorkbench table="legal_requests" title="Legal request intake" description="Internal legal requests with priority, due date and review status." createLabel="New request" fields={[{key:'title',label:'Request title',required:true},{key:'request_type',label:'Request type',required:true},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','triage','in_review','waiting','complete','closed'],required:true},{key:'requester_id',label:'Requester',type:'employee'},{key:'owner_id',label:'Legal owner',type:'employee'},{key:'due_date',label:'Due date',type:'date'},{key:'summary',label:'Summary',type:'textarea'}]} columns={[{key:'title',label:'Request'},{key:'request_type',label:'Type'},{key:'priority',label:'Priority'},{key:'status',label:'Status'},{key:'due_date',label:'Due'}]}/>
+
+        <DataWorkbench table="privacy_requests" title="Privacy rights requests" orderBy="received_at" description="Data-subject requests, identity verification, statutory due dates and resolution evidence." createLabel="Log privacy request" fields={[{key:'request_type',label:'Request type',required:true},{key:'data_subject_reference',label:'Data subject reference',required:true},{key:'status',label:'Status',type:'select',options:['received','identity_verification','in_progress','extended','complete','rejected'],required:true},{key:'owner_id',label:'Owner',type:'employee'},{key:'due_date',label:'Due date',type:'date'},{key:'resolution_notes',label:'Resolution notes',type:'textarea'}]} columns={[{key:'data_subject_reference',label:'Subject'},{key:'request_type',label:'Type'},{key:'status',label:'Status'},{key:'due_date',label:'Due'}]}/>
+
+        <DataWorkbench table="regulatory_filings" title="Regulatory filings" description="CAC, privacy, tax and other regulatory filings with due-date and evidence control." createLabel="Add filing" fields={[{key:'regulator',label:'Regulator',required:true},{key:'filing_name',label:'Filing',required:true},{key:'period_label',label:'Period'},{key:'due_date',label:'Due date',type:'date',required:true},{key:'status',label:'Status',type:'select',options:['open','preparing','review','filed','accepted','overdue'],required:true},{key:'owner_id',label:'Owner',type:'employee'},{key:'evidence_path',label:'Evidence path / URL'}]} columns={[{key:'regulator',label:'Regulator'},{key:'filing_name',label:'Filing'},{key:'period_label',label:'Period'},{key:'due_date',label:'Due'},{key:'status',label:'Status'}]}/>
+
+        <DataWorkbench table="compliance_items" title="Compliance register" description="Obligations, evidence and due dates." createLabel="Add compliance item" fields={[{key:'title',label:'Obligation',required:true},{key:'due_date',label:'Due date',type:'date'},{key:'status',label:'Status',required:true},{key:'evidence_path',label:'Evidence path / URL'}]} columns={[{key:'title',label:'Obligation'},{key:'due_date',label:'Due date'},{key:'status',label:'Status'},{key:'evidence_path',label:'Evidence'}]}/>
+      </div>
+    )}
   </section>
 }
 
