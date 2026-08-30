@@ -44,7 +44,7 @@ type Props = {
 
 const DEFAULT_WEBSITE='https://ridearrivo.com'
 const DEFAULT_OFFICE='Lagos, Nigeria'
-const DEFAULT_HOURS='Mon - Fri: 9:00 AM - 6:00 PM'
+const DEFAULT_HOURS='Mon - Fri: 9:00 AM - 5:00 PM'
 
 function initials(name?:string|null){
   return String(name || 'RideArrivo')

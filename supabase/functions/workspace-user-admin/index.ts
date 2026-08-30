@@ -141,6 +141,26 @@ serve(async(req)=>{
     const administratorId =
       userData.user.id
 
+    const actorDb =
+      createClient(
+        supabaseUrl,
+        Deno.env.get("SUPABASE_ANON_KEY") ||
+          serviceKey,
+        {
+          global:{
+            headers:{
+              Authorization:
+                `Bearer ${token}`,
+            },
+          },
+          auth:{
+            persistSession:false,
+            autoRefreshToken:false,
+          },
+        }
+      )
+
+
     const {
       data:administrator,
       error:administratorError,
@@ -564,10 +584,8 @@ serve(async(req)=>{
       const {
         error:profileError,
       } =
-        await admin
-          .from(
-            "employee_profiles"
-          )
+        await actorDb
+          .from("employee_profiles")
           .upsert(
             {
               id:userId,
@@ -668,10 +686,8 @@ serve(async(req)=>{
         data:updated,
         error:updateError,
       } =
-        await admin
-          .from(
-            "employee_profiles"
-          )
+        await actorDb
+          .from("employee_profiles")
           .update({
             active:false,
             updated_at:

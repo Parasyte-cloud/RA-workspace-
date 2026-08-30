@@ -35,6 +35,7 @@ import {
   EmployeeVirtualCard,
   type EmployeeCardProfile
 } from '../components/EmployeeVirtualCard'
+import EmployeeAttendance from '../components/EmployeeAttendance'
 
 import '../virtual-card.css'
 
@@ -84,7 +85,7 @@ export function ProfileModule({
   const [hours,setHours]=
     useState(
       profile.working_hours ||
-      'Mon - Fri: 9:00 AM - 6:00 PM'
+      'Mon - Fri: 9:00 AM - 5:00 PM'
     )
 
   const [avatarPath,setAvatarPath]=
@@ -110,7 +111,7 @@ export function ProfileModule({
     setBio(profile.bio || '')
     setHours(
       profile.working_hours ||
-      'Mon - Fri: 9:00 AM - 6:00 PM'
+      'Mon - Fri: 9:00 AM - 5:00 PM'
     )
     setAvatarPath(profile.avatar_path || '')
 
@@ -565,6 +566,9 @@ export function ProfileModule({
           }
         </div>
       </div>
+
+      <EmployeeAttendance/>
+
 
       <MySignInActivity/>
 

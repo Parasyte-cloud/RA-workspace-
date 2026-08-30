@@ -25,10 +25,12 @@ import DeviceAssetCenter from './DeviceAssetCenter'
 import { DataWorkbench } from './DataWorkbench'
 import '../admin-control-plane.css'
 
+import AttendanceAdminPanel from './AttendanceAdminPanel'
 type AdminTab=
   | 'overview'
   | 'people'
-  | 'access'
+  
+  | 'attendance'| 'access'
   | 'workstations'
   | 'performance'
   | 'assets'
@@ -138,6 +140,7 @@ type AuditRow={
 const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['overview','Command',Gauge],
   ['people','People',Users],
+  ['attendance','Time & Attendance',Activity],
   ['access','Access',KeyRound],
   ['workstations','Workstations',Workflow],
   ['performance','Performance',BarChart3],
@@ -472,6 +475,7 @@ export default function AdministrationControlPlane(){
     <div className="adminControlBody">
       {tab==='overview'&&<AdminOverview onOpenTab={setTab}/>}
       {tab==='people'&&<AdminPeopleIntelligence onOpenTab={setTab}/>}
+      {tab==='attendance'&&<AttendanceAdminPanel/>}
       {tab==='access'&&<AdminAccessManager/>}
       {tab==='workstations'&&<WorkstationAssignmentManager/>}
       {tab==='performance'&&<KpiManagementPanel/>}
