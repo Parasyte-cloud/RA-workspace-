@@ -14,6 +14,7 @@ const VALID_ROLES = new Set([
   "employee",
   "support",
   "engineer",
+  "cto",
   "manager",
   "hr",
   "legal",
@@ -244,7 +245,7 @@ serve(async(req)=>{
           await admin
             .from("employee_profiles")
             .select(
-              "id,email,full_name,role,department,job_title,active,created_at,updated_at"
+              "id,email,full_name,role,department,job_title,manager_id,active,created_at,updated_at"
             )
             .in("id",ids)
 
@@ -330,6 +331,10 @@ serve(async(req)=>{
                   ""
                 ),
 
+              manager_id:
+                profile?.manager_id ||
+                null,
+
               active:
                 profile?.active === true,
 
@@ -372,6 +377,46 @@ serve(async(req)=>{
     }
 
     /*
+     * SEND PASSWORD RESET
+     */
+    if(action==="password-reset"){
+      const userId=String(body?.userId || "").trim()
+      if(!userId){
+        return json({error:"Employee user ID is required."},400)
+      }
+
+      const {data:targetResult,error:targetError}=await admin.auth.admin.getUserById(userId)
+      if(targetError || !targetResult?.user){
+        return json({error:"Employee Auth account was not found."},404)
+      }
+
+      const email=String(targetResult.user.email || "").trim().toLowerCase()
+      if(!email.endsWith("@ridearrivo.com")){
+        return json({error:"Only @ridearrivo.com accounts may receive workspace password recovery."},400)
+      }
+
+      const {error:resetError}=await admin.auth.resetPasswordForEmail(email,{
+        redirectTo:"https://intranet.ridearrivo.com/",
+      })
+      if(resetError){
+        console.error("workspace-user-admin password reset",resetError)
+        return json({error:`Unable to send recovery email: ${errorMessage(resetError)}`},500)
+      }
+
+      await admin.from("admin_audit_log").insert({
+        actor_id:administratorId,
+        target_employee_id:userId,
+        action:"employee.password_reset_requested",
+        entity_type:"auth.users",
+        entity_id:userId,
+        source:"workspace-user-admin",
+        metadata:{email},
+      }).then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
+
+      return json({success:true,userId})
+    }
+
+    /*
      * APPROVE / UPDATE
      */
     if(
@@ -408,6 +453,12 @@ serve(async(req)=>{
           body?.fullName ||
           ""
         ).trim()
+
+      const managerId =
+        String(
+          body?.managerId ||
+          ""
+        ).trim() || null
 
       if(!userId){
         return json(
@@ -488,6 +539,28 @@ serve(async(req)=>{
         ).trim() ||
         email.split("@")[0]
 
+      if(managerId===userId){
+        return json(
+          {error:"An employee cannot be their own manager."},
+          400
+        )
+      }
+
+      if(managerId){
+        const {data:managerProfile,error:managerError}=await admin
+          .from("employee_profiles")
+          .select("id,role,active")
+          .eq("id",managerId)
+          .maybeSingle()
+
+        if(managerError || !managerProfile || managerProfile.active!==true || !["manager","admin"].includes(String(managerProfile.role || "").toLowerCase())){
+          return json(
+            {error:"Selected manager must be an active Manager or Admin."},
+            400
+          )
+        }
+      }
+
       const {
         error:profileError,
       } =
@@ -505,6 +578,7 @@ serve(async(req)=>{
                 department ||
                 "Unassigned",
               job_title:jobTitle,
+              manager_id:managerId,
               active:true,
               updated_at:
                 new Date()
@@ -530,6 +604,19 @@ serve(async(req)=>{
         )
       }
 
+      await admin
+        .from("admin_audit_log")
+        .insert({
+          actor_id:administratorId,
+          target_employee_id:userId,
+          action:action==="approve"?"employee.approve":"employee.update",
+          entity_type:"employee_profiles",
+          entity_id:userId,
+          source:"workspace-user-admin",
+          metadata:{role,department,job_title:jobTitle,manager_id:managerId},
+        })
+        .then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
+
       return json({
         success:true,
         user:{
@@ -539,6 +626,7 @@ serve(async(req)=>{
           role,
           department,
           job_title:jobTitle,
+          manager_id:managerId,
           active:true,
         },
       })
@@ -618,6 +706,19 @@ serve(async(req)=>{
           404
         )
       }
+
+      await admin
+        .from("admin_audit_log")
+        .insert({
+          actor_id:administratorId,
+          target_employee_id:userId,
+          action:"employee.revoke",
+          entity_type:"employee_profiles",
+          entity_id:userId,
+          source:"workspace-user-admin",
+          metadata:{active:false},
+        })
+        .then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
 
       return json({
         success:true,

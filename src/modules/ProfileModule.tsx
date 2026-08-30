@@ -29,6 +29,7 @@ import {
 
 import { supabase } from '../lib/supabase'
 import { resolveEmployeeAvatarUrl } from '../lib/employeeAvatar'
+import MySignInActivity from '../components/MySignInActivity'
 
 import {
   EmployeeVirtualCard,
@@ -564,6 +565,8 @@ export function ProfileModule({
           }
         </div>
       </div>
+
+      <MySignInActivity/>
 
       {showCard &&
         <EmployeeVirtualCard

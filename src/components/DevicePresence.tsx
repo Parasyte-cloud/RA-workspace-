@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import '../device-presence.css'
 
@@ -13,6 +13,9 @@ type LocationState={
   accuracy:number|null
   shared:boolean
 }
+
+const CONSENT_VERSION='2026-08-admin-location-v1'
+const CONSENT_KEY='ridearrivo-location-sharing'
 
 function getBrowserDeviceId(){
   const key='ridearrivo-browser-device-id'
@@ -50,6 +53,7 @@ export default function DevicePresence({profileId}:Props){
   const locationRef=useRef<LocationState>({latitude:null,longitude:null,accuracy:null,shared:false})
   const [locating,setLocating]=useState(false)
   const [message,setMessage]=useState('')
+  const [address,setAddress]=useState('')
   const timezone=useMemo(()=>Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local timezone',[])
 
   const register=useCallback(async(nextLocation?:LocationState)=>{
@@ -57,14 +61,12 @@ export default function DevicePresence({profileId}:Props){
     if(!client || !profileId) return
 
     const nav=navigator as Navigator & {deviceMemory?:number}
-    const browserDeviceId=getBrowserDeviceId()
     const userAgent=navigator.userAgent || ''
     const platform=navigator.platform || ''
     const loc=nextLocation ?? locationRef.current
 
     const payload={
-      employee_id:profileId,
-      browser_device_id:browserDeviceId,
+      browser_device_id:getBrowserDeviceId(),
       browser_name:detectBrowser(userAgent),
       operating_system:detectOs(userAgent,platform),
       platform,
@@ -74,18 +76,22 @@ export default function DevicePresence({profileId}:Props){
       hardware_concurrency:navigator.hardwareConcurrency || null,
       device_memory_gb:nav.deviceMemory ?? null,
       timezone,
-      latitude:loc.shared && loc.latitude!==null ? coarse(loc.latitude) : null,
-      longitude:loc.shared && loc.longitude!==null ? coarse(loc.longitude) : null,
-      location_accuracy_m:loc.shared && loc.accuracy!==null ? Math.round(loc.accuracy) : null,
-      location_shared_at:loc.shared ? new Date().toISOString() : null,
-      last_seen_at:new Date().toISOString(),
+      location_consent:loc.shared,
+      latitude:loc.shared ? loc.latitude : null,
+      longitude:loc.shared ? loc.longitude : null,
+      location_accuracy_m:loc.shared ? loc.accuracy : null,
     }
 
-    const {error}=await client
-      .from('employee_device_sessions')
-      .upsert(payload,{onConflict:'employee_id,browser_device_id'})
+    const {data,error}=await client.functions.invoke('workspace-presence',{body:payload})
 
-    if(error) console.warn('[RideArrivo Device Presence] unable to update session',error.message)
+    if(error){
+      console.warn('[RideArrivo Device Presence] unable to update presence',error.message)
+      return
+    }
+
+    if(typeof data?.address==='string' && data.address.trim()){
+      setAddress(data.address.trim())
+    }
   },[profileId,timezone])
 
   const shareLocation=useCallback(()=>{
@@ -94,11 +100,21 @@ export default function DevicePresence({profileId}:Props){
       return
     }
 
+    const storedConsent=window.localStorage.getItem(CONSENT_KEY)
+    if(storedConsent!==`granted:${CONSENT_VERSION}`){
+      const accepted=window.confirm(
+        'Share your precise work sign-in location with RideArrivo?\n\n'+
+        'If you continue, your browser will ask for location permission. RideArrivo will record the sign-in coordinates and, when configured, the nearest full address for account security, device support and workplace administration. The location is visible to you and authorised RideArrivo administrators. Sign-in location history is retained for 90 days. You can stop sharing from the workspace sidebar.'
+      )
+      if(!accepted) return
+    }
+
     setLocating(true)
     setMessage('')
+
     navigator.geolocation.getCurrentPosition(
       position=>{
-        const next={
+        const next:LocationState={
           latitude:position.coords.latitude,
           longitude:position.coords.longitude,
           accuracy:position.coords.accuracy,
@@ -106,7 +122,7 @@ export default function DevicePresence({profileId}:Props){
         }
         locationRef.current=next
         setLocation(next)
-        window.localStorage.setItem('ridearrivo-location-sharing','granted')
+        window.localStorage.setItem(CONSENT_KEY,`granted:${CONSENT_VERSION}`)
         void register(next)
         setLocating(false)
       },
@@ -114,22 +130,31 @@ export default function DevicePresence({profileId}:Props){
         setMessage(error.code===1?'Location permission was not granted.':'Unable to read your current location.')
         setLocating(false)
       },
-      {enableHighAccuracy:false,maximumAge:300000,timeout:10000}
+      {enableHighAccuracy:true,maximumAge:300000,timeout:12000}
     )
+  },[register])
+
+  const stopSharing=useCallback(()=>{
+    window.localStorage.removeItem(CONSENT_KEY)
+    const next:LocationState={latitude:null,longitude:null,accuracy:null,shared:false}
+    locationRef.current=next
+    setLocation(next)
+    setAddress('')
+    setMessage('Precise location sharing stopped. Browser permission can also be removed in site settings.')
+    void register(next)
   },[register])
 
   useEffect(()=>{
     if(!profileId) return
+
     void register()
 
     const timer=window.setInterval(()=>void register(),5*60*1000)
-    const onVisible=()=>{ if(document.visibilityState==='visible') void register() }
+    const onVisible=()=>{if(document.visibilityState==='visible') void register()}
     document.addEventListener('visibilitychange',onVisible)
 
-    const consent=window.localStorage.getItem('ridearrivo-location-sharing')
-    if(consent==='granted'){
-      shareLocation()
-    }else if(navigator.permissions){
+    const consent=window.localStorage.getItem(CONSENT_KEY)
+    if(consent===`granted:${CONSENT_VERSION}` && navigator.permissions){
       void navigator.permissions.query({name:'geolocation'}).then(permission=>{
         if(permission.state==='granted') shareLocation()
       }).catch(()=>undefined)
@@ -141,18 +166,27 @@ export default function DevicePresence({profileId}:Props){
     }
   },[profileId,register,shareLocation])
 
-  const label=location.shared && location.latitude!==null && location.longitude!==null
-    ? `${coarse(location.latitude).toFixed(2)}, ${coarse(location.longitude).toFixed(2)}`
-    : timezone
+  const label=address
+    || (location.shared && location.latitude!==null && location.longitude!==null
+      ? `${coarse(location.latitude).toFixed(2)}, ${coarse(location.longitude).toFixed(2)}`
+      : timezone)
 
   return (
     <div className="devicePresence">
-      <div className="devicePresenceLocation" title={message || 'Location is shared only with your permission and stored at coarse precision.'}>
+      <div
+        className="devicePresenceLocation"
+        title={message || address || 'Device presence is recorded for account security. Precise location is shared only after your permission.'}
+      >
         <MapPin size={12}/><span>{label}</span>
       </div>
-      {!location.shared&&(
+
+      {!location.shared ? (
         <button type="button" onClick={shareLocation} disabled={locating}>
-          {locating?'Locating...':'Share location'}
+          {locating?'Locating...':'Share work location'}
+        </button>
+      ) : (
+        <button type="button" onClick={stopSharing} title="Stop sending precise location to RideArrivo">
+          <ShieldCheck size={11}/> Stop sharing
         </button>
       )}
     </div>

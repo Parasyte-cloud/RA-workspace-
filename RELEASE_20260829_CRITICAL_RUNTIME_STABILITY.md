@@ -38,7 +38,6 @@ Remove the high-confidence runtime defects that could make Support or other work
 - Redeploy the `ridearrivo-support` Edge Function after the frontend build passes.
 - The existing `finance-payments` deployment and previously applied migrations remain unchanged.
 - The earlier `RideArrivo_scroll_architecture_stability_fix_20260829.zip` contained an extra top-level directory. Remove that accidental nested directory from the repo if it exists; this release includes the corrected root-level shell files.
-- This corrected package also includes `src/workflow.css`, so applying the runtime stability release cannot leave `src/main.tsx` with a missing stylesheet import.
 
 ## Required release gates
 
