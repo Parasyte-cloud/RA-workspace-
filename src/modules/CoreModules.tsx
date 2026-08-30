@@ -6,6 +6,7 @@ import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
 import AdministrationControlPlane from './AdministrationControlPlane'
+import OperationsReceiptsPanel from './OperationsReceiptsPanel'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -33,6 +34,7 @@ export function SupportModule(){
 export function OperationsModule(){
   return <section>
     <Title eyebrow="OPERATIONS" title="Ride Operations" subtitle="Dispatch readiness, shifts, fleet maintenance, inspections, flight monitoring and incident control."/>
+    <OperationsReceiptsPanel/>
     <div className="grid2">
       <DataWorkbench table="incidents" title="Incident register" orderBy="occurred_at" description="Safety, service and operational exceptions." createLabel="New incident" fields={[{key:'reference',label:'Reference',required:true},{key:'severity',label:'Severity',type:'select',options:['low','medium','high','critical'],required:true},{key:'category',label:'Category',required:true},{key:'summary',label:'Summary',type:'textarea',required:true},{key:'status',label:'Status',required:true}]} columns={[{key:'reference',label:'Reference'},{key:'severity',label:'Severity'},{key:'category',label:'Category'},{key:'summary',label:'Summary'},{key:'status',label:'Status'}]}/>
       <DataWorkbench table="operations_driver_shifts" title="Driver shifts" orderBy="shift_date" description="Driver coverage, vehicle assignment and shift readiness." createLabel="Plan shift" fields={[{key:'driver_name',label:'Driver',required:true},{key:'shift_date',label:'Shift date',type:'date',required:true},{key:'start_time',label:'Start time',type:'time'},{key:'end_time',label:'End time',type:'time'},{key:'vehicle_reference',label:'Vehicle reference'},{key:'status',label:'Status',type:'select',options:['planned','confirmed','active','completed','cancelled'],required:true},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'shift_date',label:'Date'},{key:'driver_name',label:'Driver'},{key:'vehicle_reference',label:'Vehicle'},{key:'status',label:'Status'}]}/>
