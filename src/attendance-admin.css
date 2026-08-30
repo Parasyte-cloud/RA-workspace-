@@ -1,0 +1,433 @@
+.attendanceAdmin{
+  display:grid;
+  gap:16px;
+  min-width:0;
+}
+
+.attendanceAdminHero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  padding:20px;
+}
+
+.attendanceAdminHero h3{
+  margin:5px 0 6px;
+}
+
+.attendanceAdminHero p{
+  margin:0;
+  max-width:760px;
+  opacity:.72;
+  line-height:1.5;
+}
+
+.attendanceAdminHeroActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.attendanceScheduleBadge{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 11px;
+  border-radius:12px;
+  border:1px solid var(--border-subtle,rgba(255,255,255,.1));
+  font-size:.82rem;
+}
+
+.attendanceAdminTabs{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:4px 1px;
+}
+
+.attendanceAdminTabs button{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex:0 0 auto;
+  border:1px solid var(--border-subtle,rgba(255,255,255,.1));
+  border-radius:11px;
+  padding:9px 12px;
+  background:rgba(255,255,255,.025);
+  color:inherit;
+  cursor:pointer;
+}
+
+.attendanceAdminTabs button.active{
+  background:rgba(255,171,51,.12);
+  border-color:rgba(255,171,51,.32);
+}
+
+.attendanceAdminTabs b{
+  display:grid;
+  place-items:center;
+  min-width:20px;
+  height:20px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(255,171,51,.18);
+  font-size:.7rem;
+}
+
+.attendanceAdminView{
+  display:grid;
+  gap:16px;
+  min-width:0;
+}
+
+.attendanceAdminMetrics{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+}
+
+.attendanceAdminMetrics.four{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.attendanceAdminMetrics article{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  padding:15px;
+}
+
+.attendanceAdminMetrics article>span{
+  font-size:.76rem;
+  opacity:.67;
+}
+
+.attendanceAdminMetrics article>strong{
+  font-size:1.28rem;
+}
+
+.attendanceAdminMetrics article>small{
+  opacity:.66;
+  line-height:1.35;
+}
+
+.attendanceAdminTableCard,
+.attendanceExceptions{
+  min-width:0;
+  padding:18px;
+}
+
+.attendanceTableHeading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+
+.attendanceTableHeading h3{
+  margin:4px 0 0;
+}
+
+.attendanceTableHeading>span{
+  font-size:.8rem;
+  opacity:.65;
+}
+
+.attendanceTableWrap{
+  max-width:100%;
+  overflow:auto;
+}
+
+.attendanceAdminTable{
+  width:100%;
+  min-width:840px;
+  border-collapse:collapse;
+}
+
+.attendanceAdminTable.wide{
+  min-width:1280px;
+}
+
+.attendanceAdminTable th,
+.attendanceAdminTable td{
+  padding:12px 10px;
+  text-align:left;
+  border-bottom:1px solid var(--border-subtle,rgba(255,255,255,.08));
+  vertical-align:top;
+}
+
+.attendanceAdminTable th{
+  font-size:.72rem;
+  opacity:.62;
+  font-weight:600;
+  white-space:nowrap;
+}
+
+.attendanceAdminTable td{
+  font-size:.83rem;
+}
+
+.attendanceAdminTable td strong,
+.attendanceAdminTable td small{
+  display:block;
+}
+
+.attendanceAdminTable td small{
+  margin-top:3px;
+  opacity:.62;
+}
+
+.attendanceStatus{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  max-width:240px;
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:.72rem;
+  line-height:1.2;
+  background:rgba(255,255,255,.06);
+}
+
+.attendanceStatus.ok{
+  background:rgba(72,195,129,.11);
+}
+
+.attendanceStatus.warning,
+.attendanceStatus.pending{
+  background:rgba(255,171,51,.13);
+}
+
+.attendanceStatus.danger{
+  background:rgba(255,83,83,.12);
+}
+
+.attendanceStatus.neutral{
+  background:rgba(130,150,180,.12);
+}
+
+.attendanceCorrectionsHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.attendanceCorrectionsHeader h3{
+  margin:4px 0 5px;
+}
+
+.attendanceCorrectionsHeader p{
+  margin:0;
+  opacity:.7;
+}
+
+.attendanceQueueCount{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(255,171,51,.12);
+  font-size:.78rem;
+}
+
+.attendanceReviewGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.attendanceReviewCard{
+  display:grid;
+  gap:13px;
+  padding:17px;
+  border-radius:16px;
+  border:1px solid var(--border-subtle,rgba(255,255,255,.1));
+  background:rgba(255,255,255,.025);
+}
+
+.attendanceReviewHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.attendanceReviewHead div{
+  display:grid;
+  gap:3px;
+}
+
+.attendanceReviewHead span{
+  font-size:.76rem;
+  opacity:.66;
+}
+
+.attendanceCorrectionTimes{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.attendanceCorrectionTimes>div{
+  display:grid;
+  gap:3px;
+  padding:10px;
+  border-radius:11px;
+  background:rgba(255,255,255,.03);
+}
+
+.attendanceCorrectionTimes span{
+  font-size:.7rem;
+  opacity:.62;
+}
+
+.attendanceReason{
+  margin:0;
+  padding:10px 11px;
+  border-radius:11px;
+  background:rgba(255,255,255,.025);
+  line-height:1.45;
+}
+
+.attendanceReviewNote,
+.attendanceOvertimeFields label{
+  display:grid;
+  gap:6px;
+  font-size:.76rem;
+}
+
+.attendanceReviewNote textarea,
+.attendanceOvertimeFields textarea,
+.attendanceOvertimeFields input{
+  width:100%;
+  box-sizing:border-box;
+}
+
+.attendanceOvertimeFields{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:10px;
+}
+
+.attendanceReviewActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.attendanceAdminEmpty,
+.attendanceAdminLoading{
+  display:grid;
+  place-items:center;
+  gap:7px;
+  min-height:130px;
+  padding:22px;
+  text-align:center;
+}
+
+.attendanceAdminEmpty span{
+  opacity:.65;
+}
+
+.attendanceExceptionRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:12px 2px;
+  border-bottom:1px solid var(--border-subtle,rgba(255,255,255,.08));
+}
+
+.attendanceExceptionRow>div:first-child{
+  display:grid;
+  gap:3px;
+}
+
+.attendanceExceptionRow>div:first-child span{
+  opacity:.62;
+  font-size:.76rem;
+}
+
+.attendanceExceptionTags{
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.attendanceExceptionTags span{
+  padding:5px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+  font-size:.71rem;
+}
+
+.attendanceExceptionTags .warning{
+  background:rgba(255,171,51,.12);
+}
+
+.attendanceExceptionTags .danger{
+  background:rgba(255,83,83,.11);
+}
+
+.attendanceSpin{
+  animation:attendanceAdminSpin .8s linear infinite;
+}
+
+@keyframes attendanceAdminSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@media(max-width:1180px){
+  .attendanceAdminMetrics{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .attendanceAdminMetrics.four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:850px){
+  .attendanceAdminHero,
+  .attendanceCorrectionsHeader,
+  .attendanceTableHeading{
+    flex-direction:column;
+  }
+
+  .attendanceAdminHeroActions{
+    justify-content:flex-start;
+  }
+
+  .attendanceReviewGrid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:620px){
+  .attendanceAdminMetrics,
+  .attendanceAdminMetrics.four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .attendanceCorrectionTimes,
+  .attendanceOvertimeFields{
+    grid-template-columns:1fr;
+  }
+
+  .attendanceExceptionRow{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .attendanceExceptionTags{
+    justify-content:flex-start;
+  }
+}

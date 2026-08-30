@@ -7,6 +7,7 @@ import {
 
 import {
   CheckCircle2,
+  KeyRound,
   RefreshCw,
   ShieldCheck,
   UserCheck,
@@ -22,6 +23,7 @@ type AccessUser = {
   role:string
   department:string
   job_title:string
+  manager_id:string|null
   active:boolean
   created_at:string
   last_sign_in_at:string|null
@@ -220,6 +222,7 @@ export default function AdminAccessManager(){
         role:user.role,
         department:user.department,
         jobTitle:user.job_title,
+        managerId:user.manager_id || null,
       })
 
       setMessage(
@@ -232,6 +235,26 @@ export default function AdminAccessManager(){
         error?.message ||
         'Approval failed.'
       )
+    }
+  }
+
+  const sendPasswordReset=async(
+    user:AccessUser
+  )=>{
+    const confirmed=window.confirm(
+      `Send a secure password recovery email to ${user.email}?`
+    )
+    if(!confirmed) return
+
+    setMessage('')
+    try{
+      await invokeAdmin({
+        action:'password-reset',
+        userId:user.id,
+      })
+      setMessage(`Password recovery email sent to ${user.email}.`)
+    }catch(error:any){
+      setMessage(error?.message || 'Unable to send password recovery email.')
     }
   }
 
@@ -508,6 +531,32 @@ export default function AdminAccessManager(){
                     }
                   />
                 </label>
+
+                <label>
+                  Reports to
+                  <select
+                    value={user.manager_id || ''}
+                    onChange={event=>
+                      updateLocal(
+                        user.id,
+                        {manager_id:event.target.value || null}
+                      )
+                    }
+                  >
+                    <option value="">No manager assigned</option>
+                    {users
+                      .filter(candidate=>
+                        candidate.id!==user.id &&
+                        candidate.active &&
+                        ['manager','admin'].includes(candidate.role)
+                      )
+                      .map(candidate=>(
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.full_name || candidate.email}
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
 
               <div className="adminAccessFooter">
@@ -550,6 +599,16 @@ export default function AdminAccessManager(){
                       }
                     >
                       Save changes
+                    </button>
+                  }
+
+                  {user.active &&
+                    <button
+                      className="glassButton"
+                      onClick={()=>void sendPasswordReset(user)}
+                    >
+                      <KeyRound size={16}/>
+                      Send password reset
                     </button>
                   }
 
