@@ -15,7 +15,7 @@ concurrency:
 jobs:
   backup:
     name: Encrypted off-site backup
-    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'schedule' && vars.ADMIN_BACKUP_WRITER_ENABLED == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 180
 
