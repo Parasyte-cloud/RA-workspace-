@@ -40,7 +40,7 @@ case "$mode" in
     ;;
 esac
 
-pgdump_image="supabase/postgres:17.6.1.165"
+pgdump_image="${SUPABASE_INTERNAL_IMAGE_REGISTRY:+${SUPABASE_INTERNAL_IMAGE_REGISTRY%/}/}supabase/postgres:17.6.1.165"
 db_dir="$workspace/components/database"
 
 auth_pre="$db_dir/auth-pre.sql"
