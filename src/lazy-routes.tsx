@@ -148,6 +148,16 @@ export const MailModule = lazy(
     )
 )
 
+
+export const ChatModule = lazy(
+  () =>
+    import('./modules/ChatModule').then(
+      module => ({
+        default: module.ChatModule
+      })
+    )
+)
+
 export const CRMModule = lazy(
   () =>
     import('./modules/CoreModules').then(
