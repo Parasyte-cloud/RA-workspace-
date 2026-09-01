@@ -306,7 +306,7 @@ rm -f \
   "$output_json" \
   "${output_json}.partial.$$"
 
-image="supabase/postgres:17.6.1.165"
+image="${SUPABASE_INTERNAL_IMAGE_REGISTRY:+${SUPABASE_INTERNAL_IMAGE_REGISTRY%/}/}supabase/postgres:17.6.1.165"
 
 if docker image inspect \
   "$image" \

@@ -610,6 +610,45 @@ else
 fi
 
 echo
+echo
+echo "=== PG_DUMP RUNTIME IMAGE REGISTRY CONTRACT ==="
+
+sectioned_schema_script="$repo/scripts/admin-backup/sectioned-schema-backup.sh"
+
+unqualified_plan="$(env -u SUPABASE_INTERNAL_IMAGE_REGISTRY "$sectioned_schema_script" plan "$workspace")"
+if printf "%s\n" "$unqualified_plan" | grep -qF "Docker image: supabase/postgres:17.6.1.165"
+then
+  pass "sectioned schema runtime keeps canonical image when registry is unset"
+else
+  fail "sectioned schema runtime changed canonical image when registry is unset"
+  printf "%s\n" "$unqualified_plan"
+fi
+
+qualified_plan="$(SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io "$sectioned_schema_script" plan "$workspace")"
+if printf "%s\n" "$qualified_plan" | grep -qF "Docker image: ghcr.io/supabase/postgres:17.6.1.165"
+then
+  pass "sectioned schema runtime qualifies image with configured registry"
+else
+  fail "sectioned schema runtime did not qualify image with configured registry"
+  printf "%s\n" "$qualified_plan"
+fi
+
+slashed_plan="$(SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io/ "$sectioned_schema_script" plan "$workspace")"
+if printf "%s\n" "$slashed_plan" | grep -qF "Docker image: ghcr.io/supabase/postgres:17.6.1.165"
+then
+  pass "sectioned schema runtime normalises registry trailing slash"
+else
+  fail "sectioned schema runtime did not normalise registry trailing slash"
+  printf "%s\n" "$slashed_plan"
+fi
+
+if grep -qF "\${SUPABASE_INTERNAL_IMAGE_REGISTRY:+\${SUPABASE_INTERNAL_IMAGE_REGISTRY%/}/}supabase/postgres:17.6.1.165" "$repo/scripts/admin-backup/verify-database-restore.sh"
+then
+  pass "database restore runtime uses the same registry-aware pinned image"
+else
+  fail "database restore runtime is missing registry-aware pinned image resolution"
+fi
+
 echo "=== R4 REGRESSION RESULT ==="
 
 if [ "$failures" -eq 0 ]; then
