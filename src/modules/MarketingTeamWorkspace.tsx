@@ -87,6 +87,7 @@ type View=
   | 'discussion'
   | 'digital'
   | 'strategy'
+  | 'moodboard'
   | 'execution'
 
 const digitalTools=[
@@ -1725,6 +1726,19 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
         <button
           className={
+            view==='moodboard'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>{
+            setView('moodboard')
+          }}
+        >
+          <PenTool size={16}/>
+          Mood Board
+        </button>
+        <button
+          className={
             view==='execution'
               ? 'active'
               : ''
@@ -2179,6 +2193,86 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
         <StrategyContentWorkstation/>
       }
 
+
+      {view==='moodboard' &&
+        <div className="marketingPersonalStation">
+          <div className="marketingStationHero strategy">
+            <div>
+              <span className="eyebrow">
+                CREATIVE DIRECTION
+              </span>
+              <h3>
+                Marketing Mood Board
+              </h3>
+              <p>
+                Shape campaign direction before execution. Collect visual
+                references, copy ideas, colour direction and useful links
+                in one shared Marketing surface.
+              </p>
+            </div>
+            {onNavigate &&
+              <button
+                type="button"
+                className="glassButton"
+                onClick={()=>{
+                  onNavigate('brand')
+                }}
+              >
+                Open Brand Library
+              </button>
+            }
+          </div>
+
+          <div className="marketingCapabilityGrid">
+            <article>
+              <PenTool size={18}/>
+              <span>
+                <strong>Visual direction</strong>
+                <small>Photography, layouts and campaign references.</small>
+              </span>
+            </article>
+            <article>
+              <BookOpen size={18}/>
+              <span>
+                <strong>Copy & notes</strong>
+                <small>Headlines, messages, rationale and creative ideas.</small>
+              </span>
+            </article>
+            <article>
+              <Target size={18}/>
+              <span>
+                <strong>Campaign focus</strong>
+                <small>Keep each board tied to an objective and audience.</small>
+              </span>
+            </article>
+            <article>
+              <Link2 size={18}/>
+              <span>
+                <strong>Reference links</strong>
+                <small>Research, inspiration and source material.</small>
+              </span>
+            </article>
+          </div>
+
+          <div className="marketingStrategyCanvas glassCard">
+            <div className="marketingSectionHeading">
+              <div>
+                <span className="eyebrow">
+                  MOOD BOARDS
+                </span>
+                <h3>
+                  No boards yet
+                </h3>
+                <p>
+                  The creative workspace shell is ready. Shared board
+                  creation, cards, statuses and persistence will be
+                  connected to Marketing collaboration next.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
 
       {view==='execution' &&
         <MarketingModule/>
