@@ -152,11 +152,12 @@ export function WorkDesk(){
       return
     }
 
-    const canAssignCompanyWide=
+    const canBrowseAssigneeDirectory=
       current.role==='admin' ||
-      current.role==='manager'
+      current.role==='manager' ||
+      current.role==='operations'
 
-    if(!canAssignCompanyWide){
+    if(!canBrowseAssigneeDirectory){
       const {data,error}=await supabase
         .from('employee_profiles')
         .select(

@@ -1,0 +1,102 @@
+name: Admin Backup Writer
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ridearrivo-admin-backup-writer
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted off-site backup
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout backup source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Setup pinned Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: 2.116.0
+
+      - name: Install recovery toolchain
+        shell: bash
+        run: |
+          set -eu
+
+          sudo apt-get update
+          sudo apt-get install -y age jq rclone
+
+      - name: Verify writer toolchain
+        shell: bash
+        run: |
+          set -eu
+
+          for tool in \
+            bash \
+            git \
+            tar \
+            curl \
+            jq \
+            supabase \
+            rclone \
+            age \
+            node \
+            docker
+          do
+            command -v "$tool" >/dev/null
+          done
+
+          printf 'Supabase CLI: '
+          supabase --version
+
+          printf 'rclone: '
+          rclone version | head -1
+
+          printf 'age: '
+          age --version
+
+          printf 'Node: '
+          node --version
+
+          printf 'Docker: '
+          docker --version
+
+      - name: Run encrypted backup writer
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.ADMIN_BACKUP_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.ADMIN_BACKUP_SUPABASE_SECRET_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.ADMIN_BACKUP_SUPABASE_DB_URL }}
+
+          SUPABASE_STORAGE_S3_ENDPOINT: ${{ secrets.ADMIN_BACKUP_SOURCE_S3_ENDPOINT }}
+          SUPABASE_STORAGE_S3_REGION: ${{ secrets.ADMIN_BACKUP_SOURCE_S3_REGION }}
+          SUPABASE_STORAGE_S3_ACCESS_KEY_ID: ${{ secrets.ADMIN_BACKUP_SOURCE_S3_ACCESS_KEY_ID }}
+          SUPABASE_STORAGE_S3_SECRET_ACCESS_KEY: ${{ secrets.ADMIN_BACKUP_SOURCE_S3_SECRET_ACCESS_KEY }}
+
+          BACKUP_S3_ENDPOINT: ${{ secrets.ADMIN_BACKUP_DEST_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.ADMIN_BACKUP_DEST_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.ADMIN_BACKUP_DEST_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.ADMIN_BACKUP_DEST_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.ADMIN_BACKUP_DEST_S3_SECRET_ACCESS_KEY }}
+
+          BACKUP_AGE_RECIPIENT: ${{ secrets.ADMIN_BACKUP_AGE_RECIPIENT }}
+
+          BACKUP_RUNNER_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+          BACKUP_HEARTBEAT_INTERVAL_SECONDS: "300"
+          BACKUP_RUN_WORK_ROOT: ${{ runner.temp }}/ridearrivo-admin-backup
+
+        run: |
+          set -eu
+          bash scripts/admin-backup/backup-runner.sh run

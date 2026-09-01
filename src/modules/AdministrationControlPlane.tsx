@@ -5,7 +5,7 @@ import {
   Award,
   BarChart3,
   BriefcaseBusiness,
-  ExternalLink,
+  DatabaseBackup,
   Gauge,
   KeyRound,
   Laptop,
@@ -23,6 +23,8 @@ import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
 import { DataWorkbench } from './DataWorkbench'
+import OperationsControlPanel from './OperationsControlPanel'
+import AdminBackupsPanel from './AdminBackupsPanel'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
@@ -36,6 +38,7 @@ type AdminTab=
   | 'assets'
   | 'downloads'
   | 'applications'
+  | 'backups'
   | 'audit'
   | 'operations'
 
@@ -147,6 +150,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
   ['applications','Applications',AppWindow],
+  ['backups','Backups',DatabaseBackup],
   ['audit','Audit',Activity],
   ['operations','Operations',BriefcaseBusiness],
 ]
@@ -458,8 +462,25 @@ function ApplicationsPanel(){
 }
 
 function OperationsPanel(){
-  const adminUrl='https://admin.ridearrivo.com'
-  return <div className="glassCard adminOperationsLaunch"><BriefcaseBusiness size={28}/><div><span className="eyebrow">RIDEARRIVO OPERATIONS</span><h3>Operations Admin Console</h3><p>Riders, drivers, trips, bookings and operational safety controls stay in the dedicated Admin Console until those APIs are migrated into native workspace modules. It is intentionally not iframe-embedded here to avoid cross-origin security failures and nested scroll surfaces.</p></div><button className="primaryButton" onClick={()=>window.open(adminUrl,'_blank','noopener,noreferrer')}><ExternalLink size={16}/>Open Admin Console</button></div>
+  return <div className="adminNativeOperations">
+    <div className="glassCard adminOperationsNativeHeader">
+      <BriefcaseBusiness size={25}/>
+      <div>
+        <span className="eyebrow">RIDEARRIVO OPERATIONS</span>
+        <h3>Operations Control Centre</h3>
+        <p>
+          Manage operational readiness, receipts, incidents, driver shifts,
+          fleet maintenance, inspections and airport flight monitoring directly
+          inside the Administration workspace.
+        </p>
+      </div>
+      <span className="adminNativeBadge">
+        Native workspace
+      </span>
+    </div>
+
+    <OperationsControlPanel/>
+  </div>
 }
 
 export default function AdministrationControlPlane(){
@@ -482,6 +503,7 @@ export default function AdministrationControlPlane(){
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='applications'&&<ApplicationsPanel/>}
+      {tab==='backups'&&<AdminBackupsPanel/>}
       {tab==='audit'&&<AdminAuditPanel/>}
       {tab==='operations'&&<OperationsPanel/>}
     </div>
