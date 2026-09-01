@@ -99,4 +99,5 @@ jobs:
 
         run: |
           set -eu
+          install -d -m 700 -- "$BACKUP_RUN_WORK_ROOT"
           bash scripts/admin-backup/backup-runner.sh run
