@@ -6,6 +6,11 @@ export const SharedWorkspacesHub = lazy(
   () => import('./modules/SharedWorkspacesHub')
 )
 
+
+
+export const RoomModule = lazy(
+  () => import('./modules/RoomModule')
+)
 export const MarketingTeamWorkspace = lazy(
   () =>
     import('./modules/MarketingTeamWorkspace').then(
