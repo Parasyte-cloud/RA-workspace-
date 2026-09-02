@@ -406,6 +406,13 @@ function App(){
   })
   const [openNavGroup,setOpenNavGroup]=useState<string|null>(null)
   const contentRef=useRef<HTMLDivElement|null>(null)
+  const roomReturnSectionRef=useRef<Section>('overview')
+
+  useEffect(()=>{
+    if(section!=='room'&&section!=='workspace'){
+      roomReturnSectionRef.current=section
+    }
+  },[section])
 
   const [parasyteUrl,setParasyteUrl]=
     useState('')
@@ -940,7 +947,11 @@ function App(){
         }
         {section==='gallery'&&<HeadshotGallery/>}
         {section==='chat'&&<ChatModule/>}
-        {section==='room'&&<RoomModule/>}
+        <RoomModule
+          active={section==='room'}
+          onOpen={()=>{setSection('room');setWorkspace(null)}}
+          onMinimize={()=>{setSection(roomReturnSectionRef.current);setWorkspace(null)}}
+        />
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}

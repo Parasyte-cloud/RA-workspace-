@@ -7,6 +7,8 @@ import {
   DoorOpen,
   Link2,
   LoaderCircle,
+  Maximize2,
+  Minimize2,
   NotebookPen,
   ShieldCheck
 } from 'lucide-react'
@@ -40,11 +42,17 @@ type RoomSession={
 
 export default function RoomMeeting({
   session,
-  onBack,
+  minimized=false,
+  onMinimize,
+  onRestore,
+  onLeft,
   onEnded
 }:{
   session:RoomSession
-  onBack:()=>void
+  minimized?:boolean
+  onMinimize:()=>void
+  onRestore:()=>void
+  onLeft:()=>void
   onEnded:()=>Promise<void>
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
@@ -65,6 +73,15 @@ export default function RoomMeeting({
     })
     return()=>{active=false}
   },[session.auth_token])
+
+  useEffect(()=>{
+    if(!meeting)return
+    const handleRoomLeft=()=>onLeft()
+    meeting.self.on('roomLeft',handleRoomLeft)
+    return()=>{
+      meeting.self.removeListener('roomLeft',handleRoomLeft)
+    }
+  },[meeting,onLeft])
 
   const inviteUrl=useMemo(()=>{
     const url=new URL(window.location.href)
@@ -97,7 +114,7 @@ export default function RoomMeeting({
   }
 
   return (
-    <section className="roomCallPage">
+    <section className={`roomCallPage ${minimized?'roomCallMini':''}`}>
       <div className="roomCallTopbar">
         <div>
           <span className="roomLivePill"><span/>LIVE ROOM 7</span>
@@ -109,7 +126,7 @@ export default function RoomMeeting({
           </span>
         </div>
         <div className="roomCallActions">
-          <button type="button" className="glassButton" onClick={()=>void copyInvite()}>
+          <button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyInvite()}>
             <Link2 size={16}/>{copied?'Copied':'Invite'}
           </button>
           {session.role==='host'&&
@@ -118,7 +135,15 @@ export default function RoomMeeting({
               {ending?'Ending ROOM 7...':'End ROOM 7'}
             </button>
           }
-          <button type="button" className="glassButton" onClick={onBack}>Back to ROOM 7</button>
+          <button
+            type="button"
+            className="glassButton roomMinimizeButton"
+            onClick={minimized?onRestore:onMinimize}
+            aria-label={minimized?'Return to ROOM 7 call':'Minimize ROOM 7 call'}
+          >
+            {minimized?<Maximize2 size={16}/>:<Minimize2 size={16}/>}
+            {minimized?'Return to call':'Minimize'}
+          </button>
         </div>
       </div>
 
@@ -128,7 +153,7 @@ export default function RoomMeeting({
             <ShieldCheck size={30}/>
             <h3>ROOM 7 could not start</h3>
             <p>{initError}</p>
-            <button type="button" className="glassButton" onClick={onBack}>Return to ROOM 7</button>
+            <button type="button" className="glassButton" onClick={onLeft}>Return to ROOM 7</button>
           </div>
         }
         {!initError&&!meeting&&
@@ -144,7 +169,7 @@ export default function RoomMeeting({
               meeting={meeting}
               mode="fill"
               showSetupScreen={true}
-              leaveOnUnmount={true}
+              leaveOnUnmount={false}
             />
           </RealtimeKitProvider>
         }
