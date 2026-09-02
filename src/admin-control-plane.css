@@ -513,3 +513,20 @@
     justify-content:center;
   }
 }
+
+.adminRoom7Minutes{display:grid;gap:12px}
+.adminRoom7Header{padding:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.adminRoom7Header h3{margin:4px 0}.adminRoom7Header p{margin:0;max-width:780px;line-height:1.55}
+.adminRoom7Search{display:flex;align-items:center;gap:7px;min-width:260px;padding:0 10px;border:1px solid rgba(90,112,137,.2);border-radius:10px;background:rgba(255,255,255,.76)}
+.adminRoom7Search input{width:100%;min-height:36px;border:0;outline:0;background:transparent;color:inherit}
+.adminRoom7Split{display:grid;grid-template-columns:minmax(280px,.72fr) minmax(0,1.45fr);gap:12px;align-items:start}
+.adminRoom7List{padding:12px;display:grid;gap:7px}.adminRoom7ListTitle{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 10px}.adminRoom7ListTitle div{display:grid}.adminRoom7ListTitle small{color:var(--muted,#7a8798);margin-top:2px}.adminRoom7ListTitle svg{color:#b66e00}
+.adminRoom7MinuteRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px;border:1px solid rgba(90,112,137,.09);border-radius:11px;background:rgba(255,255,255,.5);color:inherit;text-align:left;cursor:pointer}.adminRoom7MinuteRow:hover,.adminRoom7MinuteRow.selected{background:rgba(255,153,0,.08);border-color:rgba(255,153,0,.22)}.adminRoom7MinuteRow div{min-width:0;display:grid}.adminRoom7MinuteRow strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adminRoom7MinuteRow small{margin-top:3px;color:var(--muted,#7a8798);font-size:8px}
+.adminRoom7Status{display:inline-flex;align-items:center;justify-content:center;padding:4px 7px;border-radius:999px;background:rgba(148,163,184,.15);font-size:8px;font-weight:900;text-transform:uppercase;white-space:nowrap}.adminRoom7Status.ready{background:rgba(34,197,94,.12);color:#18753a}.adminRoom7Status.pending{background:rgba(255,153,0,.12);color:#8d5b0d}.adminRoom7Status.failed{background:rgba(239,68,68,.1);color:#a42b2b}
+.adminRoom7Detail{padding:18px;display:grid;gap:15px}.adminRoom7DetailHead{display:flex;justify-content:space-between;gap:12px}.adminRoom7DetailHead h3{margin:4px 0}.adminRoom7DetailHead p{margin:0;color:var(--muted,#7a8798)}
+.adminRoom7Meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.adminRoom7Meta>div{display:grid;grid-template-columns:auto 1fr;gap:2px 7px;align-items:center;padding:10px;border-radius:11px;background:rgba(255,255,255,.55);border:1px solid rgba(90,112,137,.09)}.adminRoom7Meta svg{grid-row:1/3;color:#b66e00}.adminRoom7Meta span{font-size:8px;color:var(--muted,#7a8798);text-transform:uppercase}.adminRoom7Meta strong{font-size:10px}
+.adminRoom7Participants{display:grid;gap:8px;padding-top:12px;border-top:1px solid rgba(90,112,137,.1)}.adminRoom7Participants>div{display:flex;flex-wrap:wrap;gap:6px}.adminRoom7Participants span{padding:5px 8px;border-radius:999px;background:rgba(47,91,145,.07);font-size:9px}.adminRoom7Participants small{color:var(--muted,#7a8798)}
+.adminRoom7Summary{display:grid;gap:10px;padding-top:12px;border-top:1px solid rgba(90,112,137,.1)}.adminRoom7Summary>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}.adminRoom7Summary small{color:var(--muted,#7a8798)}.adminRoom7Summary pre{margin:0;padding:16px;border-radius:13px;background:rgba(8,28,57,.045);border:1px solid rgba(90,112,137,.08);white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:10px;line-height:1.65;max-height:620px;overflow:auto}
+.adminRoom7Privacy{display:flex;gap:9px;align-items:flex-start;padding:11px;border-radius:11px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.1)}.adminRoom7Privacy svg{color:#18753a;flex:0 0 auto}.adminRoom7Privacy p{margin:0;font-size:9px;line-height:1.5;color:var(--muted,#7a8798)}
+@media(max-width:980px){.adminRoom7Split{grid-template-columns:1fr}.adminRoom7Meta{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.adminRoom7Header,.adminRoom7DetailHead{display:grid}.adminRoom7Search{min-width:0}.adminRoom7Meta{grid-template-columns:1fr}}

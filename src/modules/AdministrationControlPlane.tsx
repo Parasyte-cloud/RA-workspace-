@@ -6,6 +6,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   DatabaseBackup,
+  FileText,
   Gauge,
   KeyRound,
   Laptop,
@@ -25,6 +26,7 @@ import DeviceAssetCenter from './DeviceAssetCenter'
 import { DataWorkbench } from './DataWorkbench'
 import OperationsControlPanel from './OperationsControlPanel'
 import AdminBackupsPanel from './AdminBackupsPanel'
+import Room7MinutesPanel from './Room7MinutesPanel'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
@@ -39,6 +41,7 @@ type AdminTab=
   | 'downloads'
   | 'applications'
   | 'backups'
+  | 'room-minutes'
   | 'audit'
   | 'operations'
 
@@ -151,6 +154,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['downloads','Downloads',ShieldCheck],
   ['applications','Applications',AppWindow],
   ['backups','Backups',DatabaseBackup],
+  ['room-minutes','ROOM 7 Minutes',FileText],
   ['audit','Audit',Activity],
   ['operations','Operations',BriefcaseBusiness],
 ]
@@ -433,6 +437,7 @@ function AdminOverview({onOpenTab}:{onOpenTab:(tab:AdminTab)=>void}){
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('performance')}><BarChart3/><strong>KPI governance</strong><span>Rolling and annual performance evidence plus current recognition.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('assets')}><Laptop/><strong>IT assets & support</strong><span>Company equipment, serials, IMEI, browser devices and approved support commands.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('audit')}><Activity/><strong>Audit & security</strong><span>Immutable workspace history for privileged administrative changes.</span></button>
+      <button className="glassCard adminControlCard" onClick={()=>onOpenTab('room-minutes')}><FileText/><strong>ROOM 7 minutes</strong><span>R7 AI meeting summaries, decisions, attendance and action items delivered automatically.</span></button>
     </div>
   </div>
 }
@@ -504,6 +509,7 @@ export default function AdministrationControlPlane(){
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='applications'&&<ApplicationsPanel/>}
       {tab==='backups'&&<AdminBackupsPanel/>}
+      {tab==='room-minutes'&&<Room7MinutesPanel/>}
       {tab==='audit'&&<AdminAuditPanel/>}
       {tab==='operations'&&<OperationsPanel/>}
     </div>
