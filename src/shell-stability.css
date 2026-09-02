@@ -552,3 +552,18 @@ body {
     height: 0 !important;
   }
 }
+
+
+/* Native browser history gestures */
+html,
+body,
+#root,
+.appBackground,
+.shell.glassFrame,
+.shell.glassFrame > main {
+  overscroll-behavior-x: auto !important;
+}
+
+.shell.glassFrame .content {
+  overscroll-behavior-x: auto !important;
+}
