@@ -108,7 +108,7 @@ async function createMeeting(config: MediaConfig, title: string, aiNotesEnabled:
             },
           }
         : undefined,
-      session_keep_alive_time_in_secs: 60,
+      session_keep_alive_time_in_secs: 600,
     }),
   })
   const id = cleanText(data?.id, 160)

@@ -327,6 +327,71 @@ const canAccess=(role:Role,section:Section,assignments:WorkstationAssignment[]=[
   return Boolean(workstation && assignments.some(item=>item.active && item.workstation===workstation))
 }
 
+type WorkspaceHistoryState = {
+  ridearrivoWorkspace?: boolean
+  section?: Section
+  workspace?: Workspace | null
+}
+
+const LAST_SECTION_KEY='ridearrivo-last-section'
+
+const isSection=(value:unknown):value is Section=>
+  typeof value==='string' &&
+  Object.prototype.hasOwnProperty.call(sectionAccess,value)
+
+const workspaceFromHistory=(value:unknown):Workspace|null=>{
+  if(!value || typeof value!=='object') return null
+  const state=value as WorkspaceHistoryState
+  const candidate=state.workspace
+  if(!candidate || typeof candidate!=='object') return null
+  if(typeof candidate.title!=='string' || typeof candidate.url!=='string'){
+    return null
+  }
+  if(candidate.note!==undefined && typeof candidate.note!=='string'){
+    return null
+  }
+  try{
+    const parsed=new URL(candidate.url,window.location.origin)
+    if(parsed.protocol!=='http:' && parsed.protocol!=='https:') return null
+  }catch{
+    return null
+  }
+  return candidate
+}
+
+const initialSection=():Section=>{
+  const requested=
+    new URLSearchParams(window.location.search).get('section')
+  let candidate:unknown=requested
+  if(!isSection(candidate)){
+    try{
+      candidate=window.localStorage.getItem(LAST_SECTION_KEY)
+    }catch{
+      candidate=null
+    }
+  }
+  if(!isSection(candidate)) return 'overview'
+  if(candidate==='workspace'&&!workspaceFromHistory(window.history.state)){
+    return 'overview'
+  }
+  return candidate
+}
+
+const sectionUrl=(section:Section)=>{
+  const url=new URL(window.location.href)
+  url.searchParams.set('section',section)
+  if(section!=='room'){
+    url.searchParams.delete('room')
+  }
+  url.hash=''
+  return `${url.pathname}${url.search}`
+}
+
+const routeKey=(section:Section,workspace:Workspace|null)=>
+  section==='workspace'
+    ? `workspace:${workspace?.title||''}:${workspace?.url||''}`
+    : section
+
 
 const crmRows: {
   name:string
@@ -395,18 +460,18 @@ function App(){
   })
   const [authReady,setAuthReady]=useState(false)
   const [workstationAssignments,setWorkstationAssignments]=useState<WorkstationAssignment[]>([])
-  const [section,setSection]=useState<Section>(()=>{
-    const requested=
-      new URLSearchParams(
-        window.location.search
-      ).get('section')
-    return requested==='room'
-      ? 'room'
-      : 'overview'
+  const [assignmentsReady,setAssignmentsReady]=useState(false)
+  const [section,setSection]=useState<Section>(initialSection)
+  const [workspace,setWorkspace]=useState<Workspace|null>(()=>{
+    return initialSection()==='workspace'
+      ? workspaceFromHistory(window.history.state)
+      : null
   })
   const [openNavGroup,setOpenNavGroup]=useState<string|null>(null)
   const contentRef=useRef<HTMLDivElement|null>(null)
   const roomReturnSectionRef=useRef<Section>('overview')
+  const historyReadyRef=useRef(false)
+  const lastRouteKeyRef=useRef('')
 
   useEffect(()=>{
     if(section!=='room'&&section!=='workspace'){
@@ -462,7 +527,6 @@ function App(){
 
 
 
-  const [workspace,setWorkspace]=useState<Workspace|null>(null)
   const navigateToSection=useCallback((target:string)=>{
     setWorkspace(null)
     setSection(target as Section)
@@ -627,8 +691,12 @@ function App(){
     const client=supabase
     if(!client || accessState!=='approved' || !profile.id){
       setWorkstationAssignments([])
+      setAssignmentsReady(false)
       return
     }
+
+    let cancelled=false
+    setAssignmentsReady(false)
 
     void client
       .from('workspace_workstation_assignments')
@@ -636,15 +704,204 @@ function App(){
       .eq('employee_id',profile.id)
       .eq('active',true)
       .then(({data,error})=>{
+        if(cancelled) return
         if(error){
           console.error('[RideArrivo Workstation] assignment load failed',error)
           setWorkstationAssignments([])
+          setAssignmentsReady(true)
           return
         }
+
         setWorkstationAssignments((data || []) as WorkstationAssignment[])
+        setAssignmentsReady(true)
       })
+
+    return ()=>{
+      cancelled=true
+    }
   },[accessState,profile.id])
 
+
+  useEffect(()=>{
+    if(accessState!=='approved'||!assignmentsReady){
+      historyReadyRef.current=false
+      return
+    }
+
+    let target=section
+    let nextWorkspace=workspace
+
+    if(target==='workspace'&&!nextWorkspace){
+      target='overview'
+    }
+
+    if(!canAccess(profile.role,target,workstationAssignments)){
+      target='overview'
+      nextWorkspace=null
+    }
+
+    historyReadyRef.current=true
+    lastRouteKeyRef.current=routeKey(target,nextWorkspace)
+
+    try{
+      window.localStorage.setItem(LAST_SECTION_KEY,target)
+    }catch{
+      // URL history remains authoritative when storage is unavailable.
+    }
+
+    window.history.replaceState(
+      {
+        ridearrivoWorkspace:true,
+        section:target,
+        workspace:nextWorkspace
+      } satisfies WorkspaceHistoryState,
+      '',
+      sectionUrl(target)
+    )
+
+    if(target!==section) setSection(target)
+    if(nextWorkspace!==workspace) setWorkspace(nextWorkspace)
+  },[
+    accessState,
+    assignmentsReady,
+    profile.role,
+    workstationAssignments
+  ])
+
+  useEffect(()=>{
+    if(
+      accessState!=='approved' ||
+      !assignmentsReady ||
+      !historyReadyRef.current
+    ){
+      return
+    }
+
+    if(!canAccess(profile.role,section,workstationAssignments)){
+      lastRouteKeyRef.current=routeKey('overview',null)
+      window.history.replaceState(
+        {
+          ridearrivoWorkspace:true,
+          section:'overview',
+          workspace:null
+        } satisfies WorkspaceHistoryState,
+        '',
+        sectionUrl('overview')
+      )
+      setWorkspace(null)
+      setSection('overview')
+      return
+    }
+
+    if(section==='workspace'&&!workspace){
+      lastRouteKeyRef.current=routeKey('overview',null)
+      window.history.replaceState(
+        {
+          ridearrivoWorkspace:true,
+          section:'overview',
+          workspace:null
+        } satisfies WorkspaceHistoryState,
+        '',
+        sectionUrl('overview')
+      )
+      setSection('overview')
+      return
+    }
+
+    const key=routeKey(section,workspace)
+    if(lastRouteKeyRef.current===key) return
+
+    lastRouteKeyRef.current=key
+    try{
+      window.localStorage.setItem(LAST_SECTION_KEY,section)
+    }catch{
+      // URL history remains authoritative when storage is unavailable.
+    }
+
+    window.history.pushState(
+      {
+        ridearrivoWorkspace:true,
+        section,
+        workspace
+      } satisfies WorkspaceHistoryState,
+      '',
+      sectionUrl(section)
+    )
+  },[
+    section,
+    workspace,
+    accessState,
+    assignmentsReady,
+    profile.role,
+    workstationAssignments
+  ])
+
+  useEffect(()=>{
+    if(accessState!=='approved'||!assignmentsReady) return
+
+    const onPopState=(event:PopStateEvent)=>{
+      const state=
+        event.state && typeof event.state==='object'
+          ? event.state as WorkspaceHistoryState
+          : null
+      const fromUrl=
+        new URLSearchParams(window.location.search).get('section')
+
+      let target:Section=
+        isSection(state?.section)
+          ? state.section
+          : isSection(fromUrl)
+            ? fromUrl
+            : 'overview'
+
+      let nextWorkspace=
+        target==='workspace'
+          ? workspaceFromHistory(state)
+          : null
+
+      if(target==='workspace'&&!nextWorkspace){
+        target='overview'
+      }
+
+      if(!canAccess(profile.role,target,workstationAssignments)){
+        target='overview'
+        nextWorkspace=null
+      }
+
+      lastRouteKeyRef.current=routeKey(target,nextWorkspace)
+      try{
+        window.localStorage.setItem(LAST_SECTION_KEY,target)
+      }catch{
+        // Back/forward still works without local storage.
+      }
+
+      setWorkspace(nextWorkspace)
+      setSection(target)
+
+      if(
+        state?.ridearrivoWorkspace!==true ||
+        state.section!==target
+      ){
+        window.history.replaceState(
+          {
+            ridearrivoWorkspace:true,
+            section:target,
+            workspace:nextWorkspace
+          } satisfies WorkspaceHistoryState,
+          '',
+          sectionUrl(target)
+        )
+      }
+    }
+
+    window.addEventListener('popstate',onPopState)
+    return ()=>window.removeEventListener('popstate',onPopState)
+  },[
+    accessState,
+    assignmentsReady,
+    profile.role,
+    workstationAssignments
+  ])
 
   const [profileMenuOpen,setProfileMenuOpen]=useState(false)
 
@@ -830,6 +1087,10 @@ function App(){
         </div>
       </div>
     )
+  }
+
+  if(accessState==='approved'&&!assignmentsReady){
+    return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   }
 
   return <div className="appBackground"><div className="shell glassFrame">
