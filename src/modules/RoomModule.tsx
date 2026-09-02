@@ -72,7 +72,15 @@ function formatWhen(value:string){
 
 const RoomMeeting=lazy(()=>import('./RoomMeeting'))
 
-export default function RoomModule(){
+export default function RoomModule({
+  active=true,
+  onOpen,
+  onMinimize
+}:{
+  active?:boolean
+  onOpen?:()=>void
+  onMinimize?:()=>void
+}){
   const client=supabase
   const initialCode=useMemo(()=>{
     if(typeof window==='undefined')return ''
@@ -135,9 +143,10 @@ export default function RoomModule(){
   },[invokeRoom])
 
   useEffect(()=>{
+    if(!active)return
     void loadRooms()
     void loadConfiguration()
-  },[loadRooms,loadConfiguration])
+  },[active,loadRooms,loadConfiguration])
 
   const createRoom=async()=>{
     const title=roomTitle.trim()
@@ -219,11 +228,16 @@ export default function RoomModule(){
     }>
       <RoomMeeting
         session={session}
-        onBack={()=>{setSession(null);void loadRooms()}}
+        minimized={!active}
+        onMinimize={()=>onMinimize?.()}
+        onRestore={()=>onOpen?.()}
+        onLeft={()=>{setSession(null);void loadRooms()}}
         onEnded={endCurrentRoom}
       />
     </Suspense>
   }
+
+  if(!active)return null
 
   const activeRooms=rooms.filter(room=>room.status==='active')
   const recentRooms=rooms.filter(room=>room.status==='ended')
