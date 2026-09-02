@@ -81,6 +81,25 @@ type Message={
   updated_at:string
 }
 
+type MoodBoard={
+  id:string
+  space_id:string
+  campaign_id:string|null
+  title:string
+  description:string|null
+  objective:string|null
+  audience:string|null
+  status:
+    | 'draft'
+    | 'review'
+    | 'approved'
+    | 'archived'
+  created_by:string
+  archived_at:string|null
+  created_at:string
+  updated_at:string
+}
+
 type View=
   | 'team'
   | 'projects'
@@ -822,6 +841,39 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
   const [messages,setMessages]=
     useState<Message[]>([])
+  const [moodBoards,setMoodBoards]=
+    useState<MoodBoard[]>([])
+  const [
+    selectedMoodBoardId,
+    setSelectedMoodBoardId
+  ]=
+    useState('')
+  const [
+    newMoodBoardTitle,
+    setNewMoodBoardTitle
+  ]=
+    useState('')
+  const [
+    newMoodBoardObjective,
+    setNewMoodBoardObjective
+  ]=
+    useState('')
+  const [
+    newMoodBoardAudience,
+    setNewMoodBoardAudience
+  ]=
+    useState('')
+  const [
+    moodBoardLoading,
+    setMoodBoardLoading
+  ]=
+    useState(false)
+  const [
+    moodBoardSaving,
+    setMoodBoardSaving
+  ]=
+    useState(false)
+
 
   const [view,setView]=
     useState<View>('projects')
@@ -1161,12 +1213,87 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
     ])
 
 
+  const loadMoodBoards=
+    useCallback(async()=>{
+      const client=supabase
+      if(!client){
+        setMoodBoards([])
+        setSelectedMoodBoardId('')
+        return
+      }
+
+      setMoodBoardLoading(true)
+      try{
+        const {
+          data,
+          error
+        }=
+          await client
+            .from('marketing_mood_boards')
+            .select(
+              'id,space_id,campaign_id,title,description,objective,audience,status,created_by,archived_at,created_at,updated_at'
+            )
+            .is(
+              'archived_at',
+              null
+            )
+            .order(
+              'updated_at',
+              {
+                ascending:false
+              }
+            )
+
+        if(error){
+          throw error
+        }
+
+        const rows=
+          (data || []) as MoodBoard[]
+
+        setMoodBoards(rows)
+        setSelectedMoodBoardId(current=>
+          current
+          && rows.some(board=>
+            board.id===current
+          )
+            ? current
+            : rows[0]?.id || ''
+        )
+      }catch(error){
+        console.error(
+          'Marketing mood board load failed:',
+          error
+        )
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : 'Unable to load Marketing mood boards.'
+        )
+      }finally{
+        setMoodBoardLoading(false)
+      }
+    },[])
+
+
   useEffect(()=>{
 
     void loadBase()
 
   },[
     loadBase
+  ])
+
+
+  useEffect(()=>{
+    if(view!=='moodboard'){
+      return
+    }
+
+    void loadMoodBoards()
+  },[
+    view,
+    loadMoodBoards
   ])
 
 
@@ -1215,6 +1342,135 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
     selectedSpaceId,
     loadMessages
   ])
+
+
+  const selectedMoodBoard=
+    useMemo(
+      ()=>
+        moodBoards.find(board=>
+          board.id===selectedMoodBoardId
+        ) || null,
+      [
+        moodBoards,
+        selectedMoodBoardId
+      ]
+    )
+
+
+  const createMoodBoard=
+    async()=>{
+      const client=supabase
+      const title=
+        newMoodBoardTitle.trim()
+
+      if(
+        !client
+        || !profile
+        || !selectedSpaceId
+      ){
+        setNotice(
+          'Select an available collaboration space before creating a mood board.'
+        )
+        return
+      }
+
+      if(
+        title.length<2
+        || title.length>160
+      ){
+        setNotice(
+          'Mood board title must be between 2 and 160 characters.'
+        )
+        return
+      }
+
+      setMoodBoardSaving(true)
+      setNotice('')
+
+      try{
+        const {
+          data:canEdit,
+          error:permissionError
+        }=
+          await client.rpc(
+            'can_edit_marketing_mood_board_space',
+            {
+              target_space:
+                selectedSpaceId
+            }
+          )
+
+        if(permissionError){
+          throw permissionError
+        }
+
+        if(!canEdit){
+          setNotice(
+            'You have read-only access to this collaboration space. Choose a space you can edit.'
+          )
+          return
+        }
+
+        const {
+          data,
+          error
+        }=
+          await client
+            .from('marketing_mood_boards')
+            .insert({
+              space_id:
+                selectedSpaceId,
+              title,
+              objective:
+                newMoodBoardObjective.trim()
+                || null,
+              audience:
+                newMoodBoardAudience.trim()
+                || null,
+              created_by:
+                profile.id
+            })
+            .select(
+              'id,space_id,campaign_id,title,description,objective,audience,status,created_by,archived_at,created_at,updated_at'
+            )
+            .single()
+
+        if(error){
+          throw error
+        }
+
+        const board=
+          data as MoodBoard
+
+        setMoodBoards(current=>[
+          board,
+          ...current.filter(existing=>
+            existing.id!==board.id
+          )
+        ])
+        setSelectedMoodBoardId(
+          board.id
+        )
+        setNewMoodBoardTitle('')
+        setNewMoodBoardObjective('')
+        setNewMoodBoardAudience('')
+        setNotice(
+          'Mood board created.'
+        )
+      }catch(error){
+        console.error(
+          'Marketing mood board creation failed:',
+          error
+        )
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : 'Unable to create mood board.'
+        )
+      }finally{
+        setMoodBoardSaving(false)
+      }
+    }
 
 
   const createProject=
@@ -2254,22 +2510,294 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
             </article>
           </div>
 
-          <div className="marketingStrategyCanvas glassCard">
+                    <div className="marketingStrategyCanvas glassCard">
             <div className="marketingSectionHeading">
               <div>
                 <span className="eyebrow">
                   MOOD BOARDS
                 </span>
                 <h3>
-                  No boards yet
+                  {moodBoardLoading
+                    ? 'Loading boards...'
+                    : `${moodBoards.length} ${moodBoards.length===1 ? 'board' : 'boards'} available`
+                  }
                 </h3>
                 <p>
-                  The creative workspace shell is ready. Shared board
-                  creation, cards, statuses and persistence will be
-                  connected to Marketing collaboration next.
+                  Boards are loaded through collaboration RLS. Create in an
+                  editable Marketing or project space, then open any board
+                  you can access.
                 </p>
               </div>
+              <button
+                type="button"
+                className="glassButton"
+                disabled={moodBoardLoading}
+                onClick={()=>{
+                  void loadMoodBoards()
+                }}
+              >
+                <RefreshCw size={16}/>
+                Refresh
+              </button>
             </div>
+
+            <div
+              style={{
+                display:'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit,minmax(280px,1fr))',
+                gap:16,
+                alignItems:'start'
+              }}
+            >
+              <div
+                className="glassCard"
+                style={{
+                  padding:16,
+                  display:'grid',
+                  gap:12
+                }}
+              >
+                <div>
+                  <strong>Create board</strong>
+                  <p>
+                    Start with a title, objective and audience. Cards and
+                    assets are added in the next CRUD batch.
+                  </p>
+                </div>
+
+                <label
+                  style={{
+                    display:'grid',
+                    gap:6
+                  }}
+                >
+                  <span>Collaboration space</span>
+                  <select
+                    value={selectedSpaceId}
+                    disabled={moodBoardSaving || spaces.length===0}
+                    onChange={event=>{
+                      setSelectedSpaceId(
+                        event.target.value
+                      )
+                    }}
+                  >
+                    {spaces.length===0 &&
+                      <option value="">
+                        No collaboration spaces available
+                      </option>
+                    }
+                    {spaces.map(space=>
+                      <option
+                        key={space.id}
+                        value={space.id}
+                      >
+                        {space.name}
+                      </option>
+                    )}
+                  </select>
+                </label>
+
+                <label
+                  style={{
+                    display:'grid',
+                    gap:6
+                  }}
+                >
+                  <span>Board title</span>
+                  <input
+                    value={newMoodBoardTitle}
+                    maxLength={160}
+                    placeholder="e.g. Airport campaign launch"
+                    disabled={moodBoardSaving}
+                    onChange={event=>{
+                      setNewMoodBoardTitle(
+                        event.target.value
+                      )
+                    }}
+                  />
+                </label>
+
+                <label
+                  style={{
+                    display:'grid',
+                    gap:6
+                  }}
+                >
+                  <span>Objective</span>
+                  <textarea
+                    value={newMoodBoardObjective}
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="What should this creative direction achieve?"
+                    disabled={moodBoardSaving}
+                    onChange={event=>{
+                      setNewMoodBoardObjective(
+                        event.target.value
+                      )
+                    }}
+                  />
+                </label>
+
+                <label
+                  style={{
+                    display:'grid',
+                    gap:6
+                  }}
+                >
+                  <span>Audience</span>
+                  <textarea
+                    value={newMoodBoardAudience}
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="Who is this campaign for?"
+                    disabled={moodBoardSaving}
+                    onChange={event=>{
+                      setNewMoodBoardAudience(
+                        event.target.value
+                      )
+                    }}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="primaryButton"
+                  disabled={
+                    moodBoardSaving
+                    || !selectedSpaceId
+                    || newMoodBoardTitle.trim().length<2
+                  }
+                  onClick={()=>{
+                    void createMoodBoard()
+                  }}
+                >
+                  <Plus size={16}/>
+                  {moodBoardSaving
+                    ? 'Creating...'
+                    : 'Create board'
+                  }
+                </button>
+              </div>
+
+              <div
+                className="glassCard"
+                style={{
+                  padding:16,
+                  display:'grid',
+                  gap:12
+                }}
+              >
+                <div>
+                  <strong>Available boards</strong>
+                  <p>
+                    RLS limits this list to boards available through your
+                    collaboration spaces.
+                  </p>
+                </div>
+
+                {moodBoardLoading &&
+                  <p>Loading mood boards...</p>
+                }
+
+                {!moodBoardLoading
+                  && moodBoards.length===0 &&
+                  <p>
+                    No accessible mood boards yet. Create the first board
+                    in an editable collaboration space.
+                  </p>
+                }
+
+                {!moodBoardLoading
+                  && moodBoards.map(board=>
+                    <button
+                      key={board.id}
+                      type="button"
+                      className={
+                        selectedMoodBoardId===board.id
+                          ? 'primaryButton'
+                          : 'glassButton'
+                      }
+                      style={{
+                        width:'100%',
+                        justifyContent:'space-between'
+                      }}
+                      onClick={()=>{
+                        setSelectedMoodBoardId(
+                          board.id
+                        )
+                      }}
+                    >
+                      <span>{board.title}</span>
+                      <small>{board.status}</small>
+                    </button>
+                  )
+                }
+              </div>
+            </div>
+
+            {selectedMoodBoard &&
+              <div
+                className="glassCard"
+                style={{
+                  marginTop:16,
+                  padding:16,
+                  display:'grid',
+                  gap:10
+                }}
+              >
+                <div className="marketingSectionHeading">
+                  <div>
+                    <span className="eyebrow">
+                      OPEN BOARD
+                    </span>
+                    <h3>
+                      {selectedMoodBoard.title}
+                    </h3>
+                    <p>
+                      {spaces.find(space=>
+                        space.id===selectedMoodBoard.space_id
+                      )?.name || 'Collaboration space'}
+                    </p>
+                  </div>
+                  <span>
+                    {selectedMoodBoard.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display:'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fit,minmax(220px,1fr))',
+                    gap:12
+                  }}
+                >
+                  <article>
+                    <strong>Objective</strong>
+                    <p>
+                      {selectedMoodBoard.objective
+                        || 'No objective added yet.'
+                      }
+                    </p>
+                  </article>
+                  <article>
+                    <strong>Audience</strong>
+                    <p>
+                      {selectedMoodBoard.audience
+                        || 'No audience added yet.'
+                      }
+                    </p>
+                  </article>
+                </div>
+
+                <p>
+                  Board persistence is live. Card editing, image assets,
+                  ordering and status workflow are intentionally deferred
+                  to the next batch.
+                </p>
+              </div>
+            }
           </div>
         </div>
       }
