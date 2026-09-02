@@ -29,6 +29,42 @@ function json(body: unknown, status = 200) {
   })
 }
 
+type MediaCleanupConfig = {
+  accountId: string
+  appId: string
+  apiToken: string
+}
+
+function mediaCleanupConfig(): MediaCleanupConfig | null {
+  const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID")?.trim() || ""
+  const appId = Deno.env.get("CLOUDFLARE_REALTIMEKIT_APP_ID")?.trim() || ""
+  const apiToken = Deno.env.get("CLOUDFLARE_REALTIMEKIT_API_TOKEN")?.trim() || ""
+  if (!accountId || !appId || !apiToken) return null
+  return { accountId, appId, apiToken }
+}
+
+async function deactivateProviderMeeting(meetingId: string) {
+  const config = mediaCleanupConfig()
+  if (!config) throw new Error("ROOM 7 media provider cleanup is not configured.")
+  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.accountId)}/realtime/kit/${encodeURIComponent(config.appId)}/meetings/${encodeURIComponent(meetingId)}`
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${config.apiToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status: "INACTIVE" }),
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload || payload.success === false) {
+    console.error("ROOM 7 provider deactivation failed", {
+      status: response.status,
+      errors: payload?.errors || null,
+    })
+    throw new Error("ROOM 7 media provider cleanup failed.")
+  }
+}
+
 async function publicKey() {
   if (cachedPublicKey) return cachedPublicKey
 
@@ -303,6 +339,25 @@ serve(async req => {
     const endedAt = iso(event?.meeting?.endedAt)
     const endReason = text(event?.reason, 120) || null
 
+    if (eventType === "meeting.ended") {
+      const finalEndedAt = endedAt || new Date().toISOString()
+      const { error: roomEndError } = await admin
+        .from("workspace_rooms")
+        .update({ status: "ended", ended_at: finalEndedAt })
+        .eq("id", room.id)
+        .eq("status", "active")
+      if (roomEndError) throw roomEndError
+
+      const { error: attendanceEndError } = await admin
+        .from("workspace_room_attendance")
+        .update({ left_at: finalEndedAt })
+        .eq("room_id", room.id)
+        .eq("session_id", sessionId)
+        .is("left_at", null)
+      if (attendanceEndError) throw attendanceEndError
+
+    }
+
     if (
       room.ai_notes_enabled &&
       sessionId &&
@@ -326,6 +381,10 @@ serve(async req => {
         .upsert(minutePayload, { onConflict: "room_id,session_id" })
 
       if (error) throw error
+    }
+
+    if (eventType === "meeting.ended") {
+      await deactivateProviderMeeting(meetingId)
     }
 
     if (
