@@ -443,37 +443,11 @@ else
   exit "$failures"
 fi
 
-if jq -e '
-  .format_version == 1
-  and .validated == true
-  and .source_component == "database/data.sql"
-  and .algorithm
-    == "sha256-schema-table-columns-sorted-copy-lines-v1"
-  and .copy_format == "postgres-copy-text"
-  and .data_schemas == [
-    "auth",
-    "public",
-    "storage",
-    "supabase_functions"
-  ]
-  and .platform_managed_exclusions == [
-    "auth.schema_migrations",
-    "storage.migrations",
-    "supabase_functions.migrations"
-  ]
-  and (.table_count | type == "number")
-  and (.table_count > 0)
-  and (.tables | type == "array")
-  and ((.tables | length) == .table_count)
-  and (.total_row_count | type == "number")
-  and (.total_row_count >= 0)
-  and (.sequence_count | type == "number")
-  and (.sequence_count >= 0)
-  and (
-    .sequence_state_sha256
-    | test("^[0-9a-f]{64}$")
-  )
-' "$artifact_reconciliation" >/dev/null
+if node \
+  "$repo/scripts/admin-backup/database-reconciliation-contract.mjs" \
+  validate \
+  "$artifact_reconciliation" \
+  >/dev/null
 then
   pass "artifact-derived reconciliation ledger contract validated"
 else

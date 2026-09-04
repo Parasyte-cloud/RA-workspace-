@@ -628,194 +628,23 @@ if ! jq -e '
   exit 1
 fi
 
-if ! jq -e '
-  . as $root
-  | (
-      [
-        .tables[]
-        | (
-            .schema
-            + "."
-            + .table
-          )
-      ]
-    ) as $targets
-  | (
-      .format_version == 1
-      and .validated == true
-      and .source_component == "database/data.sql"
-      and .algorithm
-        == "sha256-schema-table-columns-sorted-copy-lines-v1"
-      and .copy_format == "postgres-copy-text"
-      and .data_schemas == [
-        "auth",
-        "public",
-        "storage",
-        "supabase_functions"
-      ]
-      and .platform_managed_exclusions == [
-        "auth.schema_migrations",
-        "storage.migrations",
-        "supabase_functions.migrations"
-      ]
-      and (
-        keys
-        | sort
-      ) == (
-        [
-          "algorithm",
-          "copy_format",
-          "data_schemas",
-          "format_version",
-          "platform_managed_exclusions",
-          "schema_counts",
-          "sequence_count",
-          "sequence_state_sha256",
-          "source_component",
-          "table_count",
-          "tables",
-          "total_row_count",
-          "validated"
-        ]
-        | sort
-      )
-      and (.table_count | type == "number")
-      and (.table_count > 0)
-      and (.tables | type == "array")
-      and ((.tables | length) == .table_count)
-      and (($targets | unique | length) == .table_count)
-      and (.total_row_count | type == "number")
-      and (.total_row_count >= 0)
-      and (
-        (
-          [
-            .tables[].row_count
-          ]
-          | add
-        ) // 0
-      ) == .total_row_count
-      and (.sequence_count | type == "number")
-      and (.sequence_count >= 0)
-      and (
-        .sequence_state_sha256
-        | test("^[0-9a-f]{64}$")
-      )
-      and (
-        .schema_counts
-        | keys
-        | sort
-      ) == [
-        "auth",
-        "public",
-        "storage",
-        "supabase_functions"
-      ]
-      and all(
-        .tables[];
-        (
-          keys
-          | sort
-        ) == (
-          [
-            "columns",
-            "content_sha256",
-            "row_count",
-            "schema",
-            "table"
-          ]
-          | sort
-        )
-        and (.schema | type == "string")
-        and (.schema | length > 0)
-        and (
-          .schema
-          | IN(
-              "auth",
-              "public",
-              "storage",
-              "supabase_functions"
-            )
-        )
-        and (.table | type == "string")
-        and (.table | length > 0)
-        and (.columns | type == "string")
-        and (.columns | length > 0)
-        and (.row_count | type == "number")
-        and (.row_count >= 0)
-        and (
-          .content_sha256
-          | test("^[0-9a-f]{64}$")
-        )
-      )
-      and (
-        .schema_counts.auth
-        == (
-          [
-            .tables[]
-            | select(.schema == "auth")
-          ]
-          | length
-        )
-      )
-      and (
-        .schema_counts.public
-        == (
-          [
-            .tables[]
-            | select(.schema == "public")
-          ]
-          | length
-        )
-      )
-      and (
-        .schema_counts.storage
-        == (
-          [
-            .tables[]
-            | select(.schema == "storage")
-          ]
-          | length
-        )
-      )
-      and (
-        .schema_counts.supabase_functions
-        == (
-          [
-            .tables[]
-            | select(.schema == "supabase_functions")
-          ]
-          | length
-        )
-      )
-      and (
-        [
-          "auth.users",
-          "auth.identities",
-          "storage.buckets",
-          "storage.objects",
-          "supabase_functions.hooks",
-          "public.employee_profiles"
-        ]
-        - $targets
-        | length
-      ) == 0
-      and (
-        [
-          "auth.schema_migrations",
-          "storage.migrations",
-          "supabase_functions.migrations"
-        ]
-        | all(
-            . as $excluded
-            | (
-                $targets
-                | index($excluded)
-              )
-              == null
-          )
-      )
-    )
-' "$database_reconciliation" >/dev/null; then
+reconciliation_contract="$(
+  CDPATH= cd -- "$(dirname -- "$0")" &&
+    pwd
+)/database-reconciliation-contract.mjs"
+
+if [ ! -f "$reconciliation_contract" ]; then
+  printf 'ERROR: database reconciliation contract helper missing\n' >&2
+  exit 1
+fi
+
+if node \
+  "$reconciliation_contract" \
+  validate \
+  "$database_reconciliation"
+then
+  echo "PASS: database reconciliation evidence satisfies central v1/v2 contract"
+else
   printf 'ERROR: database reconciliation evidence is invalid\n' >&2
   exit 1
 fi

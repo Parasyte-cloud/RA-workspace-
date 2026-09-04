@@ -417,7 +417,7 @@ echo "=== DATABASE RECONCILIATION LEDGER CONTRACT ==="
 reconciliation_file="$workspace/metadata/database-reconciliation.json"
 
 if jq -e '
-  .format_version == 1
+  .format_version == 2
   and .validated == true
   and .source_component == "database/data.sql"
   and .algorithm
