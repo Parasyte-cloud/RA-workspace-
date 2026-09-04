@@ -16,13 +16,22 @@ serve(async (req) => {
   }
 
   try {
+    const payload =
+      await req.json().catch(() => ({}))
+
+    const mailboxId =
+      String(payload?.mailboxId || "").trim() ||
+      null
+
     const { user, admin } =
       await getAuthenticatedUser(req)
 
     const connection =
       await getZohoConnection(
         admin,
-        user.id
+        user.id,
+        mailboxId,
+        "read"
       )
 
     const accessToken =

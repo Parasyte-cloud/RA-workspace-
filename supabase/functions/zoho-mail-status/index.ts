@@ -1,94 +1,203 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-}
+import {
+  corsHeaders,
+  getAuthenticatedUser,
+  jsonResponse,
+} from "../_shared/zoho.ts"
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
+    return new Response("ok", {
+      headers: corsHeaders,
+    })
   }
 
   try {
-    const authHeader = req.headers.get("Authorization")
-
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ connected: false }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      )
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const serviceRoleKey =
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-
-    const token =
-      authHeader.replace("Bearer ", "")
-
-    const admin =
-      createClient(
-        supabaseUrl,
-        serviceRoleKey
-      )
+    const { user, admin } =
+      await getAuthenticatedUser(req)
 
     const {
-      data: { user },
-      error,
-    } = await admin.auth.getUser(token)
+      data: accessRows,
+      error: accessError,
+    } = await admin
+      .from("zoho_mailbox_access")
+      .select(
+        [
+          "mailbox_id",
+          "can_read",
+          "can_send",
+          "can_manage",
+          "can_send_as",
+          "can_send_on_behalf",
+          "default_identity_id",
+          "is_default",
+          "is_favorite",
+        ].join(",")
+      )
+      .eq("employee_id", user.id)
+      .eq("active", true)
+      .eq("can_read", true)
+      .order("is_default", {
+        ascending: false,
+      })
+      .order("is_favorite", {
+        ascending: false,
+      })
 
-    if (error || !user) {
-      return new Response(
-        JSON.stringify({ connected: false }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
+    if (accessError) {
+      throw new Error(
+        "Unable to load Zoho mailbox entitlements."
       )
     }
 
-    const { data } = await admin
-      .from("zoho_mail_connections")
-      .select("email, connected_at")
-      .eq("user_id", user.id)
-      .maybeSingle()
+    const entitled =
+      Array.isArray(accessRows)
+        ? accessRows
+        : []
 
-    return new Response(
-      JSON.stringify({
-        connected: Boolean(data),
-        email: data?.email || null,
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
-    )
+    const mailboxIds =
+      entitled
+        .map((row: any) =>
+          String(row?.mailbox_id || "").trim()
+        )
+        .filter(Boolean)
+
+    if (mailboxIds.length === 0) {
+      return jsonResponse({
+        connected: false,
+        mailboxId: null,
+        email: null,
+        mailboxes: [],
+      })
+    }
+
+    const {
+      data: mailboxRows,
+      error: mailboxError,
+    } = await admin
+      .from("zoho_mailboxes")
+      .select(
+        [
+          "id",
+          "primary_address",
+          "display_name",
+          "mailbox_type",
+        ].join(",")
+      )
+      .in("id", mailboxIds)
+      .eq("active", true)
+
+    if (mailboxError) {
+      throw new Error(
+        "Unable to load Zoho mailbox metadata."
+      )
+    }
+
+    const mailboxById =
+      new Map(
+        (Array.isArray(mailboxRows)
+          ? mailboxRows
+          : []
+        ).map((mailbox: any) => [
+          String(mailbox.id),
+          mailbox,
+        ])
+      )
+
+    const mailboxes =
+      entitled
+        .map((access: any) => {
+          const mailbox =
+            mailboxById.get(
+              String(access.mailbox_id)
+            )
+
+          if (!mailbox) {
+            return null
+          }
+
+          return {
+            mailboxId:
+              String(mailbox.id),
+
+            email:
+              mailbox.primary_address ||
+              null,
+
+            displayName:
+              mailbox.display_name ||
+              mailbox.primary_address ||
+              null,
+
+            mailboxType:
+              mailbox.mailbox_type,
+
+            defaultIdentityId:
+              access.default_identity_id ||
+              null,
+
+            isDefault:
+              Boolean(access.is_default),
+
+            isFavorite:
+              Boolean(access.is_favorite),
+
+            permissions: {
+              read:
+                Boolean(access.can_read),
+
+              send:
+                Boolean(access.can_send),
+
+              manage:
+                Boolean(access.can_manage),
+
+              sendAs:
+                Boolean(access.can_send_as),
+
+              sendOnBehalf:
+                Boolean(
+                  access.can_send_on_behalf
+                ),
+            },
+          }
+        })
+        .filter(Boolean)
+
+    const selected =
+      mailboxes[0] || null
+
+    return jsonResponse({
+      connected:
+        mailboxes.length > 0,
+
+      mailboxId:
+        selected?.mailboxId || null,
+
+      email:
+        selected?.email || null,
+
+      mailboxes,
+    })
   } catch (error) {
-    console.error(error)
+    console.error(
+      "zoho-mail-status failure",
+      error
+    )
 
-    return new Response(
-      JSON.stringify({ connected: false }),
+    return jsonResponse(
       {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
+        connected: false,
+        mailboxId: null,
+        email: null,
+        mailboxes: [],
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to load Zoho mailbox status.",
+      },
+      500
     )
   }
 })

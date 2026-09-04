@@ -436,3 +436,13 @@ entrypoint = "./functions/whatsapp-send/index.ts"
 
 [functions.room-ai-webhook]
 verify_jwt = false
+
+[functions.zoho-mail-auth-url]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/zoho-mail-auth-url/index.ts"
+
+[functions.zoho-mail-callback]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/zoho-mail-callback/index.ts"

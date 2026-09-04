@@ -37,26 +37,82 @@ export async function getAuthenticatedUser(req: Request) {
 
 export async function getZohoConnection(
   admin: any,
-  userId: string
+  userId: string,
+  mailboxId?: string | null,
+  capability = "read"
 ) {
-  const { data, error } = await admin
-    .from("zoho_mail_connections")
-    .select(`
-      user_id,
-      email,
-      zoho_account_id,
-      refresh_token,
-      accounts_domain,
-      mail_api_base
-    `)
-    .eq("user_id", userId)
-    .single()
-
-  if (error || !data) {
-    throw new Error("Zoho Mail is not connected.")
+  const capabilityColumns: Record<string,string> = {
+    read: "can_read",
+    send: "can_send",
+    manage: "can_manage",
+    send_as: "can_send_as",
+    send_on_behalf: "can_send_on_behalf",
   }
 
-  return data
+  const capabilityColumn =
+    capabilityColumns[capability]
+
+  if (!capabilityColumn) {
+    throw new Error(
+      "Unsupported Zoho mailbox capability."
+    )
+  }
+
+  let selectedMailboxId =
+    String(mailboxId || "").trim()
+
+  if (!selectedMailboxId) {
+    const { data, error } = await admin
+      .from("zoho_mailbox_access")
+      .select("mailbox_id,is_default,is_favorite")
+      .eq("employee_id", userId)
+      .eq("active", true)
+      .eq(capabilityColumn, true)
+      .order("is_default", { ascending: false })
+      .order("is_favorite", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error || !data?.mailbox_id) {
+      throw new Error(
+        "No authorised Zoho mailbox is available."
+      )
+    }
+
+    selectedMailboxId =
+      String(data.mailbox_id)
+  }
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(selectedMailboxId)
+  ) {
+    throw new Error(
+      "Invalid Zoho mailbox identifier."
+    )
+  }
+
+  const { data, error } = await admin.rpc(
+    "resolve_zoho_mailbox_connection",
+    {
+      p_employee_id: userId,
+      p_mailbox_id: selectedMailboxId,
+      p_capability: capability,
+    },
+  )
+
+  const connection =
+    Array.isArray(data)
+      ? data[0]
+      : data
+
+  if (error || !connection) {
+    throw new Error(
+      "Zoho mailbox access is not authorised."
+    )
+  }
+
+  return connection
 }
 
 export async function getZohoAccessToken(
@@ -93,7 +149,18 @@ export async function getZohoAccessToken(
   const data = await response.json()
 
   if (!response.ok || !data.access_token) {
-    console.error("Zoho token refresh failed", data)
+    console.error(
+      "Zoho token refresh failed",
+      {
+        status: response.status,
+        providerError:
+          String(
+            data?.error ||
+            data?.error_description ||
+            "unknown"
+          ).slice(0,160),
+      }
+    )
     throw new Error("Unable to refresh Zoho access token.")
   }
 
