@@ -5,6 +5,7 @@ import {
   Award,
   BarChart3,
   BriefcaseBusiness,
+  CreditCard,
   DatabaseBackup,
   FileText,
   Gauge,
@@ -23,6 +24,7 @@ import AdminDownloadAccessManager from './AdminDownloadAccessManager'
 import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
+import FinancePaymentsPanel from './FinancePaymentsPanel'
 import { DataWorkbench } from './DataWorkbench'
 import OperationsControlPanel from './OperationsControlPanel'
 import AdminBackupsPanel from './AdminBackupsPanel'
@@ -42,7 +44,8 @@ type AdminTab=
   | 'applications'
   | 'backups'
   | 'room-minutes'
-  | 'audit'
+  | 'audit'  | 'payments'
+
   | 'operations'
 
 type AuthUser={
@@ -153,6 +156,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
   ['applications','Applications',AppWindow],
+  ['payments','Payments',CreditCard],
   ['backups','Backups',DatabaseBackup],
   ['room-minutes','ROOM 7 Minutes',FileText],
   ['audit','Audit',Activity],
@@ -508,6 +512,7 @@ export default function AdministrationControlPlane(){
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='applications'&&<ApplicationsPanel/>}
+      {tab==='payments'&&<FinancePaymentsPanel context="admin"/>}
       {tab==='backups'&&<AdminBackupsPanel/>}
       {tab==='room-minutes'&&<Room7MinutesPanel/>}
       {tab==='audit'&&<AdminAuditPanel/>}

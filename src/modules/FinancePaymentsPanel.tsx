@@ -112,7 +112,13 @@ function ProviderBlock({name,data}:{name:string;data:ProviderData}){
   )
 }
 
-export default function FinancePaymentsPanel(){
+type FinancePaymentsPanelProps={
+  context?:'finance'|'admin'
+}
+
+export default function FinancePaymentsPanel({
+  context='finance'
+}:FinancePaymentsPanelProps){
   const [data,setData]=useState<Payload|null>(null)
   const [loading,setLoading]=useState(true)
   const [refreshing,setRefreshing]=useState(false)
@@ -174,7 +180,10 @@ export default function FinancePaymentsPanel(){
         <div>
           <span className="eyebrow">PAYMENTS CONTROL</span>
           <h3>Paystack + Flutterwave</h3>
-          <p>Read-only transaction and settlement visibility inside the Finance workstation. Payment-provider secret keys stay server-side in Supabase.</p>
+          <p>{context==='admin'
+            ? 'Read-only transaction and settlement visibility for Administration oversight. Payment-provider secret keys stay server-side in Supabase.'
+            : 'Read-only transaction and settlement visibility inside the Finance workstation. Payment-provider secret keys stay server-side in Supabase.'
+          }</p>
         </div>
         <div className="paymentControlActions">
           <select value={days} onChange={event=>setDays(Number(event.target.value))} aria-label="Payment reporting window">
