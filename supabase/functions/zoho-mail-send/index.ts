@@ -7,6 +7,9 @@ import {
   jsonResponse,
 } from "../_shared/zoho.ts"
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
@@ -25,6 +28,12 @@ serve(async (req) => {
     const payload =
       await req.json().catch(() => ({}))
 
+    const mailboxId =
+      String(payload?.mailboxId || "").trim()
+
+    const identityId =
+      String(payload?.identityId || "").trim()
+
     const toAddress =
       String(payload?.toAddress || "").trim()
 
@@ -33,6 +42,20 @@ serve(async (req) => {
 
     const content =
       String(payload?.content || "").trim()
+
+    if (!UUID_RE.test(mailboxId)) {
+      return jsonResponse(
+        { error: "A valid mailboxId is required." },
+        400
+      )
+    }
+
+    if (!UUID_RE.test(identityId)) {
+      return jsonResponse(
+        { error: "A valid identityId is required." },
+        400
+      )
+    }
 
     if (!toAddress || !subject || !content) {
       return jsonResponse(
@@ -50,8 +73,41 @@ serve(async (req) => {
     const connection =
       await getZohoConnection(
         admin,
-        user.id
+        user.id,
+        mailboxId,
+        "send"
       )
+
+    const {
+      data: identityData,
+      error: identityError,
+    } = await admin.rpc(
+      "resolve_zoho_send_identity",
+      {
+        p_employee_id: user.id,
+        p_mailbox_id: mailboxId,
+        p_identity_id: identityId,
+      }
+    )
+
+    const senderIdentity =
+      Array.isArray(identityData)
+        ? identityData[0]
+        : identityData
+
+    if (
+      identityError ||
+      !senderIdentity?.identity_id ||
+      !senderIdentity?.email_address
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Zoho sender identity is not authorised.",
+        },
+        403
+      )
+    }
 
     const accessToken =
       await getZohoAccessToken(connection)
@@ -79,7 +135,7 @@ serve(async (req) => {
             "application/json",
         },
         body: JSON.stringify({
-          fromAddress:connection.email,
+          fromAddress: senderIdentity.email_address,
           toAddress,
           subject,
           content,
@@ -130,7 +186,8 @@ serve(async (req) => {
         "Zoho Mail send failed",
         {
           userId:user.id,
-          mailbox:connection.email,
+          mailboxId,
+          identityId,
           status:response.status,
           zohoCode,
           zohoDescription,
@@ -153,6 +210,8 @@ serve(async (req) => {
 
     return jsonResponse({
       success:true,
+      mailboxId,
+      identityId: senderIdentity.identity_id,
       message:"Email sent successfully.",
       data:data?.data || data,
     })

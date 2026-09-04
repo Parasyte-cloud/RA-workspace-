@@ -19,6 +19,10 @@ serve(async (req) => {
     const payload =
       await req.json().catch(() => ({}))
 
+    const mailboxId =
+      String(payload?.mailboxId || "").trim() ||
+      null
+
     const folderId =
       String(
         payload?.folderId || ''
@@ -37,7 +41,9 @@ serve(async (req) => {
     const connection =
       await getZohoConnection(
         admin,
-        user.id
+        user.id,
+        mailboxId,
+        "read"
       )
 
     const token =
