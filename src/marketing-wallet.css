@@ -1,0 +1,293 @@
+.marketingWallet {
+  display: grid;
+  gap: 18px;
+}
+
+.marketingWalletHero,
+.marketingWalletEmpty {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 22px;
+}
+
+.marketingWalletHero h3,
+.marketingWalletEmpty h3 {
+  margin: 6px 0 8px;
+}
+
+.marketingWalletHero p,
+.marketingWalletEmpty p {
+  margin: 0;
+  max-width: 760px;
+}
+
+.marketingWalletIdentity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.marketingWalletIdentity span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(127,127,127,.22);
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.marketingWalletMetrics {
+  display: grid;
+  grid-template-columns:
+    repeat(5,minmax(0,1fr));
+  gap: 14px;
+}
+
+.marketingWalletMetrics article {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+}
+
+.marketingWalletMetrics article > span {
+  font-size: .78rem;
+  opacity: .72;
+}
+
+.marketingWalletMetrics strong {
+  font-size: 1.32rem;
+  overflow-wrap: anywhere;
+}
+
+.marketingWalletMetrics small {
+  opacity: .68;
+  line-height: 1.45;
+}
+
+.marketingWalletActions {
+  display: grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap: 16px;
+}
+
+.marketingWalletForm {
+  display: grid;
+  gap: 15px;
+  padding: 20px;
+}
+
+.marketingWalletFormTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.marketingWalletFormTitle h4 {
+  margin: 4px 0 0;
+}
+
+.marketingWalletForm label {
+  display: grid;
+  gap: 7px;
+  font-size: .84rem;
+  font-weight: 700;
+}
+
+.marketingWalletForm input,
+.marketingWalletForm select,
+.marketingWalletForm textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(127,127,127,.28);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.marketingWalletFlow {
+  display: grid;
+  grid-template-columns:
+    repeat(4,minmax(0,1fr));
+  gap: 7px;
+}
+
+.marketingWalletFlow span {
+  padding: 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(127,127,127,.2);
+  font-size: .7rem;
+  text-align: center;
+}
+
+.marketingWalletLists {
+  display: grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap: 16px;
+}
+
+.marketingWalletList,
+.marketingWalletLedger {
+  padding: 20px;
+}
+
+.marketingWalletListHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.marketingWalletListHeader h4 {
+  margin: 4px 0 0;
+}
+
+.marketingWalletRow,
+.marketingWalletLedgerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid rgba(127,127,127,.16);
+}
+
+.marketingWalletRow > div,
+.marketingWalletLedgerRow > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.marketingWalletRow span,
+.marketingWalletLedgerRow span {
+  overflow-wrap: anywhere;
+}
+
+.marketingWalletRow small,
+.marketingWalletLedgerRow small {
+  opacity: .65;
+}
+
+.marketingWalletStatus {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 750;
+  border: 1px solid rgba(127,127,127,.22);
+}
+
+.marketingWalletStatus.success {
+  border-color: rgba(54,179,126,.45);
+}
+
+.marketingWalletStatus.pending {
+  border-color: rgba(230,166,51,.45);
+}
+
+.marketingWalletStatus.danger {
+  border-color: rgba(220,80,80,.45);
+}
+
+.marketingWalletNotice,
+.marketingWalletAuthorityNotice,
+.marketingWalletBoundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 15px 16px;
+}
+
+.marketingWalletNotice.success {
+  border-color: rgba(54,179,126,.45);
+}
+
+.marketingWalletNotice.danger {
+  border-color: rgba(220,80,80,.45);
+}
+
+.marketingWalletAuthorityNotice p,
+.marketingWalletBoundary p {
+  margin: 5px 0 0;
+  opacity: .76;
+}
+
+.marketingWalletVendorNotice,
+.marketingWalletEmptyText {
+  margin: 0;
+  opacity: .72;
+  line-height: 1.5;
+}
+
+.marketingWalletLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+}
+
+.marketingWalletSpin {
+  animation:
+    marketingWalletSpin .8s linear infinite;
+}
+
+@keyframes marketingWalletSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1120px) {
+  .marketingWalletMetrics {
+    grid-template-columns:
+      repeat(3,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .marketingWalletActions,
+  .marketingWalletLists {
+    grid-template-columns: 1fr;
+  }
+
+  .marketingWalletMetrics {
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+
+  .marketingWalletFlow {
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .marketingWalletHero,
+  .marketingWalletEmpty {
+    flex-direction: column;
+  }
+
+  .marketingWalletMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .marketingWalletFlow {
+    grid-template-columns: 1fr;
+  }
+
+  .marketingWalletRow,
+  .marketingWalletLedgerRow {
+    flex-direction: column;
+  }
+}

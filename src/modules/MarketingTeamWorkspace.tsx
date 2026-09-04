@@ -27,6 +27,7 @@ import {
   Telescope,
   UserPlus,
   UsersRound,
+  WalletCards,
   X
 } from 'lucide-react'
 
@@ -36,6 +37,8 @@ import { openInParasyte } from '../lib/parasyte'
 import {
   MarketingModule
 } from './BusinessModules'
+
+import MarketingWalletPanel from './MarketingWalletPanel'
 
 import '../marketing-workspace.css'
 
@@ -107,6 +110,7 @@ type View=
   | 'digital'
   | 'strategy'
   | 'moodboard'
+  | 'wallet'
   | 'execution'
 
 const digitalTools=[
@@ -1995,6 +1999,20 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
         </button>
         <button
           className={
+            view==='wallet'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>{
+            setView('wallet')
+          }}
+        >
+          <WalletCards size={16}/>
+          Wallet
+        </button>
+
+        <button
+          className={
             view==='execution'
               ? 'active'
               : ''
@@ -2800,6 +2818,10 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
             }
           </div>
         </div>
+      }
+
+      {view==='wallet' &&
+        <MarketingWalletPanel/>
       }
 
       {view==='execution' &&
