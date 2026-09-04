@@ -546,16 +546,48 @@ export default function AdminAccessManager(){
                     <option value="">No manager assigned</option>
                     {users
                       .filter(candidate=>
-                        candidate.id!==user.id &&
-                        candidate.active &&
-                        ['manager','admin'].includes(candidate.role)
+                        candidate.id!==user.id
                       )
+                      .sort((a,b)=>{
+                        if(a.active!==b.active){
+                          return a.active ? -1 : 1
+                        }
+
+                        const aName=(
+                          a.full_name ||
+                          a.email
+                        ).toLowerCase()
+
+                        const bName=(
+                          b.full_name ||
+                          b.email
+                        ).toLowerCase()
+
+                        return aName.localeCompare(bName)
+                      })
                       .map(candidate=>(
-                        <option key={candidate.id} value={candidate.id}>
+                        <option
+                          key={candidate.id}
+                          value={candidate.id}
+                          disabled={!candidate.active}
+                        >
                           {candidate.full_name || candidate.email}
+                          {' — '}
+                          {candidate.department || 'Unassigned'}
+                          {' · '}
+                          {candidate.job_title || candidate.role}
+                          {' · '}
+                          {candidate.active
+                            ? 'Active'
+                            : 'Pending / inactive'}
                         </option>
                       ))}
                   </select>
+                  <small>
+                    Reporting manager controls the employee's
+                    reporting line. It does not automatically
+                    grant the company-wide Manager role.
+                  </small>
                 </label>
               </div>
 
