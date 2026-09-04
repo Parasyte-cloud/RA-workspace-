@@ -36,6 +36,169 @@ let backendLoginPromise: Promise<string> | null = null
 
 const UPSTREAM_TIMEOUT_MS = 15_000
 
+const assistedBookingRoles =
+  new Set(["support", "admin"])
+
+const assistedBookingKeys = [
+  "idempotencyKey",
+  "riderId",
+  "email",
+  "phone",
+  "bookingType",
+  "vehicleType",
+  "pickupAddress",
+  "destinationAddress",
+  "flightNumber",
+  "scheduledPickupAt",
+  "adults",
+  "children",
+  "durationDays",
+  "fleetSize",
+  "securityEscort",
+  "luxury",
+  "agreedCancellationPolicy",
+] as const
+
+function sanitizeAssistedBooking(
+  input: unknown,
+) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
+    return {}
+  }
+
+  const source =
+    input as Record<string, unknown>
+
+  const booking:
+    Record<string, unknown> = {}
+
+  for (
+    const key
+    of assistedBookingKeys
+  ) {
+    if (
+      source[key] !== undefined
+    ) {
+      booking[key] = source[key]
+    }
+  }
+
+  return booking
+}
+
+function base64Url(
+  bytes: Uint8Array,
+) {
+  let binary = ""
+
+  for (const byte of bytes) {
+    binary +=
+      String.fromCharCode(byte)
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")
+}
+
+function jwtPart(
+  value: Record<string, unknown>,
+) {
+  return base64Url(
+    new TextEncoder().encode(
+      JSON.stringify(value),
+    ),
+  )
+}
+
+async function signWorkspaceActor(
+  input: {
+    employeeId: string
+    email: string
+    role: string
+    requestId: string
+  },
+) {
+  const serviceSecret =
+    String(
+      Deno.env.get(
+        "RIDEARRIVO_WORKSPACE_SERVICE_SECRET",
+      ) || "",
+    )
+
+  if (serviceSecret.length < 32) {
+    throw new Error(
+      "Workspace actor signing is not configured securely.",
+    )
+  }
+
+  if (
+    !assistedBookingRoles.has(
+      input.role,
+    )
+  ) {
+    throw new Error(
+      "Workspace role cannot create assisted bookings.",
+    )
+  }
+
+  const now =
+    Math.floor(Date.now() / 1000)
+
+  const unsigned =
+    [
+      jwtPart({
+        alg: "HS256",
+        typ: "JWT",
+      }),
+      jwtPart({
+        email:
+          input.email
+            .trim()
+            .toLowerCase(),
+        role: input.role,
+        iss: "ridearrivo-workspace",
+        aud: "arrivo-backend",
+        sub: input.employeeId,
+        jti: input.requestId,
+        iat: now,
+        exp: now + 120,
+      }),
+    ].join(".")
+
+  const key =
+    await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(
+        serviceSecret,
+      ),
+      {
+        name: "HMAC",
+        hash: "SHA-256",
+      },
+      false,
+      ["sign"],
+    )
+
+  const signature =
+    new Uint8Array(
+      await crypto.subtle.sign(
+        "HMAC",
+        key,
+        new TextEncoder().encode(
+          unsigned,
+        ),
+      ),
+    )
+
+  return `${unsigned}.${base64Url(signature)}`
+}
+
 function cors(req: Request) {
   const origin = req.headers.get("origin") || ""
 
@@ -541,16 +704,18 @@ serve(async req => {
 
     /*
      * --------------------------------------------------------
-     * 3. Parse requested READ-ONLY resource
+     * 3. Parse allow-listed Support operation
      * --------------------------------------------------------
      */
 
     let body: {
+      action?: string
       resource?: SupportResource
       params?: Record<
         string,
         string | number | undefined
       >
+      booking?: unknown
     } = {}
 
     try {
@@ -558,6 +723,241 @@ serve(async req => {
         await req.json()
     } catch {
       body = {}
+    }
+
+    if (
+      body.action &&
+      body.action !== "read" &&
+      body.action !== "createAssistedBooking"
+    ) {
+      return json(
+        req,
+        {
+          error:
+            "Unsupported Support Operations action.",
+        },
+        400,
+        requestId,
+      )
+    }
+
+    if (
+      body.action ===
+      "createAssistedBooking"
+    ) {
+      /*
+       * Assisted booking is deliberately stricter than
+       * read-only Support access.
+       *
+       * Manager access and an explicit Support workstation
+       * assignment may read Support Operations, but neither
+       * is silently converted into a Support actor for an
+       * Arrivo mutation.
+       */
+      if (
+        !assistedBookingRoles.has(
+          role,
+        )
+      ) {
+        return json(
+          req,
+          {
+            error:
+              "Assisted booking requires an active Support or Admin role.",
+          },
+          403,
+          requestId,
+        )
+      }
+
+      const booking =
+        sanitizeAssistedBooking(
+          body.booking,
+        )
+
+      if (
+        Object.keys(booking).length === 0
+      ) {
+        return json(
+          req,
+          {
+            error:
+              "Assisted booking details are required.",
+          },
+          400,
+          requestId,
+        )
+      }
+
+      const backendUrl =
+        Deno.env
+          .get(
+            "RIDEARRIVO_BACKEND_URL",
+          )
+          ?.replace(/\/$/, "")
+
+      if (!backendUrl) {
+        throw new Error(
+          "RideArrivo backend URL is not configured.",
+        )
+      }
+
+      const actorRequestId =
+        crypto.randomUUID()
+
+      const workspaceActor =
+        await signWorkspaceActor({
+          employeeId:
+            String(profile.id || ""),
+          email:
+            String(profile.email || ""),
+          role,
+          requestId:
+            actorRequestId,
+        })
+
+      const performMutation =
+        (
+          token: string,
+        ) =>
+          fetchWithTimeout(
+            `${backendUrl}/api/support/assisted-bookings`,
+            {
+              method: "POST",
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+                Accept:
+                  "application/json",
+                "Content-Type":
+                  "application/json",
+                "x-ridearrivo-workspace-actor":
+                  workspaceActor,
+              },
+              /*
+               * Only the allow-listed booking object is
+               * forwarded. Caller-supplied actor identity,
+               * fare, payment state and ride identifiers
+               * cannot cross this gateway.
+               */
+              body:
+                JSON.stringify(
+                  booking,
+                ),
+            },
+          )
+
+      let backendToken =
+        await getBackendToken(
+          requestId,
+        )
+
+      let response =
+        await performMutation(
+          backendToken,
+        )
+
+      if (
+        response.status === 401
+      ) {
+        invalidateBackendToken()
+
+        backendToken =
+          await getBackendToken(
+            requestId,
+          )
+
+        response =
+          await performMutation(
+            backendToken,
+          )
+      }
+
+      const responseText =
+        await response.text()
+
+      let responseBody:
+        unknown = null
+
+      try {
+        responseBody =
+          responseText
+            ? JSON.parse(
+                responseText,
+              )
+            : null
+      } catch {
+        console.error(
+          requestId,
+          "Render assisted-booking endpoint returned non-JSON content",
+          {
+            status:
+              response.status,
+            path:
+              "/api/support/assisted-bookings",
+          },
+        )
+
+        return json(
+          req,
+          {
+            error:
+              "RideArrivo assisted-booking service returned an unexpected response.",
+          },
+          502,
+          requestId,
+        )
+      }
+
+      if (!response.ok) {
+        const upstream =
+          responseBody &&
+          typeof responseBody ===
+            "object"
+            ? responseBody as
+              Record<
+                string,
+                unknown
+              >
+            : {}
+
+        const upstreamMessage =
+          typeof upstream.error ===
+            "string"
+            ? upstream.error
+            : typeof upstream.message ===
+                "string"
+              ? upstream.message
+              : `RideArrivo assisted-booking error (${response.status}).`
+
+        console.warn(
+          requestId,
+          "Assisted booking rejected by upstream",
+          {
+            status:
+              response.status,
+          },
+        )
+
+        return json(
+          req,
+          {
+            error:
+              upstreamMessage,
+            upstreamStatus:
+              response.status,
+          },
+          response.status,
+          requestId,
+        )
+      }
+
+      return json(
+        req,
+        responseBody,
+        response.status,
+        requestId,
+      )
     }
 
     const resource =
@@ -633,9 +1033,11 @@ serve(async req => {
 
     /*
      * --------------------------------------------------------
-     * 6. READ ONLY
+     * 6. READ-ONLY RESOURCE PROXY
      *
-     * No POST/PUT/PATCH/DELETE is ever sent to Render.
+     * Ordinary Support resources remain GET-only.
+     * Assisted booking above is the single explicit,
+     * separately-authorised mutation path.
      * --------------------------------------------------------
      */
 

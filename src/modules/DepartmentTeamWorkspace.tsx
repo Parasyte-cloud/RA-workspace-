@@ -757,9 +757,11 @@ export function ExecutiveTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
 export function SupportTeamWorkspace({
   execution,
+  workstationContent,
   onNavigate
 }:{
   execution:ReactNode
+  workstationContent?:ReactNode
   onNavigate?:(target:string)=>void
 }){
 
@@ -794,6 +796,7 @@ export function SupportTeamWorkspace({
         {name:'WhatsApp Web',purpose:'Approved customer support communication.',url:'https://web.whatsapp.com/'},
         {name:'Google Maps',purpose:'Route, pickup and service-location context.',url:'https://maps.google.com/'}
       ]}
+      workstationContent={workstationContent}
       onNavigate={onNavigate}
       execution={execution}
     />
