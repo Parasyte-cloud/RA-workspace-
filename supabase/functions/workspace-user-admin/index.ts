@@ -567,15 +567,162 @@ serve(async(req)=>{
       }
 
       if(managerId){
-        const {data:managerProfile,error:managerError}=await admin
-          .from("employee_profiles")
-          .select("id,role,active")
-          .eq("id",managerId)
-          .maybeSingle()
+        const {
+          data:managerProfile,
+          error:managerError,
+        } =
+          await admin
+            .from("employee_profiles")
+            .select(
+              "id,email,full_name,role,department,job_title,manager_id,active"
+            )
+            .eq("id",managerId)
+            .maybeSingle()
 
-        if(managerError || !managerProfile || managerProfile.active!==true || !["manager","admin"].includes(String(managerProfile.role || "").toLowerCase())){
+        if(managerError){
+          console.error(
+            "workspace-user-admin manager lookup",
+            managerError
+          )
+
           return json(
-            {error:"Selected manager must be an active Manager or Admin."},
+            {
+              error:
+                `Unable to verify the reporting manager: ${errorMessage(managerError)}`,
+            },
+            500
+          )
+        }
+
+        if(!managerProfile){
+          return json(
+            {
+              error:
+                "Selected reporting manager was not found.",
+            },
+            400
+          )
+        }
+
+        if(managerProfile.active!==true){
+          return json(
+            {
+              error:
+                "Selected reporting manager must have active workspace access.",
+            },
+            400
+          )
+        }
+
+        /*
+         * Reporting hierarchy and global Workspace role are
+         * deliberately separate concepts.
+         *
+         * Any active employee may be a line manager. Selecting
+         * them here does not grant the company-wide "manager"
+         * role or its broader permissions.
+         *
+         * Walk the candidate's current reporting chain before
+         * saving so A -> B -> A (or a deeper cycle) is rejected.
+         */
+        let hierarchyCursor =
+          managerProfile.manager_id
+            ? String(
+                managerProfile.manager_id
+              )
+            : null
+
+        const visitedManagerIds =
+          new Set<string>([
+            managerId,
+          ])
+
+        for(
+          let depth=0;
+          hierarchyCursor && depth<200;
+          depth+=1
+        ){
+          if(
+            hierarchyCursor===userId
+          ){
+            return json(
+              {
+                error:
+                  "This reporting assignment would create a management cycle.",
+              },
+              400
+            )
+          }
+
+          if(
+            visitedManagerIds.has(
+              hierarchyCursor
+            )
+          ){
+            return json(
+              {
+                error:
+                  "The existing reporting hierarchy contains a cycle and must be corrected first.",
+              },
+              400
+            )
+          }
+
+          visitedManagerIds.add(
+            hierarchyCursor
+          )
+
+          const {
+            data:parentProfile,
+            error:parentError,
+          } =
+            await admin
+              .from(
+                "employee_profiles"
+              )
+              .select(
+                "id,manager_id"
+              )
+              .eq(
+                "id",
+                hierarchyCursor
+              )
+              .maybeSingle()
+
+          if(parentError){
+            console.error(
+              "workspace-user-admin reporting hierarchy",
+              parentError
+            )
+
+            return json(
+              {
+                error:
+                  `Unable to verify the reporting hierarchy: ${errorMessage(parentError)}`,
+              },
+              500
+            )
+          }
+
+          if(!parentProfile){
+            hierarchyCursor=null
+            break
+          }
+
+          hierarchyCursor =
+            parentProfile.manager_id
+              ? String(
+                  parentProfile.manager_id
+                )
+              : null
+        }
+
+        if(hierarchyCursor){
+          return json(
+            {
+              error:
+                "Reporting hierarchy is too deep to validate safely.",
+            },
             400
           )
         }
