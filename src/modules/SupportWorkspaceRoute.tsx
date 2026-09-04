@@ -1,5 +1,6 @@
 import { SupportModule } from './CoreModules'
 import { SupportTeamWorkspace } from './DepartmentTeamWorkspace'
+import SupportAssistedBookingPanel from './SupportAssistedBookingPanel'
 
 export default function SupportWorkspaceRoute({
   onNavigate,
@@ -9,6 +10,9 @@ export default function SupportWorkspaceRoute({
   return (
     <SupportTeamWorkspace
       execution={<SupportModule/>}
+      workstationContent={
+        <SupportAssistedBookingPanel/>
+      }
       onNavigate={onNavigate}
     />
   )

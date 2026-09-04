@@ -164,3 +164,159 @@ export async function getRideArrivoSupportData(
     }
   }
 }
+
+export type AssistedBookingInput = {
+  idempotencyKey: string
+  riderId?: number
+  email?: string
+  phone?: string
+  bookingType:
+    | 'one_way'
+    | 'dropoff'
+    | 'full_day'
+    | 'full_week'
+    | 'full_month'
+  vehicleType:
+    | 'sedan'
+    | 'suv'
+    | 'truck'
+    | 'pickup'
+  pickupAddress: string
+  destinationAddress?: string
+  flightNumber?: string
+  scheduledPickupAt?: string
+  adults: number
+  children: number
+  durationDays: number
+  fleetSize: 0 | 2 | 3
+  securityEscort: boolean
+  luxury: boolean
+  agreedCancellationPolicy: true
+}
+
+export type AssistedBookingResult = {
+  assistedBooking: {
+    id: number
+    riderId: number
+    fareNaira: number | string
+    quotedUsdAmount?: number | string
+    paymentStatus: string
+    rideId: number | null
+    requiresCustomerPayment: boolean
+  }
+}
+
+async function supportMutationErrorMessage(
+  error: unknown,
+  fallback: string
+) {
+  let message =
+    error instanceof Error && error.message
+      ? error.message
+      : fallback
+
+  try {
+    const context =
+      (error as {
+        context?: {
+          json?: () => Promise<Record<string, unknown>>
+        }
+      })?.context
+
+    if (
+      context &&
+      typeof context.json === 'function'
+    ) {
+      const responseBody =
+        await context.json()
+
+      if (
+        typeof responseBody?.error === 'string'
+      ) {
+        message = responseBody.error
+      } else if (
+        typeof responseBody?.message === 'string'
+      ) {
+        message = responseBody.message
+      }
+    }
+  } catch {
+    // Preserve the original Supabase Functions error.
+  }
+
+  return message
+}
+
+export async function createRideArrivoAssistedBooking(
+  input: AssistedBookingInput
+): Promise<AssistedBookingResult> {
+  if (!supabase) {
+    throw new Error(
+      'Supabase is not configured.'
+    )
+  }
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
+
+  if (
+    sessionError ||
+    !session?.access_token
+  ) {
+    throw new Error(
+      'Your RideArrivo Workspace session has expired.'
+    )
+  }
+
+  const invocation =
+    supabase.functions.invoke(
+      'ridearrivo-support',
+      {
+        headers: {
+          Authorization:
+            `Bearer ${session.access_token}`,
+        },
+        body: {
+          action: 'createAssistedBooking',
+          booking: input,
+        },
+      }
+    )
+
+  const {
+    data,
+    error,
+  } = await withTimeout(
+    invocation,
+    SUPPORT_REQUEST_TIMEOUT_MS
+  )
+
+  if (error) {
+    throw new Error(
+      await supportMutationErrorMessage(
+        error,
+        'Unable to create the assisted booking.'
+      )
+    )
+  }
+
+  if (data?.error) {
+    throw new Error(
+      String(data.error)
+    )
+  }
+
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    !data.assistedBooking
+  ) {
+    throw new Error(
+      'RideArrivo returned an invalid assisted-booking response.'
+    )
+  }
+
+  return data as AssistedBookingResult
+}
