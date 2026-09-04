@@ -62,25 +62,22 @@ const sha256 = values => {
   return hash.digest('hex')
 }
 
-const platformManagedExclusions = [
+const basePlatformManagedExclusions = [
   'auth.schema_migrations',
   'storage.migrations',
-  'supabase_functions.migrations',
 ]
 
-const expectedDataSchemas = [
+const baseExpectedDataSchemas = [
   'auth',
   'public',
   'storage',
-  'supabase_functions',
 ]
 
-const requiredRestoreTargets = [
+const baseRequiredRestoreTargets = [
   'auth.users',
   'auth.identities',
   'storage.buckets',
   'storage.objects',
-  'supabase_functions.hooks',
   'public.employee_profiles',
 ]
 
@@ -197,6 +194,36 @@ const targets =
 
 const targetSet =
   new Set(targets)
+
+
+const supabaseFunctionsPresent =
+  targets.some(
+    target =>
+      target.startsWith(
+        'supabase_functions.',
+      ),
+  )
+
+const platformManagedExclusions = [
+  ...basePlatformManagedExclusions,
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions.migrations']
+    : []),
+]
+
+const expectedDataSchemas = [
+  ...baseExpectedDataSchemas,
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions']
+    : []),
+]
+
+const requiredRestoreTargets = [
+  ...baseRequiredRestoreTargets,
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions.hooks']
+    : []),
+]
 
 if (targetSet.size !== targets.length) {
   const duplicateTargets =
@@ -325,7 +352,7 @@ const totalRowCount =
   )
 
 const ledger = {
-  format_version: 1,
+  format_version: 2,
 
   validated: true,
 
@@ -338,6 +365,10 @@ const ledger = {
   copy_format:
     'postgres-copy-text',
 
+  source_schema_presence: {
+    supabase_functions:
+      supabaseFunctionsPresent,
+  },
   table_count:
     sortedTables.length,
 

@@ -425,6 +425,7 @@ const reconciliationTopLevelKeys = [
   'sequence_count',
   'sequence_state_sha256',
   'source_component',
+  'source_schema_presence',
   'table_count',
   'tables',
   'total_row_count',
@@ -439,17 +440,28 @@ const reconciliationTableKeys = [
   'table',
 ]
 
+const reconciliationSourceSchemaPresence =
+  reconciliationEvidence?.source_schema_presence
+
+const supabaseFunctionsPresent =
+  reconciliationSourceSchemaPresence?.supabase_functions
+    === true
+
 const expectedReconciliationSchemas = [
   'auth',
   'public',
   'storage',
-  'supabase_functions',
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions']
+    : []),
 ]
 
 const expectedManagedExclusions = [
   'auth.schema_migrations',
   'storage.migrations',
-  'supabase_functions.migrations',
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions.migrations']
+    : []),
 ]
 
 const requiredReconciliationTargets = [
@@ -457,7 +469,9 @@ const requiredReconciliationTargets = [
   'auth.identities',
   'storage.buckets',
   'storage.objects',
-  'supabase_functions.hooks',
+  ...(supabaseFunctionsPresent
+    ? ['supabase_functions.hooks']
+    : []),
   'public.employee_profiles',
 ]
 
@@ -484,7 +498,7 @@ const reconciliationEvidenceValid =
     reconciliationEvidence,
     reconciliationTopLevelKeys,
   )
-  && reconciliationEvidence?.format_version === 1
+  && reconciliationEvidence?.format_version === 2
   && reconciliationEvidence?.validated === true
   && reconciliationEvidence?.source_component
     === 'database/data.sql'
@@ -492,6 +506,19 @@ const reconciliationEvidenceValid =
     === 'sha256-schema-table-columns-sorted-copy-lines-v1'
   && reconciliationEvidence?.copy_format
     === 'postgres-copy-text'
+  && reconciliationSourceSchemaPresence !== null
+  && typeof reconciliationSourceSchemaPresence
+    === 'object'
+  && !Array.isArray(
+    reconciliationSourceSchemaPresence,
+  )
+  && hasExactKeys(
+    reconciliationSourceSchemaPresence,
+    ['supabase_functions'],
+  )
+  && typeof reconciliationSourceSchemaPresence
+    .supabase_functions
+    === 'boolean'
   && JSON.stringify(
     reconciliationEvidence?.data_schemas,
   ) === JSON.stringify(

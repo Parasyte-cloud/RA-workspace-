@@ -49,6 +49,7 @@ storage_pre="$db_dir/storage-pre.sql"
 storage_post="$db_dir/storage-post.sql"
 sf_pre="$db_dir/supabase-functions-pre.sql"
 sf_post="$db_dir/supabase-functions-post.sql"
+sf_absence_sentinel='-- RIDEARRIVO OPTIONAL SCHEMA ABSENT: supabase_functions'
 public_pre="$db_dir/public-pre.sql"
 public_post="$db_dir/public-post.sql"
 
@@ -380,6 +381,55 @@ section_dump() {
   fi
 }
 
+schema_exists() {
+  local schema="$1"
+  local log_file="$credential_dir/psql-schema-${schema}.log"
+  local result
+
+  if result="$(
+    docker run \
+      --rm \
+      "${docker_network_args[@]}" \
+      --mount \
+        "type=bind,src=$pgpass,dst=/run/secrets/ridearrivo.pgpass,readonly" \
+      --env \
+        PGPASSFILE=/run/secrets/ridearrivo.pgpass \
+      --env \
+        PGSSLMODE="$pg_sslmode" \
+      --entrypoint psql \
+      "$pgdump_image" \
+      --no-password \
+      --host="$pg_host" \
+      --port="$pg_port" \
+      --username="$pg_user" \
+      --dbname="$pg_database" \
+      --no-align \
+      --tuples-only \
+      --command="select to_regnamespace('$schema') is not null;" \
+      2>"$log_file"
+  )"
+  then
+    case "$result" in
+      t)
+        return 0
+        ;;
+      f)
+        return 1
+        ;;
+      *)
+        printf 'ERROR: unexpected schema presence result for %s: %s\n' \
+          "$schema" "$result" >&2
+        return 2
+        ;;
+    esac
+  fi
+
+  printf 'ERROR: schema presence check failed for %s\n' \
+    "$schema" >&2
+  tail -80 "$log_file" >&2
+  return 2
+}
+
 rm -f "${section_files[@]}"
 
 section_dump \
@@ -402,15 +452,29 @@ section_dump \
   post-data \
   "$storage_post"
 
-section_dump \
-  supabase_functions \
-  pre-data \
-  "$sf_pre"
+sf_present=false
+if schema_exists supabase_functions; then
+  sf_present=true
 
-section_dump \
-  supabase_functions \
-  post-data \
-  "$sf_post"
+  section_dump \
+    supabase_functions \
+    pre-data \
+    "$sf_pre"
+
+  section_dump \
+    supabase_functions \
+    post-data \
+    "$sf_post"
+else
+  sf_schema_status=$?
+  if [ "$sf_schema_status" -eq 2 ]; then
+    exit 1
+  fi
+
+  printf '%s\n' "$sf_absence_sentinel" >"$sf_pre"
+  printf '%s\n' "$sf_absence_sentinel" >"$sf_post"
+  printf 'PASS: optional supabase_functions schema is absent; absence sentinels created\n'
+fi
 
 section_dump \
   public \
@@ -458,17 +522,28 @@ else
   validation_failed=1
 fi
 
-if grep -Eq \
-  'CREATE TABLE (supabase_functions\.)?hooks|CREATE TABLE "supabase_functions"\."hooks"' \
-  "$sf_pre" &&
-   grep -Eq \
-  'CREATE TABLE (supabase_functions\.)?migrations|CREATE TABLE "supabase_functions"\."migrations"' \
-  "$sf_pre"
-then
-  printf 'PASS: supabase_functions pre-data contains required tables\n'
+if [ "$sf_present" = true ]; then
+  if grep -Eq \
+    'CREATE TABLE (supabase_functions\.)?hooks|CREATE TABLE "supabase_functions"\."hooks"' \
+    "$sf_pre" &&
+     grep -Eq \
+    'CREATE TABLE (supabase_functions\.)?migrations|CREATE TABLE "supabase_functions"\."migrations"' \
+    "$sf_pre"
+  then
+    printf 'PASS: supabase_functions pre-data contains required tables\n'
+  else
+    printf 'ERROR: supabase_functions pre-data contract is incomplete\n' >&2
+    validation_failed=1
+  fi
 else
-  printf 'ERROR: supabase_functions pre-data contract is incomplete\n' >&2
-  validation_failed=1
+  if [ "$(cat "$sf_pre")" = "$sf_absence_sentinel" ] &&
+     [ "$(cat "$sf_post")" = "$sf_absence_sentinel" ]
+  then
+    printf 'PASS: optional supabase_functions absence sentinel contract exact\n'
+  else
+    printf 'ERROR: optional supabase_functions absence sentinel contract differs\n' >&2
+    validation_failed=1
+  fi
 fi
 
 if grep -Eq \

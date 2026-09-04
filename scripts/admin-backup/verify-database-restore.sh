@@ -237,6 +237,10 @@ esac
 
 database_dir="$workspace/components/database"
 database_reconciliation="$workspace/metadata/database-reconciliation.json"
+reconciliation_contract="$(
+  CDPATH= cd -- "$(dirname -- "$0")" &&
+    pwd
+)/database-reconciliation-contract.mjs"
 
 required_files="
 $database_dir/roles.sql
@@ -273,28 +277,11 @@ do
   fi
 done
 
-if jq -e \
-  '
-    .format_version == 1
-    and .algorithm
-      == "sha256-schema-table-columns-sorted-copy-lines-v1"
-    and (.table_count | type == "number")
-    and (.table_count > 0)
-    and (.total_row_count | type == "number")
-    and (.total_row_count >= 0)
-    and (.sequence_count | type == "number")
-    and (.sequence_count >= 0)
-    and (
-      .sequence_state_sha256
-      | type == "string"
-    )
-    and (
-      .sequence_state_sha256
-      | test("^[0-9a-f]{64}$")
-    )
-  ' \
-  "$database_reconciliation" \
-  >/dev/null
+if [ -f "$reconciliation_contract" ] &&
+   node \
+     "$reconciliation_contract" \
+     validate \
+     "$database_reconciliation"
 then
   echo "PASS: authenticated database reconciliation contract valid"
 else
@@ -454,6 +441,42 @@ if [ "$mode" = "foundation" ]; then
 
   exit 0
 fi
+
+sf_absence_sentinel='-- RIDEARRIVO OPTIONAL SCHEMA ABSENT: supabase_functions'
+
+reconciliation_format_version="$(
+  jq -r '.format_version' "$database_reconciliation"
+)"
+
+case "$reconciliation_format_version" in
+  1)
+    supabase_functions_present="true"
+    ;;
+  2)
+    supabase_functions_present="$(
+      jq -r \
+        '.source_schema_presence.supabase_functions | tostring' \
+        "$database_reconciliation"
+    )"
+    ;;
+  *)
+    printf 'ERROR: unsupported reconciliation format version\n' >&2
+    exit 1
+    ;;
+esac
+
+case "$supabase_functions_present" in
+  true)
+    echo "PASS: backup source includes optional supabase_functions schema"
+    ;;
+  false)
+    echo "PASS: backup source records optional supabase_functions schema as absent"
+    ;;
+  *)
+    printf 'ERROR: database reconciliation source schema presence is invalid\n' >&2
+    exit 1
+    ;;
+esac
 
 echo
 echo "=== MINIMAL SUPABASE ROLE BOOTSTRAP ==="
@@ -1429,6 +1452,7 @@ else
   exit 1
 fi
 
+if [ "$supabase_functions_present" = "true" ]; then
 echo
 echo "=== AUTHENTICATED SUPABASE_FUNCTIONS PRE-DATA ==="
 
@@ -1516,6 +1540,39 @@ else
   printf 'ERROR: supabase_functions ownership contract differs\n' >&2
   printf '%s\n' "$supabase_functions_owners" >&2
   exit 1
+fi
+
+else
+  if [ "$(cat "$database_dir/supabase-functions-pre.sql")" = "$sf_absence_sentinel" ] &&
+     [ "$(cat "$database_dir/supabase-functions-post.sql")" = "$sf_absence_sentinel" ]
+  then
+    echo "PASS: optional supabase_functions absence sentinels verified for restore"
+  else
+    printf 'ERROR: optional supabase_functions absence sentinel contract differs\n' >&2
+    exit 1
+  fi
+
+  sf_namespace_count="$(
+    docker exec \
+      "$target_container" \
+      psql \
+        -X \
+        -v ON_ERROR_STOP=1 \
+        -U postgres \
+        -d "$target_database" \
+        -Atc "
+          select count(*)
+          from pg_namespace
+          where nspname = 'supabase_functions';
+        "
+  )"
+
+  if [ "$sf_namespace_count" = "0" ]; then
+    echo "PASS: absent optional supabase_functions schema was not manufactured during pre-data restore"
+  else
+    printf 'ERROR: absent optional supabase_functions schema was unexpectedly created\n' >&2
+    exit 1
+  fi
 fi
 
 echo
@@ -1671,20 +1728,63 @@ managed_foundation="$(
           and
           to_regclass('storage.objects') is not null
           and
-          to_regclass('supabase_functions.hooks') is not null
-          and
-          to_regclass('supabase_functions.migrations') is not null
-          and
           to_regclass('public.employee_profiles') is not null;
       "
 )"
 
-if [ "$managed_foundation" = "t" ]; then
-  echo "PASS: data replay preserved required schema foundations"
-else
-  printf 'ERROR: required schema foundation missing after data replay\n' >&2
+if [ "$managed_foundation" != "t" ]; then
+  printf 'ERROR: required Auth, Storage, or RideArrivo schema foundation missing after data replay\n' >&2
   exit 1
 fi
+
+if [ "$supabase_functions_present" = "true" ]; then
+  sf_data_foundation="$(
+    docker exec \
+      "$target_container" \
+      psql \
+        -X \
+        -v ON_ERROR_STOP=1 \
+        -U postgres \
+        -d "$target_database" \
+        -Atc "
+          select
+            to_regclass('supabase_functions.hooks') is not null
+            and
+            to_regclass('supabase_functions.migrations') is not null;
+        "
+  )"
+
+  if [ "$sf_data_foundation" = "t" ]; then
+    echo "PASS: optional supabase_functions data foundation preserved"
+  else
+    printf 'ERROR: expected supabase_functions foundation missing after data replay\n' >&2
+    exit 1
+  fi
+else
+  sf_data_namespace_count="$(
+    docker exec \
+      "$target_container" \
+      psql \
+        -X \
+        -v ON_ERROR_STOP=1 \
+        -U postgres \
+        -d "$target_database" \
+        -Atc "
+          select count(*)
+          from pg_namespace
+          where nspname = 'supabase_functions';
+        "
+  )"
+
+  if [ "$sf_data_namespace_count" = "0" ]; then
+    echo "PASS: absent optional supabase_functions schema remained absent after data replay"
+  else
+    printf 'ERROR: absent optional supabase_functions schema appeared during data replay\n' >&2
+    exit 1
+  fi
+fi
+
+echo "PASS: data replay preserved required schema foundations"
 
 data_network_mode="$(
   docker inspect \
@@ -1776,6 +1876,7 @@ restore_postdata_component \
   "storage-post.sql" \
   "$temporary_root/storage-post.log"
 
+if [ "$supabase_functions_present" = "true" ]; then
 echo
 echo "=== AUTHENTICATED SUPABASE_FUNCTIONS POST-DATA ==="
 
@@ -1783,6 +1884,37 @@ restore_postdata_component \
   "supabase_functions post-data" \
   "supabase-functions-post.sql" \
   "$temporary_root/supabase-functions-post.log"
+
+else
+  if [ "$(cat "$database_dir/supabase-functions-post.sql")" = "$sf_absence_sentinel" ]; then
+    echo "PASS: optional supabase_functions post-data absence sentinel verified"
+  else
+    printf 'ERROR: optional supabase_functions post-data absence sentinel differs\n' >&2
+    exit 1
+  fi
+
+  sf_namespace_count="$(
+    docker exec \
+      "$target_container" \
+      psql \
+        -X \
+        -v ON_ERROR_STOP=1 \
+        -U postgres \
+        -d "$target_database" \
+        -Atc "
+          select count(*)
+          from pg_namespace
+          where nspname = 'supabase_functions';
+        "
+  )"
+
+  if [ "$sf_namespace_count" = "0" ]; then
+    echo "PASS: absent optional supabase_functions schema remained absent after post-data restore"
+  else
+    printf 'ERROR: absent optional supabase_functions schema appeared during post-data restore\n' >&2
+    exit 1
+  fi
+fi
 
 echo
 echo "=== AUTHENTICATED RIDEARRIVO PUBLIC POST-DATA ==="
@@ -1838,6 +1970,7 @@ else
   exit 1
 fi
 
+if [ "$supabase_functions_present" = "true" ]; then
 sf_primary_keys="$(
   docker exec \
     "$target_container" \
@@ -1890,6 +2023,30 @@ if [ "$sf_secondary_indexes" = "2" ]; then
 else
   printf 'ERROR: supabase_functions secondary-index contract incomplete\n' >&2
   exit 1
+fi
+
+else
+  sf_structural_namespace_count="$(
+    docker exec \
+      "$target_container" \
+      psql \
+        -X \
+        -v ON_ERROR_STOP=1 \
+        -U postgres \
+        -d "$target_database" \
+        -Atc "
+          select count(*)
+          from pg_namespace
+          where nspname = 'supabase_functions';
+        "
+  )"
+
+  if [ "$sf_structural_namespace_count" = "0" ]; then
+    echo "PASS: optional supabase_functions PK/index checks correctly omitted because source schema was absent"
+  else
+    printf 'ERROR: optional supabase_functions unexpectedly exists during structural verification\n' >&2
+    exit 1
+  fi
 fi
 
 employee_auth_fk="$(
@@ -1982,6 +2139,8 @@ reconciliation_builder="$database_verifier_dir/build-database-reconciliation.mjs
 artifact_reconciliation="$database_reconciliation"
 target_data_file="$temporary_root/target-data.sql"
 target_reconciliation="$temporary_root/target-database-reconciliation.json"
+semantic_left="$temporary_root/artifact-database-reconciliation.normalized.json"
+semantic_right="$temporary_root/target-database-reconciliation.normalized.json"
 target_container_data="/tmp/ridearrivo-target-data-$$.sql"
 
 if [ -f "$reconciliation_builder" ]; then
@@ -2051,23 +2210,43 @@ else
   exit 1
 fi
 
-if cmp -s \
+if node \
+  "$reconciliation_contract" \
+  normalize \
   "$artifact_reconciliation" \
-  "$target_reconciliation"
+  "$semantic_left"
 then
-  echo "PASS: restored database semantic ledger exactly matches backup artifact"
+  echo "PASS: artifact reconciliation normalized"
 else
-  printf 'ERROR: restored database semantic ledger differs from backup artifact\n' >&2
+  printf 'ERROR: artifact reconciliation normalization failed\n' >&2
+  exit 1
+fi
 
-  echo
-  echo "=== SEMANTIC LEDGER DIFF ==="
+if node \
+  "$reconciliation_contract" \
+  normalize \
+  "$target_reconciliation" \
+  "$semantic_right"
+then
+  echo "PASS: target reconciliation normalized"
+else
+  printf 'ERROR: target reconciliation normalization failed\n' >&2
+  exit 1
+fi
 
+if diff -q \
+  "$semantic_left" \
+  "$semantic_right" \
+  >/dev/null
+then
+  echo "PASS: restored database semantic ledger matches authenticated artifact semantics"
+else
+  printf 'ERROR: normalized database reconciliation differs\n' >&2
   diff -u \
-    "$artifact_reconciliation" \
-    "$target_reconciliation" \
+    "$semantic_left" \
+    "$semantic_right" \
     | head -240 \
     || true
-
   exit 1
 fi
 

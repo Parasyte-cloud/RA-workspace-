@@ -243,23 +243,45 @@ if [ "$validation_failed" -eq 0 ]; then
     "$reconciliation_file"
   then
     if jq -e '
-      .format_version == 1
+      .format_version == 2
       and .validated == true
       and .source_component == "database/data.sql"
       and .algorithm
         == "sha256-schema-table-columns-sorted-copy-lines-v1"
       and .copy_format == "postgres-copy-text"
-      and .data_schemas == [
-        "auth",
-        "public",
-        "storage",
-        "supabase_functions"
-      ]
-      and .platform_managed_exclusions == [
-        "auth.schema_migrations",
-        "storage.migrations",
-        "supabase_functions.migrations"
-      ]
+      and (
+        (.source_schema_presence | type)
+        == "object"
+      )
+      and (
+        (.source_schema_presence | keys | sort)
+        == ["supabase_functions"]
+      )
+      and (
+        (.source_schema_presence.supabase_functions | type)
+        == "boolean"
+      )
+      and .data_schemas == (
+        ["auth","public","storage"]
+        + (
+            if .source_schema_presence.supabase_functions
+            then ["supabase_functions"]
+            else []
+            end
+          )
+      )
+      and .platform_managed_exclusions == (
+        [
+          "auth.schema_migrations",
+          "storage.migrations"
+        ]
+        + (
+            if .source_schema_presence.supabase_functions
+            then ["supabase_functions.migrations"]
+            else []
+            end
+          )
+      )
       and (.table_count | type == "number")
       and (.table_count > 0)
       and (.total_row_count | type == "number")
