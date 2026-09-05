@@ -508,7 +508,7 @@ export function DepartmentTeamWorkspace({
           <span className="departmentTabPrivacy">
             {profileBelongsHere
               ? 'Private'
-              : 'Locked'}
+              : 'Members only'}
           </span>
         </button>
         <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Operations</button>
