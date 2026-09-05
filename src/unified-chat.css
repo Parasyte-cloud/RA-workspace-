@@ -1,0 +1,221 @@
+/*
+ * RideArrivo unified internal conversation UI.
+ *
+ * Presentation only. This stylesheet does not alter database,
+ * RLS, membership, department or collaboration permissions.
+ */
+
+.unifiedChatShell{
+  display:grid;
+  grid-template-rows:auto minmax(300px,1fr) auto;
+  min-height:520px;
+  padding:0 !important;
+  overflow:hidden;
+  border-radius:20px;
+}
+
+.unifiedChatShell .unifiedChatHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin:0;
+  padding:16px 18px;
+  border-bottom:
+    1px solid
+    var(--ra-border,rgba(7,26,56,.09));
+}
+
+.unifiedChatShell .unifiedChatHeader h3{
+  margin:4px 0 5px;
+}
+
+.unifiedChatScope{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+  padding:7px 10px;
+  border:
+    1px solid
+    rgba(244,163,0,.24);
+  border-radius:999px;
+  background:rgba(244,163,0,.09);
+  font-size:10px;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.unifiedChatShell .unifiedChatMessages{
+  min-height:320px;
+  max-height:540px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:18px;
+  background:
+    var(
+      --ra-surface-muted,
+      rgba(7,26,56,.025)
+    );
+  scroll-behavior:smooth;
+}
+
+.unifiedChatMessages .unifiedChatMessage{
+  align-self:flex-start;
+  width:min(620px,82%);
+  max-width:82%;
+  box-sizing:border-box;
+  padding:11px 13px;
+  border:
+    1px solid
+    var(--ra-border,rgba(7,26,56,.10));
+  border-radius:16px 16px 16px 5px;
+  background:
+    var(--ra-surface,#fff);
+  box-shadow:
+    0 3px 12px
+    rgba(7,26,56,.035);
+}
+
+.unifiedChatMessages .unifiedChatMessage.mine{
+  align-self:flex-end;
+  border-color:rgba(244,163,0,.28);
+  border-radius:16px 16px 5px 16px;
+  background:rgba(244,163,0,.10);
+}
+
+.unifiedChatMessages .unifiedChatMessage>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.unifiedChatMessages .unifiedChatMessage strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+}
+
+.unifiedChatMessages .unifiedChatMessage small{
+  flex:0 0 auto;
+  color:
+    var(--ra-muted,var(--muted,#718096));
+  font-size:9px;
+}
+
+.unifiedChatMessages .unifiedChatMessage p{
+  margin:6px 0 0;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.5;
+}
+
+.unifiedChatShell .unifiedChatComposer{
+  position:sticky;
+  bottom:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:10px;
+  margin:0;
+  padding:14px 16px;
+  border-top:
+    1px solid
+    var(--ra-border,rgba(7,26,56,.09));
+  background:
+    var(--ra-surface,rgba(255,255,255,.96));
+  backdrop-filter:blur(18px);
+}
+
+.unifiedChatShell .unifiedChatComposer textarea{
+  width:100%;
+  min-height:58px;
+  max-height:150px;
+  box-sizing:border-box;
+  resize:vertical;
+  margin:0;
+  border:
+    1px solid
+    var(--ra-border,rgba(7,26,56,.11));
+  border-radius:14px;
+  padding:11px 13px;
+  background:
+    var(--ra-surface,#fff);
+  color:inherit;
+  font:inherit;
+  line-height:1.45;
+}
+
+.unifiedChatShell .unifiedChatComposer textarea:focus{
+  outline:none;
+  border-color:rgba(244,163,0,.55);
+  box-shadow:
+    0 0 0 3px
+    rgba(244,163,0,.10);
+}
+
+.unifiedChatShell .unifiedChatComposer button{
+  min-height:44px;
+  align-self:end;
+}
+
+.departmentTabs button:disabled{
+  cursor:not-allowed;
+  opacity:.58;
+}
+
+.departmentTabPrivacy{
+  margin-left:3px;
+  padding:3px 6px;
+  border:
+    1px solid
+    rgba(7,26,56,.10);
+  border-radius:999px;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.04em;
+  line-height:1;
+  opacity:.75;
+}
+
+.departmentTabs button.active
+.departmentTabPrivacy{
+  border-color:rgba(244,163,0,.28);
+}
+
+@media(max-width:760px){
+  .unifiedChatShell{
+    min-height:460px;
+  }
+
+  .unifiedChatShell .unifiedChatHeader{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .unifiedChatShell .unifiedChatMessages{
+    min-height:280px;
+    max-height:460px;
+    padding:13px;
+  }
+
+  .unifiedChatMessages .unifiedChatMessage{
+    width:94%;
+    max-width:94%;
+  }
+
+  .unifiedChatShell .unifiedChatComposer{
+    grid-template-columns:1fr;
+  }
+
+  .unifiedChatShell .unifiedChatComposer button{
+    width:100%;
+    justify-content:center;
+  }
+}

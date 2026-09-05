@@ -12,6 +12,8 @@ import {
 import { supabase } from '../lib/supabase'
 import '../workflow-unification.css'
 
+import '../unified-chat.css'
+
 type Profile={
   id:string
   full_name:string
@@ -271,8 +273,8 @@ export default function DepartmentDiscussionPanel(){
   }
 
   return (
-    <section className="departmentDiscussion glassCard">
-      <header className="departmentDiscussionHeader">
+    <section className="departmentDiscussion unifiedChatShell glassCard">
+      <header className="departmentDiscussionHeader unifiedChatHeader">
         <div>
           <span className="eyebrow">
             PRIVATE DEPARTMENT DISCUSSION
@@ -309,7 +311,7 @@ export default function DepartmentDiscussionPanel(){
         </div>
       }
 
-      <div className="departmentDiscussionMessages">
+      <div className="departmentDiscussionMessages unifiedChatMessages">
         {messages.map(message=>{
           const author=
             peopleMap.get(message.author_id)
@@ -319,8 +321,8 @@ export default function DepartmentDiscussionPanel(){
               key={message.id}
               className={
                 message.author_id===profile?.id
-                  ? 'departmentDiscussionMessage mine'
-                  : 'departmentDiscussionMessage'
+                  ? 'departmentDiscussionMessage unifiedChatMessage mine'
+                  : 'departmentDiscussionMessage unifiedChatMessage'
               }
             >
               <div>
@@ -353,7 +355,7 @@ export default function DepartmentDiscussionPanel(){
         }
       </div>
 
-      <div className="departmentDiscussionComposer">
+      <div className="departmentDiscussionComposer unifiedChatComposer">
         <textarea
           value={draft}
           maxLength={10000}

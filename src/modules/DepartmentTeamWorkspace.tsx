@@ -34,6 +34,8 @@ import FinancePaymentsPanel from './FinancePaymentsPanel'
 import '../department-workspace.css'
 
 
+import '../unified-chat.css'
+
 type Employee={
   id:string
   full_name:string
@@ -484,22 +486,31 @@ export function DepartmentTeamWorkspace({
       <div className="departmentTabs">
         <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workspace</button>
         <button type="button" className={view==='shared'?'active':''} onClick={()=>setView('shared')}><FolderKanban size={16}/>Collaboration</button>
-        {profileBelongsHere &&
-          <button
-            type="button"
-            className={
-              view==='discussion'
-                ? 'active'
-                : ''
-            }
-            onClick={()=>
-              setView('discussion')
-            }
-          >
-            <UsersRound size={16}/>
-            Discussion
-          </button>
-        }
+        <button
+          type="button"
+          className={
+            view==='discussion'
+              ? 'active'
+              : ''
+          }
+          disabled={!profileBelongsHere}
+          title={
+            profileBelongsHere
+              ? 'Open your private department discussion'
+              : 'Discussion is private to active members of this department'
+          }
+          onClick={()=>
+            setView('discussion')
+          }
+        >
+          <UsersRound size={16}/>
+          Discussion
+          <span className="departmentTabPrivacy">
+            {profileBelongsHere
+              ? 'Private'
+              : 'Locked'}
+          </span>
+        </button>
         <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Operations</button>
         <button type="button" className={view==='team'?'active':''} onClick={()=>setView('team')}><UsersRound size={16}/>Team</button>
       </div>

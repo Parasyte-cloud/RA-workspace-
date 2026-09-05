@@ -31,6 +31,8 @@ import '../shared-workspaces.css'
 import '../workflow-unification.css'
 
 
+import '../unified-chat.css'
+
 type Profile={
   id:string
   full_name:string
@@ -1404,8 +1406,8 @@ export default function SharedWorkspacesHub({
               </div>
             }
 
-            <div className="sharedDiscussion glassCard">
-              <div className="sharedSectionTitle">
+            <div className="sharedDiscussion unifiedChatShell glassCard">
+              <div className="sharedSectionTitle unifiedChatHeader">
                 <div>
                   <span className="eyebrow">DISCUSSION</span>
                   <h3>Project conversation</h3>
@@ -1413,13 +1415,20 @@ export default function SharedWorkspacesHub({
                 <MessageSquareText size={20}/>
               </div>
 
-              <div className="sharedMessages">
+              <div className="sharedMessages unifiedChatMessages">
                 {messages.map(item=>{
                   const author=peopleMap.get(item.author_id)
                   const mine=item.author_id===profile?.id
 
                   return (
-                    <article key={item.id} className={mine?'mine':''}>
+                    <article
+                      key={item.id}
+                      className={
+                        mine
+                          ? 'unifiedChatMessage mine'
+                          : 'unifiedChatMessage'
+                      }
+                    >
                       <div>
                         <strong>{author?.full_name || 'RideArrivo employee'}</strong>
                         <small>{formatTime(item.created_at)}</small>
@@ -1436,7 +1445,7 @@ export default function SharedWorkspacesHub({
                 }
               </div>
 
-              <div className="sharedComposer">
+              <div className="sharedComposer unifiedChatComposer">
                 <textarea
                   value={messageText}
                   onChange={event=>setMessageText(event.target.value)}
