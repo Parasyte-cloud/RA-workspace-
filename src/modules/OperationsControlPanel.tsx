@@ -11,6 +11,9 @@ import {
 
 import { DataWorkbench } from './DataWorkbench'
 import OperationsReceiptsPanel from './OperationsReceiptsPanel'
+import WorkstationWindow, {
+  type WorkstationWindowMode,
+} from '../components/WorkstationWindow'
 
 import '../arrivoops.css'
 
@@ -56,6 +59,12 @@ type ArrivoOpsView =
 export default function OperationsControlPanel() {
   const [view, setView] =
     useState<ArrivoOpsView>('overview')
+
+  const [liveOperationsOpen, setLiveOperationsOpen] =
+    useState(false)
+
+  const [liveOperationsMode, setLiveOperationsMode] =
+    useState<WorkstationWindowMode>('split')
 
   return (
     <div className="operationsControlPanel arrivoOps">
@@ -141,14 +150,16 @@ export default function OperationsControlPanel() {
                 </p>
               </div>
 
-              <a
+              <button
+                type="button"
                 className="primaryButton arrivoOpsLaunch"
-                href="https://admin.ridearrivo.com"
-                target="_blank"
-                rel="noreferrer"
+                onClick={() => {
+                  setLiveOperationsMode('split')
+                  setLiveOperationsOpen(true)
+                }}
               >
                 Open live operations
-              </a>
+              </button>
             </article>
 
             <article className="glassCard arrivoOpsQuickCard">
@@ -676,6 +687,20 @@ export default function OperationsControlPanel() {
           />
         </div>
       )}
+      {liveOperationsOpen && (
+        <WorkstationWindow
+          title="ArrivoOps Live Dispatch"
+          subtitle="Live bookings, riders, drivers, trips and operational status."
+          badge="ARRIVOOPS"
+          url="https://admin.ridearrivo.com"
+          mode={liveOperationsMode}
+          onModeChange={setLiveOperationsMode}
+          onClose={() => {
+            setLiveOperationsOpen(false)
+          }}
+        />
+      )}
+
     </div>
   )
 }
