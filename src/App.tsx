@@ -235,6 +235,7 @@ const sectionAccess:Record<Section,Role[]>={
 
   people:[
     'hr',
+    'operations',
     'manager',
     'admin'
   ],
@@ -1228,7 +1229,7 @@ function App(){
         {section==='support'&&<SupportWorkspaceRoute onNavigate={navigateToSection}/>}
         {section==='engineering'&&<EngineeringTeamWorkspace execution={<Engineering/>} onNavigate={navigateToSection}/>}
         {section==='linux'&&<ParasyteLinux/>}
-        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule/>} onNavigate={navigateToSection}/>}
+        {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule accessMode={profile.role==='operations'?'operations':'full'}/>} onNavigate={navigateToSection}/>}
         {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={navigateToSection}/>}
         {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>} onNavigate={navigateToSection}/>}
         {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}

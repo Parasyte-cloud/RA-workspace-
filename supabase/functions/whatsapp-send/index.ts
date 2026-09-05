@@ -100,6 +100,7 @@ async function authorisedSupportActor(
   const allowedRoles =
     new Set([
       "support",
+      "operations",
       "manager",
       "admin",
     ])
@@ -169,7 +170,7 @@ serve(async (req) => {
       req,
       {
         error:
-          "Authorised Support access is required.",
+          "Authorised Support or Operations access is required.",
       },
       403,
     )

@@ -83,7 +83,13 @@ function timestamp(value:unknown){
     : 0
 }
 
-export default function SupportWhatsAppPanel(){
+export default function SupportWhatsAppPanel({
+  context='support',
+}:{
+  context?:'support'|'operations'
+}={}){
+  const operationsContext=
+    context==='operations'
   const [open,setOpen]=useState(false)
   const [mode,setMode]=
     useState<WorkstationWindowMode>('split')
@@ -353,7 +359,7 @@ export default function SupportWhatsAppPanel(){
           </h3>
           <p>
             Handle persisted customer conversations without
-            navigating away from the Support workstation.
+            navigating away from the {operationsContext?'Operations':'Support'} workstation.
             Customer destination is resolved server-side.
           </p>
         </div>
@@ -375,7 +381,7 @@ export default function SupportWhatsAppPanel(){
         <WorkstationWindow
           title="Support WhatsApp"
           subtitle="Persisted customer conversations"
-          badge="SUPPORT COMMUNICATIONS"
+          badge={operationsContext?'OPERATIONS COMMUNICATIONS':'SUPPORT COMMUNICATIONS'}
           mode={mode}
           onModeChange={setMode}
           onClose={()=>{
