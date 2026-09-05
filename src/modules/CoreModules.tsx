@@ -32,8 +32,8 @@ export function OperationsModule(){
   return <section>
     <Title
       eyebrow="OPERATIONS"
-      title="Ride Operations"
-      subtitle="Dispatch readiness, shifts, fleet maintenance, inspections, flight monitoring and incident control."
+      title="ArrivoOps"
+      subtitle="Integrated RideArrivo operations control for dispatch, drivers, fleet, airport execution, incidents and governed operational spend."
     />
     <OperationsControlPanel/>
   </section>

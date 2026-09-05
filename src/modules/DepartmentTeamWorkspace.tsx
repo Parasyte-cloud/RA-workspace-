@@ -911,9 +911,10 @@ export function OperationsTeamWorkspace({
       roleAliases={[
         'operations'
       ]}
-      workstationTitle="Mobility Operations Workstation"
-      workstationDescription="Coordinate the physical RideArrivo service from booking readiness through trip completion and incident resolution."
+      workstationTitle="Mobility Operations Workstation · ArrivoOps"
+      workstationDescription="ArrivoOps coordinates the physical RideArrivo service from booking readiness through trip completion, governed spend and incident resolution."
       capabilities={[
+        {title:'ArrivoOps Control Centre',description:'Unified operational execution for dispatch readiness, drivers, fleet, airport operations, incidents and governed spend.'},
         {title:'Dispatch Board',description:'Booking allocation, driver matching, assignment ownership and exception handling.'},
         {title:'Live Trips & GPS',description:'Active journey state, location health, ETAs and operational exceptions.'},
         {title:'Driver Assignment',description:'Availability, shift/vehicle assignment, readiness and accountability.'},
@@ -926,7 +927,7 @@ export function OperationsTeamWorkspace({
         {title:'Operations Analytics',description:'Assignment time, completion, cancellations, utilisation and service-quality KPIs.'}
     ]}
     tools={[
-        {name:'RideArrivo Admin',purpose:'Operational backend console for bookings, riders, drivers and trips.',url:'https://admin.ridearrivo.com'},
+        {name:'ArrivoOps Live Dispatch',purpose:'Connected RideArrivo backend for live bookings, riders, drivers, trips and operational status.',url:'https://admin.ridearrivo.com'},
         {name:'Google Maps',purpose:'Routing, pickup points, geocoding and traffic context.',url:'https://maps.google.com/'},
         {name:'FlightAware',purpose:'Flight status and alert context for airport pickup operations.',url:'https://www.flightaware.com/'},
         {name:'FlightRadar24',purpose:'Live flight movement cross-check for airport operations.',url:'https://www.flightradar24.com/'}
