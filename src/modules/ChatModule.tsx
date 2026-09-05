@@ -93,6 +93,7 @@ export function ChatModule(){
   const [people,setPeople]=useState<Person[]>([])
   const [directs,setDirects]=useState<DirectRow[]>([])
   const [selectedId,setSelectedId]=useState('')
+  const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
   const [messages,setMessages]=useState<Message[]>([])
   const [query,setQuery]=useState('')
   const [messageText,setMessageText]=useState('')
@@ -377,6 +378,7 @@ export function ChatModule(){
       setQuery('')
       await loadBase(conversationId)
       setSelectedId(conversationId)
+      setMobileThreadOpen(true)
     }catch(error){
       setNotice(error instanceof Error ? error.message : 'Unable to start conversation.')
     }finally{
@@ -411,6 +413,7 @@ export function ChatModule(){
   const openConversation=(id:string)=>{
     setNotice('')
     setSelectedId(id)
+    setMobileThreadOpen(true)
   }
 
   return (
@@ -429,7 +432,9 @@ export function ChatModule(){
 
       {notice&&<div className="moduleNotice chatNotice">{notice}</div>}
 
-      <div className="chatShell glassCard">
+      <div
+        className={`chatShell glassCard ${mobileThreadOpen && selectedId?'mobileThreadOpen':'mobileListOpen'}`}
+      >
         <aside className="chatSidebar">
           <div className="chatSidebarHead">
             <div>
@@ -498,6 +503,15 @@ export function ChatModule(){
           {selected ? (
             <>
               <header className="chatThreadHead">
+                <button
+                  type="button"
+                  className="chatMobileBack"
+                  aria-label="Back to conversations"
+                  onClick={()=>setMobileThreadOpen(false)}
+                >
+                  <span aria-hidden="true">←</span>
+                  <span>Back</span>
+                </button>
                 <span className="chatAvatar large">{initials(displayName(selected.other))}</span>
                 <div>
                   <strong>{displayName(selected.other)}</strong>
