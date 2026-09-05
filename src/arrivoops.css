@@ -1,0 +1,219 @@
+.arrivoOps{
+  display:grid;
+  gap:16px;
+}
+
+.arrivoOpsHero{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:20px 22px;
+}
+
+.arrivoOpsHeroCopy{
+  max-width:720px;
+}
+
+.arrivoOpsHeroCopy h3{
+  margin:4px 0 6px;
+  font-size:clamp(1.35rem,2vw,1.8rem);
+}
+
+.arrivoOpsHeroCopy p,
+.arrivoOpsSource small,
+.arrivoOpsQuickCard p,
+.arrivoOpsPrinciple p{
+  color:var(--muted);
+  line-height:1.55;
+}
+
+.arrivoOpsHeroCopy p{
+  margin:0;
+}
+
+.arrivoOpsSource{
+  min-width:min(100%,270px);
+  max-width:330px;
+  display:grid;
+  gap:4px;
+  padding:13px 15px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:color-mix(
+    in srgb,
+    var(--panel) 90%,
+    var(--accent) 10%
+  );
+}
+
+.arrivoOpsSource span{
+  font-size:.68rem;
+  letter-spacing:.08em;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.arrivoOpsSource strong{
+  font-size:.9rem;
+}
+
+.arrivoOpsTabs{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  overflow-x:auto;
+  padding:7px;
+}
+
+.arrivoOpsTab{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  flex:0 0 auto;
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid transparent;
+  border-radius:12px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:.82rem;
+  font-weight:750;
+  cursor:pointer;
+}
+
+.arrivoOpsTab:hover{
+  color:var(--text);
+  background:color-mix(
+    in srgb,
+    var(--accent) 7%,
+    transparent
+  );
+}
+
+.arrivoOpsTab.active{
+  color:var(--text);
+  border-color:color-mix(
+    in srgb,
+    var(--accent) 28%,
+    var(--line)
+  );
+  background:color-mix(
+    in srgb,
+    var(--accent) 12%,
+    var(--panel)
+  );
+}
+
+.arrivoOpsOverview{
+  display:grid;
+  gap:16px;
+}
+
+.arrivoOpsQuickGrid{
+  display:grid;
+  grid-template-columns:
+    repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.arrivoOpsQuickCard{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:13px;
+  min-height:245px;
+  padding:18px;
+}
+
+.arrivoOpsQuickCard > svg{
+  width:21px;
+  height:21px;
+}
+
+.arrivoOpsQuickCard h3{
+  margin:4px 0 5px;
+  font-size:1rem;
+}
+
+.arrivoOpsQuickCard p{
+  margin:0;
+  font-size:.84rem;
+}
+
+.arrivoOpsQuickCard .glassButton,
+.arrivoOpsLaunch{
+  margin-top:auto;
+}
+
+.arrivoOpsLaunch{
+  text-decoration:none;
+}
+
+.arrivoOpsPrinciple{
+  display:flex;
+  align-items:flex-start;
+  gap:13px;
+  padding:17px 19px;
+}
+
+.arrivoOpsPrinciple > svg{
+  flex:0 0 auto;
+  margin-top:2px;
+}
+
+.arrivoOpsPrinciple h3{
+  margin:0 0 5px;
+  font-size:.98rem;
+}
+
+.arrivoOpsPrinciple p{
+  margin:0;
+  font-size:.84rem;
+}
+
+.arrivoOpsSingle{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+}
+
+.arrivoOpsFleetGrid{
+  align-items:start;
+}
+
+@media(max-width:1050px){
+  .arrivoOpsQuickGrid{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:720px){
+  .arrivoOpsHero{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .arrivoOpsSource{
+    width:100%;
+    max-width:none;
+  }
+
+  .arrivoOpsQuickGrid{
+    grid-template-columns:1fr;
+  }
+
+  .arrivoOpsQuickCard{
+    min-height:0;
+  }
+
+  .arrivoOpsTabs{
+    margin-inline:-2px;
+  }
+
+  .arrivoOpsTab{
+    min-height:42px;
+  }
+}
