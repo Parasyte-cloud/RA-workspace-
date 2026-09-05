@@ -44,6 +44,8 @@ import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 import '../marketing-workspace.css'
 
 
+import '../unified-chat.css'
+
 type Profile={
   id:string
   full_name:string
@@ -2268,9 +2270,9 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
 
       {view==='discussion' &&
-        <div className="marketingDiscussion glassCard">
+        <div className="marketingDiscussion unifiedChatShell glassCard">
 
-          <div className="marketingDiscussionHeader">
+          <div className="marketingDiscussionHeader unifiedChatHeader">
 
             <div>
 
@@ -2284,14 +2286,14 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
             </div>
 
-            <span className="marketingDiscussionScope">
+            <span className="marketingDiscussionScope unifiedChatScope">
               Marketing department only
             </span>
 
           </div>
 
 
-          <div className="marketingMessages">
+          <div className="marketingMessages unifiedChatMessages">
 
             {messages.map(message=>{
 
@@ -2305,8 +2307,8 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
                   key={message.id}
                   className={
                     message.author_id===profile?.id
-                      ? 'marketingMessage mine'
-                      : 'marketingMessage'
+                      ? 'marketingMessage unifiedChatMessage mine'
+                      : 'marketingMessage unifiedChatMessage'
                   }
                 >
 
@@ -2355,7 +2357,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
           </div>
 
 
-          <div className="marketingComposer">
+          <div className="marketingComposer unifiedChatComposer">
 
             <textarea
               value={messageText}
