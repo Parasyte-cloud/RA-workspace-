@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Award, BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, ClipboardList, Clock3, FolderKanban, Gauge, Laptop, Smartphone, Sparkles, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
 import '../personal-dashboard.css'
 
 type Profile={
@@ -230,6 +231,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
           {!devices.length&&<div className="myEquipmentEmpty">No company equipment is assigned to your account yet.</div>}
         </div>
       </div>
+
+      <MyWorkspaceSessionsPanel/>
 
       <div className="dashboardContextGrid">
         <article className="glassCard dashboardContextCard"><Target size={20}/><div><strong>How your KPI is measured</strong><p>Transparent delivery evidence: 60% completion, 30% on-time completion when deadlines exist, and 10% acknowledgement. The annual evaluation uses the same method across the current year. If there is no assigned work, RideArrivo shows insufficient data instead of a zero.</p></div></article>

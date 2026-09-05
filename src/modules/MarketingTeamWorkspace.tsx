@@ -25,20 +25,21 @@ import {
   Send,
   Target,
   Telescope,
-  UserPlus,
   UsersRound,
+  ReceiptText,
   WalletCards,
   X
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
-import { openInParasyte } from '../lib/parasyte'
+import WorkstationWindow, { type WorkstationWindowMode } from '../components/WorkstationWindow'
 
 import {
   MarketingModule
 } from './BusinessModules'
 
 import MarketingWalletPanel from './MarketingWalletPanel'
+import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 
 import '../marketing-workspace.css'
 
@@ -111,6 +112,7 @@ type View=
   | 'strategy'
   | 'moodboard'
   | 'wallet'
+  | 'finance'
   | 'execution'
 
 const digitalTools=[
@@ -241,56 +243,61 @@ function ToolLauncher({
 }:{
   tools:typeof digitalTools
 }){
+  const [activeTool,setActiveTool]=
+    useState<(typeof digitalTools)[number]|null>(null)
 
-  const openTool=(url:string)=>{
-
-    openInParasyte(
-      url
-    )
-
-  }
+  const [windowMode,setWindowMode]=
+    useState<WorkstationWindowMode>('split')
 
   return (
-    <div className="marketingToolGrid">
+    <>
+      <div className="marketingToolGrid">
+        {tools.map(tool=>(
+          <button
+            key={tool.name}
+            type="button"
+            className="marketingToolCard"
+            onClick={()=>{
+              setActiveTool(tool)
+              setWindowMode('split')
+            }}
+          >
+            <span className="marketingToolIcon">
+              <ExternalLink size={17}/>
+            </span>
 
-      {tools.map(tool=>(
+            <span>
+              <small>
+                {tool.category}
+              </small>
 
-        <button
-          key={tool.name}
-          type="button"
-          className="marketingToolCard"
-          onClick={()=>{
-            openTool(tool.url)
+              <strong>
+                {tool.name}
+              </strong>
+
+              <p>
+                {tool.note}
+              </p>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {activeTool &&
+        <WorkstationWindow
+          title={activeTool.name}
+          subtitle={activeTool.note}
+          badge="MARKETING TOOL"
+          url={activeTool.url}
+          mode={windowMode}
+          onModeChange={setWindowMode}
+          onClose={()=>{
+            setActiveTool(null)
           }}
-        >
-
-          <span className="marketingToolIcon">
-            <ExternalLink size={17}/>
-          </span>
-
-          <span>
-
-            <small>
-              {tool.category}
-            </small>
-
-            <strong>
-              {tool.name}
-            </strong>
-
-            <p>
-              {tool.note}
-            </p>
-
-          </span>
-
-        </button>
-
-      ))}
-
-    </div>
+        />
+      }
+    </>
   )
-
 }
 
 
@@ -900,10 +907,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
   ]=
     useState('')
 
-  const [inviteeId,setInviteeId]=
-    useState('')
-
-  const [inviteMessage,setInviteMessage]=
+  const [partnerDepartment,setPartnerDepartment]=
     useState('')
 
   const [notice,setNotice]=
@@ -1479,12 +1483,12 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
   const createProject=
     async()=>{
-
       const client=supabase
 
       if(
         !client
         || !newProjectName.trim()
+        || !partnerDepartment
       ){
         return
       }
@@ -1492,10 +1496,11 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
       setNotice('')
 
       const {
+        data,
         error
       }=
         await client.rpc(
-          'create_collaboration_space',
+          'create_two_department_collaboration',
           {
             p_name:
               newProjectName.trim(),
@@ -1504,101 +1509,33 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
               newProjectDescription.trim()
               || null,
 
-            p_space_type:
-              'cross_department'
+            p_partner_department:
+              partnerDepartment
           }
         )
 
       if(error){
-
         setNotice(
           error.message
         )
-
         return
-
       }
 
       setNewProjectName('')
       setNewProjectDescription('')
+      setPartnerDepartment('')
 
       setNotice(
-        'Shared project created.'
+        'Two-department collaboration created.'
       )
 
       await loadBase()
 
+      if(typeof data==='string'){
+        setSelectedSpaceId(data)
+      }
+
       setView('projects')
-
-    }
-
-
-  const inviteCollaborator=
-    async()=>{
-
-      const client=supabase
-
-      if(
-        !client
-        || !selectedSpaceId
-        || !inviteeId
-      ){
-        return
-      }
-
-      const selected=
-        spaces.find(
-          space=>
-            space.id===selectedSpaceId
-        )
-
-      if(
-        selected?.space_type==='department'
-      ){
-
-        setNotice(
-          'Cross-department collaborators must be invited to a project space, not the entire Marketing department workspace.'
-        )
-
-        return
-
-      }
-
-      const {
-        error
-      }=
-        await client.rpc(
-          'invite_to_collaboration_space',
-          {
-            p_space_id:
-              selectedSpaceId,
-
-            p_invitee_id:
-              inviteeId,
-
-            p_message:
-              inviteMessage.trim()
-              || null
-          }
-        )
-
-      if(error){
-
-        setNotice(
-          error.message
-        )
-
-        return
-
-      }
-
-      setInviteeId('')
-      setInviteMessage('')
-
-      setNotice(
-        'Collaboration invitation sent.'
-      )
-
     }
 
 
@@ -1949,6 +1886,23 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
               : ''
           }
           onClick={()=>{
+            const departmentSpace=
+              spaces.find(
+                space=>
+                  space.space_type==='department'
+              )
+
+            if(!departmentSpace){
+              setNotice(
+                'Marketing department discussion is unavailable.'
+              )
+              return
+            }
+
+            setSelectedSpaceId(
+              departmentSpace.id
+            )
+
             setView('discussion')
           }}
         >
@@ -2009,6 +1963,19 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
         >
           <WalletCards size={16}/>
           Wallet
+        </button>
+        <button
+          className={
+            view==='finance'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>{
+            setView('finance')
+          }}
+        >
+          <ReceiptText size={16}/>
+          Finance Requests
         </button>
 
         <button
@@ -2134,9 +2101,9 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
             </h3>
 
             <p>
-              Use project rooms whenever Marketing
-              needs to work with HR, Operations,
-              Legal, Finance or another team.
+              Select exactly one partner department.
+              This creates one collaboration between
+              Marketing and that department only.
             </p>
 
             <label>
@@ -2166,12 +2133,62 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
                 placeholder="What is this project trying to achieve?"
               />
             </label>
+              <label>
+                Partner department
+
+                <select
+                  value={partnerDepartment}
+                  onChange={event=>{
+                    setPartnerDepartment(
+                      event.target.value
+                    )
+                  }}
+                >
+                  <option value="">
+                    Select one department
+                  </option>
+
+                  {Array.from(
+                    new Set(
+                      people
+                        .map(employee=>
+                          String(
+                            employee.department || ''
+                          ).trim()
+                        )
+                        .filter(department=>
+                          department
+                          && department.toLowerCase()
+                            !==String(
+                              profile?.department || ''
+                            )
+                              .trim()
+                              .toLowerCase()
+                        )
+                    )
+                  )
+                    .sort(
+                      (left,right)=>
+                        left.localeCompare(right)
+                    )
+                    .map(department=>(
+                      <option
+                        key={department}
+                        value={department}
+                      >
+                        {department}
+                      </option>
+                    ))
+                  }
+                </select>
+              </label>
 
             <button
               type="button"
               className="primaryButton"
               disabled={
                 !newProjectName.trim()
+                || !partnerDepartment
               }
               onClick={()=>{
                 void createProject()
@@ -2186,7 +2203,12 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
           <div className="marketingProjectList">
 
-            {spaces.map(space=>(
+            {spaces
+              .filter(
+                space=>
+                  space.space_type==='cross_department'
+              )
+              .map(space=>(
 
               <button
                 key={space.id}
@@ -2228,82 +2250,16 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
 
           {selectedSpace &&
-            selectedSpace.space_type!=='department' &&
-            <div className="marketingCollaborator glassCard">
-
-              <div>
-
-                <span className="eyebrow">
-                  INVITE COLLABORATOR
-                </span>
-
-                <h3>
-                  {selectedSpace.name}
-                </h3>
-
-                <p>
-                  Invite another active employee.
-                  They receive a workspace notification
-                  and must accept before joining.
-                </p>
-
-              </div>
-
-              <select
-                value={inviteeId}
-                onChange={event=>{
-                  setInviteeId(
-                    event.target.value
-                  )
-                }}
-              >
-                <option value="">
-                  Select employee
-                </option>
-
-                {people
-                  .filter(employee=>
-                    employee.id!==profile?.id
-                  )
-                  .map(employee=>(
-
-                    <option
-                      key={employee.id}
-                      value={employee.id}
-                    >
-                      {employee.full_name}
-                      {' · '}
-                      {employee.department ||
-                        employee.role}
-                    </option>
-
-                  ))
-                }
-
-              </select>
-
-              <input
-                value={inviteMessage}
-                onChange={event=>{
-                  setInviteMessage(
-                    event.target.value
-                  )
-                }}
-                placeholder="Optional invitation message"
-              />
-
-              <button
-                type="button"
-                className="primaryButton"
-                disabled={!inviteeId}
-                onClick={()=>{
-                  void inviteCollaborator()
-                }}
-              >
-                <UserPlus size={16}/>
-                Invite collaborator
-              </button>
-
+            selectedSpace.space_type==='cross_department' &&
+            <div className="sharedBoundaryNotice">
+              <strong>
+                Two-department collaboration
+              </strong>
+              <br/>
+              Access follows the Marketing department
+              and the single selected partner department.
+              Individual employee invitations cannot
+              add a third department.
             </div>
           }
 
@@ -2323,37 +2279,14 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
               </span>
 
               <h3>
-                {selectedSpace?.name ||
-                  'Select a workspace'}
+                Marketing Team Discussion
               </h3>
 
             </div>
 
-            <select
-              value={selectedSpaceId}
-              onChange={event=>{
-                setSelectedSpaceId(
-                  event.target.value
-                )
-              }}
-            >
-
-              <option value="">
-                Select workspace
-              </option>
-
-              {spaces.map(space=>(
-
-                <option
-                  key={space.id}
-                  value={space.id}
-                >
-                  {space.name}
-                </option>
-
-              ))}
-
-            </select>
+            <span className="marketingDiscussionScope">
+              Marketing department only
+            </span>
 
           </div>
 
@@ -2822,6 +2755,12 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
       {view==='wallet' &&
         <MarketingWalletPanel/>
+      }
+
+      {view==='finance' &&
+        <DepartmentFinanceRequestPanel
+          context="department"
+        />
       }
 
       {view==='execution' &&

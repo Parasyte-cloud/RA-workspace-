@@ -25,6 +25,8 @@ import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
 import FinancePaymentsPanel from './FinancePaymentsPanel'
+import ProvidusBankingPanel from './ProvidusBankingPanel'
+import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 import { DataWorkbench } from './DataWorkbench'
 import OperationsControlPanel from './OperationsControlPanel'
 import AdminBackupsPanel from './AdminBackupsPanel'
@@ -512,7 +514,13 @@ export default function AdministrationControlPlane(){
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='applications'&&<ApplicationsPanel/>}
-      {tab==='payments'&&<FinancePaymentsPanel context="admin"/>}
+      {tab==='payments'&&
+        <div className="adminPaymentsStack">
+          <ProvidusBankingPanel context="admin"/>
+          <FinancePaymentsPanel context="admin"/>
+          <DepartmentFinanceRequestPanel context="executive"/>
+        </div>
+      }
       {tab==='backups'&&<AdminBackupsPanel/>}
       {tab==='room-minutes'&&<Room7MinutesPanel/>}
       {tab==='audit'&&<AdminAuditPanel/>}

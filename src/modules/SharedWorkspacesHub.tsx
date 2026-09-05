@@ -28,6 +28,7 @@ import {
 import { supabase } from '../lib/supabase'
 
 import '../shared-workspaces.css'
+import '../workflow-unification.css'
 
 
 type Profile={
@@ -145,6 +146,7 @@ export default function SharedWorkspacesHub({
   const [newName,setNewName]=useState('')
   const [newDescription,setNewDescription]=useState('')
   const [newType,setNewType]=useState<'project'|'cross_department'>('project')
+  const [partnerDepartment,setPartnerDepartment]=useState('')
   const [inviteeId,setInviteeId]=useState('')
   const [inviteMessage,setInviteMessage]=useState('')
   const [messageText,setMessageText]=useState('')
@@ -437,24 +439,29 @@ export default function SharedWorkspacesHub({
   },[members,profile])
 
 
-  const isManagement=
-    profile?.role==='manager' ||
-    profile?.role==='admin'
-
   const canManage=
-    isManagement ||
     myMembership?.member_role==='owner' ||
     myMembership?.member_role==='admin'
 
   const canInvite=
-    canManage ||
-    myMembership?.member_role==='member'
+    selectedSpace?.space_type==='project'
+    && (
+      canManage
+      || myMembership?.member_role==='member'
+    )
 
 
   const createSpace=async()=>{
     const client=supabase
 
-    if(!client || !newName.trim()){
+    if(
+      !client
+      || !newName.trim()
+      || (
+        newType==='cross_department'
+        && !partnerDepartment
+      )
+    ){
       return
     }
 
@@ -462,26 +469,57 @@ export default function SharedWorkspacesHub({
     setNotice('')
 
     try{
-      const {data,error}=await client.rpc(
-        'create_collaboration_space',
-        {
-          p_name:newName.trim(),
-          p_description:newDescription.trim() || null,
-          p_space_type:newType
-        }
-      )
+      const response=
+        newType==='cross_department'
+          ? await client.rpc(
+              'create_two_department_collaboration',
+              {
+                p_name:
+                  newName.trim(),
 
-      if(error){
-        throw error
+                p_description:
+                  newDescription.trim()
+                  || null,
+
+                p_partner_department:
+                  partnerDepartment
+              }
+            )
+          : await client.rpc(
+              'create_collaboration_space',
+              {
+                p_name:
+                  newName.trim(),
+
+                p_description:
+                  newDescription.trim()
+                  || null,
+
+                p_space_type:
+                  'project'
+              }
+            )
+
+      if(response.error){
+        throw response.error
       }
 
       setNewName('')
       setNewDescription('')
-      setNotice('Shared workspace created.')
+      setPartnerDepartment('')
+
+      setNotice(
+        newType==='cross_department'
+          ? 'Two-department collaboration created.'
+          : 'Project workspace created.'
+      )
+
       await loadBase()
 
-      if(typeof data==='string'){
-        setSelectedSpaceId(data)
+      if(typeof response.data==='string'){
+        setSelectedSpaceId(
+          response.data
+        )
       }
     }catch(error){
       setNotice(
@@ -803,16 +841,110 @@ export default function SharedWorkspacesHub({
   }
 
 
-  const availableInvitees=useMemo(()=>{
-    const memberIds=new Set(members.map(member=>member.user_id))
-    const pendingIds=new Set(
-      outgoingInvites.map(invite=>invite.invitee_id)
+  const availableDepartments=useMemo(()=>{
+    const ownDepartment=
+      String(
+        profile?.department || ''
+      )
+        .trim()
+        .toLowerCase()
+
+    const departments=
+      new Map<string,string>()
+
+    for(const person of people){
+      const department=
+        String(
+          person.department || ''
+        ).trim()
+
+      if(
+        !department
+        || department.toLowerCase()===ownDepartment
+      ){
+        continue
+      }
+
+      departments.set(
+        department.toLowerCase(),
+        department
+      )
+    }
+
+    return Array.from(
+      departments.values()
+    ).sort(
+      (left,right)=>
+        left.localeCompare(right)
     )
+  },[
+    people,
+    profile
+  ])
+
+
+  const selectedDepartments=useMemo(()=>{
+    const departments=
+      new Set<string>()
+
+    for(const member of members){
+      const department=
+        String(
+          peopleMap.get(
+            member.user_id
+          )?.department || ''
+        ).trim()
+
+      if(department){
+        departments.add(
+          department
+        )
+      }
+    }
+
+    return Array.from(
+      departments
+    ).sort(
+      (left,right)=>
+        left.localeCompare(right)
+    )
+  },[
+    members,
+    peopleMap
+  ])
+
+
+  const availableInvitees=useMemo(()=>{
+    const memberIds=
+      new Set(
+        members.map(
+          member=>member.user_id
+        )
+      )
+
+    const pendingIds=
+      new Set(
+        outgoingInvites.map(
+          invite=>invite.invitee_id
+        )
+      )
+
+    const ownDepartment=
+      String(
+        profile?.department || ''
+      )
+        .trim()
+        .toLowerCase()
 
     return people.filter(person=>
-      person.id!==profile?.id &&
-      !memberIds.has(person.id) &&
-      !pendingIds.has(person.id)
+      person.id!==profile?.id
+      && String(
+        person.department || ''
+      )
+        .trim()
+        .toLowerCase()===ownDepartment
+      && !memberIds.has(person.id)
+      && !pendingIds.has(person.id)
     )
   },[
     people,
@@ -842,9 +974,10 @@ export default function SharedWorkspacesHub({
             <span className="eyebrow">COLLABORATION</span>
             <h2>Shared Workspaces</h2>
             <p>
-              Create project rooms, invite active RideArrivo employees,
-              collaborate across departments and keep each project discussion
-              visible only to its members and authorised management.
+              Create private project rooms or governed
+              two-department collaborations. Collaboration
+              content follows explicit project membership
+              or the two participating departments only.
             </p>
           </div>
 
@@ -964,6 +1097,35 @@ export default function SharedWorkspacesHub({
                 <option value="cross_department">Cross-department</option>
               </select>
             </label>
+            {newType==='cross_department' &&
+              <label>
+                Partner department
+
+                <select
+                  value={partnerDepartment}
+                  onChange={event=>{
+                    setPartnerDepartment(
+                      event.target.value
+                    )
+                  }}
+                >
+                  <option value="">
+                    Select one department
+                  </option>
+
+                  {availableDepartments.map(
+                    department=>(
+                      <option
+                        key={department}
+                        value={department}
+                      >
+                        {department}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+            }
 
             <label>
               Name
@@ -986,7 +1148,14 @@ export default function SharedWorkspacesHub({
             <button
               type="button"
               className="primaryButton"
-              disabled={busy || !newName.trim()}
+              disabled={
+                busy
+                || !newName.trim()
+                || (
+                  newType==='cross_department'
+                  && !partnerDepartment
+                )
+              }
               onClick={()=>void createSpace()}
             >
               <FolderKanban size={16}/>
@@ -1082,7 +1251,7 @@ export default function SharedWorkspacesHub({
                 </span>
                 <span>
                   <ShieldCheck size={15}/>
-                  {myMembership?.member_role || (isManagement?'management':'member')}
+                  {myMembership?.member_role || 'department member'}
                 </span>
               </div>
             </div>
@@ -1117,7 +1286,7 @@ export default function SharedWorkspacesHub({
                         </small>
                       </div>
 
-                      {canManage && !isSelf
+                      {canManage && selectedSpace?.space_type==='project' && !isSelf
                         ? <div className="sharedMemberControls">
                             <select
                               value={member.member_role}
@@ -1220,6 +1389,21 @@ export default function SharedWorkspacesHub({
             }
 
 
+            {selectedSpace.space_type==='cross_department' &&
+              <div className="sharedBoundaryNotice">
+                <strong>
+                  Two-department boundary
+                </strong>
+                <br/>
+                {selectedDepartments.length===2
+                  ? selectedDepartments.join(' + ')
+                  : 'Exactly two participating departments'
+                }.
+                Access follows department membership.
+                Individual invitations cannot add a third department.
+              </div>
+            }
+
             <div className="sharedDiscussion glassCard">
               <div className="sharedSectionTitle">
                 <div>
@@ -1275,12 +1459,13 @@ export default function SharedWorkspacesHub({
               <div>
                 <strong>Workspace access</strong>
                 <p>
-                  Leaving or removing a member immediately removes future access to this shared workspace.
+                  Project access follows explicit membership; two-department collaboration access follows current department assignment.
                 </p>
               </div>
 
               <div>
                 {myMembership &&
+                  selectedSpace?.space_type==='project' &&
                   <button
                     type="button"
                     className="glassButton"
