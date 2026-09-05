@@ -22,7 +22,10 @@ import {
 import {
   supabase
 } from '../lib/supabase'
-import { openInParasyte } from '../lib/parasyte'
+import WorkstationWindow from '../components/WorkstationWindow'
+import DepartmentDiscussionPanel from './DepartmentDiscussionPanel'
+import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
+import ProvidusBankingPanel from './ProvidusBankingPanel'
 import SharedWorkspacesHub from './SharedWorkspacesHub'
 import { DataWorkbench } from './DataWorkbench'
 import EngineeringWorkbench from './EngineeringWorkbench'
@@ -83,6 +86,7 @@ type Props={
   tools:Tool[]
   workspaceLinks?:WorkspaceLink[]
   workstationContent?:ReactNode
+  financeRequestMode?:'department'|'finance'|'executive'|'none'
   onNavigate?:(target:string)=>void
 
   execution:ReactNode
@@ -126,6 +130,7 @@ export function DepartmentTeamWorkspace({
   tools,
   workspaceLinks=[],
   workstationContent,
+  financeRequestMode='department',
   onNavigate,
   execution
 }:Props){
@@ -141,8 +146,13 @@ export function DepartmentTeamWorkspace({
       'team'
       | 'workstation'
       | 'shared'
+      | 'discussion'
       | 'execution'
     >('workstation')
+  const [activeTool,setActiveTool]=
+    useState<Tool|null>(null)
+  const [toolWindowMode,setToolWindowMode]=
+    useState<'minimized'|'split'|'maximized'>('split')
 
   const [loading,setLoading]=
     useState(true)
@@ -271,11 +281,6 @@ export function DepartmentTeamWorkspace({
         normalisedDepartmentAliases.some(
           alias=>currentDepartment.includes(alias)
         )
-        ||
-        normalisedRoleAliases.includes(
-          normalise(current.role)
-        )
-
       /*
        * Department-space creation is idempotent, but it should not run on
        * every parent re-render or background refresh. Run it at most once
@@ -365,6 +370,27 @@ export function DepartmentTeamWorkspace({
   ])
 
 
+  const profileBelongsHere=useMemo(()=>{
+    if(!profile){
+      return false
+    }
+
+    const currentDepartment=
+      normalise(
+        profile.department
+      )
+
+    return normalisedDepartmentAliases.some(
+      alias=>
+        currentDepartment.includes(
+          alias
+        )
+    )
+  },[
+    profile,
+    normalisedDepartmentAliases
+  ])
+
   const workstationLinks=
     useMemo(()=>{
       const combined=[...sharedWorkspaceLinks,...workspaceLinks]
@@ -377,16 +403,12 @@ export function DepartmentTeamWorkspace({
     },[workspaceLinks])
 
   const openTool=(tool:Tool)=>{
-
     if(!tool.url){
       return
     }
 
-    openInParasyte(
-      tool.url,
-      tool.name
-    )
-
+    setActiveTool(tool)
+    setToolWindowMode('split')
   }
 
 
@@ -462,6 +484,22 @@ export function DepartmentTeamWorkspace({
       <div className="departmentTabs">
         <button type="button" className={view==='workstation'?'active':''} onClick={()=>setView('workstation')}><Wrench size={16}/>Workspace</button>
         <button type="button" className={view==='shared'?'active':''} onClick={()=>setView('shared')}><FolderKanban size={16}/>Collaboration</button>
+        {profileBelongsHere &&
+          <button
+            type="button"
+            className={
+              view==='discussion'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setView('discussion')
+            }
+          >
+            <UsersRound size={16}/>
+            Discussion
+          </button>
+        }
         <button type="button" className={view==='execution'?'active':''} onClick={()=>setView('execution')}><Layers3 size={16}/>Operations</button>
         <button type="button" className={view==='team'?'active':''} onClick={()=>setView('team')}><UsersRound size={16}/>Team</button>
       </div>
@@ -471,6 +509,12 @@ export function DepartmentTeamWorkspace({
           embedded
           onNavigate={onNavigate}
         />
+      }
+
+
+      {view==='discussion' &&
+        profileBelongsHere &&
+        <DepartmentDiscussionPanel/>
       }
 
 
@@ -611,6 +655,25 @@ export function DepartmentTeamWorkspace({
 
           {workstationContent}
 
+            {financeRequestMode==='department' &&
+              profileBelongsHere &&
+              <DepartmentFinanceRequestPanel
+                context="department"
+              />
+            }
+
+            {financeRequestMode==='finance' &&
+              <DepartmentFinanceRequestPanel
+                context="finance"
+              />
+            }
+
+            {financeRequestMode==='executive' &&
+              <DepartmentFinanceRequestPanel
+                context="executive"
+              />
+            }
+
           {onNavigate && workstationLinks.length>0 && <>
             <div className="departmentSectionHeader"><div>
               <span className="eyebrow">WORKSPACE ESSENTIALS</span>
@@ -637,7 +700,7 @@ export function DepartmentTeamWorkspace({
               </h3>
 
               <p>
-                Core work is handled natively in RideArrivo. Specialist and regulatory consoles open through PArAsYtE or their secured provider when browser policy requires it.
+                Core work is handled natively in RideArrivo. Specialist and regulatory services open inside a managed Workstation Window while provider authentication and browser-security policies remain in force.
               </p>
 
             </div>
@@ -689,6 +752,20 @@ export function DepartmentTeamWorkspace({
         </div>
       }
 
+
+      {activeTool?.url &&
+        <WorkstationWindow
+          title={activeTool.name}
+          subtitle={activeTool.purpose}
+          badge="CONNECTED SERVICE"
+          url={activeTool.url}
+          mode={toolWindowMode}
+          onModeChange={setToolWindowMode}
+          onClose={()=>{
+            setActiveTool(null)
+          }}
+        />
+      }
     </section>
   )
 }
@@ -750,6 +827,7 @@ export function ExecutiveTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
       {name:'Company CRM',purpose:'Customer, corporate account and opportunity control.',target:'crm'},
       {name:'Applications',purpose:'Approved internal and managed company applications.',target:'apps'}
     ]}
+    financeRequestMode="executive"
     onNavigate={onNavigate}
     execution={<ExecutiveExecution onNavigate={onNavigate}/>}
   />
@@ -793,7 +871,6 @@ export function SupportTeamWorkspace({
     tools={[
         {name:'HubSpot Help Desk',purpose:'Omnichannel ticketing, SLA, routing and customer context when connected.',url:'https://app.hubspot.com/'},
         {name:'Zoho Mail',purpose:'RideArrivo company email and case communication.',url:'https://mail.zoho.com/'},
-        {name:'WhatsApp Web',purpose:'Approved customer support communication.',url:'https://web.whatsapp.com/'},
         {name:'Google Maps',purpose:'Route, pickup and service-location context.',url:'https://maps.google.com/'}
       ]}
       workstationContent={workstationContent}
@@ -990,7 +1067,6 @@ export function FinanceTeamWorkspace({
         {title:'Close & Audit',description:'Month-end/year-end close, reconciliations, evidence and audit trail.'}
     ]}
     tools={[
-        {name:'ProvidusBank',purpose:'RideArrivo corporate banking and statement access.',url:'https://ibank.providusbank.com/provipay#/login'},
         {name:'Paystack',purpose:'Transactions and settlements. Live read-only data is available natively below.'},
         {name:'Flutterwave',purpose:'Collections and settlements. Live read-only data is available natively below.'},
         {name:'FIRS TaxPro MAX',purpose:'Federal tax filing and compliance administration.',url:'https://taxpromax.firs.gov.ng/'},
@@ -998,7 +1074,13 @@ export function FinanceTeamWorkspace({
         {name:'PenCom Employer Hub',purpose:'Pension employer compliance and clearance.',url:'https://ehub.pencom.gov.ng/'},
         {name:'Google Sheets',purpose:'Controlled finance modelling and reconciliations.',url:'https://sheets.google.com/'}
       ]}
-      workstationContent={<FinancePaymentsPanel/>}
+      workstationContent={
+        <div className="financeWorkstationStack">
+          <ProvidusBankingPanel context="finance"/>
+          <FinancePaymentsPanel/>
+        </div>
+      }
+      financeRequestMode="finance"
       onNavigate={onNavigate}
       execution={execution}
     />

@@ -1,0 +1,433 @@
+.adminPaymentsStack,
+.financeWorkstationStack,
+.supportWorkstationStack{
+  display:grid;
+  gap:18px;
+}
+
+.providusNotice svg{
+  vertical-align:middle;
+}
+
+.supportWhatsAppLauncher{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:18px;
+}
+
+.supportWhatsAppLauncher h3{
+  margin:6px 0;
+}
+
+.supportWhatsAppLauncher p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+}
+
+.supportWhatsAppWorkspace{
+  height:100%;
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(180px,32%) minmax(0,1fr);
+}
+
+.supportWhatsAppList{
+  min-width:0;
+  overflow:auto;
+  padding:10px;
+  border-right:1px solid rgba(7,26,56,.08);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.supportWhatsAppList button{
+  width:100%;
+  display:flex;
+  gap:9px;
+  align-items:center;
+  border:1px solid transparent;
+  border-radius:11px;
+  background:rgba(7,26,56,.035);
+  padding:10px;
+  text-align:left;
+  color:inherit;
+  cursor:pointer;
+}
+
+.supportWhatsAppList button.active{
+  border-color:rgba(244,163,0,.34);
+  background:rgba(244,163,0,.10);
+}
+
+.supportWhatsAppList button span{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.supportWhatsAppList button strong,
+.supportWhatsAppList button small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.supportWhatsAppList button small{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.supportWhatsAppConversation{
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.supportWhatsAppConversationHeader{
+  flex:0 0 auto;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(7,26,56,.08);
+  display:grid;
+  gap:3px;
+}
+
+.supportWhatsAppConversationHeader small{
+  color:var(--muted);
+}
+
+.supportWhatsAppMessages{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  background:rgba(7,26,56,.018);
+}
+
+.supportWhatsAppMessage{
+  width:max-content;
+  max-width:82%;
+  padding:9px 11px;
+  border-radius:13px;
+  background:#fff;
+  border:1px solid rgba(7,26,56,.08);
+}
+
+.supportWhatsAppMessage.outbound{
+  align-self:flex-end;
+  border-color:rgba(244,163,0,.22);
+  background:rgba(244,163,0,.10);
+}
+
+.supportWhatsAppMessage p{
+  margin:0 0 4px;
+  white-space:pre-wrap;
+  line-height:1.45;
+}
+
+.supportWhatsAppMessage small{
+  display:block;
+  text-align:right;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.supportWhatsAppComposer{
+  flex:0 0 auto;
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  padding:10px;
+  border-top:1px solid rgba(7,26,56,.08);
+  background:#fff;
+}
+
+.supportWhatsAppComposer textarea{
+  flex:1;
+  min-height:62px;
+  max-height:150px;
+  resize:vertical;
+}
+
+.supportWhatsAppEmpty,
+.workflowEmpty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  color:var(--muted);
+  text-align:center;
+  padding:24px;
+}
+
+.departmentDiscussion{
+  padding:18px;
+  display:grid;
+  gap:14px;
+}
+
+.departmentDiscussionHeader,
+.financeRequestHeader,
+.myWorkspaceSessionsHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.departmentDiscussionHeader h3,
+.financeRequestHeader h3{
+  margin:5px 0 6px;
+}
+
+.departmentDiscussionHeader p,
+.financeRequestHeader p,
+.myWorkspaceSessionsHeader p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+}
+
+.departmentDiscussionMessages{
+  max-height:480px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  padding:10px;
+  border:1px solid rgba(7,26,56,.07);
+  border-radius:14px;
+  background:rgba(7,26,56,.018);
+}
+
+.departmentDiscussionMessage{
+  max-width:82%;
+  padding:10px 12px;
+  border:1px solid rgba(7,26,56,.08);
+  border-radius:13px;
+  background:#fff;
+}
+
+.departmentDiscussionMessage.mine{
+  align-self:flex-end;
+  border-color:rgba(244,163,0,.25);
+  background:rgba(244,163,0,.09);
+}
+
+.departmentDiscussionMessage>div{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.departmentDiscussionMessage small{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.departmentDiscussionMessage p{
+  margin:6px 0 0;
+  white-space:pre-wrap;
+  line-height:1.5;
+}
+
+.departmentDiscussionComposer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:9px;
+}
+
+.departmentDiscussionComposer textarea{
+  min-height:72px;
+}
+
+.departmentFinanceRequests{
+  padding:18px;
+  display:grid;
+  gap:16px;
+}
+
+.financeRequestCreator{
+  display:grid;
+  gap:12px;
+  padding:14px;
+  border:1px solid rgba(7,26,56,.08);
+  border-radius:14px;
+  background:rgba(255,255,255,.55);
+}
+
+.financeRequestCreator label,
+.financeRequestFormGrid label{
+  display:grid;
+  gap:6px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.financeRequestFormGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+
+.financeRequestList{
+  display:grid;
+  gap:10px;
+}
+
+.financeRequestCard{
+  padding:14px;
+  border:1px solid rgba(7,26,56,.08);
+  border-radius:14px;
+  background:rgba(255,255,255,.65);
+  display:grid;
+  gap:10px;
+}
+
+.financeRequestTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.financeRequestTop>div{
+  display:grid;
+  gap:3px;
+}
+
+.financeRequestTop small{
+  color:var(--muted);
+}
+
+.financeRequestCard>p{
+  margin:0;
+  line-height:1.5;
+}
+
+.financeRequestFacts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.financeRequestFacts span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+
+.financeRequestNotes{
+  display:grid;
+  gap:4px;
+  padding:9px 10px;
+  border-radius:10px;
+  background:rgba(7,26,56,.04);
+}
+
+.financeRequestActionNote{
+  min-height:58px;
+}
+
+.financeRequestActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.sharedBoundaryNotice{
+  margin:12px 0;
+  padding:12px 14px;
+  border:1px solid rgba(244,163,0,.25);
+  border-radius:12px;
+  background:rgba(244,163,0,.08);
+  color:var(--navy);
+  line-height:1.5;
+}
+
+.marketingDiscussionScope{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(244,163,0,.10);
+  color:var(--navy);
+  font-size:11px;
+  font-weight:800;
+}
+
+.myWorkspaceSessions{
+  margin-top:16px;
+  padding:18px;
+}
+
+.myWorkspaceSessionsHeader strong{
+  display:block;
+  margin:4px 0 5px;
+}
+
+.myWorkspaceSessionsGrid{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.myWorkspaceSession{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(7,26,56,.08);
+  border-radius:12px;
+  background:rgba(255,255,255,.55);
+}
+
+.myWorkspaceSession>div{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.myWorkspaceSession span,
+.myWorkspaceSession small{
+  color:var(--muted);
+  font-size:10px;
+}
+
+@media(max-width:760px){
+  .supportWhatsAppWorkspace{
+    grid-template-columns:1fr;
+  }
+
+  .supportWhatsAppList{
+    max-height:175px;
+    border-right:0;
+    border-bottom:1px solid rgba(7,26,56,.08);
+  }
+
+  .supportWhatsAppLauncher,
+  .departmentDiscussionHeader,
+  .financeRequestHeader,
+  .myWorkspaceSessionsHeader{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .departmentDiscussionComposer,
+  .financeRequestFormGrid,
+  .myWorkspaceSessionsGrid{
+    grid-template-columns:1fr;
+  }
+}

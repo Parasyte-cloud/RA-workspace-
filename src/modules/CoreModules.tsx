@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { BadgeCheck, CalendarDays, Headphones, MessageCircle, Phone, Route, ShieldAlert, Users } from 'lucide-react'
+import { BadgeCheck, CalendarDays, Headphones, Phone, Route, ShieldAlert, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
-import DeviceAssetCenter from './DeviceAssetCenter'
 import AdministrationControlPlane from './AdministrationControlPlane'
 import OperationsControlPanel from './OperationsControlPanel'
 import LegalLawReportsPanel from './LegalLawReportsPanel'
@@ -14,14 +13,11 @@ function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:st
 export function CRMModule(){return <section><Title eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="Live commercial pipeline and account management backed by Supabase."/><div className="grid2"><DataWorkbench table="crm_leads" title="Lead pipeline" description="Create and manage qualified demand." createLabel="New lead" fields={[{key:'name',label:'Name',required:true},{key:'company',label:'Company'},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'source',label:'Source'},{key:'stage',label:'Stage',type:'select',options:['new','qualified','proposal','negotiation','won','lost'],required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'}]} columns={[{key:'name',label:'Lead'},{key:'company',label:'Company'},{key:'source',label:'Source'},{key:'stage',label:'Stage'},{key:'estimated_value',label:'Value'}]}/><DataWorkbench table="crm_accounts" title="Accounts" description="Riders, corporate, hotel and travel relationships." createLabel="New account" fields={[{key:'name',label:'Account name',required:true},{key:'account_type',label:'Type',type:'select',options:['individual','corporate','hotel','travel_partner','other'],required:true},{key:'lifecycle_stage',label:'Lifecycle',required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'},{key:'status',label:'Status',required:true}]} columns={[{key:'name',label:'Account'},{key:'account_type',label:'Type'},{key:'lifecycle_stage',label:'Lifecycle'},{key:'estimated_value',label:'Value'},{key:'status',label:'Status'}]}/></div></section>}
 
 export function SupportModule(){
-  const whatsappNumber='2348162706078'
-  const openWhatsApp=()=>{const message=encodeURIComponent('Hello RideArrivo Support, I need assistance.');window.location.href=`https://wa.me/${whatsappNumber}?text=${message}`}
   const callSupport=()=>{window.location.href='tel:+2348162706078'}
   return <section>
     <Title eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Omnichannel service, SLA control, booking context, handovers, reusable responses and quality review."/>
     <SupportOperationsPanel/>
-    <DeviceAssetCenter/>
-    <div className="supportActions glassCard"><div><h3>RideArrivo Support Communications</h3><p>Contact customers and manage approved support communications directly from the Support Station.</p></div><div className="buttonRow"><button className="whatsappButton" onClick={openWhatsApp}><MessageCircle size={17}/>WhatsApp</button><button className="glassButton" onClick={callSupport}><Phone size={17}/>Call</button></div></div>
+    <div className="supportActions glassCard"><div><h3>RideArrivo Support Communications</h3><p>Customer WhatsApp is handled inside the secured Support workstation. Voice calls remain a direct device action.</p></div><div className="buttonRow"><button className="glassButton" onClick={callSupport}><Phone size={17}/>Call</button></div></div>
     <div className="grid2">
       <DataWorkbench table="support_cases" title="Support cases" orderBy="opened_at" description="Customer and booking issues from intake through closure." createLabel="New case" fields={[{key:'reference',label:'Reference',required:true},{key:'subject',label:'Subject',required:true},{key:'category',label:'Category',required:true},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','in_progress','waiting','resolved','closed'],required:true},{key:'booking_reference',label:'Booking reference'}]} columns={[{key:'reference',label:'Reference'},{key:'subject',label:'Subject'},{key:'category',label:'Category'},{key:'priority',label:'Priority'},{key:'status',label:'Status'}]}/>
       <DataWorkbench table="support_handovers" title="Shift handovers" description="Open customer issues and operational context that must survive a shift change." createLabel="New handover" fields={[{key:'shift_label',label:'Shift / handover',required:true},{key:'summary',label:'Summary',type:'textarea',required:true},{key:'open_items',label:'Open items',type:'textarea'},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','acknowledged','closed'],required:true},{key:'owner_id',label:'Owner',type:'employee'}]} columns={[{key:'shift_label',label:'Shift'},{key:'summary',label:'Summary'},{key:'priority',label:'Priority'},{key:'status',label:'Status'}]}/>
