@@ -56,7 +56,7 @@ type ArrivoOpsView =
   typeof views[number]['id']
 
 
-export default function OperationsControlPanel() {
+export default function OperationsControlPanel({ accessMode = 'admin' }: { accessMode?: 'admin' | 'operations' } = {}) {
   const [view, setView] =
     useState<ArrivoOpsView>('overview')
 
@@ -692,7 +692,11 @@ export default function OperationsControlPanel() {
           title="ArrivoOps Live Dispatch"
           subtitle="Live bookings, riders, drivers, trips and operational status."
           badge="ARRIVOOPS"
-          url="https://admin.ridearrivo.com"
+          url={
+            accessMode === 'operations'
+              ? 'https://admin.ridearrivo.com/?surface=operations'
+              : 'https://admin.ridearrivo.com'
+          }
           mode={liveOperationsMode}
           onModeChange={setLiveOperationsMode}
           onClose={() => {
