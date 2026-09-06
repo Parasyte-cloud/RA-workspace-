@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Award, BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, ClipboardList, Clock3, FolderKanban, Gauge, Laptop, Smartphone, Sparkles, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
 import '../personal-dashboard.css'
 
@@ -175,6 +176,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
 
   return (
     <section className="personalDashboard">
+      <WorkstationGuideCard />
       <div className="personalHero glassHero">
         <div className="personalHeroCopy">
           <span className="eyebrow">YOUR RIDEARRIVO DASHBOARD</span>
