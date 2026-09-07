@@ -446,3 +446,7 @@ entrypoint = "./functions/zoho-mail-auth-url/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/zoho-mail-callback/index.ts"
+
+[functions.intake]
+verify_jwt = false
+entrypoint = "./functions/intake/index.ts"
