@@ -6,6 +6,7 @@ import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
 import AdministrationControlPlane from './AdministrationControlPlane'
 import OperationsControlPanel from './OperationsControlPanel'
+import SupportWhatsAppPanel from './SupportWhatsAppPanel'
 import LegalLawReportsPanel from './LegalLawReportsPanel'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
@@ -36,6 +37,7 @@ export function OperationsModule(){
       subtitle="Integrated RideArrivo operations control for dispatch, drivers, fleet, airport execution, incidents and governed operational spend."
     />
     <OperationsControlPanel accessMode="operations"/>
+    <SupportWhatsAppPanel context="operations"/>
   </section>
 }
 
@@ -85,7 +87,13 @@ export function LegalModule(){
   </section>
 }
 
-export function PeopleModule(){
+export function PeopleModule({
+  accessMode='full',
+}:{
+  accessMode?:'full'|'operations'
+}={}){
+  const operationsView=
+    accessMode==='operations'
   const [employees,setEmployees]=useState<Record<string,unknown>[]>([])
   const [leave,setLeave]=useState({leave_type:'Annual',start_date:'',end_date:'',reason:''})
   const [message,setMessage]=useState('')
@@ -93,12 +101,15 @@ export function PeopleModule(){
   const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})}
   return <section>
     <Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee records, recruitment, onboarding, leave, performance and learning under role-based controls."/>
+    {operationsView&&<div className="moduleNotice">Operations access is limited to the active employee directory and personal leave self-service. Recruitment, performance, training administration and HR profile changes remain restricted to People & HR and authorised management.</div>}
     <div className="grid2">
       <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory. Private employee headshots are not exposed here.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div>
       <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div>
+      {!operationsView&&<>
       <DataWorkbench table="people_candidates" title="Recruitment pipeline" description="Candidates from application through interview, offer and hire." createLabel="Add candidate" fields={[{key:'full_name',label:'Candidate name',required:true},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'role_title',label:'Role',required:true},{key:'stage',label:'Stage',type:'select',options:['applied','screening','interview','assessment','offer','hired','rejected','withdrawn'],required:true},{key:'source',label:'Source'},{key:'interview_date',label:'Interview date',type:'datetime-local'},{key:'owner_id',label:'Recruiter / owner',type:'employee'},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'full_name',label:'Candidate'},{key:'role_title',label:'Role'},{key:'stage',label:'Stage'},{key:'source',label:'Source'},{key:'interview_date',label:'Interview'}]}/>
       <DataWorkbench table="people_performance_reviews" title="Performance reviews" description="Review cycles, goals, manager assessment and completion status." createLabel="Start review" fields={[{key:'employee_id',label:'Employee',type:'employee',required:true},{key:'review_period',label:'Review period',required:true},{key:'rating',label:'Rating',type:'number'},{key:'status',label:'Status',type:'select',options:['draft','employee_input','manager_review','calibration','complete'],required:true},{key:'goals',label:'Goals / outcomes',type:'textarea'},{key:'manager_notes',label:'Manager notes',type:'textarea'},{key:'review_date',label:'Review date',type:'date'}]} columns={[{key:'review_period',label:'Period'},{key:'rating',label:'Rating'},{key:'status',label:'Status'},{key:'review_date',label:'Review date'}]}/>
       <DataWorkbench table="people_training_records" title="Learning & compliance training" description="Assigned learning, due dates, completion and certificate references." createLabel="Assign training" fields={[{key:'employee_id',label:'Employee',type:'employee',required:true},{key:'training_name',label:'Training',required:true},{key:'provider',label:'Provider'},{key:'status',label:'Status',type:'select',options:['assigned','in_progress','completed','expired'],required:true},{key:'due_date',label:'Due date',type:'date'},{key:'completed_at',label:'Completed at',type:'datetime-local'},{key:'certificate_path',label:'Certificate path / URL'}]} columns={[{key:'training_name',label:'Training'},{key:'provider',label:'Provider'},{key:'status',label:'Status'},{key:'due_date',label:'Due'}]}/>
+      </>}
     </div>
   </section>
 }
