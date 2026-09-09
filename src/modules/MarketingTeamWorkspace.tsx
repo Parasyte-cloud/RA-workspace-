@@ -38,6 +38,12 @@ import {
   MarketingModule
 } from './BusinessModules'
 
+import MarketingIntelligencePanel from './MarketingIntelligencePanel'
+import MarketingCreatorManager from './MarketingCreatorManager'
+import MarketingCampaignCreatorManager from './MarketingCampaignCreatorManager'
+import MarketingContentCampaignManager from './MarketingContentCampaignManager'
+import MarketingContentCreatorManager from './MarketingContentCreatorManager'
+import MarketingTrackingLinkManager from './MarketingTrackingLinkManager'
 import MarketingWalletPanel from './MarketingWalletPanel'
 import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 
@@ -113,6 +119,7 @@ type View=
   | 'digital'
   | 'strategy'
   | 'moodboard'
+  | 'intelligence'
   | 'wallet'
   | 'finance'
   | 'execution'
@@ -1955,6 +1962,20 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
         </button>
         <button
           className={
+            view==='intelligence'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>{
+            setView('intelligence')
+          }}
+        >
+          <BarChart3 size={16}/>
+          Intelligence
+        </button>
+
+        <button
+          className={
             view==='wallet'
               ? 'active'
               : ''
@@ -2754,6 +2775,28 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
           </div>
         </div>
       }
+
+      {view==='intelligence' &&
+        <>
+          <MarketingCreatorManager
+            role={profile?.role ?? null}
+          />
+          <MarketingCampaignCreatorManager
+            role={profile?.role ?? null}
+          />
+          <MarketingContentCampaignManager
+            role={profile?.role ?? null}
+          />
+          <MarketingContentCreatorManager
+            role={profile?.role ?? null}
+          />
+          <MarketingTrackingLinkManager
+            role={profile?.role ?? null}
+          />
+          <MarketingIntelligencePanel/>
+        </>
+      }
+
 
       {view==='wallet' &&
         <MarketingWalletPanel/>
