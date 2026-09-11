@@ -48,12 +48,11 @@ button,input,select,textarea{
   border-bottom:1px solid rgba(255,255,255,.09)
 }
 
-.formsLogo{
+.formsLogoCanvas{
   display:block;
-  width:clamp(220px,25vw,310px);
-  max-width:52vw;
-  height:auto;
-  object-fit:contain
+  width:clamp(185px,19vw,235px);
+  max-width:44vw;
+  height:auto
 }
 
 .formsBadge{
@@ -309,8 +308,8 @@ button,input,select,textarea{
     align-items:flex-start
   }
 
-  .formsLogo{
-    width:190px;
-    max-width:62vw
+  .formsLogoCanvas{
+    width:180px;
+    max-width:58vw
   }
 }
