@@ -466,3 +466,8 @@ entrypoint = "./functions/room-event-documents/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/room-event-engagement/index.ts"
+
+[functions.ridearrivo-public-forms]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/ridearrivo-public-forms/index.ts"

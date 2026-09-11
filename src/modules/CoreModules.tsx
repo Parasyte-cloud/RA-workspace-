@@ -4,6 +4,7 @@ import { BadgeCheck, CalendarDays, Headphones, Phone, Route, ShieldAlert, Users 
 import { supabase } from '../lib/supabase'
 import { DataWorkbench } from './DataWorkbench'
 import SupportOperationsPanel from './SupportOperationsPanel'
+import InvestorEnquiriesPanel from './InvestorEnquiriesPanel'
 import AdministrationControlPlane from './AdministrationControlPlane'
 import OperationsControlPanel from './OperationsControlPanel'
 import SupportWhatsAppPanel from './SupportWhatsAppPanel'
@@ -18,6 +19,7 @@ export function SupportModule(){
   return <section>
     <Title eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Omnichannel service, SLA control, booking context, handovers, reusable responses and quality review."/>
     <SupportOperationsPanel/>
+    <InvestorEnquiriesPanel/>
     <div className="supportActions glassCard"><div><h3>RideArrivo Support Communications</h3><p>Customer WhatsApp is handled inside the secured Support workstation. Voice calls remain a direct device action.</p></div><div className="buttonRow"><button className="glassButton" onClick={callSupport}><Phone size={17}/>Call</button></div></div>
     <div className="grid2">
       <DataWorkbench table="support_cases" title="Support cases" orderBy="opened_at" description="Customer and booking issues from intake through closure." createLabel="New case" fields={[{key:'reference',label:'Reference',required:true},{key:'subject',label:'Subject',required:true},{key:'category',label:'Category',required:true},{key:'priority',label:'Priority',type:'select',options:['low','normal','high','critical'],required:true},{key:'status',label:'Status',type:'select',options:['open','in_progress','waiting','resolved','closed'],required:true},{key:'booking_reference',label:'Booking reference'}]} columns={[{key:'reference',label:'Reference'},{key:'subject',label:'Subject'},{key:'category',label:'Category'},{key:'priority',label:'Priority'},{key:'status',label:'Status'}]}/>

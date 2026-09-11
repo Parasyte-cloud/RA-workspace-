@@ -1,0 +1,167 @@
+.investorSupport{
+  margin:18px 0;
+  padding:22px
+}
+
+.investorSupportHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px
+}
+
+.investorSupportHeader h3{
+  margin:5px 0
+}
+
+.investorSupportHeader p{
+  margin:0;
+  color:var(--muted,#6f7a89)
+}
+
+.investorSupportError,
+.investorSupportSuccess{
+  margin-top:16px;
+  padding:12px 14px;
+  border-radius:12px
+}
+
+.investorSupportError{
+  color:#a33131;
+  background:rgba(177,37,37,.08);
+  border:1px solid rgba(177,37,37,.18)
+}
+
+.investorSupportSuccess{
+  color:#176946;
+  background:rgba(31,148,97,.08);
+  border:1px solid rgba(31,148,97,.18)
+}
+
+.investorSupportEmpty{
+  display:grid;
+  justify-items:center;
+  gap:7px;
+  margin-top:18px;
+  padding:30px;
+  border:1px dashed rgba(20,42,70,.18);
+  border-radius:18px
+}
+
+.investorSupportEmpty span{
+  color:var(--muted,#6f7a89)
+}
+
+.investorSupportList{
+  display:grid;
+  gap:14px;
+  margin-top:18px
+}
+
+.investorSupportRecord{
+  padding:18px;
+  border:1px solid rgba(20,42,70,.12);
+  border-radius:17px;
+  background:rgba(255,255,255,.45)
+}
+
+.investorSupportRecord header{
+  display:flex;
+  justify-content:space-between;
+  gap:16px
+}
+
+.investorSupportRecord header>div{
+  display:grid;
+  gap:3px
+}
+
+.investorSupportRecord header span{
+  color:var(--muted,#6f7a89)
+}
+
+.investorSupportStatus{
+  align-self:flex-start;
+  padding:6px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  background:rgba(255,159,10,.12)
+}
+
+.investorSupportContact{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin-top:16px
+}
+
+.investorSupportContact>div{
+  display:grid;
+  gap:4px
+}
+
+.investorSupportContact span{
+  color:var(--muted,#6f7a89);
+  font-size:11px;
+  text-transform:uppercase
+}
+
+.investorSupportContact a{
+  color:inherit;
+  font-weight:700;
+  word-break:break-word
+}
+
+.investorSupportMessage{
+  margin:16px 0;
+  padding:13px;
+  border-radius:12px;
+  background:rgba(10,33,61,.05);
+  line-height:1.6
+}
+
+.investorSupportRecord label{
+  display:grid;
+  gap:7px;
+  margin-top:15px
+}
+
+.investorSupportRecord textarea,
+.investorSupportActions select{
+  width:100%;
+  border:1px solid rgba(20,42,70,.16);
+  border-radius:11px;
+  padding:10px;
+  background:rgba(255,255,255,.72);
+  color:inherit;
+  font:inherit
+}
+
+.investorSupportActions{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  margin-top:12px
+}
+
+@media(max-width:850px){
+  .investorSupportContact{
+    grid-template-columns:1fr 1fr
+  }
+}
+
+@media(max-width:560px){
+  .investorSupportHeader{
+    flex-direction:column
+  }
+
+  .investorSupportContact{
+    grid-template-columns:1fr
+  }
+
+  .investorSupportActions{
+    grid-template-columns:1fr
+  }
+}
