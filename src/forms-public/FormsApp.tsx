@@ -153,7 +153,7 @@ export default function FormsApp() {
           <header className="formsHeader">
             <img
             className="formsLogo"
-            src="/ridearrivo-wordmark-workspace.png"
+            src="/ridearrivo-wordmark-forms-exact.png"
             alt="RideArrivo"
           />
 
@@ -201,7 +201,7 @@ export default function FormsApp() {
         <header className="formsHeader">
           <img
             className="formsLogo"
-            src="/ridearrivo-wordmark-workspace.png"
+            src="/ridearrivo-wordmark-forms-exact.png"
             alt="RideArrivo"
           />
 

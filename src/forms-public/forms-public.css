@@ -50,8 +50,8 @@ button,input,select,textarea{
 
 .formsLogo{
   display:block;
-  width:clamp(190px,22vw,285px);
-  max-width:48vw;
+  width:clamp(220px,25vw,310px);
+  max-width:52vw;
   height:auto;
   object-fit:contain
 }
