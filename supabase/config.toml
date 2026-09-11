@@ -375,7 +375,7 @@ enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
-policy = "per_worker"
+policy = "oneshot"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
 # The Deno major version to use.
@@ -446,3 +446,23 @@ entrypoint = "./functions/zoho-mail-auth-url/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/zoho-mail-callback/index.ts"
+
+[functions.room-guest-session]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/room-guest-session/index.ts"
+
+[functions.room-event-control]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/room-event-control/index.ts"
+
+[functions.room-event-documents]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/room-event-documents/index.ts"
+
+[functions.room-event-engagement]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/room-event-engagement/index.ts"

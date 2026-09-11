@@ -1,0 +1,474 @@
+.room7EngagementManager{
+  display:grid;
+  gap:16px;
+  min-width:0;
+}
+
+.room7EngagementManagerHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.room7EngagementManagerHeader>div{
+  display:grid;
+  gap:5px;
+}
+
+.room7EngagementEyebrow,
+.room7EngagementEditorHeading span{
+  color:#f6a11a;
+  font-size:.62rem;
+  font-weight:850;
+  letter-spacing:.12em;
+}
+
+.room7EngagementManagerHeader h3{
+  margin:0;
+  font-size:1.05rem;
+}
+
+.room7EngagementManagerHeader p,
+.room7EngagementSectionIntro p{
+  max-width:680px;
+  margin:0;
+  color:#94a3b8;
+  font-size:.7rem;
+  line-height:1.55;
+}
+
+.room7EngagementManagerTabs{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding-bottom:2px;
+}
+
+.room7EngagementManagerTabs button{
+  flex:0 0 auto;
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:999px;
+  padding:0 12px;
+  background:rgba(255,255,255,.025);
+  color:#94a3b8;
+  font:inherit;
+  font-size:.69rem;
+  font-weight:750;
+  cursor:pointer;
+}
+
+.room7EngagementManagerTabs button.active{
+  border-color:rgba(246,161,26,.28);
+  background:rgba(246,161,26,.09);
+  color:#f6c56d;
+}
+
+.room7EngagementManagerTabs button>span{
+  min-width:18px;
+  height:18px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#f6a11a;
+  color:#101827;
+  font-size:.59rem;
+}
+
+.room7EngagementLoading,
+.room7EngagementMessage{
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:.7rem;
+}
+
+.room7EngagementLoading{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(255,255,255,.025);
+  color:#94a3b8;
+}
+
+.room7EngagementLoading svg{
+  animation:room7EngagementSpin 1s linear infinite;
+}
+
+@keyframes room7EngagementSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+.room7EngagementMessage.error{
+  border:1px solid rgba(248,113,113,.2);
+  background:rgba(127,29,29,.15);
+  color:#fecaca;
+}
+
+.room7EngagementMessage.success{
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(6,78,59,.16);
+  color:#a7f3d0;
+}
+
+.room7EngagementExperience{
+  display:grid;
+  gap:14px;
+}
+
+.room7EngagementEditorCard,
+.room7EngagementFeatureControls{
+  display:grid;
+  gap:13px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:17px;
+  padding:16px;
+  background:rgba(255,255,255,.022);
+}
+
+.room7EngagementEditorHeading,
+.room7EngagementRepeaterHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.room7EngagementEditorHeading>div{
+  display:grid;
+  gap:4px;
+}
+
+.room7EngagementEditorHeading strong{
+  font-size:.84rem;
+}
+
+.room7EngagementEditorCard label,
+.room7InvestorRecord label{
+  display:grid;
+  gap:6px;
+}
+
+.room7EngagementEditorCard label>span,
+.room7InvestorRecord label>span{
+  color:#cbd5e1;
+  font-size:.67rem;
+  font-weight:700;
+}
+
+.room7EngagementEditorCard input,
+.room7EngagementEditorCard textarea,
+.room7EngagementRepeater input,
+.room7EngagementRepeater textarea,
+.room7ProgrammeEditor input,
+.room7ProgrammeEditor textarea,
+.room7QuestionCard textarea,
+.room7InvestorRecord textarea,
+.room7InvestorRecord select{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:11px;
+  outline:none;
+  padding:9px 10px;
+  background:rgba(0,0,0,.18);
+  color:#f5f7fa;
+  font:inherit;
+  font-size:.73rem;
+}
+
+.room7EngagementEditorCard input:focus,
+.room7EngagementEditorCard textarea:focus,
+.room7QuestionCard textarea:focus,
+.room7InvestorRecord textarea:focus,
+.room7InvestorRecord select:focus{
+  border-color:rgba(246,161,26,.44);
+}
+
+.room7EngagementRepeaterHeader strong{
+  font-size:.72rem;
+}
+
+.room7EngagementRepeater,
+.room7ProgrammeEditor{
+  display:grid;
+  gap:8px;
+}
+
+.room7EngagementRepeater article,
+.room7ProgrammeEditor article{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) auto;
+  align-items:start;
+  gap:8px;
+}
+
+.room7EngagementRepeater article>div,
+.room7ProgrammeEditor article>div{
+  display:grid;
+  gap:8px;
+}
+
+.room7ProgrammeEditor article>div{
+  grid-template-columns:140px minmax(150px,.7fr) minmax(220px,1fr);
+}
+
+.room7EngagementItemNumber{
+  min-height:36px;
+  display:grid;
+  place-items:center;
+  color:#f6a11a;
+  font-size:.63rem;
+  font-weight:850;
+}
+
+.room7EngagementFeatureControls{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.room7EngagementFeatureControls label{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+}
+
+.room7EngagementFeatureControls input{
+  margin-top:3px;
+  accent-color:#f6a11a;
+}
+
+.room7EngagementFeatureControls label>span{
+  display:grid;
+  gap:3px;
+}
+
+.room7EngagementFeatureControls strong{
+  font-size:.74rem;
+}
+
+.room7EngagementFeatureControls small{
+  color:#8492a5;
+  font-size:.63rem;
+  line-height:1.45;
+}
+
+.room7EngagementSaveBar{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.room7EngagementSaveBar button,
+.room7QuestionActions button,
+.room7InvestorActions button,
+.room7EngagementRepeaterHeader button,
+.room7EngagementEditorHeading button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+
+.room7QuestionModeration,
+.room7InvestorManager{
+  display:grid;
+  gap:13px;
+}
+
+.room7EngagementSectionIntro{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.room7EngagementSectionIntro svg{
+  color:#f6a11a;
+}
+
+.room7EngagementSectionIntro>div{
+  display:grid;
+  gap:4px;
+}
+
+.room7EngagementEmpty{
+  min-height:150px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:8px;
+  border:1px dashed rgba(255,255,255,.1);
+  border-radius:16px;
+  color:#8392a4;
+}
+
+.room7QuestionList,
+.room7InvestorList{
+  display:grid;
+  gap:10px;
+}
+
+.room7QuestionCard,
+.room7InvestorRecord{
+  display:grid;
+  gap:11px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(255,255,255,.023);
+}
+
+.room7QuestionCard.status-pending{
+  border-color:rgba(246,161,26,.17);
+}
+
+.room7QuestionCard.status-answered{
+  border-color:rgba(52,211,153,.17);
+}
+
+.room7QuestionCard header,
+.room7InvestorRecord header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.room7QuestionCard header>div,
+.room7InvestorRecord header>div{
+  display:grid;
+  gap:3px;
+}
+
+.room7QuestionCard header span,
+.room7InvestorRecord header span{
+  color:#8492a5;
+  font-size:.63rem;
+}
+
+.room7QuestionStatus{
+  display:flex !important;
+  grid-auto-flow:column;
+  align-items:center;
+  gap:6px !important;
+  color:#f6a11a;
+  text-transform:uppercase;
+}
+
+.room7QuestionText{
+  margin:0;
+  color:#e2e8f0;
+  font-size:.8rem;
+  line-height:1.6;
+}
+
+.room7QuestionCard>small,
+.room7InvestorRecord>small{
+  color:#718096;
+  font-size:.61rem;
+}
+
+.room7QuestionActions,
+.room7InvestorActions{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:7px;
+}
+
+.room7DangerButton{
+  color:#fca5a5 !important;
+}
+
+.room7InvestorContactGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.room7InvestorContactGrid>div{
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:9px;
+  border-radius:11px;
+  background:rgba(0,0,0,.14);
+}
+
+.room7InvestorContactGrid span{
+  color:#718096;
+  font-size:.59rem;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+
+.room7InvestorContactGrid strong{
+  overflow-wrap:anywhere;
+  font-size:.69rem;
+}
+
+.room7InvestorMessage{
+  margin:0;
+  color:#cbd5e1;
+  font-size:.72rem;
+  line-height:1.55;
+}
+
+.room7InvestorStatus{
+  display:inline-flex;
+  border-radius:999px;
+  padding:5px 8px;
+  background:rgba(255,255,255,.05);
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+
+.room7InvestorStatus.status-qualified{
+  background:rgba(6,78,59,.18);
+  color:#86efac;
+}
+
+.room7InvestorActions select{
+  width:auto;
+  min-width:135px;
+  min-height:37px;
+}
+
+@media(max-width:880px){
+  .room7ProgrammeEditor article>div{
+    grid-template-columns:1fr;
+  }
+
+  .room7EngagementFeatureControls{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:620px){
+  .room7EngagementManagerHeader{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .room7EngagementRepeater article,
+  .room7ProgrammeEditor article{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+
+  .room7EngagementItemNumber{
+    display:none;
+  }
+
+  .room7InvestorContactGrid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .room7EngagementLoading svg{
+    animation:none;
+  }
+}

@@ -19,6 +19,12 @@ function uuid(value: unknown) {
     : ""
 }
 
+function guestUuid(value: unknown) {
+  const candidate = text(value, 80)
+  const match = /^guest:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(candidate)
+  return match?.[1] || ""
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -356,6 +362,14 @@ serve(async req => {
         .is("left_at", null)
       if (attendanceEndError) throw attendanceEndError
 
+      const { error: guestAttendanceEndError } = await admin
+        .from("room7_guest_attendance")
+        .update({ left_at: finalEndedAt })
+        .eq("room_id", room.id)
+        .eq("session_id", sessionId)
+        .is("left_at", null)
+      if (guestAttendanceEndError) throw guestAttendanceEndError
+
     }
 
     if (
@@ -392,7 +406,12 @@ serve(async req => {
       eventType === "meeting.participantLeft"
     ) {
       const participant = event?.participant || {}
-      const userId = uuid(participant?.customParticipantId)
+      const customParticipantId = text(
+        participant?.customParticipantId,
+        100,
+      )
+      const userId = uuid(customParticipantId)
+      const guestId = guestUuid(customParticipantId)
 
       if (userId && sessionId) {
         const joinedAt = iso(participant?.joinedAt)
@@ -414,6 +433,66 @@ serve(async req => {
           .upsert(payload, { onConflict: "room_id,session_id,user_id" })
 
         if (error) throw error
+      } else if (guestId && sessionId) {
+        const { data: guest, error: guestError } = await admin
+          .from("room7_guest_participants")
+          .select("id,room_id,display_name,first_joined_at")
+          .eq("id", guestId)
+          .eq("room_id", room.id)
+          .maybeSingle()
+
+        if (guestError) throw guestError
+
+        if (guest) {
+          const joinedAt = iso(participant?.joinedAt)
+          const leftAt = iso(participant?.leftAt)
+
+          const payload: Record<string, unknown> = {
+            room_id: room.id,
+            session_id: sessionId,
+            guest_id: guest.id,
+            display_name:
+              text(participant?.userDisplayName, 180)
+              || text(guest.display_name, 180)
+              || "ROOM 7 Guest",
+            peer_id: text(participant?.peerId, 200) || null,
+          }
+
+          if (joinedAt) payload.joined_at = joinedAt
+          if (leftAt) payload.left_at = leftAt
+
+          const { error } = await admin
+            .from("room7_guest_attendance")
+            .upsert(
+              payload,
+              { onConflict: "room_id,session_id,guest_id" },
+            )
+
+          if (error) throw error
+
+          if (
+            eventType === "meeting.participantJoined" &&
+            joinedAt
+          ) {
+            const {
+              error: guestTimestampError,
+            } = await admin
+              .from("room7_guest_participants")
+              .update({
+                first_joined_at:
+                  guest.first_joined_at ||
+                  joinedAt,
+                last_joined_at:
+                  joinedAt,
+              })
+              .eq("id", guest.id)
+              .eq("room_id", room.id)
+
+            if (guestTimestampError) {
+              throw guestTimestampError
+            }
+          }
+        }
       }
     }
 
@@ -444,13 +523,26 @@ serve(async req => {
     ) {
       const summary = await downloadSummary(event?.summaryDownloadUrl)
 
-      const { count, error: countError } = await admin
-        .from("workspace_room_attendance")
-        .select("user_id", { count: "exact", head: true })
-        .eq("room_id", room.id)
-        .eq("session_id", sessionId)
+      const { count: employeeCount, error: employeeCountError } =
+        await admin
+          .from("workspace_room_attendance")
+          .select("user_id", { count: "exact", head: true })
+          .eq("room_id", room.id)
+          .eq("session_id", sessionId)
 
-      if (countError) throw countError
+      if (employeeCountError) throw employeeCountError
+
+      const { count: guestCount, error: guestCountError } =
+        await admin
+          .from("room7_guest_attendance")
+          .select("guest_id", { count: "exact", head: true })
+          .eq("room_id", room.id)
+          .eq("session_id", sessionId)
+
+      if (guestCountError) throw guestCountError
+
+      const participantCount =
+        Number(employeeCount || 0) + Number(guestCount || 0)
 
       const { error } = await admin
         .from("workspace_room_minutes")
@@ -460,7 +552,7 @@ serve(async req => {
           status: "ready",
           summary_markdown: summary,
           summary_received_at: new Date().toISOString(),
-          participant_count: count || 0,
+          participant_count: participantCount,
         }, { onConflict: "room_id,session_id" })
 
       if (error) throw error

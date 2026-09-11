@@ -1,0 +1,1711 @@
+.room7Public{
+  --r7-bg:#07111f;
+  --r7-panel:rgba(15,29,47,.72);
+  --r7-panel-strong:rgba(12,24,41,.92);
+  --r7-border:rgba(255,255,255,.10);
+  --r7-text:#f5f7fa;
+  --r7-muted:#9eabba;
+  --r7-amber:#f6a11a;
+  --r7-amber-soft:rgba(246,161,26,.15);
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+  padding:0 6vw 50px;
+  background:
+    radial-gradient(circle at 14% 8%,rgba(36,88,139,.22),transparent 32%),
+    radial-gradient(circle at 88% 15%,rgba(246,161,26,.13),transparent 26%),
+    linear-gradient(145deg,#050b14 0%,#091525 52%,#07101c 100%);
+  color:var(--r7-text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  isolation:isolate;
+}
+
+.room7Public *{
+  box-sizing:border-box;
+}
+
+.room7PublicGlow{
+  position:absolute;
+  border-radius:999px;
+  filter:blur(100px);
+  pointer-events:none;
+  z-index:-1;
+}
+
+.room7PublicGlowOne{
+  width:380px;
+  height:380px;
+  top:-180px;
+  right:3%;
+  background:rgba(246,161,26,.10);
+}
+
+.room7PublicGlowTwo{
+  width:520px;
+  height:520px;
+  bottom:-300px;
+  left:-180px;
+  background:rgba(43,104,163,.14);
+}
+
+.room7PublicHeader{
+  min-height:96px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.room7PublicLogo{
+  width:min(205px,42vw);
+  height:auto;
+  object-fit:contain;
+}
+
+.room7PublicHeaderRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.room7PublicSecure,
+.room7PublicRoomMark,
+.room7PublicState{
+  border:1px solid var(--r7-border);
+  border-radius:999px;
+  padding:7px 11px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.room7PublicSecure{
+  color:#b8c3cf;
+}
+
+.room7PublicRoomMark{
+  color:#12100a;
+  background:var(--r7-amber);
+  border-color:transparent;
+}
+
+.room7PublicHero{
+  width:min(1260px,100%);
+  margin:70px auto 0;
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);
+  gap:56px;
+  align-items:center;
+}
+
+.room7PublicHeroCopy{
+  min-width:0;
+}
+
+.room7PublicMetaLine{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:34px;
+  color:var(--r7-muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.room7PublicState-live,
+.room7PublicState-doors_open{
+  border-color:rgba(52,211,153,.3);
+  color:#86efac;
+  background:rgba(34,197,94,.08);
+}
+
+.room7PublicState-pre_event{
+  color:#fbc56d;
+  border-color:rgba(246,161,26,.25);
+  background:rgba(246,161,26,.08);
+}
+
+.room7PublicState-ended{
+  color:#a9b3bf;
+}
+
+.room7PublicEyebrow{
+  display:block;
+  color:var(--r7-amber);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+
+.room7PublicHero h1{
+  margin:14px 0 22px;
+  max-width:900px;
+  font-size:clamp(42px,6vw,82px);
+  line-height:.98;
+  letter-spacing:-.055em;
+  font-weight:760;
+}
+
+.room7PublicSummary{
+  max-width:760px;
+  margin:0;
+  color:#bac5d0;
+  line-height:1.75;
+  font-size:clamp(15px,1.4vw,19px);
+}
+
+.room7PublicSchedule{
+  display:grid;
+  gap:5px;
+  margin-top:30px;
+}
+
+.room7PublicSchedule span{
+  color:#77879a;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.room7PublicSchedule strong{
+  font-size:14px;
+  font-weight:600;
+}
+
+.room7PublicCountdown{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(80px,118px));
+  gap:9px;
+  margin-top:30px;
+}
+
+.room7PublicCountdown>div{
+  padding:15px 12px;
+  border:1px solid var(--r7-border);
+  background:rgba(255,255,255,.035);
+  backdrop-filter:blur(18px);
+  border-radius:17px;
+  display:grid;
+  gap:4px;
+}
+
+.room7PublicCountdown strong{
+  font-size:26px;
+  font-weight:700;
+}
+
+.room7PublicCountdown span{
+  color:#7f8fa1;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.13em;
+}
+
+.room7PublicJoinCard{
+  display:grid;
+  gap:23px;
+  padding:29px;
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:28px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+  box-shadow:
+    0 30px 80px rgba(0,0,0,.25),
+    inset 0 1px rgba(255,255,255,.08);
+  backdrop-filter:blur(26px);
+}
+
+.room7PublicJoinCard h2{
+  margin:8px 0;
+  font-size:26px;
+}
+
+.room7PublicJoinCard>div>p{
+  margin:0;
+  color:#94a3b3;
+  font-size:12px;
+  line-height:1.65;
+}
+
+.room7PublicForm{
+  display:grid;
+  gap:13px;
+}
+
+.room7PublicForm label:not(.room7PublicConsent){
+  display:grid;
+  gap:6px;
+}
+
+.room7PublicForm label>span{
+  color:#a8b3c0;
+  font-size:10px;
+  font-weight:700;
+}
+
+.room7PublicForm input:not([type="checkbox"]){
+  width:100%;
+  min-height:46px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:13px;
+  padding:0 13px;
+  outline:none;
+  background:rgba(2,8,16,.38);
+  color:white;
+  font:inherit;
+}
+
+.room7PublicForm input:focus{
+  border-color:rgba(246,161,26,.58);
+  box-shadow:0 0 0 3px rgba(246,161,26,.08);
+}
+
+.room7PublicConsent{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:start;
+  gap:9px;
+  padding:4px 0;
+}
+
+.room7PublicConsent input{
+  margin-top:3px;
+  accent-color:var(--r7-amber);
+}
+
+.room7PublicConsent span{
+  color:#8795a6;
+  font-size:9px;
+  line-height:1.55;
+}
+
+.room7PublicJoinButton{
+  min-height:49px;
+  border:0;
+  border-radius:14px;
+  background:linear-gradient(135deg,#f5a11c,#df8610);
+  color:#160e03;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 14px 32px rgba(246,161,26,.16);
+}
+
+.room7PublicJoinButton:disabled{
+  opacity:.6;
+  cursor:wait;
+}
+
+.room7PublicNotice,
+.room7PublicFormError{
+  border-radius:13px;
+  padding:11px 12px;
+  line-height:1.5;
+  font-size:10px;
+}
+
+.room7PublicNotice{
+  border:1px solid rgba(246,161,26,.18);
+  background:rgba(246,161,26,.07);
+  color:#e7bc75;
+}
+
+.room7PublicFormError{
+  border:1px solid rgba(248,113,113,.18);
+  background:rgba(239,68,68,.07);
+  color:#fca5a5;
+}
+
+.room7PublicTrust{
+  display:grid;
+  gap:5px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.07);
+  color:#65768a;
+  font-size:8px;
+}
+
+.room7PublicExperience{
+  width:min(1260px,100%);
+  margin:90px auto 0;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-top:1px solid rgba(255,255,255,.08);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.room7PublicExperience article{
+  padding:30px 30px 34px 0;
+}
+
+.room7PublicExperience article+article{
+  border-left:1px solid rgba(255,255,255,.08);
+  padding-left:30px;
+}
+
+.room7PublicExperience article>span{
+  color:var(--r7-amber);
+  font-size:9px;
+  font-weight:900;
+}
+
+.room7PublicExperience strong{
+  display:block;
+  margin:14px 0 8px;
+  font-size:15px;
+}
+
+.room7PublicExperience p{
+  margin:0;
+  color:#7f8fa1;
+  font-size:10px;
+  line-height:1.7;
+}
+
+.room7PublicFooter{
+  width:min(1260px,100%);
+  margin:28px auto 0;
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  color:#52657a;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+}
+
+.room7PublicLoading,
+.room7PublicErrorCard,
+.room7PublicMeetingLoading,
+.room7PublicMeetingError{
+  min-height:100vh;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  text-align:center;
+  gap:10px;
+  background:#07111f;
+  color:#f5f7fa;
+}
+
+.room7PublicLoading{
+  min-height:calc(100vh - 96px);
+}
+
+.room7PublicErrorCard{
+  min-height:calc(100vh - 150px);
+}
+
+.room7PublicErrorCard p,
+.room7PublicMeetingError p,
+.room7PublicMeetingLoading span{
+  max-width:520px;
+  color:#91a0b0;
+}
+
+.room7PublicMeetingError img{
+  width:190px;
+}
+
+.room7PublicSpinner{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  border:2px solid rgba(255,255,255,.16);
+  border-top-color:#f6a11a;
+  animation:room7PublicSpin .75s linear infinite;
+}
+
+.room7PublicMeeting{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  background:#050a12;
+}
+
+.room7PublicMeeting rtk-meeting{
+  width:100%;
+  height:100%;
+}
+
+@keyframes room7PublicSpin{
+  to{transform:rotate(360deg)}
+}
+
+@media(max-width:960px){
+  .room7Public{
+    padding-left:24px;
+    padding-right:24px;
+  }
+
+  .room7PublicHero{
+    grid-template-columns:1fr;
+    margin-top:45px;
+  }
+
+  .room7PublicExperience{
+    grid-template-columns:1fr;
+  }
+
+  .room7PublicExperience article{
+    padding:24px 0;
+  }
+
+  .room7PublicExperience article+article{
+    border-left:0;
+    border-top:1px solid rgba(255,255,255,.08);
+    padding-left:0;
+  }
+}
+
+@media(max-width:560px){
+  .room7PublicHeader{
+    min-height:78px;
+  }
+
+  .room7PublicSecure{
+    display:none;
+  }
+
+  .room7PublicHero{
+    gap:30px;
+    margin-top:32px;
+  }
+
+  .room7PublicHero h1{
+    font-size:44px;
+  }
+
+  .room7PublicCountdown{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .room7PublicJoinCard{
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .room7PublicFooter{
+    display:grid;
+  }
+}
+
+/* ==========================================================
+   ROOM 7 EVENT EXPERIENCE SHELL
+   ========================================================== */
+
+.room7PublicSpinIcon{
+  animation:room7PublicSpin .75s linear infinite;
+}
+
+.room7ExperienceShell{
+  --r7x-bg:#050a12;
+  --r7x-surface:#0b1421;
+  --r7x-surface-2:#101c2b;
+  --r7x-text:#f5f7fa;
+  --r7x-muted:#92a0b0;
+  --r7x-border:rgba(255,255,255,.10);
+  --r7x-amber:#f6a11a;
+  --r7x-shadow:rgba(0,0,0,.62);
+
+  position:fixed;
+  inset:14px;
+  z-index:10000;
+  display:grid;
+  grid-template-rows:66px minmax(0,1fr);
+  overflow:hidden;
+
+  border:
+    1px solid
+    rgba(255,255,255,.12);
+
+  border-radius:34px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #091421,
+      #050a12
+    );
+
+  color:
+    var(--r7x-text);
+
+  box-shadow:
+    0 30px 100px
+    var(--r7x-shadow);
+
+  transition:
+    box-shadow .25s ease,
+    background .25s ease;
+}
+
+.room7ExperienceShell[data-room7-theme="light"]{
+  --r7x-bg:#edf1f5;
+  --r7x-surface:#ffffff;
+  --r7x-surface-2:#f4f6f8;
+  --r7x-text:#111827;
+  --r7x-muted:#667085;
+  --r7x-border:rgba(15,23,42,.12);
+  --r7x-shadow:rgba(15,23,42,.18);
+
+  border-color:
+    rgba(15,23,42,.12);
+
+  background:
+    linear-gradient(
+      145deg,
+      #f8fafc,
+      #e9eef4
+    );
+}
+
+.room7ExperienceAmbience-off{
+  box-shadow:
+    0 24px 70px
+    var(--r7x-shadow);
+}
+
+.room7ExperienceAmbience-low{
+  box-shadow:
+    0 0 34px
+    rgba(246,161,26,.13),
+    0 28px 90px
+    var(--r7x-shadow);
+}
+
+.room7ExperienceAmbience-medium{
+  box-shadow:
+    0 0 54px
+    rgba(246,161,26,.22),
+    0 0 90px
+    rgba(54,112,170,.13),
+    0 30px 100px
+    var(--r7x-shadow);
+}
+
+.room7ExperienceAmbience-high{
+  box-shadow:
+    0 0 68px
+    rgba(246,161,26,.34),
+    0 0 130px
+    rgba(54,112,170,.20),
+    0 34px 120px
+    var(--r7x-shadow);
+}
+
+.room7ExperienceChrome{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+
+  padding:
+    0 18px 0 20px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+
+  background:
+    color-mix(
+      in srgb,
+      var(--r7x-surface) 92%,
+      transparent
+    );
+
+  backdrop-filter:
+    blur(22px);
+
+  -webkit-backdrop-filter:
+    blur(22px);
+}
+
+.room7ExperienceIdentity{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.room7ExperienceIdentity img{
+  width:126px;
+  height:auto;
+  flex:0 0 auto;
+  object-fit:contain;
+}
+
+.room7ExperienceIdentity>div{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.room7ExperienceIdentity span{
+  color:
+    var(--r7x-amber);
+
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.17em;
+}
+
+.room7ExperienceIdentity strong{
+  max-width:
+    min(48vw,620px);
+
+  overflow:hidden;
+
+  color:
+    var(--r7x-text);
+
+  font-size:11px;
+  font-weight:700;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.room7ExperienceControls{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.room7ExperienceConnection,
+.room7GuestDocumentTrigger,
+.room7ExperienceSettingsButton{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:12px;
+
+  padding:0 11px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  color:
+    var(--r7x-text);
+
+  font:inherit;
+  font-size:9px;
+  font-weight:750;
+}
+
+.room7GuestDocumentTrigger,
+.room7ExperienceSettingsButton{
+  cursor:pointer;
+}
+
+.room7GuestDocumentTrigger:hover,
+.room7ExperienceSettingsButton:hover{
+  border-color:
+    rgba(246,161,26,.30);
+
+  background:
+    rgba(246,161,26,.075);
+}
+
+.room7GuestDocumentTrigger>span{
+  min-width:17px;
+  height:17px;
+  display:grid;
+  place-items:center;
+
+  border-radius:999px;
+
+  background:
+    var(--r7x-amber);
+
+  color:#160e03;
+
+  font-size:8px;
+}
+
+.room7ExperienceConnection.online{
+  color:#8ce4b5;
+}
+
+.room7ExperienceConnection.reconnecting{
+  color:#f3c66f;
+}
+
+.room7ExperienceConnection.offline{
+  color:#fca5a5;
+}
+
+.room7ExperienceStage{
+  min-height:0;
+  position:relative;
+  padding:12px;
+
+  transition:
+    padding-right .24s ease;
+}
+
+.room7ExperienceDocumentsOpen:not(
+  .room7ExperienceDocumentsMaximized
+) .room7ExperienceStage{
+  padding-right:432px;
+}
+
+.room7ExperienceMeetingFrame{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+
+  overflow:hidden;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:26px;
+
+  background:
+    var(--r7x-bg);
+
+  box-shadow:
+    inset 0 1px
+    rgba(255,255,255,.04);
+}
+
+.room7ExperienceMeetingFrame rtk-meeting{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+/* --------------------------
+   Guest event library
+   -------------------------- */
+
+.room7GuestDocuments{
+  display:contents;
+}
+
+.room7GuestDocumentPanel{
+  overflow:hidden;
+  display:grid;
+
+  grid-template-rows:
+    auto
+    auto
+    auto
+    minmax(0,1fr)
+    auto;
+
+  border:
+    1px solid
+    var(--r7x-border,rgba(255,255,255,.11));
+
+  border-radius:24px;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--r7x-surface,#0b1421) 97%,
+      transparent
+    );
+
+  color:
+    var(--r7x-text,#f5f7fa);
+
+  box-shadow:
+    0 28px 90px
+    rgba(0,0,0,.38);
+
+  backdrop-filter:
+    blur(26px);
+
+  -webkit-backdrop-filter:
+    blur(26px);
+}
+
+.room7GuestDocumentPanel-meeting{
+  position:absolute;
+  z-index:9;
+  top:78px;
+  right:12px;
+  bottom:12px;
+  width:408px;
+}
+
+.room7GuestDocumentPanel-meeting.maximized{
+  left:12px;
+  width:auto;
+}
+
+.room7GuestDocumentPanel-lobby{
+  --r7x-surface:#0b1421;
+  --r7x-text:#f5f7fa;
+  --r7x-muted:#92a0b0;
+  --r7x-border:rgba(255,255,255,.11);
+  --r7x-amber:#f6a11a;
+
+  position:fixed;
+  z-index:12000;
+  top:104px;
+  right:24px;
+  bottom:24px;
+
+  width:
+    min(
+      520px,
+      calc(100vw - 48px)
+    );
+}
+
+.room7GuestDocumentHeader{
+  min-width:0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+
+  padding:16px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+}
+
+.room7GuestDocumentHeader>div:first-child{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.room7GuestDocumentHeader span{
+  color:
+    var(--r7x-amber);
+
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+}
+
+.room7GuestDocumentHeader strong{
+  font-size:14px;
+}
+
+.room7GuestDocumentHeader small{
+  overflow:hidden;
+  color:
+    var(--r7x-muted);
+
+  font-size:8px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.room7GuestDocumentHeaderActions,
+.room7GuestDocumentReaderHead>div:last-child{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.room7GuestDocumentHeaderActions button,
+.room7GuestDocumentReaderHead button,
+.room7GuestDocumentToolbar button{
+  min-width:32px;
+  min-height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:10px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  color:
+    var(--r7x-text);
+
+  font:inherit;
+  font-size:8px;
+
+  cursor:pointer;
+}
+
+.room7GuestDocumentIdentity{
+  display:grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    auto;
+  gap:9px;
+
+  padding:12px 15px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+}
+
+.room7GuestDocumentIdentity label{
+  min-width:0;
+  display:grid;
+  gap:5px;
+}
+
+.room7GuestDocumentIdentity label span{
+  color:
+    var(--r7x-muted);
+
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.room7GuestDocumentIdentity input{
+  width:100%;
+  min-height:34px;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:10px;
+
+  outline:none;
+
+  padding:0 10px;
+
+  background:
+    rgba(0,0,0,.15);
+
+  color:
+    var(--r7x-text);
+
+  font:inherit;
+  font-size:9px;
+}
+
+.room7GuestDocumentIdentity button{
+  align-self:end;
+  min-height:34px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+
+  border:0;
+  border-radius:10px;
+  padding:0 11px;
+
+  background:
+    var(--r7x-amber);
+
+  color:#160e03;
+
+  font:inherit;
+  font-size:8px;
+  font-weight:850;
+
+  cursor:pointer;
+}
+
+.room7GuestDocumentToolbar{
+  min-height:43px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  padding:0 15px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+
+  color:
+    var(--r7x-muted);
+
+  font-size:8px;
+}
+
+.room7GuestDocumentToolbar button{
+  min-height:29px;
+  padding:0 8px;
+}
+
+.room7GuestDocumentError{
+  margin:9px 12px 0;
+  padding:9px 10px;
+
+  border:
+    1px solid
+    rgba(248,113,113,.22);
+
+  border-radius:10px;
+
+  background:
+    rgba(239,68,68,.07);
+
+  color:#fca5a5;
+
+  font-size:8px;
+  line-height:1.45;
+}
+
+.room7GuestDocumentWorkspace{
+  min-height:0;
+  display:grid;
+
+  grid-template-columns:
+    minmax(124px,34%)
+    minmax(0,1fr);
+}
+
+.room7GuestDocumentList{
+  min-height:0;
+  overflow:auto;
+  display:grid;
+  align-content:start;
+  gap:5px;
+
+  padding:9px;
+
+  border-right:
+    1px solid
+    var(--r7x-border);
+}
+
+.room7GuestDocumentList>button{
+  width:100%;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius:11px;
+
+  padding:9px;
+
+  background:
+    transparent;
+
+  color:
+    var(--r7x-text);
+
+  text-align:left;
+  font:inherit;
+
+  cursor:pointer;
+}
+
+.room7GuestDocumentList>button:hover{
+  background:
+    rgba(255,255,255,.04);
+}
+
+.room7GuestDocumentList>button.active{
+  border-color:
+    rgba(246,161,26,.25);
+
+  background:
+    rgba(246,161,26,.08);
+}
+
+.room7GuestDocumentList>button>svg{
+  flex:0 0 auto;
+  margin-top:1px;
+
+  color:
+    var(--r7x-amber);
+}
+
+.room7GuestDocumentList>button>span{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+
+.room7GuestDocumentList strong{
+  overflow:hidden;
+
+  font-size:8px;
+  line-height:1.35;
+
+  text-overflow:
+    ellipsis;
+}
+
+.room7GuestDocumentList small{
+  color:
+    var(--r7x-muted);
+
+  font-size:7px;
+  text-transform:capitalize;
+}
+
+.room7GuestDocumentEmpty,
+.room7GuestDocumentReaderEmpty{
+  min-height:150px;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  gap:7px;
+
+  padding:18px;
+
+  color:
+    var(--r7x-muted);
+
+  text-align:center;
+}
+
+.room7GuestDocumentEmpty strong,
+.room7GuestDocumentReaderEmpty strong{
+  color:
+    var(--r7x-text);
+
+  font-size:10px;
+}
+
+.room7GuestDocumentEmpty span,
+.room7GuestDocumentReaderEmpty span{
+  max-width:260px;
+
+  font-size:8px;
+  line-height:1.45;
+}
+
+.room7GuestDocumentReader{
+  min-width:0;
+  min-height:0;
+  display:grid;
+  grid-template-rows:
+    auto
+    minmax(0,1fr);
+
+  background:
+    var(--r7x-bg);
+}
+
+.room7GuestDocumentReaderHead{
+  min-width:0;
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  padding:9px 11px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+
+  background:
+    var(--r7x-surface);
+}
+
+.room7GuestDocumentReaderHead>div:first-child{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.room7GuestDocumentReaderHead strong{
+  overflow:hidden;
+
+  font-size:9px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.room7GuestDocumentReaderHead span{
+  overflow:hidden;
+
+  color:
+    var(--r7x-muted);
+
+  font-size:7px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.room7GuestDocumentCanvas{
+  min-width:0;
+  min-height:0;
+  overflow:auto;
+  display:grid;
+  place-items:center;
+
+  background:
+    var(--r7x-bg);
+}
+
+.room7GuestDocumentCanvas iframe{
+  width:100%;
+  height:100%;
+  min-height:360px;
+  border:0;
+  background:#fff;
+}
+
+.room7GuestDocumentCanvas img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+
+.room7GuestDocumentFooter{
+  min-height:35px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  padding:0 15px;
+
+  border-top:
+    1px solid
+    var(--r7x-border);
+
+  color:
+    var(--r7x-muted);
+
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.room7GuestDocumentRestore{
+  z-index:12;
+  min-height:38px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  border:
+    1px solid
+    rgba(246,161,26,.25);
+
+  border-radius:999px;
+
+  padding:0 13px;
+
+  background:
+    rgba(11,20,33,.94);
+
+  color:#f5f7fa;
+
+  box-shadow:
+    0 15px 50px
+    rgba(0,0,0,.35);
+
+  font:inherit;
+  font-size:8px;
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.room7GuestDocumentRestore-meeting{
+  position:absolute;
+  right:22px;
+  bottom:22px;
+}
+
+.room7GuestDocumentRestore-lobby{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+}
+
+/* --------------------------
+   ROOM 7 settings
+   -------------------------- */
+
+.room7ExperienceSettings{
+  position:absolute;
+  z-index:20;
+  top:76px;
+  right:14px;
+
+  width:
+    min(
+      390px,
+      calc(100vw - 56px)
+    );
+
+  overflow:hidden;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:22px;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--r7x-surface) 97%,
+      transparent
+    );
+
+  box-shadow:
+    0 30px 100px
+    rgba(0,0,0,.42);
+
+  backdrop-filter:
+    blur(26px);
+
+  -webkit-backdrop-filter:
+    blur(26px);
+}
+
+.room7ExperienceSettings>header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+
+  padding:16px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+}
+
+.room7ExperienceSettings>header>div{
+  display:grid;
+  gap:3px;
+}
+
+.room7ExperienceSettings>header span{
+  color:
+    var(--r7x-amber);
+
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.room7ExperienceSettings>header strong{
+  font-size:14px;
+}
+
+.room7ExperienceSettings>header button{
+  width:32px;
+  height:32px;
+
+  display:grid;
+  place-items:center;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:10px;
+
+  background:
+    rgba(255,255,255,.04);
+
+  color:
+    var(--r7x-text);
+
+  cursor:pointer;
+}
+
+.room7ExperienceSettings>section{
+  display:grid;
+  gap:9px;
+
+  padding:15px 16px;
+
+  border-bottom:
+    1px solid
+    var(--r7x-border);
+}
+
+.room7ExperienceSettingLabel{
+  color:
+    var(--r7x-muted);
+
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.room7ExperienceSegments{
+  display:grid;
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap:5px;
+}
+
+.room7ExperienceAmbienceSegments{
+  grid-template-columns:
+    repeat(5,1fr);
+}
+
+.room7ExperienceSegments button{
+  min-height:34px;
+
+  border:
+    1px solid
+    var(--r7x-border);
+
+  border-radius:10px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  color:
+    var(--r7x-muted);
+
+  font:inherit;
+  font-size:8px;
+  font-weight:750;
+
+  cursor:pointer;
+}
+
+.room7ExperienceSegments button.active{
+  border-color:
+    rgba(246,161,26,.36);
+
+  background:
+    rgba(246,161,26,.12);
+
+  color:
+    var(--r7x-text);
+}
+
+.room7ExperienceSettings section small,
+.room7ExperienceSettings footer{
+  color:
+    var(--r7x-muted);
+
+  font-size:7px;
+  line-height:1.5;
+}
+
+.room7ExperienceSettings footer{
+  padding:13px 16px;
+}
+
+/* --------------------------
+   Lobby library trigger
+   -------------------------- */
+
+.room7GuestDocuments-lobby
+.room7GuestDocumentTrigger{
+  width:100%;
+  min-height:43px;
+
+  border-color:
+    rgba(246,161,26,.20);
+
+  background:
+    rgba(246,161,26,.06);
+
+  color:#f4c472;
+}
+
+/* --------------------------
+   Responsive ROOM 7
+   -------------------------- */
+
+@media(max-width:900px){
+  .room7ExperienceShell{
+    inset:8px;
+    border-radius:28px;
+  }
+
+  .room7ExperienceIdentity strong{
+    max-width:32vw;
+  }
+
+  .room7ExperienceConnection{
+    display:none;
+  }
+
+  .room7ExperienceDocumentsOpen:not(
+    .room7ExperienceDocumentsMaximized
+  ) .room7ExperienceStage{
+    padding-right:12px;
+  }
+
+  .room7GuestDocumentPanel-meeting{
+    left:12px;
+    width:auto;
+  }
+}
+
+@media(max-width:620px){
+  .room7ExperienceShell{
+    inset:5px;
+    grid-template-rows:58px minmax(0,1fr);
+    border-radius:23px;
+  }
+
+  .room7ExperienceChrome{
+    padding:0 9px;
+  }
+
+  .room7ExperienceIdentity img{
+    width:91px;
+  }
+
+  .room7ExperienceIdentity>div{
+    display:none;
+  }
+
+  .room7GuestDocumentTrigger,
+  .room7ExperienceSettingsButton{
+    min-width:36px;
+    width:36px;
+    padding:0;
+    font-size:0;
+  }
+
+  .room7GuestDocumentTrigger>span{
+    position:absolute;
+    transform:
+      translate(12px,-11px);
+  }
+
+  .room7ExperienceStage{
+    padding:7px;
+  }
+
+  .room7ExperienceMeetingFrame{
+    border-radius:19px;
+  }
+
+  .room7GuestDocumentPanel-meeting{
+    top:65px;
+    right:7px;
+    bottom:7px;
+    left:7px;
+    border-radius:19px;
+  }
+
+  .room7GuestDocumentPanel-lobby{
+    top:84px;
+    right:10px;
+    bottom:10px;
+    width:
+      calc(100vw - 20px);
+    border-radius:20px;
+  }
+
+  .room7GuestDocumentWorkspace{
+    grid-template-columns:1fr;
+    grid-template-rows:
+      minmax(92px,28%)
+      minmax(0,1fr);
+  }
+
+  .room7GuestDocumentList{
+    grid-auto-flow:column;
+    grid-auto-columns:
+      minmax(145px,190px);
+
+    overflow-x:auto;
+    overflow-y:hidden;
+
+    border-right:0;
+
+    border-bottom:
+      1px solid
+      var(--r7x-border);
+  }
+
+  .room7GuestDocumentList>button{
+    height:74px;
+  }
+
+  .room7GuestDocumentIdentity{
+    grid-template-columns:1fr;
+  }
+
+  .room7GuestDocumentIdentity button{
+    min-height:36px;
+  }
+
+  .room7ExperienceSettings{
+    top:65px;
+    right:7px;
+
+    width:
+      calc(100vw - 24px);
+  }
+
+  .room7ExperienceAmbienceSegments{
+    grid-template-columns:
+      repeat(3,1fr);
+  }
+
+  .room7GuestDocumentRestore-meeting{
+    right:15px;
+    bottom:15px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .room7ExperienceShell,
+  .room7ExperienceStage,
+  .room7ExperienceShell *,
+  .room7GuestDocumentPanel *{
+    scroll-behavior:auto !important;
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+/* ROOM 7 reader-state preservation */
+.room7GuestDocumentPanel.minimized{
+  display:none;
+}

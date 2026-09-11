@@ -1,0 +1,443 @@
+.roomDocumentTrigger{
+  white-space:nowrap;
+}
+
+.roomDocumentOverlay{
+  position:fixed;
+  inset:0;
+  z-index:14000;
+  display:grid;
+  place-items:center;
+  padding:28px;
+  background:rgba(1,5,12,.72);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.roomDocumentManager{
+  width:min(1040px,100%);
+  max-height:min(88vh,900px);
+  display:grid;
+  grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+  overflow:hidden;
+  border:1px solid var(--ra-border,rgba(255,255,255,.12));
+  border-radius:30px;
+  background:
+    linear-gradient(
+      150deg,
+      rgba(24,35,52,.98),
+      rgba(8,16,28,.98)
+    );
+  color:var(--ra-text,#f5f7fa);
+  box-shadow:
+    0 44px 120px rgba(0,0,0,.48),
+    inset 0 1px rgba(255,255,255,.08);
+}
+
+.roomDocumentHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
+  padding:25px 27px 20px;
+  border-bottom:1px solid var(--ra-border,rgba(255,255,255,.09));
+}
+
+.roomDocumentHeader h2{
+  margin:5px 0 4px;
+  font-size:25px;
+}
+
+.roomDocumentHeader p{
+  margin:0;
+  max-width:680px;
+  overflow:hidden;
+  color:var(--ra-muted,#91a0b0);
+  font-size:12px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.roomDocumentToolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:16px 27px;
+  border-bottom:1px solid var(--ra-border,rgba(255,255,255,.07));
+}
+
+.roomDocumentCapacity{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+
+.roomDocumentCapacity strong{
+  font-size:18px;
+}
+
+.roomDocumentCapacity span{
+  color:var(--ra-muted,#91a0b0);
+  font-size:10px;
+}
+
+.roomDocumentToolbarActions,
+.roomDocumentCardActions{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.roomDocumentSecurityNote{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  margin:15px 27px 0;
+  padding:13px 14px;
+  border:1px solid rgba(246,161,26,.18);
+  border-radius:15px;
+  background:rgba(246,161,26,.055);
+}
+
+.roomDocumentSecurityNote>svg{
+  flex:0 0 auto;
+  margin-top:1px;
+  color:#f6a11a;
+}
+
+.roomDocumentSecurityNote strong,
+.roomDocumentSecurityNote span{
+  display:block;
+}
+
+.roomDocumentSecurityNote strong{
+  margin-bottom:3px;
+  font-size:11px;
+}
+
+.roomDocumentSecurityNote span{
+  color:var(--ra-muted,#91a0b0);
+  font-size:9px;
+  line-height:1.55;
+}
+
+.roomDocumentProgress,
+.roomDocumentNotice{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin:12px 27px 0;
+  padding:10px 12px;
+  border-radius:13px;
+  font-size:10px;
+}
+
+.roomDocumentProgress{
+  border:1px solid rgba(246,161,26,.18);
+  background:rgba(246,161,26,.06);
+  color:#f2c57d;
+}
+
+.roomDocumentNotice{
+  border:1px solid var(--ra-border,rgba(255,255,255,.1));
+  background:rgba(255,255,255,.04);
+  color:var(--ra-text,#f5f7fa);
+}
+
+.roomDocumentBody{
+  min-height:220px;
+  overflow:auto;
+  display:grid;
+  align-content:start;
+  gap:13px;
+  padding:18px 27px 26px;
+}
+
+.roomDocumentEmpty{
+  min-height:300px;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  gap:9px;
+  padding:30px;
+  text-align:center;
+  color:var(--ra-muted,#91a0b0);
+}
+
+.roomDocumentEmpty>svg{
+  color:#f6a11a;
+}
+
+.roomDocumentEmpty strong{
+  color:var(--ra-text,#f5f7fa);
+  font-size:16px;
+}
+
+.roomDocumentEmpty p{
+  max-width:470px;
+  margin:0 0 9px;
+  font-size:10px;
+  line-height:1.6;
+}
+
+.roomDocumentCard{
+  display:grid;
+  gap:15px;
+  padding:17px;
+  border:1px solid var(--ra-border,rgba(255,255,255,.09));
+  border-radius:20px;
+  background:rgba(255,255,255,.032);
+}
+
+.roomDocumentCard.archived{
+  opacity:.68;
+}
+
+.roomDocumentCardTop{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.roomDocumentFileIcon{
+  width:39px;
+  height:39px;
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(246,161,26,.18);
+  border-radius:12px;
+  background:rgba(246,161,26,.07);
+  color:#f6a11a;
+}
+
+.roomDocumentFileMeta{
+  min-width:0;
+  flex:1;
+}
+
+.roomDocumentFileMeta strong,
+.roomDocumentFileMeta span{
+  display:block;
+}
+
+.roomDocumentFileMeta strong{
+  overflow:hidden;
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.roomDocumentFileMeta span{
+  margin-top:3px;
+  color:var(--ra-muted,#91a0b0);
+  font-size:8px;
+}
+
+.roomDocumentStatus{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border:1px solid var(--ra-border,rgba(255,255,255,.1));
+  border-radius:999px;
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.roomDocumentStatus.published{
+  border-color:rgba(52,211,153,.24);
+  background:rgba(34,197,94,.07);
+  color:#86efac;
+}
+
+.roomDocumentStatus.draft{
+  border-color:rgba(246,161,26,.22);
+  background:rgba(246,161,26,.06);
+  color:#f6c66e;
+}
+
+.roomDocumentFields{
+  display:grid;
+  grid-template-columns:
+    minmax(140px,1fr)
+    minmax(140px,1fr)
+    110px;
+  gap:11px;
+}
+
+.roomDocumentField{
+  display:grid;
+  gap:5px;
+}
+
+.roomDocumentFieldWide{
+  grid-column:1 / -1;
+}
+
+.roomDocumentField>span,
+.roomDocumentVisibility>span{
+  color:var(--ra-muted,#91a0b0);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.roomDocumentField input,
+.roomDocumentField textarea,
+.roomDocumentField select{
+  width:100%;
+  border:1px solid var(--ra-border,rgba(255,255,255,.11));
+  border-radius:11px;
+  outline:none;
+  padding:9px 10px;
+  background:rgba(2,8,16,.34);
+  color:var(--ra-text,#f5f7fa);
+  font:inherit;
+  font-size:10px;
+}
+
+.roomDocumentField textarea{
+  resize:vertical;
+}
+
+.roomDocumentField input:focus,
+.roomDocumentField textarea:focus,
+.roomDocumentField select:focus{
+  border-color:rgba(246,161,26,.55);
+  box-shadow:0 0 0 3px rgba(246,161,26,.07);
+}
+
+.roomDocumentVisibility{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px 18px;
+  padding:12px 0;
+  border-top:1px solid var(--ra-border,rgba(255,255,255,.07));
+  border-bottom:1px solid var(--ra-border,rgba(255,255,255,.07));
+}
+
+.roomDocumentVisibility label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--ra-muted,#91a0b0);
+  font-size:9px;
+  cursor:pointer;
+}
+
+.roomDocumentVisibility input{
+  accent-color:#f6a11a;
+}
+
+.roomDocumentDownloadToggle{
+  margin-left:auto;
+}
+
+.roomDocumentDelete{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid rgba(248,113,113,.22);
+  border-radius:10px;
+  background:rgba(239,68,68,.06);
+  color:#fca5a5;
+  font:inherit;
+  font-size:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.roomDocumentDelete:disabled{
+  opacity:.55;
+  cursor:wait;
+}
+
+.roomDocumentFooter{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  padding:13px 27px;
+  border-top:1px solid var(--ra-border,rgba(255,255,255,.07));
+  color:var(--ra-muted,#718096);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+@media(max-width:760px){
+  .roomDocumentOverlay{
+    padding:10px;
+  }
+
+  .roomDocumentManager{
+    max-height:94vh;
+    border-radius:22px;
+  }
+
+  .roomDocumentHeader,
+  .roomDocumentToolbar{
+    padding-left:17px;
+    padding-right:17px;
+  }
+
+  .roomDocumentToolbar{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .roomDocumentToolbarActions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .roomDocumentSecurityNote,
+  .roomDocumentProgress,
+  .roomDocumentNotice{
+    margin-left:17px;
+    margin-right:17px;
+  }
+
+  .roomDocumentBody{
+    padding-left:17px;
+    padding-right:17px;
+  }
+
+  .roomDocumentFields{
+    grid-template-columns:1fr;
+  }
+
+  .roomDocumentFieldWide{
+    grid-column:auto;
+  }
+
+  .roomDocumentVisibility{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .roomDocumentDownloadToggle{
+    margin-left:0;
+  }
+
+  .roomDocumentFooter{
+    padding-left:17px;
+    padding-right:17px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .roomDocumentOverlay *,
+  .roomDocumentManager *{
+    scroll-behavior:auto !important;
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}

@@ -19,6 +19,8 @@ import {
   Video
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import RoomEventDocumentsManager from './RoomEventDocumentsManager'
+import Room7EventControlCenter from './Room7EventControlCenter'
 import '../room.css'
 
 type RoomStatus='active'|'ended'
@@ -408,6 +410,14 @@ export default function RoomModule({
                 <small>ROOM 7 {room.room_code} · Started {formatWhen(room.started_at)}</small>
               </div>
               <div className="roomListActions">
+                <Room7EventControlCenter
+                  roomId={room.id}
+                  roomTitle={room.title}
+                />
+                <RoomEventDocumentsManager
+                  roomId={room.id}
+                  roomTitle={room.title}
+                />
                 <button type="button" className="iconButton" title="Copy invite link" onClick={()=>void copyRoom(room)}>
                   <Copy size={16}/>
                 </button>
