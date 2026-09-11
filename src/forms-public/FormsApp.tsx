@@ -151,13 +151,11 @@ export default function FormsApp() {
       <main className="formsPage">
         <section className="formsShell formsSuccessShell">
           <header className="formsHeader">
-            <div
-              className="formsWordmark"
-              aria-label="RideArrivo"
-            >
-              <span>Ride</span>
-              <strong>Arrivo</strong>
-            </div>
+            <img
+            className="formsLogo"
+            src="/ridearrivo-wordmark-workspace.png"
+            alt="RideArrivo"
+          />
 
             <span className="formsBadge">
               PRIVATE ENQUIRY
@@ -201,13 +199,11 @@ export default function FormsApp() {
     <main className="formsPage">
       <section className="formsShell">
         <header className="formsHeader">
-          <div
-            className="formsWordmark"
-            aria-label="RideArrivo"
-          >
-            <span>Ride</span>
-            <strong>Arrivo</strong>
-          </div>
+          <img
+            className="formsLogo"
+            src="/ridearrivo-wordmark-workspace.png"
+            alt="RideArrivo"
+          />
 
           <span className="formsBadge">
             SECURE FORM

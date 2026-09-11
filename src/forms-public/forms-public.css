@@ -48,19 +48,12 @@ button,input,select,textarea{
   border-bottom:1px solid rgba(255,255,255,.09)
 }
 
-.formsWordmark{
-  font-size:31px;
-  font-weight:600;
-  letter-spacing:-1.5px
-}
-
-.formsWordmark span{
-  color:#f5f7fa
-}
-
-.formsWordmark strong{
-  color:#ff9f0a;
-  font-weight:600
+.formsLogo{
+  display:block;
+  width:clamp(190px,22vw,285px);
+  max-width:48vw;
+  height:auto;
+  object-fit:contain
 }
 
 .formsBadge{
@@ -316,7 +309,8 @@ button,input,select,textarea{
     align-items:flex-start
   }
 
-  .formsWordmark{
-    font-size:25px
+  .formsLogo{
+    width:190px;
+    max-width:62vw
   }
 }
