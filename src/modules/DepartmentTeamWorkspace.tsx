@@ -23,6 +23,7 @@ import {
   supabase
 } from '../lib/supabase'
 import WorkstationWindow from '../components/WorkstationWindow'
+import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import DepartmentDiscussionPanel from './DepartmentDiscussionPanel'
 import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 import ProvidusBankingPanel from './ProvidusBankingPanel'
@@ -621,6 +622,7 @@ export function DepartmentTeamWorkspace({
 
       {view==='workstation' &&
         <div className="departmentStation">
+          <WorkstationGuideCard />
 
           <div className="departmentStationIntro">
 

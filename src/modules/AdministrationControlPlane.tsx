@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { invokeWorkspaceAdmin } from '../lib/workspaceAdmin'
+import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import AdminAccessManager from './AdminAccessManager'
 import AdminDownloadAccessManager from './AdminDownloadAccessManager'
 import WorkstationAssignmentManager from './WorkstationAssignmentManager'
@@ -498,6 +499,7 @@ export default function AdministrationControlPlane(){
   const [tab,setTab]=useState<AdminTab>('overview')
 
   return <section className="administrationControlPlane">
+      <WorkstationGuideCard />
     <div className="adminControlTitle"><div><span className="eyebrow">ADMINISTRATION</span><h2>Administration Workstation</h2><p>Authoritative, audited control of RideArrivo identity, people, security, workstations, performance, equipment and access.</p></div><span className="adminAuthorityBadge"><ShieldCheck size={14}/>Admin-only</span></div>
 
     <nav className="adminControlTabs" aria-label="Administration sections">
