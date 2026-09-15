@@ -1,0 +1,750 @@
+.room7EventControlTrigger{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+
+.room7EventControlOverlay{
+  position:fixed;
+  inset:0;
+  z-index:8500;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(2,7,13,.78);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+.room7EventControlDialog{
+  width:min(1160px,100%);
+  max-height:min(900px,calc(100vh - 48px));
+  overflow:hidden;
+  display:grid;
+  grid-template-rows:auto auto auto minmax(0,1fr);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:28px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(16,28,42,.985),
+      rgba(5,12,22,.995)
+    );
+  color:#f5f7fa;
+  box-shadow:
+    0 42px 140px rgba(0,0,0,.62),
+    inset 0 1px rgba(255,255,255,.05);
+}
+
+.room7EventControlHeader{
+  min-width:0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px 24px 18px;
+  border-bottom:1px solid rgba(255,255,255,.075);
+}
+
+.room7EventControlHeader>div:first-child{
+  min-width:0;
+}
+
+.room7EventControlHeader h2{
+  margin:5px 0 5px;
+  font-size:1.35rem;
+}
+
+.room7EventControlHeader p{
+  max-width:680px;
+  margin:0;
+  color:#94a3b8;
+  font-size:.83rem;
+  line-height:1.55;
+}
+
+.room7EventControlEyebrow{
+  color:#f6a11a;
+  font-size:.68rem;
+  font-weight:850;
+  letter-spacing:.16em;
+}
+
+.room7EventControlHeaderActions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.room7EventControlTabs{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding:10px 16px;
+  border-bottom:1px solid rgba(255,255,255,.075);
+}
+
+.room7EventControlTabs button{
+  flex:0 0 auto;
+  min-height:36px;
+  border:1px solid transparent;
+  border-radius:11px;
+  padding:0 13px;
+  background:transparent;
+  color:#94a3b8;
+  font:inherit;
+  font-size:.76rem;
+  font-weight:750;
+  cursor:pointer;
+}
+
+.room7EventControlTabs button:hover{
+  color:#fff;
+  background:rgba(255,255,255,.045);
+}
+
+.room7EventControlTabs button.active{
+  border-color:rgba(246,161,26,.28);
+  background:rgba(246,161,26,.10);
+  color:#f6a11a;
+}
+
+.room7EventControlMessage{
+  margin:12px 18px 0;
+  border-radius:12px;
+  padding:10px 13px;
+  font-size:.78rem;
+  line-height:1.45;
+}
+
+.room7EventControlMessage.error{
+  border:1px solid rgba(248,113,113,.25);
+  background:rgba(127,29,29,.18);
+  color:#fecaca;
+}
+
+.room7EventControlMessage.success{
+  border:1px solid rgba(52,211,153,.20);
+  background:rgba(6,78,59,.17);
+  color:#a7f3d0;
+}
+
+.room7EventControlBody{
+  min-height:0;
+  overflow:auto;
+  padding:20px;
+}
+
+.room7EventControlLoading{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:250px;
+  color:#94a3b8;
+}
+
+.room7EventControlSection{
+  display:grid;
+  gap:18px;
+}
+
+.room7EventControlSectionHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.room7EventControlSectionHead>div:first-child{
+  display:grid;
+  gap:4px;
+}
+
+.room7EventControlSectionHead>div:first-child>span{
+  color:#f6a11a;
+  font-size:.66rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.room7EventControlSectionHead h3{
+  margin:0;
+  font-size:1.12rem;
+}
+
+.room7EventStateBadge{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:999px;
+  padding:0 10px;
+  background:rgba(255,255,255,.04);
+  color:#cbd5e1;
+  font-size:.66rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.room7EventStateBadge.state-live,
+.room7EventStateBadge.state-doors_open{
+  border-color:rgba(52,211,153,.25);
+  background:rgba(6,78,59,.20);
+  color:#a7f3d0;
+}
+
+.room7EventStateBadge.state-intermission{
+  border-color:rgba(246,161,26,.24);
+  background:rgba(146,64,14,.18);
+  color:#fcd34d;
+}
+
+.room7EventControlEmpty{
+  min-height:220px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:9px;
+  border:1px dashed rgba(255,255,255,.11);
+  border-radius:18px;
+  padding:26px;
+  color:#94a3b8;
+  text-align:center;
+}
+
+.room7EventControlEmpty strong{
+  color:#f5f7fa;
+}
+
+.room7EventControlEmpty p{
+  max-width:560px;
+  margin:0 0 8px;
+  line-height:1.55;
+}
+
+.room7EventControlEmpty.compact{
+  min-height:110px;
+}
+
+.room7EventOverviewGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+
+.room7EventOverviewGrid article{
+  display:grid;
+  gap:6px;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:15px;
+  padding:14px;
+  background:rgba(255,255,255,.025);
+}
+
+.room7EventOverviewGrid span,
+.room7EventPublicUrlCard span,
+.room7EventSummaryCard>span{
+  color:#94a3b8;
+  font-size:.68rem;
+  font-weight:750;
+}
+
+.room7EventOverviewGrid strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:.84rem;
+}
+
+.room7EventPublicUrlCard{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border:1px solid rgba(246,161,26,.16);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(246,161,26,.045);
+}
+
+.room7EventPublicUrlCard>div{
+  min-width:0;
+  display:grid;
+  gap:5px;
+}
+
+.room7EventPublicUrlCard strong{
+  overflow:hidden;
+  color:#f6c768;
+  font-size:.78rem;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.room7EventSummaryCard{
+  display:grid;
+  gap:7px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:15px;
+  background:rgba(255,255,255,.025);
+}
+
+.room7EventSummaryCard p{
+  margin:0;
+  color:#cbd5e1;
+  font-size:.8rem;
+  line-height:1.6;
+}
+
+.room7EventPermissionRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#94a3b8;
+  font-size:.72rem;
+}
+
+.room7EventPermissionRow svg{
+  color:#f6a11a;
+}
+
+.room7EventFormGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.room7EventFormGrid label,
+.room7EventWideField{
+  display:grid;
+  gap:7px;
+}
+
+.room7EventFormGrid label>span:first-child,
+.room7EventWideField>span:first-child{
+  color:#cbd5e1;
+  font-size:.72rem;
+  font-weight:750;
+}
+
+.room7EventFormGrid input,
+.room7EventFormGrid select,
+.room7EventWideField input,
+.room7EventWideField textarea{
+  width:100%;
+  box-sizing:border-box;
+  min-height:44px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  outline:none;
+  padding:0 12px;
+  background:rgba(0,0,0,.20);
+  color:#f5f7fa;
+  font:inherit;
+  font-size:.82rem;
+}
+
+.room7EventWideField textarea{
+  min-height:120px;
+  resize:vertical;
+  padding:11px 12px;
+}
+
+.room7EventFormGrid input:focus,
+.room7EventFormGrid select:focus,
+.room7EventWideField input:focus,
+.room7EventWideField textarea:focus{
+  border-color:rgba(246,161,26,.48);
+  box-shadow:0 0 0 3px rgba(246,161,26,.07);
+}
+
+.room7EventFormGrid small,
+.room7EventWideField small{
+  color:#718096;
+  font-size:.66rem;
+  line-height:1.4;
+}
+
+.room7EventSwitchField{
+  align-content:start;
+}
+
+.room7EventSwitchRow{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  padding:0 12px;
+  background:rgba(0,0,0,.20);
+}
+
+.room7EventSwitchRow input{
+  width:auto;
+  min-height:auto;
+  accent-color:#f6a11a;
+}
+
+.room7EventSwitchRow strong{
+  font-size:.78rem;
+}
+
+.room7EventControlWarning,
+.room7EventControlNote{
+  border:1px solid rgba(246,161,26,.20);
+  border-radius:13px;
+  padding:11px 13px;
+  background:rgba(146,64,14,.11);
+  color:#f3d9a2;
+  font-size:.72rem;
+  line-height:1.5;
+}
+
+.room7EventFormActions{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.room7EventFormActions button,
+.room7InviteComposer>button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+
+.room7CurrentState{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border:1px solid rgba(246,161,26,.18);
+  border-radius:16px;
+  padding:14px 16px;
+  background:rgba(246,161,26,.045);
+}
+
+.room7CurrentState span{
+  color:#94a3b8;
+  font-size:.72rem;
+}
+
+.room7CurrentState strong{
+  color:#f6c768;
+  font-size:.92rem;
+}
+
+.room7EventOverride{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  border:1px solid rgba(248,113,113,.17);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(127,29,29,.09);
+}
+
+.room7EventOverride input{
+  margin-top:3px;
+  accent-color:#f6a11a;
+}
+
+.room7EventOverride div{
+  display:grid;
+  gap:3px;
+}
+
+.room7EventOverride strong{
+  font-size:.76rem;
+}
+
+.room7EventOverride span{
+  color:#94a3b8;
+  font-size:.68rem;
+  line-height:1.45;
+}
+
+.room7EventStateGrid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+
+.room7EventStateGrid button{
+  min-height:70px;
+  display:grid;
+  place-items:start;
+  align-content:center;
+  gap:5px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:11px 13px;
+  background:rgba(255,255,255,.025);
+  color:#64748b;
+  font:inherit;
+  text-align:left;
+}
+
+.room7EventStateGrid button span{
+  font-size:.76rem;
+  font-weight:800;
+}
+
+.room7EventStateGrid button small{
+  font-size:.61rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.room7EventStateGrid button.available{
+  border-color:rgba(246,161,26,.23);
+  background:rgba(246,161,26,.06);
+  color:#f5f7fa;
+  cursor:pointer;
+}
+
+.room7EventStateGrid button.available:hover{
+  background:rgba(246,161,26,.11);
+}
+
+.room7EventStateGrid button.current{
+  border-color:rgba(52,211,153,.22);
+  background:rgba(6,78,59,.17);
+  color:#a7f3d0;
+}
+
+.room7InviteComposer{
+  display:grid;
+  gap:14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:17px;
+  padding:16px;
+  background:rgba(255,255,255,.025);
+}
+
+.room7InviteComposer>button{
+  justify-self:end;
+}
+
+.room7SecureInviteReady{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border:1px solid rgba(52,211,153,.24);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(6,78,59,.17);
+}
+
+.room7SecureInviteReady>div{
+  min-width:0;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.room7SecureInviteReady>div>svg{
+  flex:0 0 auto;
+  color:#6ee7b7;
+}
+
+.room7SecureInviteReady span{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+
+.room7SecureInviteReady strong{
+  font-size:.78rem;
+}
+
+.room7SecureInviteReady small{
+  color:#a7c8ba;
+  font-size:.66rem;
+  line-height:1.45;
+}
+
+.room7InvitationList{
+  display:grid;
+  gap:8px;
+}
+
+.room7InvitationCard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:14px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:14px;
+  padding:12px 13px;
+  background:rgba(255,255,255,.022);
+}
+
+.room7InvitationIdentity{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.room7InvitationIdentity strong,
+.room7InvitationIdentity span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.room7InvitationIdentity strong{
+  font-size:.78rem;
+}
+
+.room7InvitationIdentity span,
+.room7InvitationIdentity small,
+.room7InvitationMeta small{
+  color:#94a3b8;
+  font-size:.65rem;
+}
+
+.room7InvitationMeta{
+  display:grid;
+  justify-items:end;
+  gap:5px;
+}
+
+.room7InvitationStatus{
+  display:inline-flex;
+  border-radius:999px;
+  padding:4px 8px;
+  background:rgba(255,255,255,.05);
+  color:#94a3b8;
+  font-size:.59rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+
+.room7InvitationStatus.active{
+  background:rgba(6,78,59,.20);
+  color:#86efac;
+}
+
+.room7InvitationStatus.expired{
+  background:rgba(146,64,14,.16);
+  color:#fcd34d;
+}
+
+.room7InvitationStatus.revoked{
+  background:rgba(127,29,29,.17);
+  color:#fca5a5;
+}
+
+.room7DocumentBridge{
+  min-height:180px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  padding:20px;
+  background:rgba(255,255,255,.025);
+}
+
+.room7DocumentBridge>svg{
+  color:#f6a11a;
+}
+
+.room7DocumentBridge>div{
+  display:grid;
+  gap:5px;
+}
+
+.room7DocumentBridge strong{
+  font-size:.86rem;
+}
+
+.room7DocumentBridge p{
+  max-width:660px;
+  margin:0;
+  color:#94a3b8;
+  font-size:.72rem;
+  line-height:1.55;
+}
+
+.room7EventControlSpin{
+  animation:room7EventControlSpin .8s linear infinite;
+}
+
+@keyframes room7EventControlSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@media(max-width:860px){
+  .room7EventOverviewGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .room7EventStateGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:680px){
+  .room7EventControlOverlay{
+    padding:0;
+  }
+
+  .room7EventControlDialog{
+    width:100%;
+    height:100%;
+    max-height:none;
+    border:0;
+    border-radius:0;
+  }
+
+  .room7EventControlHeader{
+    padding:18px 16px 14px;
+  }
+
+  .room7EventControlBody{
+    padding:15px;
+  }
+
+  .room7EventFormGrid,
+  .room7EventOverviewGrid{
+    grid-template-columns:1fr;
+  }
+
+  .room7EventPublicUrlCard,
+  .room7SecureInviteReady{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .room7InvitationCard{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+
+  .room7InvitationMeta{
+    grid-column:1/-1;
+    grid-row:2;
+    justify-items:start;
+  }
+
+  .room7DocumentBridge{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .room7EventControlSpin{
+    animation:none;
+  }
+}

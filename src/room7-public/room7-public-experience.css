@@ -1,0 +1,439 @@
+.room7PublicExperienceNav{
+  position:sticky;
+  top:12px;
+  z-index:50;
+  width:min(1260px,100%);
+  margin:22px auto 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  overflow-x:auto;
+  padding:7px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:999px;
+  background:rgba(6,14,25,.84);
+  box-shadow:0 16px 50px rgba(0,0,0,.24);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+}
+
+.room7PublicExperienceNav button{
+  flex:0 0 auto;
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  border:0;
+  border-radius:999px;
+  padding:0 13px;
+  background:transparent;
+  color:#8392a4;
+  font:inherit;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.08em;
+  cursor:pointer;
+}
+
+.room7PublicExperienceNav button:hover{
+  background:rgba(255,255,255,.055);
+  color:#f5f7fa;
+}
+
+.room7PublicExperienceNav button.live{
+  background:rgba(34,197,94,.09);
+  color:#86efac;
+}
+
+.room7PublicExperienceSections{
+  width:min(1260px,100%);
+  margin:88px auto 0;
+  display:grid;
+}
+
+.room7PublicEditorialSection{
+  scroll-margin-top:88px;
+  display:grid;
+  grid-template-columns:70px minmax(0,1fr);
+  gap:24px;
+  padding:72px 0;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.room7PublicSectionIndex{
+  padding-top:5px;
+  color:rgba(246,161,26,.55);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.15em;
+}
+
+.room7PublicSectionCopy{
+  min-width:0;
+}
+
+.room7PublicSectionEyebrow{
+  display:block;
+  margin-bottom:12px;
+  color:var(--r7-amber);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.16em;
+}
+
+.room7PublicEditorialSection h2{
+  max-width:860px;
+  margin:0 0 18px;
+  font-size:clamp(30px,4vw,54px);
+  line-height:1.04;
+  letter-spacing:-.04em;
+}
+
+.room7PublicSectionLead{
+  max-width:800px;
+  margin:0;
+  color:#9eabba;
+  font-size:clamp(14px,1.3vw,17px);
+  line-height:1.75;
+}
+
+.room7PublicStoryGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:36px;
+}
+
+.room7PublicStoryGrid article{
+  min-height:165px;
+  display:grid;
+  align-content:end;
+  gap:9px;
+  padding:20px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.045),
+      rgba(255,255,255,.018)
+    );
+}
+
+.room7PublicStoryGrid strong{
+  font-size:16px;
+}
+
+.room7PublicStoryGrid p{
+  margin:0;
+  color:#7f8fa1;
+  font-size:11px;
+  line-height:1.7;
+}
+
+.room7PublicSectionTitleRow{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:28px;
+  margin-bottom:32px;
+}
+
+.room7PublicSectionTitleRow h2{
+  margin-bottom:10px;
+}
+
+.room7PublicSectionTitleRow p{
+  max-width:620px;
+  margin:0;
+  color:#8795a6;
+  font-size:11px;
+  line-height:1.65;
+}
+
+.room7PublicProgrammeTiming{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 12px;
+  border:1px solid rgba(246,161,26,.18);
+  border-radius:999px;
+  background:rgba(246,161,26,.055);
+  color:#e9bd78;
+  font-size:9px;
+}
+
+.room7PublicProgrammeList{
+  display:grid;
+}
+
+.room7PublicProgrammeList article{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:18px;
+  padding:19px 0;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+
+.room7PublicProgrammeList article:last-child{
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.room7PublicProgrammeList article>span{
+  color:var(--r7-amber);
+  font-size:9px;
+  font-weight:900;
+}
+
+.room7PublicProgrammeList article>div{
+  display:grid;
+  gap:6px;
+}
+
+.room7PublicProgrammeList strong{
+  font-size:15px;
+}
+
+.room7PublicProgrammeList p{
+  max-width:760px;
+  margin:0;
+  color:#7f8fa1;
+  font-size:10px;
+  line-height:1.65;
+}
+
+.room7PublicInvestGrid,
+.room7PublicLibraryGrid,
+.room7PublicQnaGrid{
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) minmax(300px,.7fr);
+  gap:50px;
+  align-items:start;
+}
+
+.room7PublicInvestorCard,
+.room7PublicLibraryAccess,
+.room7PublicQnaStatus{
+  min-height:250px;
+  display:grid;
+  align-content:start;
+  gap:10px;
+  padding:24px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:24px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.022)
+    );
+}
+
+.room7PublicInvestorCard>svg,
+.room7PublicQnaStatus>svg{
+  color:var(--r7-amber);
+}
+
+.room7PublicInvestorCard>span,
+.room7PublicLibraryAccess>span,
+.room7PublicQnaStatus>span{
+  margin-top:12px;
+  color:var(--r7-amber);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.13em;
+}
+
+.room7PublicInvestorCard strong,
+.room7PublicLibraryAccess strong,
+.room7PublicQnaStatus strong{
+  font-size:17px;
+}
+
+.room7PublicInvestorCard p,
+.room7PublicLibraryAccess p,
+.room7PublicQnaStatus p{
+  margin:0;
+  color:#8392a4;
+  font-size:10px;
+  line-height:1.7;
+}
+
+.room7PublicInvestorCard button,
+.room7PublicLiveSummary button{
+  justify-self:start;
+  min-height:40px;
+  margin-top:10px;
+  padding:0 14px;
+  border:1px solid rgba(246,161,26,.25);
+  border-radius:12px;
+  background:rgba(246,161,26,.09);
+  color:#f6c56d;
+  font:inherit;
+  font-size:9px;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.room7PublicLibraryFacts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:26px;
+}
+
+.room7PublicLibraryFacts span{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:999px;
+  color:#8d9aac;
+  font-size:9px;
+}
+
+.room7PublicLibraryFacts svg{
+  color:var(--r7-amber);
+}
+
+.room7PublicLibraryAccess
+.room7GuestDocumentTrigger{
+  justify-self:start;
+  margin-top:10px;
+}
+
+.room7PublicQnaStatus.open{
+  border-color:rgba(52,211,153,.20);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(6,78,59,.20),
+      rgba(255,255,255,.018)
+    );
+}
+
+.room7PublicQnaStatus.open>svg{
+  color:#86efac;
+}
+
+.room7PublicLiveSummary{
+  min-height:145px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  margin-top:10px;
+  padding:25px 28px;
+  border:1px solid rgba(246,161,26,.16);
+  border-radius:24px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(246,161,26,.075),
+      rgba(255,255,255,.025)
+    );
+}
+
+.room7PublicLiveSummary>div{
+  display:grid;
+  grid-template-columns:auto auto;
+  align-items:center;
+  column-gap:8px;
+  row-gap:4px;
+}
+
+.room7PublicLiveSummary svg,
+.room7PublicLiveSummary span{
+  color:var(--r7-amber);
+}
+
+.room7PublicLiveSummary span{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+
+.room7PublicLiveSummary strong,
+.room7PublicLiveSummary p{
+  grid-column:1/-1;
+}
+
+.room7PublicLiveSummary strong{
+  font-size:18px;
+}
+
+.room7PublicLiveSummary p{
+  max-width:720px;
+  margin:0;
+  color:#8795a6;
+  font-size:10px;
+  line-height:1.6;
+}
+
+@media(max-width:900px){
+  .room7PublicExperienceNav{
+    justify-content:flex-start;
+  }
+
+  .room7PublicEditorialSection{
+    grid-template-columns:1fr;
+  }
+
+  .room7PublicStoryGrid,
+  .room7PublicInvestGrid,
+  .room7PublicLibraryGrid,
+  .room7PublicQnaGrid{
+    grid-template-columns:1fr;
+  }
+
+  .room7PublicInvestGrid,
+  .room7PublicLibraryGrid,
+  .room7PublicQnaGrid{
+    gap:28px;
+  }
+
+  .room7PublicSectionTitleRow{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media(max-width:600px){
+  .room7PublicExperienceSections{
+    margin-top:50px;
+  }
+
+  .room7PublicEditorialSection{
+    padding:48px 0;
+  }
+
+  .room7PublicExperienceNav{
+    width:calc(100% + 24px);
+    margin-left:-12px;
+    justify-content:flex-start;
+    border-radius:16px;
+  }
+
+  .room7PublicEditorialSection h2{
+    font-size:32px;
+  }
+
+  .room7PublicProgrammeList article{
+    grid-template-columns:40px minmax(0,1fr);
+  }
+
+  .room7PublicLiveSummary{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .room7PublicExperienceNav button{
+    transition:none;
+  }
+}
