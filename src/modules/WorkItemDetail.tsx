@@ -146,6 +146,7 @@ export function WorkItemDetail({
   const detailRequestRef=useRef(0)
 
   const [comment,setComment]=useState('')
+  const [mentionId,setMentionId]=useState('')
   const [newAssignee,setNewAssignee]=useState('')
   const [newWatcher,setNewWatcher]=useState('')
   const [escalationReason,setEscalationReason]=useState('')
@@ -487,21 +488,49 @@ export function WorkItemDetail({
     setBusy(true)
     setMessage('')
 
+    const taggedPerson=
+      mentionId
+        ? people.find(person=>person.id===mentionId)
+        : null
+
+    const bodyToSend=
+      taggedPerson
+        ? `@${taggedPerson.full_name} ${comment.trim()}`
+        : comment.trim()
+
     const {error}=await supabase.rpc(
       'add_work_comment',
       {
         target_work_item:item.id,
-        comment_body:comment.trim()
+        comment_body:bodyToSend
       }
     )
 
     if(error){
       setMessage(error.message)
-    }else{
-      setComment('')
-      await loadDetail()
+      setBusy(false)
+      return
     }
 
+    if(taggedPerson){
+      const {error:watchError}=await supabase.rpc(
+        'add_work_watcher',
+        {
+          target_work_item:item.id,
+          target_user:taggedPerson.id
+        }
+      )
+
+      if(watchError){
+        setMessage(
+          `Comment posted, but couldn't notify ${taggedPerson.full_name}: ${watchError.message}`
+        )
+      }
+    }
+
+    setComment('')
+    setMentionId('')
+    await loadDetail()
     setBusy(false)
   }
 
@@ -1371,20 +1400,44 @@ export function WorkItemDetail({
                 placeholder="Write a comment..."
               />
 
-              <button
-                type="button"
-                className="primaryButton"
-                disabled={
-                  busy ||
-                  !comment.trim()
-                }
-                onClick={()=>
-                  void addComment()
-                }
-              >
-                <Send size={16}/>
-                Send
-              </button>
+              <div className="workCommentComposerRow">
+                <select
+                  value={mentionId}
+                  onChange={event=>
+                    setMentionId(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    @ Tag a colleague (optional)
+                  </option>
+
+                  {people.map(person=>
+                    <option
+                      key={person.id}
+                      value={person.id}
+                    >
+                      {person.full_name}
+                    </option>
+                  )}
+                </select>
+
+                <button
+                  type="button"
+                  className="primaryButton"
+                  disabled={
+                    busy ||
+                    !comment.trim()
+                  }
+                  onClick={()=>
+                    void addComment()
+                  }
+                >
+                  <Send size={16}/>
+                  Send
+                </button>
+              </div>
             </div>
           </section>
 
