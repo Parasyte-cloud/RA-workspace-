@@ -1,19 +1,57 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import {
   BookOpenCheck,
   ExternalLink,
   LoaderCircle,
   ShieldCheck,
+  UploadCloud,
 } from 'lucide-react'
 import {
   createWorkstationGuideUrl,
   WORKSTATION_GUIDE,
 } from '../lib/workstationGuide'
+import { supabase } from '../lib/supabase'
 import '../workstation-guide.css'
 
 export default function WorkstationGuideCard() {
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
+  const [role, setRole] = useState('employee')
+  const [replacing, setReplacing] = useState(false)
+  const [replaceNotice, setReplaceNotice] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const canManageGuide = role === 'legal' || role === 'admin'
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRole() {
+      if (!supabase) return
+
+      const { data: authData } = await supabase.auth.getUser()
+      const userId = authData.user?.id
+
+      if (!userId) return
+
+      const { data } = await supabase
+        .from('employee_profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (!cancelled) {
+        setRole(String(data?.role || 'employee').toLowerCase())
+      }
+    }
+
+    void loadRole()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function openGuide() {
     if (opening) return
@@ -60,6 +98,46 @@ export default function WorkstationGuideCard() {
     }
   }
 
+  async function handleReplace(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file || !supabase) return
+
+    if (file.type !== 'application/pdf') {
+      setReplaceNotice('The workstation guide must be a PDF file.')
+      return
+    }
+
+    setReplacing(true)
+    setReplaceNotice('')
+    setError('')
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from(WORKSTATION_GUIDE.bucket)
+        .upload(WORKSTATION_GUIDE.path, file, {
+          upsert: true,
+          contentType: 'application/pdf',
+        })
+
+      if (uploadError) throw uploadError
+
+      setReplaceNotice(
+        'Guide uploaded. Employees will see the new version next time they open it.'
+      )
+    } catch (caughtError) {
+      console.error('Workstation guide replace failed', caughtError)
+      setReplaceNotice(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Unable to upload the guide.'
+      )
+    } finally {
+      setReplacing(false)
+    }
+  }
+
   return (
     <section
       className="workstationGuideCard glassCard"
@@ -103,6 +181,45 @@ export default function WorkstationGuideCard() {
             aria-live="polite"
           >
             {error}
+          </div>
+        )}
+
+        {canManageGuide && (
+          <div className="workstationGuideAdminRow">
+            <label
+              className={
+                replacing
+                  ? 'workstationGuideAdminButton workstationGuideAdminButtonDisabled'
+                  : 'workstationGuideAdminButton'
+              }
+            >
+              {replacing ? (
+                <LoaderCircle
+                  className="workstationGuideSpinner"
+                  size={13}
+                />
+              ) : (
+                <UploadCloud size={13} />
+              )}
+              {replacing ? 'Uploading...' : 'Replace guide (PDF)'}
+
+              <input
+                ref={inputRef}
+                hidden
+                type="file"
+                accept=".pdf,application/pdf"
+                disabled={replacing}
+                onChange={(event) => {
+                  void handleReplace(event)
+                }}
+              />
+            </label>
+
+            {replaceNotice && (
+              <span className="workstationGuideAdminNotice">
+                {replaceNotice}
+              </span>
+            )}
           </div>
         )}
       </div>

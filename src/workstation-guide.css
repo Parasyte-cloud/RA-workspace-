@@ -133,3 +133,38 @@
     grid-column:auto;
   }
 }
+
+.workstationGuideAdminRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.workstationGuideAdminButton{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:9px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.02em;
+  color:#745019;
+  background:rgba(255,153,0,.1);
+  border:1px solid rgba(255,153,0,.22);
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.workstationGuideAdminButtonDisabled{
+  cursor:wait;
+  opacity:.72;
+}
+
+.workstationGuideAdminNotice{
+  font-size:10px;
+  line-height:1.4;
+  color:#167849;
+}
