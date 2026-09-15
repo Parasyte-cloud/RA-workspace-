@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { BadgeCheck, CalendarDays, Headphones, Phone, Route, ShieldAlert, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -87,6 +87,174 @@ export function LegalModule(){
   </section>
 }
 
+type LeaveRequestRow = {
+  id:string
+  employee_id:string
+  leave_type:string
+  start_date:string
+  end_date:string
+  reason:string|null
+  status:string
+  created_at:string
+}
+
+function LeaveApprovalPanel({
+  employees,
+}:{
+  employees:Record<string,unknown>[]
+}){
+  const [requests,setRequests]=useState<LeaveRequestRow[]>([])
+  const [loading,setLoading]=useState(true)
+  const [busyId,setBusyId]=useState('')
+  const [error,setError]=useState('')
+  const [filter,setFilter]=useState<'pending'|'all'>('pending')
+
+  const nameFor=(employeeId:string)=>{
+    const match=employees.find(e=>String(e.id)===employeeId)
+    return match?String(match.full_name||match.email||employeeId):employeeId
+  }
+
+  const load=useCallback(async()=>{
+    if(!supabase) return
+
+    setLoading(true)
+    setError('')
+
+    const {data,error:loadError}=
+      await supabase
+        .from('leave_requests')
+        .select('id,employee_id,leave_type,start_date,end_date,reason,status,created_at')
+        .order('created_at',{ascending:false})
+
+    if(loadError){
+      setError(loadError.message)
+    }else{
+      setRequests((data||[]) as LeaveRequestRow[])
+    }
+
+    setLoading(false)
+  },[])
+
+  useEffect(()=>{void load()},[load])
+
+  async function decide(id:string,decision:'approved'|'declined'){
+    if(!supabase) return
+
+    setBusyId(id)
+    setError('')
+
+    const {data:{user}}=await supabase.auth.getUser()
+
+    const {error:updateError}=
+      await supabase
+        .from('leave_requests')
+        .update({status:decision,approver_id:user?.id||null})
+        .eq('id',id)
+
+    if(updateError){
+      setError(updateError.message)
+    }else{
+      await load()
+    }
+
+    setBusyId('')
+  }
+
+  const visible=
+    filter==='pending'
+      ? requests.filter(r=>r.status==='pending')
+      : requests
+
+  return (
+    <div className="glassCard workbench">
+      <div className="workbenchHead">
+        <div>
+          <h3>Leave requests</h3>
+          <p>Approve or decline time off directly, alongside the employee's manager.</p>
+        </div>
+
+        <div className="workbenchActions">
+          <button
+            type="button"
+            className={filter==='pending'?'primaryButton':'glassButton'}
+            onClick={()=>setFilter('pending')}
+          >
+            Pending
+          </button>
+
+          <button
+            type="button"
+            className={filter==='all'?'primaryButton':'glassButton'}
+            onClick={()=>setFilter('all')}
+          >
+            All
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="moduleError">{error}</div>}
+
+      {loading ? (
+        <div className="moduleNotice">Loading leave requests...</div>
+      ) : visible.length===0 ? (
+        <div className="moduleNotice">
+          {filter==='pending' ? 'No pending leave requests.' : 'No leave requests.'}
+        </div>
+      ) : (
+        <div className="moduleTableWrap">
+          <table className="moduleTable">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Type</th>
+                <th>Dates</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {visible.map(r=>(
+                <tr key={r.id}>
+                  <td>{nameFor(r.employee_id)}</td>
+                  <td>{r.leave_type}</td>
+                  <td>{r.start_date} &ndash; {r.end_date}</td>
+                  <td>{r.reason||'\u2014'}</td>
+                  <td><span className={`statusPill ${r.status}`}>{r.status}</span></td>
+                  <td>
+                    {r.status==='pending' &&
+                      <div className="buttonRow">
+                        <button
+                          type="button"
+                          className="glassButton"
+                          disabled={busyId===r.id}
+                          onClick={()=>void decide(r.id,'declined')}
+                        >
+                          Decline
+                        </button>
+
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          disabled={busyId===r.id}
+                          onClick={()=>void decide(r.id,'approved')}
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PeopleModule({
   accessMode='full',
 }:{
@@ -98,6 +266,9 @@ export function PeopleModule({
   const [leave,setLeave]=useState({leave_type:'Annual',start_date:'',end_date:'',reason:''})
   const [message,setMessage]=useState('')
   useEffect(()=>{if(!supabase)return;void supabase.from('employee_profiles').select('id,full_name,email,department,job_title,role').order('full_name').then(({data})=>setEmployees((data||[]) as Record<string,unknown>[]))},[])
+  const [viewerRole,setViewerRole]=useState('')
+  useEffect(()=>{if(!supabase)return;let cancelled=false;(async()=>{const {data:{user}}=await supabase!.auth.getUser();if(!user)return;const {data}=await supabase!.from('employee_profiles').select('role').eq('id',user.id).maybeSingle();if(!cancelled)setViewerRole(String(data?.role||'employee').toLowerCase())})();return ()=>{cancelled=true}},[])
+  const canApproveLeave=['hr','manager','admin'].includes(viewerRole)
   const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})}
   return <section>
     <Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee records, recruitment, onboarding, leave, performance and learning under role-based controls."/>
@@ -105,6 +276,7 @@ export function PeopleModule({
     <div className="grid2">
       <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory. Private employee headshots are not exposed here.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div>
       <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div>
+      {canApproveLeave&&<LeaveApprovalPanel employees={employees}/>}
       {!operationsView&&<>
       <DataWorkbench table="people_candidates" title="Recruitment pipeline" description="Candidates from application through interview, offer and hire." createLabel="Add candidate" fields={[{key:'full_name',label:'Candidate name',required:true},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'role_title',label:'Role',required:true},{key:'stage',label:'Stage',type:'select',options:['applied','screening','interview','assessment','offer','hired','rejected','withdrawn'],required:true},{key:'source',label:'Source'},{key:'interview_date',label:'Interview date',type:'datetime-local'},{key:'owner_id',label:'Recruiter / owner',type:'employee'},{key:'notes',label:'Notes',type:'textarea'}]} columns={[{key:'full_name',label:'Candidate'},{key:'role_title',label:'Role'},{key:'stage',label:'Stage'},{key:'source',label:'Source'},{key:'interview_date',label:'Interview'}]}/>
       <DataWorkbench table="people_performance_reviews" title="Performance reviews" description="Review cycles, goals, manager assessment and completion status." createLabel="Start review" fields={[{key:'employee_id',label:'Employee',type:'employee',required:true},{key:'review_period',label:'Review period',required:true},{key:'rating',label:'Rating',type:'number'},{key:'status',label:'Status',type:'select',options:['draft','employee_input','manager_review','calibration','complete'],required:true},{key:'goals',label:'Goals / outcomes',type:'textarea'},{key:'manager_notes',label:'Manager notes',type:'textarea'},{key:'review_date',label:'Review date',type:'date'}]} columns={[{key:'review_period',label:'Period'},{key:'rating',label:'Rating'},{key:'status',label:'Status'},{key:'review_date',label:'Review date'}]}/>
