@@ -10,6 +10,7 @@ import type {
 
 import {
   BriefcaseBusiness,
+  Calendar,
   Camera,
   Clock3,
   CreditCard,
@@ -36,6 +37,7 @@ import {
   type EmployeeCardProfile
 } from '../components/EmployeeVirtualCard'
 import EmployeeAttendance from '../components/EmployeeAttendance'
+import EmployeeKycDocuments from '../components/EmployeeKycDocuments'
 
 import '../virtual-card.css'
 
@@ -47,6 +49,20 @@ type Profile =
 type Props = {
   profile:Profile
   onProfileUpdated:()=>Promise<void>
+}
+
+function formatDob(value?:string|null){
+  if(!value) return ''
+
+  const parsed=new Date(`${value}T00:00:00`)
+
+  if(Number.isNaN(parsed.getTime())) return value
+
+  return parsed.toLocaleDateString('en-GB',{
+    day:'numeric',
+    month:'long',
+    year:'numeric'
+  })
 }
 
 export function ProfileModule({
@@ -91,6 +107,9 @@ export function ProfileModule({
   const [avatarPath,setAvatarPath]=
     useState(profile.avatar_path || '')
 
+  const [dateOfBirth,setDateOfBirth]=
+    useState(profile.date_of_birth || '')
+
   const [avatarUrl,setAvatarUrl]=
     useState(profile.avatar_url || '')
 
@@ -114,6 +133,7 @@ export function ProfileModule({
       'Mon - Fri: 9:00 AM - 5:00 PM'
     )
     setAvatarPath(profile.avatar_path || '')
+    setDateOfBirth(profile.date_of_birth || '')
 
     if(profile.avatar_url){
       setAvatarUrl(profile.avatar_url)
@@ -158,7 +178,9 @@ export function ProfileModule({
             p_instagram_url:
               instagram.trim() || null,
             p_working_hours:
-              hours.trim() || null
+              hours.trim() || null,
+            p_date_of_birth:
+              dateOfBirth || null
           }
         )
 
@@ -431,6 +453,12 @@ export function ProfileModule({
                   label="LinkedIn"
                   value={linkedin}
                 />
+
+                <Info
+                  icon={<Calendar/>}
+                  label="Date of birth"
+                  value={formatDob(dateOfBirth)}
+                />
               </div>
 
               <div className="profileBio">
@@ -514,6 +542,17 @@ export function ProfileModule({
                   value={hours}
                   setValue={setHours}
                 />
+
+                <label className="profileField">
+                  <span>Date of birth</span>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={e=>
+                      setDateOfBirth(e.target.value)
+                    }
+                  />
+                </label>
               </div>
 
               <label className="profileTextareaField">
@@ -566,6 +605,8 @@ export function ProfileModule({
           }
         </div>
       </div>
+
+      <EmployeeKycDocuments/>
 
       <EmployeeAttendance/>
 

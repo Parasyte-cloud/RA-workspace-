@@ -5723,3 +5723,174 @@ textarea {
   font-size:12px;
   border-top:1px solid rgba(7,26,56,.06);
 }
+
+/* =========================================================
+   PROFILE — KYC / ONBOARDING DOCUMENTS
+   ========================================================= */
+
+.kycDocsSection {
+  margin-top: 22px;
+  padding: 28px;
+  border: 1px solid rgba(255,164,20,.23);
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.88),
+      rgba(246,250,255,.68)
+    );
+  box-shadow:
+    0 24px 70px rgba(8,31,60,.08),
+    inset 0 1px 0 rgba(255,255,255,.96);
+  backdrop-filter: blur(30px);
+}
+
+.kycDocsHeader h3 {
+  margin: 6px 0 6px;
+  color: #092346;
+  font-size: 21px;
+}
+
+.kycDocsHeader p {
+  margin: 0 0 20px;
+  color: #6b798d;
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+.kycDocsLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6b798d;
+  padding: 10px 2px;
+}
+
+.kycDocsGrid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 14px;
+}
+
+.kycDocCard {
+  border: 1px solid rgba(9,35,70,.07);
+  border-radius: 18px;
+  background: rgba(255,255,255,.66);
+  padding: 17px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.kycDocCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kycDocCardHeader strong {
+  display: block;
+  color: #0b2445;
+  font-size: 14px;
+}
+
+.kycDocCardHeader small {
+  display: block;
+  margin-top: 3px;
+  color: #8b97a5;
+}
+
+.kycDocCount {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #b66e00;
+  background: rgba(255,153,0,.13);
+  white-space: nowrap;
+}
+
+.kycDocFileList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.kycDocFileRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(9,35,70,.04);
+  color: #526277;
+  font-size: 12px;
+}
+
+.kycDocFileName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0b2445;
+  font-weight: 600;
+}
+
+.kycDocFileSize {
+  flex: 0 0 auto;
+  color: #8b97a5;
+  font-size: 11px;
+}
+
+.kycDocFileRow .iconButton {
+  width: 28px;
+  height: 28px;
+}
+
+.kycDocUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(255,151,0,.45);
+  border-radius: 13px;
+  color: #b66e00;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(255,153,0,.05);
+}
+
+.kycDocUploadButtonDisabled {
+  cursor: not-allowed;
+  opacity: .55;
+  border-style: solid;
+  border-color: rgba(9,35,70,.11);
+  color: #8b97a5;
+  background: rgba(9,35,70,.03);
+}
+
+.kycDocsError {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: rgba(217,84,64,.09);
+  color: #b3402c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .kycDocsGrid {
+    grid-template-columns: 1fr;
+  }
+}
