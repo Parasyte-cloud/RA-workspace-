@@ -5894,3 +5894,6 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+.statusPill.pending{background:#fff2dc;color:#9a5c00}
+.statusPill.approved{background:#e7f8ee;color:#197647}
+.statusPill.declined{background:#fde8e8;color:#a5322c}
