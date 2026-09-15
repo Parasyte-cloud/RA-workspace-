@@ -643,6 +643,7 @@ function App(){
         instagram_url,
         bio,
         working_hours,
+        date_of_birth,
         virtual_card_enabled,
         active
       `)

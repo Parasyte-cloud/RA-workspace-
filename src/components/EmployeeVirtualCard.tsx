@@ -35,6 +35,7 @@ export type EmployeeCardProfile = {
   working_hours?:string|null
   virtual_card_enabled?:boolean|null
   public_card_enabled?:boolean|null
+  date_of_birth?:string|null
 }
 
 type Props = {
