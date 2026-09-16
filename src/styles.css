@@ -5578,6 +5578,18 @@ textarea {
   resize:vertical;
 }
 
+.workCommentComposerRow{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.workCommentComposerRow select{
+  flex:1;
+  min-width:0;
+}
+
 .dangerSection{
   border-color:rgba(190,45,45,.15);
 }

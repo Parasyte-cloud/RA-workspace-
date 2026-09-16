@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
+  Eye,
   Plus,
   RefreshCw,
   UserRound,
@@ -57,6 +58,9 @@ type WorkItem = {
       job_title:string
     }|null
   }[]
+  work_item_watchers?:{
+    user_id:string
+  }[]
 }
 
 
@@ -80,6 +84,7 @@ type Profile = {
 type View =
   | 'my'
   | 'assigned'
+  | 'watching'
   | 'all'
 
 
@@ -233,6 +238,9 @@ export function WorkDesk(){
               department,
               job_title
             )
+          ),
+          work_item_watchers(
+            user_id
           )
         `)
         .order('created_at',{ascending:false})
@@ -387,6 +395,17 @@ export function WorkDesk(){
       canAssignCompanyWide
     ){
       return items
+    }
+
+    if(view==='watching'){
+      return items.filter(
+        item=>
+          item.work_item_watchers
+            ?.some(
+              watcher=>
+                watcher.user_id===profile.id
+            )
+      )
     }
 
     return items.filter(
@@ -580,6 +599,20 @@ export function WorkDesk(){
         >
           <UserRound size={16}/>
           My Work
+        </button>
+
+        <button
+          className={
+            view==='watching'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>
+            setView('watching')
+          }
+        >
+          <Eye size={16}/>
+          Watching
         </button>
 
         {canDelegate&&
