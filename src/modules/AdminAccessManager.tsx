@@ -5,12 +5,17 @@ import {
   useState,
 } from 'react'
 
+import type {
+  FormEvent,
+} from 'react'
+
 import {
   CheckCircle2,
   KeyRound,
   RefreshCw,
   ShieldCheck,
   UserCheck,
+  UserPlus,
   UserX,
 } from 'lucide-react'
 
@@ -175,9 +180,70 @@ export default function AdminAccessManager(){
       }
     },[])
 
+  const [inviteOpen,setInviteOpen]=
+    useState(false)
+
+  const [inviteForm,setInviteForm]=
+    useState({
+      fullName:'',
+      email:'',
+      department:'Unassigned',
+      role:'employee',
+      jobTitle:'',
+      managerId:'',
+    })
+
+  const [inviting,setInviting]=
+    useState(false)
+
   useEffect(()=>{
     void loadUsers()
   },[loadUsers])
+
+  const invite=async(
+    event:FormEvent
+  )=>{
+    event.preventDefault()
+
+    setMessage('')
+    setInviting(true)
+
+    try{
+      await invokeAdmin({
+        action:'invite',
+        fullName:inviteForm.fullName,
+        email:inviteForm.email,
+        department:inviteForm.department,
+        role:inviteForm.role,
+        jobTitle:inviteForm.jobTitle,
+        managerId:inviteForm.managerId || null,
+      })
+
+      setMessage(
+        `Invitation sent to ${inviteForm.email}. They will receive an email to set their password and sign in.`
+      )
+
+      setInviteForm({
+        fullName:'',
+        email:'',
+        department:'Unassigned',
+        role:'employee',
+        jobTitle:'',
+        managerId:'',
+      })
+
+      setInviteOpen(false)
+
+      await loadUsers()
+    }catch(error:any){
+      setMessage(
+        error?.message ||
+        'Unable to invite employee.'
+      )
+    }finally{
+      setInviting(false)
+    }
+  }
 
   const visible=
     useMemo(()=>{
@@ -333,8 +399,130 @@ export default function AdminAccessManager(){
             <RefreshCw size={16}/>
             Refresh
           </button>
+
+          <button
+            className="primaryButton"
+            type="button"
+            onClick={()=>
+              setInviteOpen(value=>!value)
+            }
+          >
+            <UserPlus size={16}/>
+            {inviteOpen ? 'Close' : 'Invite employee'}
+          </button>
         </div>
       </div>
+
+      {inviteOpen &&
+        <form className="quickForm" onSubmit={invite}>
+          <div className="quickFormGrid">
+            <label>
+              Full name
+              <input
+                required
+                value={inviteForm.fullName}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  fullName:event.target.value,
+                })}
+              />
+            </label>
+
+            <label>
+              Work email
+              <input
+                required
+                type="email"
+                placeholder="name@ridearrivo.com"
+                value={inviteForm.email}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  email:event.target.value,
+                })}
+              />
+            </label>
+
+            <label>
+              Department
+              <select
+                value={inviteForm.department}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  department:event.target.value,
+                })}
+              >
+                <option value="Unassigned">Unassigned</option>
+                {DEPARTMENTS.map(department=>(
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Role
+              <select
+                value={inviteForm.role}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  role:event.target.value,
+                })}
+              >
+                {ROLE_OPTIONS.map(role=>(
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Job title
+              <input
+                value={inviteForm.jobTitle}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  jobTitle:event.target.value,
+                })}
+              />
+            </label>
+
+            <label>
+              Reports to
+              <select
+                value={inviteForm.managerId}
+                onChange={event=>setInviteForm({
+                  ...inviteForm,
+                  managerId:event.target.value,
+                })}
+              >
+                <option value="">No manager assigned</option>
+                {users
+                  .filter(candidate=>candidate.active)
+                  .sort((a,b)=>
+                    (a.full_name||a.email).toLowerCase().localeCompare(
+                      (b.full_name||b.email).toLowerCase()
+                    )
+                  )
+                  .map(candidate=>(
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.full_name || candidate.email}
+                      {' — '}
+                      {candidate.department || 'Unassigned'}
+                      {' · '}
+                      {candidate.job_title || candidate.role}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+
+          <button className="primaryButton" disabled={inviting}>
+            {inviting ? 'Sending invitation...' : 'Send invitation'}
+          </button>
+        </form>
+      }
 
       <div className="adminAccessTabs">
         <button
