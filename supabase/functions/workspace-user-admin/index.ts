@@ -437,6 +437,171 @@ serve(async(req)=>{
     }
 
     /*
+     * INVITE
+     *
+     * Creates a brand-new @ridearrivo.com Auth account (there is no
+     * self-service sign-up in this workspace) and immediately assigns
+     * their role/department/job title/manager so they land straight in
+     * the correct department workspace instead of sitting in the
+     * "Unassigned / employee" default until a second admin step.
+     */
+    if(action==="invite"){
+      const email =
+        String(body?.email || "")
+          .trim()
+          .toLowerCase()
+
+      const fullName =
+        String(body?.fullName || "").trim()
+
+      const role =
+        String(body?.role || "employee")
+          .trim()
+          .toLowerCase()
+
+      const department =
+        String(body?.department || "Unassigned").trim()
+
+      const jobTitle =
+        String(body?.jobTitle || "").trim()
+
+      const managerId =
+        String(body?.managerId || "").trim() || null
+
+      if(!email){
+        return json({error:"Employee email is required."},400)
+      }
+
+      if(!email.endsWith("@ridearrivo.com")){
+        return json({error:"Only @ridearrivo.com accounts may be invited."},400)
+      }
+
+      if(!fullName){
+        return json({error:"Employee full name is required."},400)
+      }
+
+      if(!VALID_ROLES.has(role)){
+        return json({error:`Invalid role: ${role}`},400)
+      }
+
+      if(managerId){
+        const {
+          data:managerProfile,
+          error:managerError,
+        } =
+          await admin
+            .from("employee_profiles")
+            .select("id,active")
+            .eq("id",managerId)
+            .maybeSingle()
+
+        if(managerError){
+          console.error(
+            "workspace-user-admin invite manager lookup",
+            managerError
+          )
+
+          return json(
+            {error:`Unable to verify the reporting manager: ${errorMessage(managerError)}`},
+            500
+          )
+        }
+
+        if(!managerProfile || managerProfile.active!==true){
+          return json(
+            {error:"Selected reporting manager must have active workspace access."},
+            400
+          )
+        }
+      }
+
+      const {
+        data:inviteResult,
+        error:inviteError,
+      } =
+        await admin.auth.admin.inviteUserByEmail(
+          email,
+          {
+            data:{full_name:fullName},
+            redirectTo:"https://intranet.ridearrivo.com/",
+          }
+        )
+
+      if(inviteError || !inviteResult?.user){
+        console.error(
+          "workspace-user-admin invite",
+          inviteError
+        )
+
+        return json(
+          {error:`Unable to invite employee: ${errorMessage(inviteError)}`},
+          400
+        )
+      }
+
+      const userId = inviteResult.user.id
+
+      const {
+        error:profileError,
+      } =
+        await actorDb
+          .from("employee_profiles")
+          .upsert(
+            {
+              id:userId,
+              email,
+              full_name:fullName,
+              role,
+              department:department || "Unassigned",
+              job_title:jobTitle,
+              manager_id:managerId,
+              active:true,
+              updated_at:new Date().toISOString(),
+            },
+            {onConflict:"id"}
+          )
+
+      if(profileError){
+        console.error(
+          "workspace-user-admin invite profile",
+          profileError
+        )
+
+        return json(
+          {error:`Invitation was sent, but saving the employee profile failed: ${errorMessage(profileError)}`},
+          500
+        )
+      }
+
+      await admin
+        .from("admin_audit_log")
+        .insert({
+          actor_id:administratorId,
+          target_employee_id:userId,
+          action:"employee.invite",
+          entity_type:"employee_profiles",
+          entity_id:userId,
+          source:"workspace-user-admin",
+          metadata:{email,role,department,job_title:jobTitle,manager_id:managerId},
+        })
+        .then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
+
+      return json({
+        success:true,
+        user:{
+          id:userId,
+          email,
+          full_name:fullName,
+          role,
+          department,
+          job_title:jobTitle,
+          manager_id:managerId,
+          active:true,
+        },
+      })
+    }
+
+    /*
      * APPROVE / UPDATE
      */
     if(
