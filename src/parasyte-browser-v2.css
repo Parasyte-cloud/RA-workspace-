@@ -1,0 +1,201 @@
+/* PArAsYtE Browser V2: security/status overlay layered after parasyte.css. */
+.parasyteBrowserV2 {
+  position: relative;
+}
+
+.parasyteBrowserV2 .parasyteOmnibox {
+  min-width: 0;
+}
+
+.parasyteSecurityIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.parasyteSecurityIcon.embed,
+.parasyteSecurityIcon.home {
+  opacity: 1;
+}
+
+.parasyteSecurityIcon.external,
+.parasyteSecurityIcon.blocked {
+  opacity: .82;
+}
+
+.parasyteTrustBar {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.09));
+  background: color-mix(in srgb, var(--panel, #101412) 92%, transparent);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.parasyteTrustBar strong {
+  flex: 0 0 auto;
+  max-width: 36%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parasyteTrustBar > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: .68;
+}
+
+.parasyteTrustDot,
+.parasyteFrameDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.parasyteTrustDot.home,
+.parasyteTrustDot.embed,
+.parasyteFrameDot.ready {
+  opacity: .95;
+}
+
+.parasyteTrustDot.external,
+.parasyteFrameDot.loading,
+.parasyteFrameDot.slow {
+  opacity: .6;
+}
+
+.parasyteTrustDot.blocked,
+.parasyteFrameDot.failed {
+  opacity: .45;
+}
+
+.parasyteFrameShell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.parasyteBrowserV2 .parasyteFrameShell iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+}
+
+.parasyteFrameStatus {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.09));
+  background: color-mix(in srgb, var(--panel, #101412) 94%, transparent);
+  font-size: 11px;
+}
+
+.parasyteFrameStatus > span:nth-child(2) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parasyteFrameStatus button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  opacity: .72;
+}
+
+.parasyteFrameStatus button:hover,
+.parasyteFrameStatus button:focus-visible {
+  opacity: 1;
+}
+
+.parasyteFrameFallback {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border, rgba(255,255,255,.09));
+  font-size: 11px;
+  line-height: 1.45;
+  opacity: .72;
+}
+
+.parasyteExternalActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.parasyteExternalActions .secondary {
+  opacity: .76;
+}
+
+.parasyteBlockedNotice code {
+  max-width: min(680px, 88vw);
+  overflow-wrap: anywhere;
+}
+
+.parasyteHomeV2 p {
+  max-width: 720px;
+}
+
+@media (max-width: 760px) {
+  .parasyteTrustBar {
+    padding-inline: 9px;
+  }
+
+  .parasyteTrustBar strong {
+    max-width: 48%;
+  }
+
+  .parasyteTrustBar > span:last-child {
+    display: none;
+  }
+
+  .parasyteFrameStatus {
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .parasyteTrustBar strong {
+    max-width: calc(100% - 20px);
+  }
+
+  .parasyteFrameStatus button {
+    width: 30px;
+    height: 30px;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-indent: -999px;
+  }
+
+  .parasyteFrameStatus button svg {
+    flex: 0 0 auto;
+    text-indent: 0;
+  }
+}
