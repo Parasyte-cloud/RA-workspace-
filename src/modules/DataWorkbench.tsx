@@ -12,6 +12,7 @@ import type {
 } from 'react'
 
 import {
+  Pencil,
   RefreshCw,
   Search,
 } from 'lucide-react'
@@ -41,7 +42,8 @@ type Column={
   key:string
   label:string
   render?:(
-    row:Record<string,unknown>
+    row:Record<string,unknown>,
+    employees:EmployeeOption[]
   )=>ReactNode
 }
 
@@ -49,6 +51,42 @@ type EmployeeOption={
   id:string
   full_name:string
   email:string
+}
+
+function toDatetimeLocalValue(value:unknown):string{
+  if(value===null||value===undefined||value===''){
+    return ''
+  }
+
+  const date=new Date(String(value))
+
+  if(Number.isNaN(date.getTime())){
+    return ''
+  }
+
+  const pad=(part:number)=>String(part).padStart(2,'0')
+
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function toFormValue(field:Field,raw:unknown):string{
+  if(raw===null||raw===undefined){
+    return ''
+  }
+
+  if(field.type==='datetime-local'){
+    return toDatetimeLocalValue(raw)
+  }
+
+  if(field.type==='date'){
+    return String(raw).slice(0,10)
+  }
+
+  if(field.type==='time'){
+    return String(raw).slice(0,5)
+  }
+
+  return String(raw)
 }
 
 export function DataWorkbench({
@@ -75,6 +113,7 @@ export function DataWorkbench({
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState('')
   const [open,setOpen]=useState(false)
+  const [editingId,setEditingId]=useState<string|null>(null)
   const [query,setQuery]=useState('')
   const [employees,setEmployees]=useState<EmployeeOption[]>([])
 
@@ -188,6 +227,33 @@ export function DataWorkbench({
       : rows
   },[rows,query])
 
+  const startCreate=()=>{
+    setForm({})
+    setEditingId(null)
+    setError('')
+    setOpen(true)
+  }
+
+  const startEdit=(row:Record<string,unknown>)=>{
+    const next:Record<string,string>={}
+
+    for(const field of fields){
+      next[field.key]=toFormValue(field,row[field.key])
+    }
+
+    setForm(next)
+    setEditingId(row.id?String(row.id):null)
+    setError('')
+    setOpen(true)
+  }
+
+  const closeForm=()=>{
+    setOpen(false)
+    setEditingId(null)
+    setForm({})
+    setError('')
+  }
+
   const submit=async(event:FormEvent)=>{
     event.preventDefault()
 
@@ -211,9 +277,14 @@ export function DataWorkbench({
       }
     }
 
-    const {error:saveError}=await client
-      .from(table)
-      .insert(payload)
+    const {error:saveError}=editingId
+      ? await client
+          .from(table)
+          .update(payload)
+          .eq('id',editingId)
+      : await client
+          .from(table)
+          .insert(payload)
 
     setSaving(false)
 
@@ -224,6 +295,7 @@ export function DataWorkbench({
 
     setForm({})
     setOpen(false)
+    setEditingId(null)
     await load()
   }
 
@@ -246,13 +318,23 @@ export function DataWorkbench({
           >
             <RefreshCw size={16}/>
           </button>
-          <button
-            className="primaryButton"
-            type="button"
-            onClick={()=>setOpen(value=>!value)}
-          >
-            {open?'Close':createLabel}
-          </button>
+          {open ? (
+            <button
+              className="glassButton"
+              type="button"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              className="primaryButton"
+              type="button"
+              onClick={startCreate}
+            >
+              {createLabel}
+            </button>
+          )}
         </div>
       </div>
 
@@ -328,7 +410,11 @@ export function DataWorkbench({
           </div>
 
           <button className="primaryButton" disabled={saving}>
-            {saving?'Saving...':'Save record'}
+            {saving
+              ? 'Saving...'
+              : editingId
+                ? 'Save changes'
+                : 'Save record'}
           </button>
         </form>
       )}
@@ -340,26 +426,38 @@ export function DataWorkbench({
               {columns.map(column=>(
                 <th key={column.key}>{column.label}</th>
               ))}
+              <th aria-label="Actions"/>
             </tr>
           </thead>
           <tbody>
             {initialLoading ? (
               <tr>
-                <td colSpan={columns.length}>Loading…</td>
+                <td colSpan={columns.length+1}>Loading…</td>
               </tr>
             ) : visible.length===0 ? (
               <tr>
-                <td colSpan={columns.length}>No records yet.</td>
+                <td colSpan={columns.length+1}>No records yet.</td>
               </tr>
             ) : visible.map((row,index)=>(
               <tr key={String(row.id||index)}>
                 {columns.map(column=>(
                   <td key={column.key}>
                     {column.render
-                      ? column.render(row)
+                      ? column.render(row,employees)
                       : String(row[column.key]??'—')}
                   </td>
                 ))}
+                <td>
+                  <button
+                    type="button"
+                    className="workbenchEditButton"
+                    onClick={()=>startEdit(row)}
+                    title={`Edit this ${title.toLowerCase()} record`}
+                  >
+                    <Pencil size={13}/>
+                    Edit
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
