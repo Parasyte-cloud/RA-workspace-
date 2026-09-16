@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   Columns2,
+  ExternalLink,
   Maximize2,
   Minimize2,
   Minus,
@@ -61,6 +62,19 @@ export default function WorkstationWindow({
           className="workstationManagedWindowControls"
           aria-label={`${title} window controls`}
         >
+          {url&&
+            <button
+              type="button"
+              title="Open in a new browser tab"
+              aria-label={`Open ${title} in a new browser tab`}
+              onClick={()=>{
+                window.open(url,'_blank','noopener,noreferrer')
+              }}
+            >
+              <ExternalLink size={16}/>
+            </button>
+          }
+
           <button
             type="button"
             title="Minimize"
@@ -143,6 +157,18 @@ export default function WorkstationWindow({
                 This service is contained inside the RideArrivo
                 workstation. Provider authentication, framing,
                 CSP and browser-security policies remain in force.
+                Some providers block embedding entirely - if this
+                looks blank,{' '}
+                <button
+                  type="button"
+                  className="workstationExternalBoundaryLink"
+                  onClick={()=>{
+                    window.open(url,'_blank','noopener,noreferrer')
+                  }}
+                >
+                  open it in a new tab
+                </button>
+                {' '}instead.
               </div>
 
               <iframe
