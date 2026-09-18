@@ -9,12 +9,21 @@ import {
 } from 'lucide-react'
 import {
   createWorkstationGuideUrl,
-  WORKSTATION_GUIDE,
+  DEFAULT_WORKSTATION_GUIDE_SLUG,
+  WORKSTATION_GUIDE_BUCKET,
+  WORKSTATION_GUIDE_VERSION,
+  workstationGuidePath,
 } from '../lib/workstationGuide'
 import { supabase } from '../lib/supabase'
 import '../workstation-guide.css'
 
-export default function WorkstationGuideCard() {
+export default function WorkstationGuideCard({
+  slug = DEFAULT_WORKSTATION_GUIDE_SLUG,
+  workstationLabel = 'This Workstation',
+}: {
+  slug?: string
+  workstationLabel?: string
+}) {
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
   const [role, setRole] = useState('employee')
@@ -79,7 +88,7 @@ export default function WorkstationGuideCard() {
 
     try {
       const signedUrl =
-        await createWorkstationGuideUrl()
+        await createWorkstationGuideUrl(slug)
 
       guideWindow.location.replace(signedUrl)
     } catch (caughtError) {
@@ -115,8 +124,8 @@ export default function WorkstationGuideCard() {
 
     try {
       const { error: uploadError } = await supabase.storage
-        .from(WORKSTATION_GUIDE.bucket)
-        .upload(WORKSTATION_GUIDE.path, file, {
+        .from(WORKSTATION_GUIDE_BUCKET)
+        .upload(workstationGuidePath(slug), file, {
           upsert: true,
           contentType: 'application/pdf',
         })
@@ -157,7 +166,7 @@ export default function WorkstationGuideCard() {
           </span>
 
           <div className="workstationGuideBadges">
-            <span>Version {WORKSTATION_GUIDE.version}</span>
+            <span>Version {WORKSTATION_GUIDE_VERSION}</span>
             <span>
               <ShieldCheck size={12} />
               Internal use only
@@ -165,13 +174,13 @@ export default function WorkstationGuideCard() {
           </div>
         </div>
 
-        <h3>{WORKSTATION_GUIDE.label}</h3>
+        <h3>{workstationLabel} — README</h3>
 
         <p>
-          Open this guide before using your workstation for
+          Open this guide before using {workstationLabel} for
           the first time. It explains daily workflow, key
           tools, security boundaries and end-of-day
-          procedures across RideArrivo.
+          procedures for this workstation.
         </p>
 
         {error && (

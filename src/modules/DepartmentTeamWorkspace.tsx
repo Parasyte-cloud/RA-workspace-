@@ -82,6 +82,7 @@ type Props={
   departmentAliases:string[]
   roleAliases:string[]
 
+  workstationSlug:string
   workstationTitle:string
   workstationDescription:string
 
@@ -127,6 +128,7 @@ export function DepartmentTeamWorkspace({
   subtitle,
   departmentAliases,
   roleAliases,
+  workstationSlug,
   workstationTitle,
   workstationDescription,
   capabilities,
@@ -622,7 +624,7 @@ export function DepartmentTeamWorkspace({
 
       {view==='workstation' &&
         <div className="departmentStation">
-          <WorkstationGuideCard />
+          <WorkstationGuideCard slug={workstationSlug} workstationLabel={workstationTitle} />
 
           <div className="departmentStationIntro">
 
@@ -810,6 +812,7 @@ function ExecutiveExecution({onNavigate}:{onNavigate?:(target:string)=>void}){
 export function ExecutiveTeamWorkspace({onNavigate}:{onNavigate?:(target:string)=>void}){
   return <DepartmentTeamWorkspace
     eyebrow="EXECUTIVE LEADERSHIP"
+    workstationSlug="executive"
     title="CEO & Management Workspace"
     subtitle="Company-wide leadership, approvals, risk, operating performance and cross-functional decision control."
     departmentAliases={['executive','management','leadership','office of the ceo']}
@@ -859,6 +862,7 @@ export function SupportTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="SUPPORT TEAM"
+      workstationSlug="support"
       title="Support Team Workspace"
       subtitle="Customer assistance, booking context, trip support, escalation and service recovery."
       departmentAliases={[
@@ -905,6 +909,7 @@ export function OperationsTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="OPERATIONS"
+      workstationSlug="operations"
       title="Operations Team Workspace"
       subtitle="Dispatch, trip execution, fleet readiness, drivers, incidents and operating control."
       departmentAliases={[
@@ -952,6 +957,7 @@ export function PeopleTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="PEOPLE & HR"
+      workstationSlug="people"
       title="People Team Workspace"
       subtitle="Recruitment, employee lifecycle, onboarding, leave, performance and people operations."
       departmentAliases={[
@@ -1000,6 +1006,7 @@ export function EngineeringTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="ENGINEERING"
+      workstationSlug="engineering"
       title="Engineering Team Workspace"
       subtitle="Software delivery, infrastructure, mobile, releases, security and technical operations."
       departmentAliases={[
@@ -1057,6 +1064,7 @@ export function FinanceTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="FINANCE"
+      workstationSlug="finance"
       title="Finance Team Workspace"
       subtitle="Accounting, cash control, receivables, payables, budgeting, assets, tax and financial close."
       departmentAliases={[
@@ -1113,6 +1121,7 @@ export function PartnershipsTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="PARTNERSHIPS"
+      workstationSlug="partnerships"
       title="Partnerships Team Workspace"
       subtitle="Commercial relationships, opportunities, agreements, referrals and partner launch."
       departmentAliases={[
@@ -1160,6 +1169,7 @@ export function LegalTeamWorkspace({
   return (
     <DepartmentTeamWorkspace
       eyebrow="LEGAL & COMPLIANCE"
+      workstationSlug="legal"
       title="Legal Team Workspace"
       subtitle="Contracts, regulatory obligations, privacy, evidence, renewals and legal service delivery."
       departmentAliases={[

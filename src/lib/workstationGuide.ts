@@ -1,15 +1,22 @@
 import { supabase } from './supabase'
 
-export const WORKSTATION_GUIDE = {
-  bucket: 'workstation-guides',
-  path: 'canonical/readme.pdf',
-  label: 'README - How to Use This Workstation',
-  version: '1.0',
-} as const
+export const WORKSTATION_GUIDE_BUCKET = 'workstation-guides'
+
+export const DEFAULT_WORKSTATION_GUIDE_SLUG = 'canonical'
+
+export const WORKSTATION_GUIDE_VERSION = '2.0'
+
+export function workstationGuidePath(
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+): string {
+  return `${slug}/readme.pdf`
+}
 
 const SIGNED_URL_SECONDS = 5 * 60
 
-export async function createWorkstationGuideUrl(): Promise<string> {
+export async function createWorkstationGuideUrl(
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+): Promise<string> {
   const client = supabase
 
   if (!client) {
@@ -30,9 +37,9 @@ export async function createWorkstationGuideUrl(): Promise<string> {
   }
 
   const { data, error } = await client.storage
-    .from(WORKSTATION_GUIDE.bucket)
+    .from(WORKSTATION_GUIDE_BUCKET)
     .createSignedUrl(
-      WORKSTATION_GUIDE.path,
+      workstationGuidePath(slug),
       SIGNED_URL_SECONDS
     )
 

@@ -29,6 +29,8 @@ import {
 import '@xterm/xterm/css/xterm.css'
 import '../parasyte-linux.css'
 
+import WorkstationGuideCard from '../components/WorkstationGuideCard'
+
 
 type TerminalSize =
   | 'normal'
@@ -650,6 +652,8 @@ export default function ParasyteLinux(){
       className="parasyteLinuxShell"
       data-size={size}
     >
+
+      <WorkstationGuideCard slug="linux" workstationLabel="ParAsYtE Linux" />
 
       <header className="parasyteLinuxHeader">
 

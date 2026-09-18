@@ -2018,7 +2018,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
       </div>
 
-      <WorkstationGuideCard />
+      <WorkstationGuideCard slug="marketing" workstationLabel="Marketing" />
       {onNavigate && <div className="marketingEssentials glassCard">
         <div className="marketingEssentialsHeader"><span className="eyebrow">WORKSPACE ESSENTIALS</span><h3>Daily operating stack</h3><p>Tasks, communication, planning, files and brand resources stay one click away. Project collaboration is built directly into Marketing.</p></div>
         <div className="marketingEssentialsGrid">{[
