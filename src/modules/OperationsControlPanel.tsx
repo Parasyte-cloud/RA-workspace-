@@ -544,6 +544,11 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
                 label: 'Notes',
                 type: 'textarea',
               },
+              {
+                key: 'owner_id',
+                label: 'Assigned to',
+                type: 'employee',
+              },
             ]}
             columns={[
               {
@@ -565,6 +570,20 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
               {
                 key: 'cost',
                 label: 'Cost',
+              },
+              {
+                key: 'owner_id',
+                label: 'Assigned to',
+                render: (row, employees) => {
+                  const ownerId = row.owner_id as string | undefined
+                  if (!ownerId) {
+                    return 'Unassigned'
+                  }
+                  const owner = employees.find(
+                    candidate => candidate.id === ownerId,
+                  )
+                  return owner ? owner.full_name : 'Unassigned'
+                },
               },
             ]}
           />
