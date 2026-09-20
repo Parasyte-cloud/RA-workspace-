@@ -5330,6 +5330,136 @@ textarea {
 }
 
 /* =========================================================
+   EMPLOYEE HR DETAILS (enter-once, then locked)
+   ========================================================= */
+
+.employeeHrDetails{
+  display:grid;
+  gap:14px;
+  margin-top:14px;
+}
+
+.employeeHrDetailsHead{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.employeeHrDetailsHead p{
+  margin-top:6px;
+}
+
+.employeeHrDetailsLoading{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.employeeHrDetailsSpin{
+  animation:spin .8s linear infinite;
+}
+
+.employeeHrDetailsLocked{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  padding:11px 14px;
+  border-radius:12px;
+
+  background:rgba(7,26,56,.05);
+  color:var(--navy);
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+/* =========================================================
+   HR DETAILS ADMIN PANEL (HR / Manager / Admin)
+   ========================================================= */
+
+.hrDetailsAdminGrid{
+  display:grid;
+  grid-template-columns:240px minmax(0,1fr);
+  gap:16px;
+  margin-top:14px;
+}
+
+.hrDetailsAdminList{
+  display:grid;
+  gap:6px;
+  align-content:start;
+  max-height:520px;
+  overflow:auto;
+}
+
+.hrDetailsAdminListItem{
+  display:grid;
+  gap:2px;
+  text-align:left;
+
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid transparent;
+
+  background:rgba(7,26,56,.03);
+  cursor:pointer;
+}
+
+.hrDetailsAdminListItem:hover{
+  background:rgba(7,26,56,.06);
+}
+
+.hrDetailsAdminListItem.active{
+  border-color:rgba(255,153,0,.4);
+  background:rgba(255,153,0,.1);
+}
+
+.hrDetailsAdminListItem small{
+  color:var(--muted);
+}
+
+.hrDetailsAdminEmpty{
+  padding:16px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.hrDetailsAdminSelectedHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.hrDetailsAdminStatus{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  padding:5px 10px;
+  border-radius:999px;
+
+  background:rgba(7,26,56,.06);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+
+.hrDetailsAdminStatus.locked{
+  background:rgba(25,118,71,.1);
+  color:#197647;
+}
+
+@media(max-width:900px){
+  .hrDetailsAdminGrid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* =========================================================
    DASHBOARD NOTIFICATIONS PANEL
    ========================================================= */
 

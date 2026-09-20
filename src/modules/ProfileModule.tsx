@@ -38,6 +38,7 @@ import {
 } from '../components/EmployeeVirtualCard'
 import EmployeeAttendance from '../components/EmployeeAttendance'
 import EmployeeKycDocuments from '../components/EmployeeKycDocuments'
+import EmployeeHrDetailsForm from '../components/EmployeeHrDetailsForm'
 
 import '../virtual-card.css'
 
@@ -607,6 +608,8 @@ export function ProfileModule({
       </div>
 
       <EmployeeKycDocuments/>
+
+      <EmployeeHrDetailsForm/>
 
       <EmployeeAttendance/>
 
