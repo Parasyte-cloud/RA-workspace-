@@ -3,6 +3,7 @@ import { SupportTeamWorkspace } from './DepartmentTeamWorkspace'
 import SupportAssistedBookingPanel from './SupportAssistedBookingPanel'
 import SupportWhatsAppPanel from './SupportWhatsAppPanel'
 import InvestorEnquiriesPanel from './InvestorEnquiriesPanel'
+import IntakeSubmissionInbox from './IntakeSubmissionInbox'
 
 export default function SupportWorkspaceRoute({
   onNavigate,
@@ -15,6 +16,11 @@ export default function SupportWorkspaceRoute({
       workstationContent={
         <div className="supportWorkstationStack">
           <InvestorEnquiriesPanel/>
+          <IntakeSubmissionInbox
+            workstation="support"
+            title="Support Form Submissions"
+            description="Customer support, complaints and other forms routed to Support appear here automatically."
+          />
           <SupportWhatsAppPanel/>
           <SupportAssistedBookingPanel/>
         </div>
