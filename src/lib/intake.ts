@@ -42,6 +42,22 @@ export type IntakeFieldType =
   | 'date'
   | 'url'
 
+export type IntakeFieldConditional = {
+  field: string
+  equals: string
+}
+
+export type IntakeFieldNumericLimit = {
+  // The controlling field (must appear earlier in the schema).
+  field: string
+  // Maps that field's current value to an override min/max for this
+  // field. Rules are checked in array order; the first rule whose
+  // `field` currently has a value present in its `map` wins, so a
+  // more specific field (e.g. an exact vehicle model) can be listed
+  // before a broader one (e.g. its vehicle category) as a fallback.
+  map: Record<string, { min?: number; max?: number }>
+}
+
 export type IntakeFieldDefinition = {
   key: string
   label: string
@@ -54,6 +70,14 @@ export type IntakeFieldDefinition = {
   options?: string[]
   placeholder?: string
   helpText?: string
+  // When set, this field is only shown/required when the named field
+  // (must appear earlier in the schema) currently equals this value.
+  // e.g. { field: 'area_of_use', equals: 'Interstate' }
+  showIf?: IntakeFieldConditional
+  // When set (number/integer fields only), overrides this field's
+  // min/max based on another field's current value, e.g. capping
+  // Number of Passengers by the chosen vehicle.
+  condLimits?: IntakeFieldNumericLimit[]
 }
 
 export type IntakeFieldSchemaDocument = {

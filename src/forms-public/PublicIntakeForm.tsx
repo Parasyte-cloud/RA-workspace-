@@ -21,10 +21,16 @@ import './forms-public.css'
  *           array of human-readable messages here, not per-field errors)
  *
  * Field types actually in use by contact-us/charter-booking today: text,
- * email, phone, textarea, date, select. The backend also accepts number,
- * integer, multiselect, checkbox and url for future forms; those render
- * as a plain text input here until a form actually needs them, rather
- * than guessing at UI for a type nothing uses yet.
+ * email, phone, textarea, date, select, number, integer. The backend also
+ * accepts multiselect, checkbox and url for future forms; those render as
+ * a plain text input here until a form actually needs them, rather than
+ * guessing at UI for a type nothing uses yet.
+ *
+ * A field can also carry `showIf: { field, equals }` so it's only shown
+ * (and only required) when another field in the same schema currently
+ * equals a given value - e.g. "Which state?" only when Area of Use is
+ * "Interstate". See validation.mjs's conditionMet() for the server-side
+ * mirror of this logic.
  */
 
 type IntakeFieldType =
@@ -40,15 +46,57 @@ type IntakeFieldType =
   | 'date'
   | 'url'
 
+type IntakeFieldConditional = {
+  field: string
+  equals: string
+}
+
+type IntakeFieldNumericLimit = {
+  field: string
+  map: Record<string, { min?: number; max?: number }>
+}
+
 type IntakeField = {
   key: string
   label: string
   type: IntakeFieldType
   required?: boolean
   maxLength?: number
+  min?: number
+  max?: number
   placeholder?: string
   helpText?: string
   options?: string[]
+  // Only shown (and only required) when the named field currently
+  // equals this value, e.g. a "Which state?" field that only matters
+  // when Area of Use is "Interstate".
+  showIf?: IntakeFieldConditional
+  // Overrides this field's min/max based on another field's current
+  // value, e.g. capping Number of Passengers by the chosen vehicle.
+  // Mirrors validation.mjs's effectiveLimits() on the server side.
+  condLimits?: IntakeFieldNumericLimit[]
+}
+
+function isFieldVisible(field: IntakeField, values: Record<string, string>) {
+  if (!field.showIf) return true
+  return values[field.showIf.field] === field.showIf.equals
+}
+
+function effectiveLimits(field: IntakeField, values: Record<string, string>) {
+  let min = field.min
+  let max = field.max
+
+  for (const rule of field.condLimits || []) {
+    const controllingValue = values[rule.field]?.trim()
+    if (controllingValue && Object.prototype.hasOwnProperty.call(rule.map, controllingValue)) {
+      const entry = rule.map[controllingValue]
+      if (entry.min !== undefined) min = min === undefined ? entry.min : Math.max(min, entry.min)
+      if (entry.max !== undefined) max = max === undefined ? entry.max : Math.min(max, entry.max)
+      break
+    }
+  }
+
+  return { min, max }
 }
 
 type IntakeFormSchema = {
@@ -145,6 +193,23 @@ function renderField(field: IntakeField, value: string, onChange: (value: string
     )
   }
 
+  if (field.type === 'number' || field.type === 'integer') {
+    return (
+      <input
+        id={`field-${field.key}`}
+        type="number"
+        inputMode={field.type === 'integer' ? 'numeric' : 'decimal'}
+        step={field.type === 'integer' ? 1 : 'any'}
+        min={field.min}
+        max={field.max}
+        required={field.required}
+        placeholder={field.placeholder}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+      />
+    )
+  }
+
   const inputType = field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'
   const autoComplete = field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : undefined
 
@@ -230,7 +295,9 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
 
     const schema = load.schema
 
-    const missing = schema.fields.filter(field => field.required && !values[field.key]?.trim())
+    const missing = schema.fields.filter(
+      field => field.required && isFieldVisible(field, values) && !values[field.key]?.trim(),
+    )
     if (missing.length > 0) {
       setError(`Please fill in: ${missing.map(field => field.label).join(', ')}.`)
       return
@@ -300,7 +367,8 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
       <StatusShell badge="SUBMITTED" eyebrow="REQUEST RECEIVED" title="Thank you — we've got it.">
         <p>
           Your {schema.title.toLowerCase()} has been securely received. A member of the RideArrivo
-          team will review it and follow up using the details you provided.
+          Support team will review it and reach out directly to confirm availability, pricing and
+          next steps, using the contact details you provided.
           {submitted.reference ? ` Reference: ${submitted.reference}.` : ''}
         </p>
         <button
@@ -336,16 +404,25 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
 
         <form className="formsCard" onSubmit={submit}>
           <div className="formsGrid">
-            {schema.fields.map(field => (
-              <label key={field.key} className={field.type === 'textarea' ? 'formsFieldWide' : undefined}>
-                <span>
-                  {field.label}
-                  {field.required ? ' *' : ''}
-                </span>
-                {renderField(field, values[field.key] || '', value => setValue(field.key, value))}
-                {field.helpText && <small>{field.helpText}</small>}
-              </label>
-            ))}
+            {schema.fields.filter(field => isFieldVisible(field, values)).map(field => {
+              const { min, max } = effectiveLimits(field, values)
+              const limited = field.condLimits?.length && (min !== field.min || max !== field.max)
+              const renderedField = limited ? { ...field, min, max } : field
+
+              return (
+                <label key={field.key} className={field.type === 'textarea' ? 'formsFieldWide' : undefined}>
+                  <span>
+                    {field.label}
+                    {field.required ? ' *' : ''}
+                  </span>
+                  {renderField(renderedField, values[field.key] || '', value => setValue(field.key, value))}
+                  {limited && max !== undefined && (
+                    <small>Up to {max} for this vehicle.</small>
+                  )}
+                  {!limited && field.helpText && <small>{field.helpText}</small>}
+                </label>
+              )
+            })}
           </div>
 
           <label className="formsHoney" aria-hidden="true">
