@@ -70,6 +70,7 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 
 import { NotificationCenter } from './components/NotificationCenter'
+import { NotificationsProvider } from './context/NotificationsContext'
 import { GlobalSearch } from './components/GlobalSearch'
 import { useIdleSignOut } from './lib/useIdleSignOut'
 
@@ -1095,7 +1096,7 @@ function App(){
     return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   }
 
-  return <div className="appBackground"><div className="shell glassFrame">
+  return <NotificationsProvider><div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
@@ -1245,7 +1246,7 @@ function App(){
         </Suspense>
       </RouteErrorBoundary>
 </main>
-  </div></div>
+  </div></div></NotificationsProvider>
 }
 
 

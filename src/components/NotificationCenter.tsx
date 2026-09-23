@@ -1,124 +1,31 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { useEffect, useRef } from 'react'
 
 import {
   Bell,
   CheckCheck
 } from 'lucide-react'
 
-import { supabase } from '../lib/supabase'
-
-type NotificationItem = {
-  id:string
-  user_id:string
-  type:string
-  title:string
-  body:string
-  entity_type:string|null
-  entity_id:string|null
-  read_at:string|null
-  created_at:string
-}
+import {
+  useNotificationsContext,
+  type NotificationItem
+} from '../context/NotificationsContext'
 
 export function NotificationCenter({
   onOpenWork
 }:{
   onOpenWork:()=>void
 }){
-  const [items,setItems]=useState<NotificationItem[]>([])
-  const [open,setOpen]=useState(false)
-  const [loading,setLoading]=useState(false)
+  const {
+    items,
+    unreadCount,
+    loading,
+    open,
+    setOpen,
+    markRead,
+    markAllRead
+  }=useNotificationsContext()
 
   const rootRef=useRef<HTMLDivElement|null>(null)
-  const loadRequestRef=useRef(0)
-
-  const unreadCount=useMemo(
-    ()=>items.filter(item=>!item.read_at).length,
-    [items]
-  )
-
-  const loadNotifications=useCallback(async()=>{
-    const client=supabase
-    if(!client){
-      return
-    }
-
-    const requestSequence=++loadRequestRef.current
-    setLoading(true)
-
-    const {data,error}=await client
-      .from('notifications')
-      .select(`
-        id,
-        user_id,
-        type,
-        title,
-        body,
-        entity_type,
-        entity_id,
-        read_at,
-        created_at
-      `)
-      .order('created_at',{
-        ascending:false
-      })
-      .limit(30)
-
-    if(requestSequence!==loadRequestRef.current){
-      return
-    }
-
-    if(error){
-      console.error(
-        '[RideArrivo Notifications]',
-        error
-      )
-      setLoading(false)
-      return
-    }
-
-    setItems((data || []) as NotificationItem[])
-    setLoading(false)
-  },[])
-
-  useEffect(()=>{
-    void loadNotifications()
-    return()=>{
-      loadRequestRef.current+=1
-    }
-  },[loadNotifications])
-
-  useEffect(()=>{
-    if(!supabase){
-      return
-    }
-
-    const client=supabase
-
-    const channel=client
-      .channel('ridearrivo-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event:'*',
-          schema:'public',
-          table:'notifications'
-        },
-        ()=>{
-          void loadNotifications()
-        }
-      )
-      .subscribe()
-
-    return()=>{
-      void client.removeChannel(channel)
-    }
-  },[loadNotifications])
 
   useEffect(()=>{
     if(!open){
@@ -164,86 +71,7 @@ export function NotificationCenter({
         handleKey
       )
     }
-  },[open])
-
-  const markRead=async(
-    item:NotificationItem
-  )=>{
-    if(
-      !supabase ||
-      item.read_at
-    ){
-      return
-    }
-
-    const {error}=await supabase
-      .from('notifications')
-      .update({
-        read_at:new Date().toISOString()
-      })
-      .eq('id',item.id)
-
-    if(error){
-      console.error(
-        '[RideArrivo Notifications]',
-        error
-      )
-      return
-    }
-
-    setItems(current=>
-      current.map(notification=>
-        notification.id===item.id
-          ? {
-              ...notification,
-              read_at:new Date().toISOString()
-            }
-          : notification
-      )
-    )
-  }
-
-  const markAllRead=async()=>{
-    if(!supabase){
-      return
-    }
-
-    const unreadIds=items
-      .filter(item=>!item.read_at)
-      .map(item=>item.id)
-
-    if(!unreadIds.length){
-      return
-    }
-
-    const now=new Date().toISOString()
-
-    const {error}=await supabase
-      .from('notifications')
-      .update({
-        read_at:now
-      })
-      .in('id',unreadIds)
-
-    if(error){
-      console.error(
-        '[RideArrivo Notifications]',
-        error
-      )
-      return
-    }
-
-    setItems(current=>
-      current.map(item=>
-        unreadIds.includes(item.id)
-          ? {
-              ...item,
-              read_at:now
-            }
-          : item
-      )
-    )
-  }
+  },[open,setOpen])
 
   const openNotification=async(
     item:NotificationItem

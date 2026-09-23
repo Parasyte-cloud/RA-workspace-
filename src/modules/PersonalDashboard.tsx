@@ -3,6 +3,7 @@ import { Award, BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, Clipboa
 import { supabase } from '../lib/supabase'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
+import DashboardNotificationsTeaser from '../components/DashboardNotificationsTeaser'
 import '../personal-dashboard.css'
 
 type Profile={
@@ -196,6 +197,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
           <p>{morningNote}</p>
         </div>
       </div>
+
+      <DashboardNotificationsTeaser onOpenWork={()=>onNavigate('tasks')}/>
 
       {recognition&&(
         <div className="recognitionBanner">
