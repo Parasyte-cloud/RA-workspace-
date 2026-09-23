@@ -313,3 +313,26 @@ button,input,select,textarea{
     max-width:58vw
   }
 }
+
+.formsHeroCompact{
+  grid-template-columns:1fr
+}
+
+.formsFieldWide{
+  grid-column:1/-1
+}
+
+.formsStatus{
+  display:grid;
+  place-items:center;
+  min-height:60vh;
+  color:#aeb9c8;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase
+}
+
+.formsSuccess a{
+  text-decoration:none
+}
