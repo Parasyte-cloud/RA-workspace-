@@ -31,12 +31,13 @@ function json(status: number, body: unknown) {
 Deno.serve(async (req) => {
   const authorization = req.headers.get("Authorization") || ""
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+  const dispatchSecret = Deno.env.get("CRON_DISPATCH_SECRET") || ""
 
   // Only the project's own service role (i.e. the cron job) may
   // invoke this. Anyone else gets rejected before touching the DB.
   if (
-    !serviceRoleKey ||
-    authorization !== `Bearer ${serviceRoleKey}`
+    !dispatchSecret ||
+    authorization !== `Bearer ${dispatchSecret}`
   ) {
     return json(401, { error: "Not authorized to dispatch notification email." })
   }
