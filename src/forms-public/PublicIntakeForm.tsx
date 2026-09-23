@@ -21,10 +21,16 @@ import './forms-public.css'
  *           array of human-readable messages here, not per-field errors)
  *
  * Field types actually in use by contact-us/charter-booking today: text,
- * email, phone, textarea, date, select. The backend also accepts number,
- * integer, multiselect, checkbox and url for future forms; those render
- * as a plain text input here until a form actually needs them, rather
- * than guessing at UI for a type nothing uses yet.
+ * email, phone, textarea, date, select, number, integer. The backend also
+ * accepts multiselect, checkbox and url for future forms; those render as
+ * a plain text input here until a form actually needs them, rather than
+ * guessing at UI for a type nothing uses yet.
+ *
+ * A field can also carry `showIf: { field, equals }` so it's only shown
+ * (and only required) when another field in the same schema currently
+ * equals a given value - e.g. "Which state?" only when Area of Use is
+ * "Interstate". See validation.mjs's conditionMet() for the server-side
+ * mirror of this logic.
  */
 
 type IntakeFieldType =
@@ -40,15 +46,31 @@ type IntakeFieldType =
   | 'date'
   | 'url'
 
+type IntakeFieldConditional = {
+  field: string
+  equals: string
+}
+
 type IntakeField = {
   key: string
   label: string
   type: IntakeFieldType
   required?: boolean
   maxLength?: number
+  min?: number
+  max?: number
   placeholder?: string
   helpText?: string
   options?: string[]
+  // Only shown (and only required) when the named field currently
+  // equals this value, e.g. a "Which state?" field that only matters
+  // when Area of Use is "Interstate".
+  showIf?: IntakeFieldConditional
+}
+
+function isFieldVisible(field: IntakeField, values: Record<string, string>) {
+  if (!field.showIf) return true
+  return values[field.showIf.field] === field.showIf.equals
 }
 
 type IntakeFormSchema = {
@@ -145,6 +167,23 @@ function renderField(field: IntakeField, value: string, onChange: (value: string
     )
   }
 
+  if (field.type === 'number' || field.type === 'integer') {
+    return (
+      <input
+        id={`field-${field.key}`}
+        type="number"
+        inputMode={field.type === 'integer' ? 'numeric' : 'decimal'}
+        step={field.type === 'integer' ? 1 : 'any'}
+        min={field.min}
+        max={field.max}
+        required={field.required}
+        placeholder={field.placeholder}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+      />
+    )
+  }
+
   const inputType = field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'
   const autoComplete = field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : undefined
 
@@ -230,7 +269,9 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
 
     const schema = load.schema
 
-    const missing = schema.fields.filter(field => field.required && !values[field.key]?.trim())
+    const missing = schema.fields.filter(
+      field => field.required && isFieldVisible(field, values) && !values[field.key]?.trim(),
+    )
     if (missing.length > 0) {
       setError(`Please fill in: ${missing.map(field => field.label).join(', ')}.`)
       return
@@ -336,7 +377,7 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
 
         <form className="formsCard" onSubmit={submit}>
           <div className="formsGrid">
-            {schema.fields.map(field => (
+            {schema.fields.filter(field => isFieldVisible(field, values)).map(field => (
               <label key={field.key} className={field.type === 'textarea' ? 'formsFieldWide' : undefined}>
                 <span>
                   {field.label}

@@ -94,6 +94,23 @@ export function normalizeSchema(rawSchema) {
       return { ok: false, errors: [`Field ${key} requires options.`] }
     }
 
+    // showIf lets a field only apply (be shown / be required) when an
+    // earlier field in the schema equals a given value, e.g. a "Which
+    // state?" field that only matters when Area of Use is "Interstate".
+    // It must reference a field defined earlier in the array (`seen`),
+    // so evaluation never needs to look ahead.
+    let showIf = null
+    if (raw.showIf !== undefined && raw.showIf !== null) {
+      if (!plainObject(raw.showIf) || !text(raw.showIf.field) || !text(raw.showIf.equals)) {
+        return { ok: false, errors: [`Field ${key} has an invalid showIf condition.`] }
+      }
+      const conditionField = text(raw.showIf.field)
+      if (!seen.has(conditionField)) {
+        return { ok: false, errors: [`Field ${key}'s showIf condition references an unknown or later field.`] }
+      }
+      showIf = { field: conditionField, equals: text(raw.showIf.equals) }
+    }
+
     fields.push({
       key,
       label: label.slice(0, 160),
@@ -111,10 +128,17 @@ export function normalizeSchema(rawSchema) {
       options,
       placeholder: text(raw.placeholder).slice(0, 200),
       helpText: text(raw.helpText).slice(0, 500),
+      showIf,
     })
   }
 
   return { ok: true, fields }
+}
+
+function conditionMet(showIf, payload) {
+  if (!showIf) return true
+  const actual = payload[showIf.field]
+  return typeof actual === 'string' && actual.trim() === showIf.equals
 }
 
 function missing(value, type) {
@@ -155,6 +179,13 @@ export function validateSubmission(rawSchema, rawPayload) {
 
   for (const field of schema.fields) {
     const raw = rawPayload[field.key]
+
+    // A field with an unmet showIf condition was hidden from the person
+    // filling out the form, so it's never required and whatever value
+    // (if any) came through for it is dropped rather than validated.
+    if (!conditionMet(field.showIf, rawPayload)) {
+      continue
+    }
 
     if (field.type === 'checkbox') {
       if (raw === null || raw === undefined) {
@@ -269,6 +300,7 @@ export function clientSchema(rawSchema) {
       options: field.options.length ? field.options : undefined,
       placeholder: field.placeholder || undefined,
       helpText: field.helpText || undefined,
+      showIf: field.showIf || undefined,
     })),
   }
 }

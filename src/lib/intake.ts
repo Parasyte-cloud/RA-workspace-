@@ -42,6 +42,11 @@ export type IntakeFieldType =
   | 'date'
   | 'url'
 
+export type IntakeFieldConditional = {
+  field: string
+  equals: string
+}
+
 export type IntakeFieldDefinition = {
   key: string
   label: string
@@ -54,6 +59,10 @@ export type IntakeFieldDefinition = {
   options?: string[]
   placeholder?: string
   helpText?: string
+  // When set, this field is only shown/required when the named field
+  // (must appear earlier in the schema) currently equals this value.
+  // e.g. { field: 'area_of_use', equals: 'Interstate' }
+  showIf?: IntakeFieldConditional
 }
 
 export type IntakeFieldSchemaDocument = {
