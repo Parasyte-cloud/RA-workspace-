@@ -28,6 +28,13 @@ function isPublicFormsSurface() {
     return true
   }
 
+  if (
+    hostname ===
+    'bookings.ridearrivo.com'
+  ) {
+    return true
+  }
+
   const requested =
     new URLSearchParams(
       window.location.search,
