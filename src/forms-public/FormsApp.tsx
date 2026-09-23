@@ -24,6 +24,13 @@ import './forms-public.css'
  * field schema by slug from the intake edge function — adding another
  * form later (through the eventual admin UI, or another SQL seed) only
  * needs a new route added here, not a new page built from scratch.
+ *
+ * bookings.ridearrivo.com (see isPublicFormsSurface() in main.tsx) is a
+ * dedicated subdomain for the charter-booking form specifically, meant
+ * for a short, clean link in an Instagram bio / social profile — it
+ * always renders the charter-booking form regardless of path, so any
+ * link to the bare domain (or any path on it) works, rather than
+ * requiring the visitor land on the exact /charter-booking path.
  */
 function normalizedPath() {
   const path = window.location.pathname.replace(/\/+$/, '')
@@ -32,6 +39,12 @@ function normalizedPath() {
 
 export default function FormsApp() {
   const path = normalizedPath()
+
+  if (
+    window.location.hostname.toLowerCase() === 'bookings.ridearrivo.com'
+  ) {
+    return <PublicIntakeForm slug="charter-booking" />
+  }
 
   if (path === '/contact-us') {
     return <PublicIntakeForm slug="contact-us" />
