@@ -18,6 +18,13 @@ const productionOrigins = new Set([
   "https://ridearrivo.com",
   "https://www.ridearrivo.com",
   "https://intranet.ridearrivo.com",
+  // forms.ridearrivo.com/{contact-us,charter-booking} and
+  // bookings.ridearrivo.com (a dedicated short link to charter-booking,
+  // for social bios) both post to this function from the browser and
+  // need to be in this allowlist or the browser blocks the response —
+  // this is a fetch()-from-the-browser CORS check, not auth.
+  "https://forms.ridearrivo.com",
+  "https://bookings.ridearrivo.com",
 ])
 
 const allowLocalOrigins =
