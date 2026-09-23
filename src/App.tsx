@@ -45,7 +45,6 @@ import {
   PackageCheck,
   Route,
   Scale,
-  Search,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -71,6 +70,7 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 
 import { NotificationCenter } from './components/NotificationCenter'
+import { GlobalSearch } from './components/GlobalSearch'
 import { useIdleSignOut } from './lib/useIdleSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
@@ -1122,7 +1122,7 @@ function App(){
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><button className="iconButton"><Search size={17}/></button><NotificationCenter
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><GlobalSearch onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
   }}

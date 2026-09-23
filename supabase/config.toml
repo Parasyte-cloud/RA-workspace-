@@ -475,3 +475,12 @@ entrypoint = "./functions/ridearrivo-public-forms/index.ts"
 [functions.intake]
 verify_jwt = false
 entrypoint = "./functions/intake/index.ts"
+
+[functions.workspace-search]
+verify_jwt = false
+entrypoint = "./functions/workspace-search/index.ts"
+
+[functions.zoho-mail-search]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/zoho-mail-search/index.ts"
