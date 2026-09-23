@@ -111,6 +111,37 @@ export function normalizeSchema(rawSchema) {
       showIf = { field: conditionField, equals: text(raw.showIf.equals) }
     }
 
+    // condLimits overrides a number/integer field's min/max based on
+    // another field's current value, e.g. capping Number of Passengers
+    // by the chosen vehicle. Rules are checked in order; the first
+    // whose controlling field has a value present in its map wins.
+    let condLimits = null
+    if (raw.condLimits !== undefined && raw.condLimits !== null) {
+      if (!Array.isArray(raw.condLimits)) {
+        return { ok: false, errors: [`Field ${key} has an invalid condLimits.`] }
+      }
+      const rules = []
+      for (const rawRule of raw.condLimits) {
+        if (!plainObject(rawRule) || !text(rawRule.field) || !plainObject(rawRule.map)) {
+          return { ok: false, errors: [`Field ${key} has an invalid condLimits rule.`] }
+        }
+        const ruleField = text(rawRule.field)
+        if (!seen.has(ruleField)) {
+          return { ok: false, errors: [`Field ${key}'s condLimits rule references an unknown or later field.`] }
+        }
+        const map = {}
+        for (const [optionValue, limits] of Object.entries(rawRule.map)) {
+          if (!plainObject(limits)) continue
+          const entry = {}
+          if (typeof limits.min === 'number' && Number.isFinite(limits.min)) entry.min = limits.min
+          if (typeof limits.max === 'number' && Number.isFinite(limits.max)) entry.max = limits.max
+          if (Object.keys(entry).length) map[optionValue] = entry
+        }
+        rules.push({ field: ruleField, map })
+      }
+      condLimits = rules
+    }
+
     fields.push({
       key,
       label: label.slice(0, 160),
@@ -129,6 +160,7 @@ export function normalizeSchema(rawSchema) {
       placeholder: text(raw.placeholder).slice(0, 200),
       helpText: text(raw.helpText).slice(0, 500),
       showIf,
+      condLimits,
     })
   }
 
@@ -139,6 +171,28 @@ function conditionMet(showIf, payload) {
   if (!showIf) return true
   const actual = payload[showIf.field]
   return typeof actual === 'string' && actual.trim() === showIf.equals
+}
+
+// Resolves the effective {min, max} for a number/integer field given the
+// rest of the payload: the field's own static min/max, overridden by the
+// first condLimits rule whose controlling field currently has a value
+// present in that rule's map.
+function effectiveLimits(field, payload) {
+  let min = field.min
+  let max = field.max
+
+  for (const rule of field.condLimits || []) {
+    const controllingValue = payload[rule.field]
+    const key = typeof controllingValue === 'string' ? controllingValue.trim() : controllingValue
+    if (key !== undefined && key !== null && Object.prototype.hasOwnProperty.call(rule.map, key)) {
+      const entry = rule.map[key]
+      if (entry.min !== undefined) min = min === null ? entry.min : Math.max(min, entry.min)
+      if (entry.max !== undefined) max = max === null ? entry.max : Math.min(max, entry.max)
+      break
+    }
+  }
+
+  return { min, max }
 }
 
 function missing(value, type) {
@@ -211,8 +265,9 @@ export function validateSubmission(rawSchema, rawPayload) {
         errors.push(`${field.label} must be a valid ${field.type}.`)
         continue
       }
-      if (field.min !== null && parsed < field.min) errors.push(`${field.label} is below the minimum.`)
-      else if (field.max !== null && parsed > field.max) errors.push(`${field.label} is above the maximum.`)
+      const { min, max } = effectiveLimits(field, rawPayload)
+      if (min !== null && parsed < min) errors.push(`${field.label} is below the minimum.`)
+      else if (max !== null && parsed > max) errors.push(`${field.label} is above the maximum.`)
       else value[field.key] = parsed
       continue
     }
@@ -301,6 +356,7 @@ export function clientSchema(rawSchema) {
       placeholder: field.placeholder || undefined,
       helpText: field.helpText || undefined,
       showIf: field.showIf || undefined,
+      condLimits: field.condLimits || undefined,
     })),
   }
 }
