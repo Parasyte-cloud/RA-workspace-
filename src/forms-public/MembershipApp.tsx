@@ -1,16 +1,17 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import {
-  riderAuthConfigured,
-  getRiderSession,
-  signInWithRiderProvider,
+  appleSignInConfigured,
+  fetchRiderProfile,
+  getStoredRiderToken,
+  initAppleSignIn,
+  renderGoogleButton,
+  signInWithAppleIdentityToken,
+  signInWithGoogleIdToken,
   signOutRider,
-  subscribeToRiderAuthChanges,
-  riderDisplayName,
-  riderProviderLabel,
   type RiderOAuthProvider,
+  type RiderUser,
 } from '../lib/riderAuth'
 import './forms-public.css'
 import './membership.css'
@@ -25,13 +26,14 @@ import './membership.css'
  * booking already use, slug "membership-signup") -> success, with a
  * "start riding" link to ridearrivo.com.
  *
- * Google/Apple sign-in is real, but it is its own identity, separate from
- * both this project's internal workspace auth (src/lib/supabase.ts,
- * the wrong system for riders) and the rider app's own backend on Render
- * (not wired up here yet, by design - see the comment in riderAuth.ts).
- * If riderAuthConfigured is false (VITE_RIDER_SUPABASE_URL/ANON_KEY not
- * set yet), the buttons fall back to a "coming soon" note instead of
- * erroring, so this page keeps working either way.
+ * Google/Apple sign-in here is the SAME account as the rider app and
+ * ridearrivo.com: this posts straight to arrivo-backend on Render
+ * (the exact endpoints and flow ridearrivo-website's login.html/signup.html
+ * already use), not a separate identity system. Google is already
+ * configured server-side. Apple sign-in on the web needs an Apple
+ * Services ID that has not been set up on any RideArrivo site yet
+ * (appleSignInConfigured is false until it is), so that button stays
+ * hidden until then, same graceful fallback the main site uses.
  */
 
 type Plan = {
@@ -121,24 +123,17 @@ type Identity = {
   email: string
 }
 
-function AuthComingSoonNote({ provider }: { provider: string }) {
-  return (
-    <p className="membershipAuthNote">
-      {provider} sign-in will connect directly to your RideArrivo account once it's linked to the
-      app. For now, continue with your name and phone number below.
-    </p>
-  )
-}
-
 export default function MembershipApp() {
   const [step, setStep] = useState<Step>('identify')
   const [identity, setIdentity] = useState<Identity>({ fullName: '', phone: '', email: '' })
-  const [authNote, setAuthNote] = useState<string | null>(null)
   const [identifyError, setIdentifyError] = useState('')
 
-  const [riderSession, setRiderSession] = useState<Session | null>(null)
+  const [riderUser, setRiderUser] = useState<RiderUser | null>(null)
+  const [riderProvider, setRiderProvider] = useState<RiderOAuthProvider | null>(null)
   const [oauthBusy, setOauthBusy] = useState<RiderOAuthProvider | null>(null)
   const [oauthError, setOauthError] = useState('')
+  const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  const appleButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const [expanded, setExpanded] = useState<string | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
@@ -149,55 +144,78 @@ export default function MembershipApp() {
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
 
+  function applyRiderUser(user: RiderUser, provider: RiderOAuthProvider | null) {
+    setRiderUser(user)
+    setRiderProvider(provider)
+    setIdentity(current => ({
+      fullName: current.fullName || user.name || '',
+      phone: current.phone || user.phone || '',
+      email: user.email || current.email,
+    }))
+  }
+
+  // A returning visitor who signed in before (token still in localStorage)
+  // skips straight past the buttons - same as ridearrivo-website checking
+  // arrivo_rider_token on load.
   useEffect(() => {
     let active = true
-
-    function applySession(session: Session | null) {
+    const token = getStoredRiderToken()
+    if (!token) return
+    void fetchRiderProfile(token).then(user => {
       if (!active) return
-      setRiderSession(session)
-      setOauthBusy(null)
-      if (session) {
-        setIdentity(current => ({
-          fullName: current.fullName || riderDisplayName(session),
-          phone: current.phone,
-          email: session.user.email || current.email,
-        }))
-      }
-    }
-
-    void getRiderSession().then(applySession)
-    const unsubscribe = subscribeToRiderAuthChanges(applySession)
-
+      if (user) applyRiderUser(user, null)
+      else signOutRider()
+    })
     return () => {
       active = false
-      unsubscribe()
     }
   }, [])
 
-  async function handleOAuthClick(provider: RiderOAuthProvider) {
-    setOauthError('')
+  // Renders Google's real button and wires Apple's (revealed only once
+  // appleSignInConfigured, exactly like ridearrivo-website's login.html).
+  // Re-runs if the buttons need to reappear (e.g. after a sign-out).
+  useEffect(() => {
+    if (step !== 'identify' || riderUser) return
 
-    if (!riderAuthConfigured) {
-      setAuthNote(provider === 'google' ? 'Google' : 'Apple')
-      return
+    function handleGoogleIdToken(idToken: string) {
+      setOauthError('')
+      setOauthBusy('google')
+      signInWithGoogleIdToken(idToken)
+        .then(({ user }) => applyRiderUser(user, 'google'))
+        .catch(cause => {
+          setOauthError(cause instanceof Error ? cause.message : 'Unable to sign in with Google.')
+        })
+        .finally(() => setOauthBusy(null))
     }
 
-    setOauthBusy(provider)
-    try {
-      await signInWithRiderProvider(provider)
-      // A successful call redirects the browser away to the provider, so
-      // there is nothing further to do here on success.
-    } catch (cause) {
-      setOauthError(
-        cause instanceof Error ? cause.message : `Unable to start ${provider} sign-in.`,
-      )
-      setOauthBusy(null)
+    function handleAppleCredential(
+      identityToken: string,
+      fullName?: { givenName?: string; familyName?: string },
+    ) {
+      setOauthError('')
+      setOauthBusy('apple')
+      signInWithAppleIdentityToken(identityToken, fullName)
+        .then(({ user }) => applyRiderUser(user, 'apple'))
+        .catch(cause => {
+          setOauthError(cause instanceof Error ? cause.message : 'Unable to sign in with Apple.')
+        })
+        .finally(() => setOauthBusy(null))
     }
-  }
 
-  async function handleSignOut() {
-    await signOutRider()
-    setRiderSession(null)
+    if (googleButtonRef.current) {
+      // Fails silently on a network hiccup or ad-blocker - name + phone
+      // below still works, so this isn't worth alarming anyone over.
+      void renderGoogleButton(googleButtonRef.current, handleGoogleIdToken).catch(() => {})
+    }
+    if (appleButtonRef.current) {
+      void initAppleSignIn(appleButtonRef.current, handleAppleCredential).catch(() => {})
+    }
+  }, [step, riderUser])
+
+  function handleSignOut() {
+    signOutRider()
+    setRiderUser(null)
+    setRiderProvider(null)
     setIdentity({ fullName: '', phone: '', email: '' })
   }
 
@@ -228,8 +246,11 @@ export default function MembershipApp() {
 
     setBusy(true)
     try {
-      const signedInNote = riderSession
-        ? `Signed in with ${riderProviderLabel(riderSession)} (${riderSession.user.email || 'no email on file'}).`
+      const providerLabel = riderProvider === 'google' ? 'Google' : riderProvider === 'apple' ? 'Apple' : null
+      const signedInNote = riderUser
+        ? providerLabel
+          ? `Signed in with ${providerLabel} (${riderUser.email || 'no email on file'}).`
+          : `Signed in (${riderUser.email || 'no email on file'}).`
         : ''
       const combinedNotes = [signedInNote, notes.trim()].filter(Boolean).join(' ')
 
@@ -278,38 +299,36 @@ export default function MembershipApp() {
               plan.
             </p>
 
-            {riderSession ? (
+            {riderUser ? (
               <div className="membershipSignedIn">
                 <span className="membershipSignedInBadge">
-                  Signed in with {riderProviderLabel(riderSession)}
+                  {riderProvider === 'google' ? 'Signed in with Google' : riderProvider === 'apple' ? 'Signed in with Apple' : 'Signed in'}
                 </span>
-                <strong>{riderDisplayName(riderSession)}</strong>
-                {riderSession.user.email && <span>{riderSession.user.email}</span>}
-                <button type="button" className="membershipSignOutLink" onClick={() => void handleSignOut()}>
+                <strong>{riderUser.name || riderUser.email || 'RideArrivo rider'}</strong>
+                {riderUser.email && <span>{riderUser.email}</span>}
+                <button type="button" className="membershipSignOutLink" onClick={handleSignOut}>
                   Not you? Sign out
                 </button>
               </div>
             ) : (
               <>
                 <div className="membershipAuthButtons">
+                  <div ref={googleButtonRef} className="membershipGoogleButtonSlot" />
                   <button
+                    ref={appleButtonRef}
                     type="button"
-                    className="membershipAuthButton"
+                    className="membershipAuthButton membershipAppleButton"
+                    style={{ display: appleSignInConfigured ? undefined : 'none' }}
                     disabled={oauthBusy !== null}
-                    onClick={() => void handleOAuthClick('google')}
                   >
-                    {oauthBusy === 'google' ? 'Opening Google...' : 'Continue with Google'}
-                  </button>
-                  <button
-                    type="button"
-                    className="membershipAuthButton"
-                    disabled={oauthBusy !== null}
-                    onClick={() => void handleOAuthClick('apple')}
-                  >
-                    {oauthBusy === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
+                    Continue with Apple
                   </button>
                 </div>
-                {authNote && <AuthComingSoonNote provider={authNote} />}
+                {oauthBusy && (
+                  <p className="membershipAuthNote">
+                    Signing you in with {oauthBusy === 'google' ? 'Google' : 'Apple'}...
+                  </p>
+                )}
                 {oauthError && (
                   <div className="formsError" role="alert">
                     {oauthError}
@@ -323,7 +342,7 @@ export default function MembershipApp() {
             )}
 
             <form className="formsCard membershipIdentifyForm" onSubmit={handleIdentify}>
-              {!riderSession && (
+              {!riderUser && (
                 <>
                   <label>
                     <span>Full Name *</span>
@@ -344,7 +363,7 @@ export default function MembershipApp() {
                   </label>
                 </>
               )}
-              <label className={riderSession ? 'formsFieldWide' : undefined}>
+              <label className={riderUser ? 'formsFieldWide' : undefined}>
                 <span>Phone Number *</span>
                 <input
                   type="tel"

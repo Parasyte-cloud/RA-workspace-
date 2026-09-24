@@ -42,6 +42,14 @@
   background:rgba(255,255,255,.08)
 }
 
+/* Google renders its own button asynchronously into this slot once its
+   script loads - a fixed min-height/width keeps the layout from jumping
+   in the moment before that happens. */
+.membershipGoogleButtonSlot{
+  min-height:52px;
+  min-width:200px
+}
+
 .membershipAuthNote{
   max-width:520px;
   margin:14px 0 0;
