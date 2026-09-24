@@ -1,6 +1,17 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
+import {
+  riderAuthConfigured,
+  getRiderSession,
+  signInWithRiderProvider,
+  signOutRider,
+  subscribeToRiderAuthChanges,
+  riderDisplayName,
+  riderProviderLabel,
+  type RiderOAuthProvider,
+} from '../lib/riderAuth'
 import './forms-public.css'
 import './membership.css'
 
@@ -8,22 +19,19 @@ import './membership.css'
  * membership.ridearrivo.com (see isPublicFormsSurface() in main.tsx and
  * the hostname check in FormsApp.tsx).
  *
- * Flow: identify (name + phone, email optional; Google/Apple shown but
- * not wired to real sign-in yet - see the note on those buttons below)
- * -> pick a plan, see its full benefits, expand/compare freely -> submit
- * (via the same intake platform contact-us/charter-booking already use,
- * slug "membership-signup") -> success, with a "start riding" link to
- * ridearrivo.com.
+ * Flow: identify (Google or Apple through src/lib/riderAuth.ts, or name +
+ * phone/email) -> pick a plan, see its full benefits, expand/compare
+ * freely -> submit (via the same intake platform contact-us/charter-
+ * booking already use, slug "membership-signup") -> success, with a
+ * "start riding" link to ridearrivo.com.
  *
- * IMPORTANT: Google/Apple sign-in is NOT wired to a real identity
- * provider here. This project's Supabase Auth (src/lib/supabase.ts,
- * storageKey "ridearrivo-workspace-auth") is the INTERNAL employee
- * workspace's auth - riders are not accounts in it, and creating rider
- * accounts there would be the wrong system. Real Google/Apple sign-in
- * needs to point at whatever backend owns rider identity in the app/
- * main site (open question in the membership proposal doc). Until
- * that's confirmed, the buttons are present (so the design reads as
- * finished) but explain that email/phone is the working path today.
+ * Google/Apple sign-in is real, but it is its own identity, separate from
+ * both this project's internal workspace auth (src/lib/supabase.ts,
+ * the wrong system for riders) and the rider app's own backend on Render
+ * (not wired up here yet, by design - see the comment in riderAuth.ts).
+ * If riderAuthConfigured is false (VITE_RIDER_SUPABASE_URL/ANON_KEY not
+ * set yet), the buttons fall back to a "coming soon" note instead of
+ * erroring, so this page keeps working either way.
  */
 
 type Plan = {
@@ -128,6 +136,10 @@ export default function MembershipApp() {
   const [authNote, setAuthNote] = useState<string | null>(null)
   const [identifyError, setIdentifyError] = useState('')
 
+  const [riderSession, setRiderSession] = useState<Session | null>(null)
+  const [oauthBusy, setOauthBusy] = useState<RiderOAuthProvider | null>(null)
+  const [oauthError, setOauthError] = useState('')
+
   const [expanded, setExpanded] = useState<string | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [orgName, setOrgName] = useState('')
@@ -136,6 +148,58 @@ export default function MembershipApp() {
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
+
+  useEffect(() => {
+    let active = true
+
+    function applySession(session: Session | null) {
+      if (!active) return
+      setRiderSession(session)
+      setOauthBusy(null)
+      if (session) {
+        setIdentity(current => ({
+          fullName: current.fullName || riderDisplayName(session),
+          phone: current.phone,
+          email: session.user.email || current.email,
+        }))
+      }
+    }
+
+    void getRiderSession().then(applySession)
+    const unsubscribe = subscribeToRiderAuthChanges(applySession)
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  async function handleOAuthClick(provider: RiderOAuthProvider) {
+    setOauthError('')
+
+    if (!riderAuthConfigured) {
+      setAuthNote(provider === 'google' ? 'Google' : 'Apple')
+      return
+    }
+
+    setOauthBusy(provider)
+    try {
+      await signInWithRiderProvider(provider)
+      // A successful call redirects the browser away to the provider, so
+      // there is nothing further to do here on success.
+    } catch (cause) {
+      setOauthError(
+        cause instanceof Error ? cause.message : `Unable to start ${provider} sign-in.`,
+      )
+      setOauthBusy(null)
+    }
+  }
+
+  async function handleSignOut() {
+    await signOutRider()
+    setRiderSession(null)
+    setIdentity({ fullName: '', phone: '', email: '' })
+  }
 
   function handleIdentify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -164,6 +228,11 @@ export default function MembershipApp() {
 
     setBusy(true)
     try {
+      const signedInNote = riderSession
+        ? `Signed in with ${riderProviderLabel(riderSession)} (${riderSession.user.email || 'no email on file'}).`
+        : ''
+      const combinedNotes = [signedInNote, notes.trim()].filter(Boolean).join(' ')
+
       const submission = await submitPublicIntakeForm({
         slug: 'membership-signup',
         payload: {
@@ -173,7 +242,7 @@ export default function MembershipApp() {
           email: identity.email.trim(),
           organization_name: selectedPlan.isCorporate ? orgName.trim() : '',
           seats_estimate: selectedPlan.isCorporate ? seats.trim() : '',
-          notes: notes.trim(),
+          notes: combinedNotes,
         },
       })
       setReference(submission.reference || '')
@@ -209,39 +278,73 @@ export default function MembershipApp() {
               plan.
             </p>
 
-            <div className="membershipAuthButtons">
-              <button
-                type="button"
-                className="membershipAuthButton"
-                onClick={() => setAuthNote('Google')}
-              >
-                Continue with Google
-              </button>
-              <button
-                type="button"
-                className="membershipAuthButton"
-                onClick={() => setAuthNote('Apple')}
-              >
-                Continue with Apple
-              </button>
-            </div>
-            {authNote && <AuthComingSoonNote provider={authNote} />}
+            {riderSession ? (
+              <div className="membershipSignedIn">
+                <span className="membershipSignedInBadge">
+                  Signed in with {riderProviderLabel(riderSession)}
+                </span>
+                <strong>{riderDisplayName(riderSession)}</strong>
+                {riderSession.user.email && <span>{riderSession.user.email}</span>}
+                <button type="button" className="membershipSignOutLink" onClick={() => void handleSignOut()}>
+                  Not you? Sign out
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="membershipAuthButtons">
+                  <button
+                    type="button"
+                    className="membershipAuthButton"
+                    disabled={oauthBusy !== null}
+                    onClick={() => void handleOAuthClick('google')}
+                  >
+                    {oauthBusy === 'google' ? 'Opening Google...' : 'Continue with Google'}
+                  </button>
+                  <button
+                    type="button"
+                    className="membershipAuthButton"
+                    disabled={oauthBusy !== null}
+                    onClick={() => void handleOAuthClick('apple')}
+                  >
+                    {oauthBusy === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
+                  </button>
+                </div>
+                {authNote && <AuthComingSoonNote provider={authNote} />}
+                {oauthError && (
+                  <div className="formsError" role="alert">
+                    {oauthError}
+                  </div>
+                )}
 
-            <div className="membershipDivider">
-              <span>or continue with your details</span>
-            </div>
+                <div className="membershipDivider">
+                  <span>or continue with your details</span>
+                </div>
+              </>
+            )}
 
             <form className="formsCard membershipIdentifyForm" onSubmit={handleIdentify}>
-              <label>
-                <span>Full Name *</span>
-                <input
-                  type="text"
-                  required
-                  value={identity.fullName}
-                  onChange={event => setIdentity(current => ({ ...current, fullName: event.target.value }))}
-                />
-              </label>
-              <label>
+              {!riderSession && (
+                <>
+                  <label>
+                    <span>Full Name *</span>
+                    <input
+                      type="text"
+                      required
+                      value={identity.fullName}
+                      onChange={event => setIdentity(current => ({ ...current, fullName: event.target.value }))}
+                    />
+                  </label>
+                  <label className="formsFieldWide">
+                    <span>Email (optional)</span>
+                    <input
+                      type="email"
+                      value={identity.email}
+                      onChange={event => setIdentity(current => ({ ...current, email: event.target.value }))}
+                    />
+                  </label>
+                </>
+              )}
+              <label className={riderSession ? 'formsFieldWide' : undefined}>
                 <span>Phone Number *</span>
                 <input
                   type="tel"
@@ -249,14 +352,6 @@ export default function MembershipApp() {
                   placeholder="e.g. 080..."
                   value={identity.phone}
                   onChange={event => setIdentity(current => ({ ...current, phone: event.target.value }))}
-                />
-              </label>
-              <label className="formsFieldWide">
-                <span>Email (optional)</span>
-                <input
-                  type="email"
-                  value={identity.email}
-                  onChange={event => setIdentity(current => ({ ...current, email: event.target.value }))}
                 />
               </label>
 
