@@ -58,6 +58,23 @@
   min-width:200px
 }
 
+/* Apple's JS SDK does not render its own button like Google's does - we
+   own this one, so it needs Apple's actual black "Continue with Apple"
+   look instead of the generic outlined membershipAuthButton style,
+   matching ridearrivo-website's login.html/signup.html. */
+.membershipAppleButton{
+  min-width:200px;
+  border:none;
+  background:#000;
+  color:#fff
+}
+
+.membershipAppleButton:hover{
+  border-color:transparent;
+  background:#000;
+  opacity:.9
+}
+
 .membershipAuthNote{
   max-width:520px;
   margin:14px 0 0;
