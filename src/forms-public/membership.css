@@ -2,6 +2,14 @@
   max-width:1180px
 }
 
+/* The identify step has no header of its own to lean on for spacing -
+   without this, the "RIDEARRIVO MEMBERSHIP" eyebrow sits right against
+   the header's bottom border, feeling cramped compared to every other
+   public form (which gets this breathing room from .formsHero). */
+.membershipIdentify{
+  padding-top:40px
+}
+
 .membershipLead{
   max-width:640px;
   margin:16px 0 30px;
@@ -129,6 +137,13 @@
 
 .membershipIdentifyForm{
   max-width:640px
+}
+
+/* Full Name / Email / Phone Number stack directly as sibling <label>s
+   (no .formsGrid wrapper here), so without this they touch each other
+   with no vertical gap at all. */
+.membershipIdentifyForm label + label{
+  margin-top:22px
 }
 
 .planGrid{
