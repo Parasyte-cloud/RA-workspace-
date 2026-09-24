@@ -1,0 +1,176 @@
+.moveShell{
+  max-width:1180px
+}
+
+.moveLead{
+  max-width:640px;
+  margin:16px 0 26px;
+  color:#aeb9c8;
+  font-size:16px;
+  line-height:1.7
+}
+
+.moveIntro h1,
+.moveDetails h1,
+.moveContact h1{
+  margin:10px 0 0;
+  font-size:clamp(30px,4.2vw,48px);
+  line-height:1.1;
+  letter-spacing:-.03em
+}
+
+.moveHighlights{
+  display:grid;
+  gap:10px;
+  margin:0 0 6px;
+  padding:0;
+  list-style:none;
+  max-width:520px
+}
+
+.moveHighlights li{
+  position:relative;
+  padding-left:22px;
+  color:#c4cfdd;
+  font-size:14.5px;
+  line-height:1.55
+}
+
+.moveHighlights li::before{
+  content:"\2713";
+  position:absolute;
+  left:0;
+  color:#ff9f0a;
+  font-weight:800
+}
+
+.moveDetails form,
+.moveContact .formsCard{
+  margin-top:26px
+}
+
+.moveCheckboxField{
+  display:flex!important;
+  grid-template-columns:none;
+  align-items:center;
+  gap:10px!important
+}
+
+.moveCheckboxField input{
+  width:18px;
+  min-height:18px;
+  height:18px
+}
+
+.moveCheckboxField span{
+  color:#c4cfdd;
+  font-size:13.5px;
+  font-weight:500!important
+}
+
+.moveEstimateBox{
+  display:grid;
+  gap:6px;
+  margin-top:6px;
+  padding:18px 20px;
+  border:1px solid rgba(255,159,10,.35);
+  border-radius:16px;
+  background:rgba(255,159,10,.07)
+}
+
+.moveEstimateLabel{
+  color:#ff9f0a;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase
+}
+
+.moveEstimateBox strong{
+  font-size:24px;
+  letter-spacing:-.01em
+}
+
+.moveEstimateBox small{
+  color:#8997aa;
+  line-height:1.55
+}
+
+.moveEstimatePlaceholder{
+  color:#758398;
+  font-size:13.5px;
+  line-height:1.6
+}
+
+.moveRecap{
+  margin-top:20px
+}
+
+.moveRecap h3{
+  margin:0 0 16px;
+  font-size:19px
+}
+
+.moveRecap dl{
+  display:grid;
+  gap:12px;
+  margin:0
+}
+
+.moveRecap dl>div{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  gap:14px
+}
+
+.moveRecap dt{
+  color:#758398;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em
+}
+
+.moveRecap dd{
+  margin:0;
+  color:#e4e9f1;
+  font-size:14.5px;
+  line-height:1.5
+}
+
+.moveRecapPrice{
+  margin:18px 0 0;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.09);
+  color:#c4cfdd;
+  font-size:15px
+}
+
+.moveRecapPrice strong{
+  color:#ff9f0a;
+  font-size:18px
+}
+
+.moveRecapNote{
+  margin:12px 0 0;
+  color:#8997aa;
+  font-size:13px;
+  line-height:1.6
+}
+
+.moveBackButton{
+  color:#f5f7fa!important;
+  background:transparent!important;
+  border:1px solid rgba(255,255,255,.16)!important
+}
+
+.moveSuccessActions{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:30px
+}
+
+.moveSuccess a{
+  text-decoration:none
+}
