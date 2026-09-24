@@ -54,6 +54,52 @@
   line-height:1.6
 }
 
+.membershipSignedIn{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  max-width:640px;
+  margin-top:8px;
+  padding:14px 16px;
+  border:1px solid rgba(120,220,150,.30);
+  border-radius:14px;
+  background:rgba(120,220,150,.07);
+  color:#f5f7fa
+}
+
+.membershipSignedInBadge{
+  padding:5px 10px;
+  border-radius:999px;
+  background:rgba(120,220,150,.16);
+  color:#a9ecc0;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase
+}
+
+.membershipSignedIn strong{
+  font-size:14.5px
+}
+
+.membershipSignedIn span{
+  color:#8997aa;
+  font-size:13px
+}
+
+.membershipSignOutLink{
+  margin-left:auto;
+  padding:0;
+  border:none;
+  background:transparent;
+  color:#758398;
+  font-size:12.5px;
+  font-weight:600;
+  text-decoration:underline;
+  cursor:pointer
+}
+
 .membershipDivider{
   display:flex;
   align-items:center;
