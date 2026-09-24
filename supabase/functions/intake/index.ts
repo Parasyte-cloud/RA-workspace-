@@ -25,6 +25,7 @@ const productionOrigins = new Set([
   // this is a fetch()-from-the-browser CORS check, not auth.
   "https://forms.ridearrivo.com",
   "https://bookings.ridearrivo.com",
+  "https://membership.ridearrivo.com",
 ])
 
 const allowLocalOrigins =

@@ -4,7 +4,7 @@ import './forms-public.css'
 
 /*
  * The original public forms page: investor & stakeholder interest.
- * Unchanged from the earlier single-purpose FormsApp.tsx — only moved
+ * Unchanged from the earlier single-purpose FormsApp.tsx, only moved
  * into its own file so FormsApp.tsx can route between this and the newer
  * schema-driven intake forms (contact-us, charter-booking) without one
  * hard-coded form owning the whole page.
