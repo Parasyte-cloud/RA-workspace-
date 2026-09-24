@@ -48,6 +48,23 @@ button,input,select,textarea{
   border-bottom:1px solid rgba(255,255,255,.09)
 }
 
+.formsLogoLink{
+  display:inline-block;
+  line-height:0;
+  border-radius:8px;
+  transition:opacity .15s ease
+}
+
+.formsLogoLink:hover,
+.formsLogoLink:focus-visible{
+  opacity:.85
+}
+
+.formsLogoLink:focus-visible{
+  outline:2px solid rgba(255,255,255,.35);
+  outline-offset:4px
+}
+
 .formsLogoCanvas{
   display:block;
   width:clamp(185px,19vw,235px);

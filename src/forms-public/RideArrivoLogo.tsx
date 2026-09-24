@@ -73,13 +73,19 @@ export function RideArrivoExactLogo() {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="formsLogoCanvas"
-      width={2048}
-      height={682}
-      role="img"
-      aria-label="RideArrivo"
-    />
+    <a
+      href="https://www.ridearrivo.com"
+      className="formsLogoLink"
+      aria-label="RideArrivo home"
+    >
+      <canvas
+        ref={canvasRef}
+        className="formsLogoCanvas"
+        width={2048}
+        height={682}
+        role="img"
+        aria-label="RideArrivo"
+      />
+    </a>
   )
 }
