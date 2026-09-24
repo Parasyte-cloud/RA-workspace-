@@ -1,6 +1,7 @@
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import InvestorInterestForm from './InvestorInterestForm'
 import PublicIntakeForm from './PublicIntakeForm'
+import MembershipApp from './MembershipApp'
 import './forms-public.css'
 
 /*
@@ -21,16 +22,24 @@ import './forms-public.css'
  *                        (intake platform, slug "charter-booking")
  *
  * Both intake routes render the same PublicIntakeForm, which fetches its
- * field schema by slug from the intake edge function — adding another
+ * field schema by slug from the intake edge function. Adding another
  * form later (through the eventual admin UI, or another SQL seed) only
  * needs a new route added here, not a new page built from scratch.
  *
  * bookings.ridearrivo.com (see isPublicFormsSurface() in main.tsx) is a
  * dedicated subdomain for the charter-booking form specifically, meant
- * for a short, clean link in an Instagram bio / social profile — it
+ * for a short, clean link in an Instagram bio / social profile. It
  * always renders the charter-booking form regardless of path, so any
  * link to the bare domain (or any path on it) works, rather than
  * requiring the visitor land on the exact /charter-booking path.
+ *
+ * membership.ridearrivo.com is its own dedicated subdomain too, but
+ * renders MembershipApp, a custom multi-step page (identify, pick a
+ * plan, confirm), not the generic PublicIntakeForm, because it needs
+ * a plan picker with expandable benefits, not a flat field list. Its
+ * final "confirm" step still submits through the same intake platform
+ * (slug "membership-signup"), so it shows up in Support's queue exactly
+ * like contact-us/charter-booking submissions do.
  */
 function normalizedPath() {
   const path = window.location.pathname.replace(/\/+$/, '')
@@ -44,6 +53,12 @@ export default function FormsApp() {
     window.location.hostname.toLowerCase() === 'bookings.ridearrivo.com'
   ) {
     return <PublicIntakeForm slug="charter-booking" />
+  }
+
+  if (
+    window.location.hostname.toLowerCase() === 'membership.ridearrivo.com'
+  ) {
+    return <MembershipApp />
   }
 
   if (path === '/contact-us') {

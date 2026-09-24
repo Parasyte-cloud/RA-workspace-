@@ -364,7 +364,7 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
 
   if (submitted) {
     return (
-      <StatusShell badge="SUBMITTED" eyebrow="REQUEST RECEIVED" title="Thank you — we've got it.">
+      <StatusShell badge="SUBMITTED" eyebrow="REQUEST RECEIVED" title="Thank you, we've got it.">
         <p>
           Your {schema.title.toLowerCase()} has been securely received. A member of the RideArrivo
           Support team will review it and reach out directly to confirm availability, pricing and

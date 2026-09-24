@@ -35,6 +35,13 @@ function isPublicFormsSurface() {
     return true
   }
 
+  if (
+    hostname ===
+    'membership.ridearrivo.com'
+  ) {
+    return true
+  }
+
   const requested =
     new URLSearchParams(
       window.location.search,
