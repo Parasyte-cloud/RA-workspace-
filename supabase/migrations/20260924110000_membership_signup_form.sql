@@ -49,7 +49,7 @@ version as (
     jsonb_build_object(
       'fields', jsonb_build_array(
         jsonb_build_object('key','plan','label','Plan','type','select','required',true,
-          'options', jsonb_build_array('RideArrivo Plus','RideArrivo Premium','RideArrivo Executive','RideArrivo Corporate')),
+          'options', jsonb_build_array('RideArrivo Plus','RideArrivo Plus+','RideArrivo Premium','RideArrivo Executive','RideArrivo Corporate')),
         jsonb_build_object('key','full_name','label','Full Name','type','text','required',true,'maxLength',160),
         jsonb_build_object('key','phone','label','Phone Number','type','phone','required',true,'maxLength',40),
         jsonb_build_object('key','email','label','Email','type','email','required',false,'maxLength',200),
