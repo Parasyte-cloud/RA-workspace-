@@ -2,6 +2,7 @@ import { RideArrivoExactLogo } from './RideArrivoLogo'
 import InvestorInterestForm from './InvestorInterestForm'
 import PublicIntakeForm from './PublicIntakeForm'
 import MembershipApp from './MembershipApp'
+import MoveApp from './MoveApp'
 import './forms-public.css'
 
 /*
@@ -40,6 +41,14 @@ import './forms-public.css'
  * final "confirm" step still submits through the same intake platform
  * (slug "membership-signup"), so it shows up in Support's queue exactly
  * like contact-us/charter-booking submissions do.
+ *
+ * move.ridearrivo.com is its own dedicated subdomain too, but renders
+ * MoveApp, a custom multi-step page (intro, move details with a live
+ * price estimate, contact and confirm), not the generic PublicIntakeForm,
+ * because it needs the estimate calculator alongside the fields. Its
+ * final "confirm" step still submits through the same intake platform
+ * (slug "move-booking"), so it shows up in Support's queue exactly like
+ * contact-us/charter-booking submissions do.
  */
 function normalizedPath() {
   const path = window.location.pathname.replace(/\/+$/, '')
@@ -59,6 +68,12 @@ export default function FormsApp() {
     window.location.hostname.toLowerCase() === 'membership.ridearrivo.com'
   ) {
     return <MembershipApp />
+  }
+
+  if (
+    window.location.hostname.toLowerCase() === 'move.ridearrivo.com'
+  ) {
+    return <MoveApp />
   }
 
   if (path === '/contact-us') {

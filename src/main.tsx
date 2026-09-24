@@ -42,6 +42,13 @@ function isPublicFormsSurface() {
     return true
   }
 
+  if (
+    hostname ===
+    'move.ridearrivo.com'
+  ) {
+    return true
+  }
+
   const requested =
     new URLSearchParams(
       window.location.search,
