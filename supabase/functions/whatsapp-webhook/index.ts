@@ -75,6 +75,15 @@ async function verifyMetaSignature(
   }
 
   if (!APP_SECRET) {
+    // Deno.env.get(...)! is only a compile-time assertion, so a
+    // missing WHATSAPP_APP_SECRET leaves this as runtime
+    // undefined rather than failing to start, and every inbound
+    // webhook would then be silently rejected as an "invalid
+    // signature" with no indication the real cause is a missing
+    // secret. Log it clearly so this is diagnosable.
+    console.error(
+      "whatsapp-webhook: WHATSAPP_APP_SECRET is not configured, rejecting all inbound webhooks",
+    )
     return false
   }
 
