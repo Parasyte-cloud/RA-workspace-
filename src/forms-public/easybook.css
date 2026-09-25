@@ -1,0 +1,178 @@
+/* easybook.ridearrivo.com -- supplementary styles on top of
+   forms-public.css, following the same per-page-stylesheet convention as
+   membership.css / move.css. Mirrors membership.css's identify-step
+   patterns (same visual language: outlined auth buttons, a reserved slot
+   for Google's async button, a divider, a signed-in pill) rather than
+   the raw inline styles the first cut of this page used. */
+
+.easybookShell{
+  max-width:640px
+}
+
+/* The identify step has no header of its own to lean on for spacing --
+   without this it sits right against the header's bottom border. */
+.easybookIdentify{
+  padding-top:40px
+}
+
+.easybookIdentify h1{
+  margin:10px 0 0;
+  font-size:clamp(28px,4.2vw,40px);
+  line-height:1.1;
+  letter-spacing:-.03em
+}
+
+.easybookLead{
+  max-width:520px;
+  margin:14px 0 28px;
+  color:#aeb9c8;
+  font-size:15.5px;
+  line-height:1.7
+}
+
+.easybookAuthButtons{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:22px
+}
+
+.easybookAuthButton{
+  min-height:52px;
+  padding:14px 22px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  cursor:pointer;
+  color:#f5f7fa;
+  background:rgba(255,255,255,.045);
+  font-weight:700;
+  transition:border-color .15s,background .15s
+}
+
+.easybookAuthButton:hover{
+  border-color:rgba(255,255,255,.32);
+  background:rgba(255,255,255,.08)
+}
+
+/* Google renders its own button asynchronously into this slot once its
+   script loads -- a fixed min-height/width keeps the layout from
+   jumping in the moment before that happens (and keeps the slot visible
+   as an outlined placeholder if it never loads, instead of dead space). */
+.easybookGoogleButtonSlot{
+  min-height:52px;
+  min-width:200px;
+  border-radius:14px
+}
+
+.easybookAppleButton{
+  min-width:200px;
+  border:none;
+  background:#000;
+  color:#fff
+}
+
+.easybookAppleButton:hover{
+  border-color:transparent;
+  background:#000;
+  opacity:.9
+}
+
+.easybookAuthNote{
+  max-width:520px;
+  margin:0 0 22px;
+  padding:12px 15px;
+  border:1px solid rgba(255,159,10,.30);
+  border-radius:12px;
+  color:#e7cfa3;
+  background:rgba(255,159,10,.08);
+  font-size:13.5px;
+  line-height:1.6
+}
+
+.easybookDivider{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:0 0 22px;
+  color:#758398;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.04em
+}
+
+.easybookDivider::before,
+.easybookDivider::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:rgba(255,255,255,.10)
+}
+
+.easybookModeToggle{
+  display:inline-flex;
+  gap:4px;
+  padding:4px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+  margin-bottom:20px
+}
+
+.easybookModeButton{
+  min-height:40px;
+  padding:8px 18px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  color:#aeb9c8;
+  background:transparent;
+  font-weight:700;
+  font-size:14px;
+  transition:background .15s,color .15s
+}
+
+.easybookModeButtonActive{
+  color:#07111f;
+  background:#ff9f0a
+}
+
+.easybookIdentifyForm label + label{
+  margin-top:18px
+}
+
+.easybookSignedIn{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  max-width:640px;
+  margin:8px 0 24px;
+  padding:14px 16px;
+  border:1px solid rgba(120,220,150,.30);
+  border-radius:14px;
+  background:rgba(120,220,150,.07);
+  color:#f5f7fa
+}
+
+.easybookNotYou{
+  color:#ff9f0a;
+  font-weight:600;
+  text-decoration:none
+}
+
+.easybookNotYou:hover{
+  text-decoration:underline
+}
+
+.easybookFareLine{
+  font-size:clamp(26px,4vw,32px);
+  font-weight:800;
+  color:#f5f7fa;
+  margin:18px 0 6px
+}
+
+.easybookBookAnother{
+  background:transparent;
+  color:#f5f7fa;
+  border:1px solid rgba(255,255,255,.16)
+}

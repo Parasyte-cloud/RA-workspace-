@@ -16,6 +16,7 @@ import {
   type RiderOAuthProvider,
 } from '../lib/riderAuth'
 import './forms-public.css'
+import './easybook.css'
 
 /*
  * easybook.ridearrivo.com (see isPublicFormsSurface() in main.tsx and the
@@ -163,8 +164,17 @@ export default function EasyBookApp() {
     }
   }, [])
 
+  // Renders the Google/Apple buttons into the refs above. This depends on
+  // checkingSession as well as [step, rider] -- while checkingSession is
+  // still true, the page shows a loading state instead of the identify
+  // markup below, so googleButtonRef/appleButtonRef aren't in the DOM yet
+  // and this would be a no-op. Without checkingSession in the dependency
+  // list, that no-op run (the only one that ever fired, since step/rider
+  // don't change again after it) was the reason Google's button never
+  // appeared: by the time the real identify markup mounted, this effect
+  // had already run and wasn't going to run again.
   useEffect(() => {
-    if (step !== 'identify' || rider) return
+    if (checkingSession || step !== 'identify' || rider) return
 
     function handleGoogleIdToken(idToken: string) {
       setOauthBusy('google')
@@ -193,12 +203,18 @@ export default function EasyBookApp() {
     }
 
     if (googleButtonRef.current) {
-      void renderGoogleButton(googleButtonRef.current, handleGoogleIdToken).catch(() => {})
+      void renderGoogleButton(googleButtonRef.current, handleGoogleIdToken).catch(() => {
+        // A real failure (script blocked, or this origin isn't yet
+        // authorized in Google's console) used to leave this slot
+        // silently empty with no sign of why. Show something instead --
+        // the email/password form right below still works either way.
+        setOauthError('Google sign-in is unavailable right now. Please use email and password below.')
+      })
     }
     if (appleButtonRef.current) {
       void initAppleSignIn(appleButtonRef.current, handleAppleCredential).catch(() => {})
     }
-  }, [step, rider])
+  }, [checkingSession, step, rider])
 
   async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -332,74 +348,64 @@ export default function EasyBookApp() {
 
   return (
     <main className="formsPage">
-      <section className="formsShell" style={{ maxWidth: 640 }}>
+      <section className="formsShell easybookShell">
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">QUICK BOOK</span>
         </header>
 
         {step === 'identify' && (
-          <div className="formsCard" style={{ marginTop: 30 }}>
+          <div className="easybookIdentify">
             <span className="formsEyebrow">SIGN IN TO BOOK</span>
-            <h1 style={{ fontSize: 'clamp(26px,4vw,36px)', margin: '10px 0 6px' }}>
-              Sign in, then get a payment link in a minute
-            </h1>
-            <p style={{ color: '#aeb9c8', margin: '0 0 24px', lineHeight: 1.6 }}>
+            <h1>Sign in, then get a payment link in a minute.</h1>
+            <p className="easybookLead">
               Same account as the RideArrivo app and website -- so if you've booked with us before, this picks up
               your existing account rather than starting a new one.
             </p>
 
-            <div style={{ display: 'grid', gap: 12, marginBottom: 22 }}>
-              <div ref={googleButtonRef} style={{ minHeight: 44 }} />
+            <div className="easybookAuthButtons">
+              <div ref={googleButtonRef} className="easybookGoogleButtonSlot" />
               <button
                 ref={appleButtonRef}
                 type="button"
-                style={{
-                  display: appleSignInConfigured ? 'flex' : 'none',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 44,
-                  borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,.18)',
-                  background: '#000',
-                  color: '#fff',
-                  fontWeight: 700,
-                }}
+                className="easybookAuthButton easybookAppleButton"
+                style={{ display: appleSignInConfigured ? undefined : 'none' }}
+                disabled={oauthBusy !== null}
               >
                 Continue with Apple
               </button>
-              {oauthBusy && <small style={{ color: '#aeb9c8' }}>Signing in with {oauthBusy === 'google' ? 'Google' : 'Apple'}...</small>}
-              {oauthError && (
-                <div className="formsError" role="alert">
-                  {oauthError}
-                </div>
-              )}
+            </div>
+            {oauthBusy && (
+              <p className="easybookAuthNote">Signing you in with {oauthBusy === 'google' ? 'Google' : 'Apple'}...</p>
+            )}
+            {oauthError && (
+              <div className="formsError" role="alert" style={{ marginBottom: 22 }}>
+                {oauthError}
+              </div>
+            )}
+
+            <div className="easybookDivider">
+              <span>or continue with email</span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', color: '#6f7d90', fontSize: 12 }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.09)' }} />
-              OR
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.09)' }} />
-            </div>
-
-            <div className="formsActions" style={{ marginTop: 0, marginBottom: 18 }}>
+            <div className="easybookModeToggle">
               <button
                 type="button"
+                className={'easybookModeButton' + (emailMode === 'signin' ? ' easybookModeButtonActive' : '')}
                 onClick={() => setEmailMode('signin')}
-                style={emailMode === 'signin' ? undefined : { background: 'transparent', color: '#f5f7fa' }}
               >
                 Sign in
               </button>
               <button
                 type="button"
+                className={'easybookModeButton' + (emailMode === 'signup' ? ' easybookModeButtonActive' : '')}
                 onClick={() => setEmailMode('signup')}
-                style={emailMode === 'signup' ? undefined : { background: 'transparent', color: '#f5f7fa' }}
               >
                 Create account
               </button>
             </div>
 
-            <form onSubmit={event => void handleEmailSubmit(event)}>
+            <form className="formsCard easybookIdentifyForm" onSubmit={event => void handleEmailSubmit(event)}>
               <div className="formsGrid">
                 {emailMode === 'signup' && (
                   <>
@@ -501,11 +507,11 @@ export default function EasyBookApp() {
               Fill this in and we'll text you a payment link. Your ride is confirmed as soon as it's paid.{' '}
               <a
                 href="#"
+                className="easybookNotYou"
                 onClick={event => {
                   event.preventDefault()
                   switchAccount()
                 }}
-                style={{ color: '#ff9f0a' }}
               >
                 Not you?
               </a>
@@ -629,9 +635,7 @@ export default function EasyBookApp() {
             <h1>{result.authorizationUrl ? "You're almost booked" : 'Thanks -- we have your request'}</h1>
             <p>{result.message}</p>
             {typeof result.fareNaira === 'number' && (
-              <p style={{ fontSize: 28, fontWeight: 800, color: '#f5f7fa', margin: '18px 0 6px' }}>
-                NGN {result.fareNaira.toLocaleString('en-NG')}
-              </p>
+              <p className="easybookFareLine">NGN {result.fareNaira.toLocaleString('en-NG')}</p>
             )}
             {result.authorizationUrl && (
               <a href={result.authorizationUrl} target="_blank" rel="noopener noreferrer">
@@ -639,7 +643,7 @@ export default function EasyBookApp() {
               </a>
             )}
             <div style={{ marginTop: 26 }}>
-              <button type="button" onClick={bookAnother} style={{ background: 'transparent', color: '#f5f7fa' }}>
+              <button type="button" className="easybookBookAnother" onClick={bookAnother}>
                 Book another ride
               </button>
             </div>
