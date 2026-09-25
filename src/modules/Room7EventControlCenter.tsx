@@ -287,8 +287,10 @@ function emptyConfig():
     slug:
       '',
 
+    // Configuring an external event is opting in to a public page.
+    // Guests still cannot join until the state reaches Doors open.
     publicEnabled:
-      false,
+      true,
 
     publicSummary:
       '',

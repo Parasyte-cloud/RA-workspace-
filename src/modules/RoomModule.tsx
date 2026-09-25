@@ -458,7 +458,7 @@ export default function RoomModule({
                   roomId={room.id}
                   roomTitle={room.title}
                 />
-                <button type="button" className="iconButton" title="Copy invite link" onClick={()=>void copyRoom(room)}>
+                <button type="button" className="iconButton" title="Copy staff link (intranet sign-in required)" aria-label="Copy staff link" onClick={()=>void copyRoom(room)}>
                   <Copy size={16}/>
                 </button>
                 <button
