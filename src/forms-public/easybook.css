@@ -131,9 +131,15 @@
   transition:background .15s,color .15s
 }
 
+/* Deliberately NOT the same solid-amber look as the CTA buttons
+   (.formsActions button) below -- this is a tab, not an action, and
+   giving it the identical style read as a second "Sign in" button
+   stacked on top of the real submit button. An amber underline marks
+   the selected tab instead. */
 .easybookModeButtonActive{
-  color:#07111f;
-  background:#ff9f0a
+  color:#f5f7fa;
+  background:rgba(255,255,255,.09);
+  box-shadow:inset 0 -2px 0 #ff9f0a
 }
 
 .easybookIdentifyForm label + label{
