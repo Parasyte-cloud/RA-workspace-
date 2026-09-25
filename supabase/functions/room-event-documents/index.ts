@@ -475,6 +475,7 @@ async function resolveRoom(
             "public_enabled",
             "scheduled_start",
             "scheduled_end",
+            "passcode_hash",
           ].join(","),
         )
         .eq(
@@ -589,6 +590,7 @@ async function resolveRoom(
             "public_enabled",
             "scheduled_start",
             "scheduled_end",
+            "passcode_hash",
           ].join(","),
         )
         .eq(
