@@ -162,6 +162,23 @@ serve(async (req) => {
     )
   }
 
+  if (!whatsappToken || !phoneNumberId) {
+    // Deno.env.get(...)! is only a compile-time assertion, so a
+    // missing WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID
+    // secret leaves these as runtime undefined rather than
+    // failing to start. Without this guard every send would go
+    // out as "Bearer undefined" against Meta's API and fail
+    // silently with no clear diagnostic. Fail loud instead.
+    console.error(
+      "whatsapp-send: WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID is not configured",
+    )
+    return json(
+      req,
+      { error: "WhatsApp send is not configured." },
+      503,
+    )
+  }
+
   const actor =
     await authorisedSupportActor(req)
 
