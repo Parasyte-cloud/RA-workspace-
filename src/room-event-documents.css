@@ -15,6 +15,13 @@
 }
 
 .roomDocumentManager{
+  /* This panel is always dark. Pin its own text, muted and border
+     colours so the intranet's light theme (navy --ra-text) cannot
+     turn its text navy-on-navy. */
+  --ra-text:#f5f7fa;
+  --ra-muted:#a3b0bf;
+  --ra-border:rgba(255,255,255,.12);
+
   width:min(1040px,100%);
   max-height:min(88vh,900px);
   display:grid;
