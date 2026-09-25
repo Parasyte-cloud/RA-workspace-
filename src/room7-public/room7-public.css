@@ -854,7 +854,15 @@
   width:auto;
 }
 
+/* The lobby panel is portaled to <body>, outside .room7Public,
+   so it carries its own font and box model. */
+.room7GuestDocumentPanel-lobby,
+.room7GuestDocumentPanel-lobby *{
+  box-sizing:border-box;
+}
+
 .room7GuestDocumentPanel-lobby{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --r7x-surface:#0b1421;
   --r7x-text:#f5f7fa;
   --r7x-muted:#92a0b0;
@@ -975,6 +983,18 @@
   min-width:0;
   display:grid;
   gap:5px;
+}
+
+/* Email + passcode: the second field wraps onto its own row
+   and the unlock button spans the full width underneath. */
+.room7GuestDocumentIdentity:has(label+label){
+  grid-template-columns:
+    minmax(0,1fr)
+    minmax(0,1fr);
+}
+
+.room7GuestDocumentIdentity:has(label+label) button{
+  grid-column:1/-1;
 }
 
 .room7GuestDocumentIdentity label span{
@@ -1666,12 +1686,29 @@
     height:74px;
   }
 
-  .room7GuestDocumentIdentity{
+  .room7GuestDocumentIdentity,
+  .room7GuestDocumentIdentity:has(label+label){
     grid-template-columns:1fr;
   }
 
+  .room7GuestDocumentIdentity label span{
+    font-size:10px;
+  }
+
+  /* iOS Safari zooms the page on focus for inputs under 16px */
+  .room7GuestDocumentIdentity input{
+    min-height:44px;
+    font-size:16px;
+  }
+
   .room7GuestDocumentIdentity button{
-    min-height:36px;
+    min-height:44px;
+    font-size:12px;
+  }
+
+  .room7GuestDocumentPanel-lobby{
+    width:auto;
+    left:10px;
   }
 
   .room7ExperienceSettings{
