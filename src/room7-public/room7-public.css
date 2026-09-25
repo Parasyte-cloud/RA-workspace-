@@ -791,7 +791,13 @@
 .room7ExperienceMeetingFrame rtk-meeting{
   width:100%;
   height:100%;
-  display:block;
+  /* RealtimeKit lays out header, stage and controlbar as a flex
+     column: the stage has flex:1 to fill the space between them.
+     A page style on the host overrides the component's own :host
+     rule, so display:block here collapsed the stage (the video
+     area) to 0px, which left phone guests with a blank screen. */
+  display:flex;
+  flex-direction:column;
 }
 
 /* --------------------------
