@@ -1,6 +1,20 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
-import { ARRIVO_API_BASE_URL } from '../lib/riderAuth'
+import {
+  ARRIVO_API_BASE_URL,
+  appleSignInConfigured,
+  getStoredRiderToken,
+  fetchRiderProfile,
+  initAppleSignIn,
+  renderGoogleButton,
+  signInWithGoogleIdToken,
+  signInWithAppleIdentityToken,
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
+  signOutRider,
+  type RiderUser,
+  type RiderOAuthProvider,
+} from '../lib/riderAuth'
 import './forms-public.css'
 
 /*
@@ -12,56 +26,63 @@ import './forms-public.css'
  * RideArrivo through social media and don't have the app yet -- needs a
  * link support, a social-media manager, or a friend can just hand them
  * (or fill in together on the spot) that ends with a real payment link,
- * no app install and no staff step in between.
+ * no staff step in between.
  *
- * That's why this page is deliberately NOT built on the shared intake
- * platform every other forms-public page uses (PublicIntakeForm /
- * submitPublicIntakeForm, slug + Support's review queue) -- a queued
- * submission still needs a human to open it, decide it's real, and
- * separately trigger payment. This posts straight to arrivo-backend's
- * POST /api/public/booking-requests instead (same backend
- * membership.ridearrivo.com already talks to directly, see
- * src/lib/riderAuth.ts's ARRIVO_API_BASE_URL), which creates the
- * durable pending booking AND starts the Paystack payment link AND
- * sends it over WhatsApp, all in the one request. No ride is created
- * and no card is charged here -- exactly like every other assisted
- * booking in this codebase, the real ride only exists once Paystack's
- * webhook confirms a real payment.
+ * Sign-in is REQUIRED before the booking form even shows (Google, Apple,
+ * or email/password -- the same backend, same accounts as the app and
+ * ridearrivo-website, via src/lib/riderAuth.ts). This used to be a plain
+ * "type your name and email" guest form, which could never actually
+ * guarantee it wasn't creating a second account next to one someone
+ * already had. Real sign-in closes that: a Google/Apple identity or a
+ * password proves the account, and the backend already links a new
+ * Google/Apple sign-in to an existing email-matched account rather than
+ * forking a second one (findOrCreateOAuthProfile in routes/auth.js), so
+ * this page can never leave someone with duplicate RideArrivo accounts.
+ *
+ * The one case this can't cover -- a phone-in customer with no account at
+ * all and no device in hand to sign in with themselves -- is handled on
+ * the STAFF side instead (POST /api/support/assisted-bookings'
+ * createAccountIfMissing), not here, precisely so this page's own
+ * guarantee (nobody submits without a real, signed-in account) never has
+ * a silent exception.
+ *
+ * Once signed in, this posts straight to arrivo-backend's POST
+ * /api/public/booking-requests with the rider's token, which creates the
+ * durable pending booking AND starts a Paystack payment link AND sends
+ * it over WhatsApp, all in the one request -- no Support queue step in
+ * between. No ride is created and no card is charged here; the real ride
+ * only exists once Paystack's webhook confirms a real payment, exactly
+ * like every other assisted booking in this codebase.
  *
  * Scoped to one-way trips only (the everyday outage case), matching the
- * same scope limit the internal payment-link route already enforces --
- * fleet/escort/luxury/full-day-week-month bookings stay a staff job
- * through the normal SupportAssistedBookingPanel flow.
+ * same scope limit the internal payment-link route already enforces.
  */
 
-type FormState = {
-  name: string
-  email: string
-  phone: string
+type Step = 'identify' | 'book' | 'success'
+type EmailMode = 'signin' | 'signup'
+
+type BookingForm = {
   pickupAddress: string
   destinationAddress: string
   flightNumber: string
   vehicleType: string
   adults: string
   children: string
+  phone: string
   submittedVia: string
   agreedCancellationPolicy: boolean
-  website: string // honeypot, never shown to a real visitor
 }
 
-const INITIAL_STATE: FormState = {
-  name: '',
-  email: '',
-  phone: '',
+const INITIAL_BOOKING: BookingForm = {
   pickupAddress: '',
   destinationAddress: '',
   flightNumber: '',
   vehicleType: 'sedan',
   adults: '1',
   children: '0',
+  phone: '',
   submittedVia: '',
   agreedCancellationPolicy: false,
-  website: '',
 }
 
 type SubmitResult = {
@@ -89,27 +110,151 @@ function getIdempotencyKey(): string {
 }
 
 export default function EasyBookApp() {
-  const [form, setForm] = useState<FormState>(INITIAL_STATE)
+  const [step, setStep] = useState<Step>('identify')
+
+  const [rider, setRider] = useState<RiderUser | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  const [oauthBusy, setOauthBusy] = useState<RiderOAuthProvider | null>(null)
+  const [oauthError, setOauthError] = useState('')
+  const googleButtonRef = useRef<HTMLDivElement>(null)
+  const appleButtonRef = useRef<HTMLButtonElement>(null)
+
+  const [emailMode, setEmailMode] = useState<EmailMode>('signin')
+  const [emailForm, setEmailForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    agreedToTerms: false,
+  })
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailError, setEmailError] = useState('')
+
+  const [form, setForm] = useState<BookingForm>(INITIAL_BOOKING)
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [result, setResult] = useState<SubmitResult | null>(null)
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+  // Resume an existing session (already signed in from a prior visit)
+  // rather than making a returning customer sign in again every time.
+  useEffect(() => {
+    const token = getStoredRiderToken()
+    if (!token) {
+      setCheckingSession(false)
+      return
+    }
+    let cancelled = false
+    fetchRiderProfile(token)
+      .then(profile => {
+        if (cancelled) return
+        if (profile) {
+          setRider(profile)
+          setForm(current => ({ ...current, phone: current.phone || profile.whatsapp_number || profile.phone || '' }))
+          setStep('book')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingSession(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (step !== 'identify' || rider) return
+
+    function handleGoogleIdToken(idToken: string) {
+      setOauthBusy('google')
+      setOauthError('')
+      signInWithGoogleIdToken(idToken)
+        .then(result => {
+          setRider(result.user)
+          setForm(current => ({ ...current, phone: current.phone || result.user.whatsapp_number || result.user.phone || '' }))
+          setStep('book')
+        })
+        .catch(err => setOauthError(err instanceof Error ? err.message : 'Google sign-in failed.'))
+        .finally(() => setOauthBusy(null))
+    }
+
+    function handleAppleCredential(identityToken: string, fullName?: { givenName?: string; familyName?: string }) {
+      setOauthBusy('apple')
+      setOauthError('')
+      signInWithAppleIdentityToken(identityToken, fullName)
+        .then(result => {
+          setRider(result.user)
+          setForm(current => ({ ...current, phone: current.phone || result.user.whatsapp_number || result.user.phone || '' }))
+          setStep('book')
+        })
+        .catch(err => setOauthError(err instanceof Error ? err.message : 'Apple sign-in failed.'))
+        .finally(() => setOauthBusy(null))
+    }
+
+    if (googleButtonRef.current) {
+      void renderGoogleButton(googleButtonRef.current, handleGoogleIdToken).catch(() => {})
+    }
+    if (appleButtonRef.current) {
+      void initAppleSignIn(appleButtonRef.current, handleAppleCredential).catch(() => {})
+    }
+  }, [step, rider])
+
+  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setEmailError('')
+
+    if (!emailForm.email.trim()) return setEmailError('Please enter your email.')
+    if (!emailForm.password) return setEmailError('Please enter a password.')
+
+    if (emailMode === 'signup') {
+      if (!emailForm.firstName.trim()) return setEmailError('Please enter your first name.')
+      if (!emailForm.lastName.trim()) return setEmailError('Please enter your last name.')
+      if (emailForm.password.length < 8) return setEmailError('Password must be at least 8 characters.')
+      if (!emailForm.agreedToTerms) return setEmailError("Please agree to RideArrivo's terms to create an account.")
+    }
+
+    setEmailBusy(true)
+    try {
+      const result =
+        emailMode === 'signin'
+          ? await signInWithEmailPassword(emailForm.email.trim(), emailForm.password)
+          : await signUpWithEmailPassword({
+              firstName: emailForm.firstName.trim(),
+              lastName: emailForm.lastName.trim(),
+              email: emailForm.email.trim(),
+              password: emailForm.password,
+              phone: emailForm.phone.trim() || undefined,
+              agreedToTerms: emailForm.agreedToTerms,
+            })
+      setRider(result.user)
+      setForm(current => ({
+        ...current,
+        phone: current.phone || result.user.whatsapp_number || result.user.phone || emailForm.phone.trim(),
+      }))
+      setStep('book')
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setEmailBusy(false)
+    }
+  }
+
+  function update<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
     setForm(current => ({ ...current, [key]: value }))
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleBookingSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitError('')
 
-    if (form.website.trim() !== '') {
-      // Honeypot tripped -- answer like a normal success and do nothing.
-      setResult({ ok: true, message: "Thanks! We'll be in touch shortly." })
+    const token = getStoredRiderToken()
+    if (!token) {
+      setSubmitError('Your session expired. Please sign in again.')
+      setStep('identify')
       return
     }
 
-    if (!form.name.trim()) return setSubmitError('Please enter your name.')
-    if (!form.email.trim()) return setSubmitError('Please enter your email.')
     if (!form.phone.trim()) return setSubmitError('Please enter your WhatsApp number, with country code.')
     if (!form.pickupAddress.trim()) return setSubmitError('Please enter a pickup address.')
     if (!form.destinationAddress.trim()) return setSubmitError('Please enter a drop-off address.')
@@ -122,11 +267,9 @@ export default function EasyBookApp() {
     try {
       const response = await fetch(`${ARRIVO_API_BASE_URL}/api/public/booking-requests`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           idempotencyKey: getIdempotencyKey(),
-          name: form.name.trim(),
-          email: form.email.trim(),
           phone: form.phone.trim(),
           pickupAddress: form.pickupAddress.trim(),
           destinationAddress: form.destinationAddress.trim(),
@@ -136,19 +279,26 @@ export default function EasyBookApp() {
           children: Number(form.children) || 0,
           submittedVia: form.submittedVia.trim(),
           agreedCancellationPolicy: form.agreedCancellationPolicy,
-          website: form.website,
         }),
       })
 
       const data = (await response.json().catch(() => ({}))) as SubmitResult
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setSubmitError('Your session expired. Please sign in again.')
+          setRider(null)
+          setStep('identify')
+          setBusy(false)
+          return
+        }
         setSubmitError(data.error || 'Something went wrong. Please try again.')
         setBusy(false)
         return
       }
 
       setResult(data)
+      setStep('success')
       setBusy(false)
     } catch {
       setSubmitError('Could not reach RideArrivo right now. Check your connection and try again.')
@@ -157,10 +307,27 @@ export default function EasyBookApp() {
   }
 
   function bookAnother() {
-    setForm(INITIAL_STATE)
+    setForm(current => ({ ...INITIAL_BOOKING, phone: current.phone }))
     setResult(null)
     setSubmitError('')
+    setStep('book')
     window.sessionStorage.removeItem('ra_easybook_idempotency_key')
+  }
+
+  function switchAccount() {
+    signOutRider()
+    setRider(null)
+    setForm(INITIAL_BOOKING)
+    setResult(null)
+    setStep('identify')
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="formsPage">
+        <div className="formsStatus">CHECKING YOUR SESSION</div>
+      </main>
+    )
   }
 
   return (
@@ -171,49 +338,181 @@ export default function EasyBookApp() {
           <span className="formsBadge">QUICK BOOK</span>
         </header>
 
-        {!result && (
+        {step === 'identify' && (
           <div className="formsCard" style={{ marginTop: 30 }}>
-            <span className="formsEyebrow">BOOK A RIDE, NO APP NEEDED</span>
+            <span className="formsEyebrow">SIGN IN TO BOOK</span>
             <h1 style={{ fontSize: 'clamp(26px,4vw,36px)', margin: '10px 0 6px' }}>
-              Fill this in and we'll text you a payment link
+              Sign in, then get a payment link in a minute
             </h1>
             <p style={{ color: '#aeb9c8', margin: '0 0 24px', lineHeight: 1.6 }}>
-              Your ride is confirmed as soon as it's paid. No account or app install required.
+              Same account as the RideArrivo app and website -- so if you've booked with us before, this picks up
+              your existing account rather than starting a new one.
             </p>
 
-            <form onSubmit={event => void handleSubmit(event)}>
-              <label className="formsHoney">
-                <span>Leave this field blank</span>
-                <input
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={form.website}
-                  onChange={event => update('website', event.target.value)}
-                />
-              </label>
+            <div style={{ display: 'grid', gap: 12, marginBottom: 22 }}>
+              <div ref={googleButtonRef} style={{ minHeight: 44 }} />
+              <button
+                ref={appleButtonRef}
+                type="button"
+                style={{
+                  display: appleSignInConfigured ? 'flex' : 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 44,
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,.18)',
+                  background: '#000',
+                  color: '#fff',
+                  fontWeight: 700,
+                }}
+              >
+                Continue with Apple
+              </button>
+              {oauthBusy && <small style={{ color: '#aeb9c8' }}>Signing in with {oauthBusy === 'google' ? 'Google' : 'Apple'}...</small>}
+              {oauthError && (
+                <div className="formsError" role="alert">
+                  {oauthError}
+                </div>
+              )}
+            </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', color: '#6f7d90', fontSize: 12 }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.09)' }} />
+              OR
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.09)' }} />
+            </div>
+
+            <div className="formsActions" style={{ marginTop: 0, marginBottom: 18 }}>
+              <button
+                type="button"
+                onClick={() => setEmailMode('signin')}
+                style={emailMode === 'signin' ? undefined : { background: 'transparent', color: '#f5f7fa' }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmailMode('signup')}
+                style={emailMode === 'signup' ? undefined : { background: 'transparent', color: '#f5f7fa' }}
+              >
+                Create account
+              </button>
+            </div>
+
+            <form onSubmit={event => void handleEmailSubmit(event)}>
               <div className="formsGrid">
-                <label>
-                  <span>Full name</span>
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={form.name}
-                    onChange={event => update('name', event.target.value)}
-                    required
-                  />
-                </label>
-                <label>
+                {emailMode === 'signup' && (
+                  <>
+                    <label>
+                      <span>First name</span>
+                      <input
+                        type="text"
+                        autoComplete="given-name"
+                        value={emailForm.firstName}
+                        onChange={event => setEmailForm(current => ({ ...current, firstName: event.target.value }))}
+                      />
+                    </label>
+                    <label>
+                      <span>Last name</span>
+                      <input
+                        type="text"
+                        autoComplete="family-name"
+                        value={emailForm.lastName}
+                        onChange={event => setEmailForm(current => ({ ...current, lastName: event.target.value }))}
+                      />
+                    </label>
+                  </>
+                )}
+                <label className="formsFieldWide">
                   <span>Email</span>
                   <input
                     type="email"
                     autoComplete="email"
-                    value={form.email}
-                    onChange={event => update('email', event.target.value)}
-                    required
+                    value={emailForm.email}
+                    onChange={event => setEmailForm(current => ({ ...current, email: event.target.value }))}
                   />
                 </label>
+                <label className="formsFieldWide">
+                  <span>Password</span>
+                  <input
+                    type="password"
+                    autoComplete={emailMode === 'signin' ? 'current-password' : 'new-password'}
+                    value={emailForm.password}
+                    onChange={event => setEmailForm(current => ({ ...current, password: event.target.value }))}
+                  />
+                </label>
+                {emailMode === 'signup' && (
+                  <label className="formsFieldWide">
+                    <span>WhatsApp number (optional)</span>
+                    <input
+                      type="tel"
+                      placeholder="+2348012345678"
+                      autoComplete="tel"
+                      value={emailForm.phone}
+                      onChange={event => setEmailForm(current => ({ ...current, phone: event.target.value }))}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {emailMode === 'signup' && (
+                <label className="formsConsent">
+                  <input
+                    type="checkbox"
+                    checked={emailForm.agreedToTerms}
+                    onChange={event => setEmailForm(current => ({ ...current, agreedToTerms: event.target.checked }))}
+                  />
+                  <span>
+                    I agree to RideArrivo's{' '}
+                    <a href="https://ridearrivo.com/terms.html" target="_blank" rel="noopener noreferrer">
+                      Terms
+                    </a>{' '}
+                    and{' '}
+                    <a href="https://ridearrivo.com/privacy.html" target="_blank" rel="noopener noreferrer">
+                      Privacy Policy
+                    </a>
+                    .
+                  </span>
+                </label>
+              )}
+
+              {emailError && (
+                <div className="formsError" role="alert">
+                  {emailError}
+                </div>
+              )}
+
+              <div className="formsActions">
+                <button type="submit" disabled={emailBusy}>
+                  {emailBusy ? 'Please wait...' : emailMode === 'signin' ? 'Sign in' : 'Create account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {step === 'book' && rider && (
+          <div className="formsCard" style={{ marginTop: 30 }}>
+            <span className="formsEyebrow">BOOK A RIDE</span>
+            <h1 style={{ fontSize: 'clamp(26px,4vw,36px)', margin: '10px 0 6px' }}>
+              Signed in as {rider.name || rider.email}
+            </h1>
+            <p style={{ color: '#aeb9c8', margin: '0 0 24px', lineHeight: 1.6 }}>
+              Fill this in and we'll text you a payment link. Your ride is confirmed as soon as it's paid.{' '}
+              <a
+                href="#"
+                onClick={event => {
+                  event.preventDefault()
+                  switchAccount()
+                }}
+                style={{ color: '#ff9f0a' }}
+              >
+                Not you?
+              </a>
+            </p>
+
+            <form onSubmit={event => void handleBookingSubmit(event)}>
+              <div className="formsGrid">
                 <label className="formsFieldWide">
                   <span>WhatsApp number (include country code)</span>
                   <input
@@ -324,11 +623,9 @@ export default function EasyBookApp() {
           </div>
         )}
 
-        {result && (
+        {step === 'success' && result && (
           <div className="formsSuccess" style={{ marginTop: 30 }}>
-            <span className="formsEyebrow">
-              {result.authorizationUrl ? 'FARE LOCKED IN' : 'REQUEST RECEIVED'}
-            </span>
+            <span className="formsEyebrow">{result.authorizationUrl ? 'FARE LOCKED IN' : 'REQUEST RECEIVED'}</span>
             <h1>{result.authorizationUrl ? "You're almost booked" : 'Thanks -- we have your request'}</h1>
             <p>{result.message}</p>
             {typeof result.fareNaira === 'number' && (

@@ -137,6 +137,44 @@ export async function signInWithAppleIdentityToken(
   return result
 }
 
+type EmailAuthResult = { token: string; user: RiderUser }
+
+// POST /api/auth/login. Same backend, same accounts as the app and
+// ridearrivo-website's login.html -- there is only ever one RideArrivo
+// account per email, whichever surface it was created from.
+export async function signInWithEmailPassword(email: string, password: string): Promise<EmailAuthResult> {
+  const result = (await postAuth('/api/auth/login', { email, password })) as unknown as EmailAuthResult
+  storeRiderToken(result.token)
+  return result
+}
+
+// POST /api/auth/signup. Refuses (409, surfaced as a thrown Error by
+// postAuth) if the email already has an account -- unlike the OAuth
+// buttons above, a fresh password signup has no existing-account signal
+// to link onto, so the honest answer for an email already in use is
+// "sign in instead," not silently creating a second account.
+export async function signUpWithEmailPassword(params: {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  phone?: string
+  agreedToTerms: boolean
+}): Promise<EmailAuthResult> {
+  const result = (await postAuth('/api/auth/signup', {
+    firstName: params.firstName,
+    lastName: params.lastName,
+    email: params.email,
+    password: params.password,
+    confirmPassword: params.password,
+    phone: params.phone || undefined,
+    agreedToTerms: params.agreedToTerms,
+    role: 'rider',
+  })) as unknown as EmailAuthResult
+  storeRiderToken(result.token)
+  return result
+}
+
 // Loads a <script> tag once and resolves once it's actually on the page.
 // Both the Google Identity Services and Apple JS SDKs attach a global
 // (window.google, window.AppleID) instead of exporting anything, so
