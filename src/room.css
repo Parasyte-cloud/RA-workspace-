@@ -45,3 +45,12 @@
 .roomCallMini .roomCallActions{margin-left:auto;flex-wrap:nowrap}.roomCallMini .roomMinimizeButton{min-height:34px;padding:0 10px;font-size:.75rem}
 .roomCallMini .roomMeetingFrame{height:100%;min-height:0;border:0;border-radius:0}.roomCallMini .roomMeetingFrame>div,.roomCallMini .roomMeetingFrame rtk-meeting{min-height:0}
 @media(max-width:640px){.roomCallPage.roomCallMini{right:12px;bottom:12px;width:calc(100vw - 24px);height:300px}}
+
+/* Banner shown after creating a ROOM 7, instead of auto-joining it */
+.roomCreatedBanner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 16px;border:1px solid rgba(244,167,46,.35);border-radius:16px;background:rgba(244,167,46,.1)}
+.roomCreatedBanner>div:first-child{display:grid;gap:3px;min-width:0}
+.roomCreatedBanner strong{font-size:.95rem}
+.roomCreatedBanner span{color:var(--muted);font-size:.84rem}
+.roomCreatedActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.roomCreatedActions .primaryButton,.roomCreatedActions .secondaryButton{display:inline-flex;align-items:center;gap:6px}
+@media(max-width:620px){.roomCreatedActions{width:100%}.roomCreatedActions .primaryButton,.roomCreatedActions .secondaryButton{flex:1;justify-content:center}}

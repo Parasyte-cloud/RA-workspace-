@@ -16,7 +16,8 @@ import {
   RefreshCw,
   ShieldCheck,
   Users,
-  Video
+  Video,
+  X
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
@@ -99,6 +100,7 @@ export default function RoomModule({
   const [creating,setCreating]=useState(false)
   const [joining,setJoining]=useState(false)
   const [notice,setNotice]=useState('')
+  const [created,setCreated]=useState<{code:string,title:string}|null>(null)
 
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
     if(!client)throw new Error('Workspace authentication is not configured.')
@@ -159,7 +161,9 @@ export default function RoomModule({
       const data=await invokeRoom({action:'create',title,ai_notes_enabled:aiNotesEnabled})
       if(!data?.room||!data?.auth_token)throw new Error('ROOM 7 service returned an incomplete session.')
       setRoomTitle('')
-      setSession(data as RoomSession)
+      // Stay on the room list so the host can set up the external event
+      // (Event button) before joining. Joining is one click on the banner.
+      setCreated({code:data.room.room_code,title:data.room.title})
       await loadRooms()
     }catch(error){
       console.error('ROOM 7 creation failed:',error)
@@ -181,6 +185,7 @@ export default function RoomModule({
       const data=await invokeRoom({action:'join',room_code:code})
       if(!data?.room||!data?.auth_token)throw new Error('ROOM 7 service returned an incomplete session.')
       setJoinCode(code)
+      setCreated(null)
       setSession(data as RoomSession)
       await loadRooms()
     }catch(error){
@@ -217,6 +222,16 @@ export default function RoomModule({
       setNotice(`ROOM 7 invite link copied for ${room.title}.`)
     }catch{
       window.prompt('Copy this ROOM 7 link:',url.toString())
+    }
+  }
+
+  const copyGuestLink=async(code:string)=>{
+    const link=`https://room7.ridearrivo.com/r/${code}`
+    try{
+      await navigator.clipboard.writeText(link)
+      setNotice(`Guest link copied: ${link}`)
+    }catch{
+      window.prompt('Copy this ROOM 7 guest link:',link)
     }
   }
 
@@ -287,6 +302,30 @@ export default function RoomModule({
         </div>
       }
       {notice&&<div className="roomNotice">{notice}</div>}
+      {created&&
+        <div className="roomCreatedBanner">
+          <div>
+            <strong>{created.title} is ready</strong>
+            <span>ROOM 7 {created.code} · Use Event on its card to set up guest access, or join now.</span>
+          </div>
+          <div className="roomCreatedActions">
+            <button type="button" className="secondaryButton" onClick={()=>void copyGuestLink(created.code)}>
+              <Copy size={15}/>Copy guest link
+            </button>
+            <button
+              type="button"
+              className="primaryButton"
+              disabled={joining||configState!=='ready'}
+              onClick={()=>void joinRoom(created.code)}
+            >
+              <Video size={15}/>Join now
+            </button>
+            <button type="button" className="iconButton" aria-label="Dismiss" title="Dismiss" onClick={()=>setCreated(null)}>
+              <X size={15}/>
+            </button>
+          </div>
+        </div>
+      }
 
       <div className="roomActionGrid">
         <article className="roomActionCard glassCard">
@@ -294,7 +333,7 @@ export default function RoomModule({
           <div>
             <span className="eyebrow">NEW MEETING</span>
             <h3>Create ROOM 7</h3>
-            <p>Start a new meeting and become the ROOM 7 host.</p>
+            <p>Create a meeting as its host. Join straight away, or set it up as an external event first.</p>
           </div>
           <label className="roomField">
             <span>ROOM 7 title</span>
@@ -413,6 +452,7 @@ export default function RoomModule({
                 <Room7EventControlCenter
                   roomId={room.id}
                   roomTitle={room.title}
+                  onSaved={message=>setNotice(`${room.title}: ${message}`)}
                 />
                 <RoomEventDocumentsManager
                   roomId={room.id}
