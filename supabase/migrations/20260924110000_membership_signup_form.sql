@@ -16,40 +16,58 @@
 
 begin;
 
-with cat as (
-  select id from public.intake_categories where slug = 'website-inquiries'
-),
-form as (
-  insert into public.intake_forms(
-    category_id, slug, internal_name, public_slug,
-    destination_workstation, default_assignee_id,
-    visibility, lifecycle_status
-  )
-  select
-    cat.id,
-    'membership-signup',
-    'Membership Signup Request',
-    'membership-signup',
-    'support',
-    null,
-    'public',
-    'draft'
-  from cat
-  returning id
-),
-version as (
+-- Idempotent: an earlier partial run of this migration already left a
+-- 'membership-signup' row in intake_forms (draft, no published version),
+-- so this reuses that row instead of re-inserting it (which previously
+-- hit intake_forms_slug_key). Safe to run again in any environment.
+
+do $$
+declare
+  v_form_id uuid;
+  v_cat_id uuid;
+  v_version_id uuid;
+begin
+  select id into v_cat_id
+  from public.intake_categories
+  where slug = 'website-inquiries';
+
+  select id into v_form_id
+  from public.intake_forms
+  where slug = 'membership-signup';
+
+  if v_form_id is null then
+    insert into public.intake_forms(
+      category_id, slug, internal_name, public_slug,
+      destination_workstation, default_assignee_id,
+      visibility, lifecycle_status
+    ) values (
+      v_cat_id,
+      'membership-signup',
+      'Membership Signup Request',
+      'membership-signup',
+      'support',
+      null,
+      'public',
+      'draft'
+    )
+    returning id into v_form_id;
+  end if;
+
   insert into public.intake_form_versions(
     form_id, version_number, title, description, field_schema, published_at
   )
   select
-    form.id,
-    1,
+    v_form_id,
+    coalesce(
+      (select max(version_number) from public.intake_form_versions where form_id = v_form_id),
+      0
+    ) + 1,
     'Membership Signup',
     'New RideArrivo Membership sign-ups from membership.ridearrivo.com, awaiting activation and billing setup.',
     jsonb_build_object(
       'fields', jsonb_build_array(
         jsonb_build_object('key','plan','label','Plan','type','select','required',true,
-          'options', jsonb_build_array('RideArrivo Plus','RideArrivo Premium','RideArrivo Executive','RideArrivo Corporate')),
+          'options', jsonb_build_array('RideArrivo Plus','RideArrivo Plus+','RideArrivo Premium','RideArrivo Executive','RideArrivo Corporate')),
         jsonb_build_object('key','full_name','label','Full Name','type','text','required',true,'maxLength',160),
         jsonb_build_object('key','phone','label','Phone Number','type','phone','required',true,'maxLength',40),
         jsonb_build_object('key','email','label','Email','type','email','required',false,'maxLength',200),
@@ -61,14 +79,13 @@ version as (
       )
     ),
     now()
-  from form
-  returning id, form_id
-)
-update public.intake_forms f
-set published_version_id = version.id,
-    lifecycle_status = 'published'
-from version
-where f.id = version.form_id;
+  returning id into v_version_id;
+
+  update public.intake_forms
+  set published_version_id = v_version_id,
+      lifecycle_status = 'published'
+  where id = v_form_id;
+end $$;
 
 -- confirm
 select f.slug, f.internal_name, f.lifecycle_status, v.version_number, v.published_at

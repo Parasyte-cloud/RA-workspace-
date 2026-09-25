@@ -49,6 +49,20 @@ type Plan = {
 const PLANS: Plan[] = [
   {
     key: 'RideArrivo Plus',
+    tagline: 'For everyday errands and short commutes',
+    price: '₦120,000/month',
+    km: '300 km/month (~10 km/day)',
+    headline: '2% of every trip back to your wallet',
+    benefits: [
+      '2% of every trip fare paid back to your RideArrivo wallet',
+      '300 km covered per month (~10 km/day)',
+      '2-minute free cancellation window',
+      'Referral bonus: wallet credit for you and your friend',
+      'Delivery & courier service at standard rates',
+    ],
+  },
+  {
+    key: 'RideArrivo Plus+',
     tagline: 'Replace the hassle of a personal driver',
     price: '₦250,000/month',
     km: '600 km/month (~20 km/day)',
