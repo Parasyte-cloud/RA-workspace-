@@ -327,7 +327,39 @@ export default function Room7GuestDocuments({
             )
 
         if (functionError) {
+          // supabase-js wraps any non-2xx reply as "Edge Function
+          // returned a non-2xx status code". The function's own
+          // message (e.g. "The ROOM 7 passcode is incorrect.") is in
+          // the response body, so read it and show that instead.
+          let serverMessage = ''
+          const response = (
+            functionError as {
+              context?: unknown
+            }
+          ).context
+
+          if (
+            response instanceof
+              Response
+          ) {
+            const payload =
+              await response
+                .clone()
+                .json()
+                .catch(() => null)
+
+            if (
+              payload &&
+              typeof payload.error ===
+                'string'
+            ) {
+              serverMessage =
+                payload.error
+            }
+          }
+
           throw new Error(
+            serverMessage ||
             functionError.message ||
             'ROOM 7 document request failed.',
           )
@@ -515,7 +547,16 @@ export default function Room7GuestDocuments({
         maximized,
       )
 
-      void loadDocuments()
+      // In the lobby the guest has not identified yet, so loading
+      // straight away only produces an "enter your email" error.
+      // Wait for Unlock library unless an email is already filled in.
+      if (
+        context !==
+          'lobby' ||
+        email.trim()
+      ) {
+        void loadDocuments()
+      }
     }
 
   const closePanel =

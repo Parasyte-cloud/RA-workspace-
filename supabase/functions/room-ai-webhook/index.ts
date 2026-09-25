@@ -345,14 +345,44 @@ serve(async req => {
     const endedAt = iso(event?.meeting?.endedAt)
     const endReason = text(event?.reason, 120) || null
 
+    // RealtimeKit sends meeting.ended when a *session* ends, which
+    // happens whenever the last person leaves. For an external ROOM 7
+    // event that is still open, that is not the end of the event: the
+    // host may be rejoining, or guests may not have arrived yet. Keep
+    // the room and its provider meeting alive in that case; the event
+    // still ends through End ROOM 7 or by moving it to Ended/Replay.
+    let keepRoomOpen = false
+
+    if (eventType === "meeting.ended") {
+      const { data: external, error: externalError } = await admin
+        .from("room7_external_rooms")
+        .select("event_state")
+        .eq("room_id", room.id)
+        .maybeSingle()
+      if (externalError) throw externalError
+
+      keepRoomOpen = Boolean(
+        external &&
+          [
+            "draft",
+            "pre_event",
+            "doors_open",
+            "live",
+            "intermission",
+          ].includes(String(external.event_state)),
+      )
+    }
+
     if (eventType === "meeting.ended") {
       const finalEndedAt = endedAt || new Date().toISOString()
-      const { error: roomEndError } = await admin
-        .from("workspace_rooms")
-        .update({ status: "ended", ended_at: finalEndedAt })
-        .eq("id", room.id)
-        .eq("status", "active")
-      if (roomEndError) throw roomEndError
+      if (!keepRoomOpen) {
+        const { error: roomEndError } = await admin
+          .from("workspace_rooms")
+          .update({ status: "ended", ended_at: finalEndedAt })
+          .eq("id", room.id)
+          .eq("status", "active")
+        if (roomEndError) throw roomEndError
+      }
 
       const { error: attendanceEndError } = await admin
         .from("workspace_room_attendance")
@@ -397,7 +427,7 @@ serve(async req => {
       if (error) throw error
     }
 
-    if (eventType === "meeting.ended") {
+    if (eventType === "meeting.ended" && !keepRoomOpen) {
       await deactivateProviderMeeting(meetingId)
     }
 
