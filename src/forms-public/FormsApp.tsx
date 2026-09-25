@@ -3,6 +3,7 @@ import InvestorInterestForm from './InvestorInterestForm'
 import PublicIntakeForm from './PublicIntakeForm'
 import MembershipApp from './MembershipApp'
 import MoveApp from './MoveApp'
+import EasyBookApp from './EasyBookApp'
 import './forms-public.css'
 
 /*
@@ -49,6 +50,13 @@ import './forms-public.css'
  * final "confirm" step still submits through the same intake platform
  * (slug "move-booking"), so it shows up in Support's queue exactly like
  * contact-us/charter-booking submissions do.
+
+ *
+ * easybook.ridearrivo.com is its own dedicated subdomain too, but does
+ * NOT go through the shared intake platform at all -- see EasyBookApp's
+ * own comment for why. It posts straight to arrivo-backend, which
+ * returns a Paystack payment link (and sends it over WhatsApp)
+ * immediately, no Support queue step in between.
  */
 function normalizedPath() {
   const path = window.location.pathname.replace(/\/+$/, '')
@@ -74,6 +82,12 @@ export default function FormsApp() {
     window.location.hostname.toLowerCase() === 'move.ridearrivo.com'
   ) {
     return <MoveApp />
+  }
+
+  if (
+    window.location.hostname.toLowerCase() === 'easybook.ridearrivo.com'
+  ) {
+    return <EasyBookApp />
   }
 
   if (path === '/contact-us') {
