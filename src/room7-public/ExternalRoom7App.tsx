@@ -775,6 +775,11 @@ export default function ExternalRoom7App() {
                 }
                 email={email}
                 onEmailChange={setEmail}
+                onPasscodeChange={
+                  room.requires_passcode
+                    ? setPasscode
+                    : undefined
+                }
                 eventState={room.event_state}
                 title={room.title}
               />

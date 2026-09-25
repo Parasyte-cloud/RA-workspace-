@@ -3,6 +3,7 @@ import {
   useEffect,
   useState,
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Download,
   FileImage,
@@ -61,6 +62,9 @@ type Props = {
   title: string
   context: 'lobby' | 'meeting'
   onEmailChange?: (
+    value: string,
+  ) => void
+  onPasscodeChange?: (
     value: string,
   ) => void
   onPanelStateChange?: (
@@ -186,6 +190,7 @@ export default function Room7GuestDocuments({
   title,
   context,
   onEmailChange,
+  onPasscodeChange,
   onPanelStateChange,
 }: Props) {
   const [
@@ -864,6 +869,25 @@ export default function Room7GuestDocuments({
         'image/',
       ) === true
 
+  // The lobby reader is a full-screen dialog, but it is rendered inside the
+  // Guest Access card, which uses backdrop-filter. Any backdrop-filter,
+  // filter or transform ancestor becomes the containing block for
+  // position:fixed children, so the panel was being laid out against the
+  // card instead of the viewport. Portaling to <body> escapes that.
+  // The meeting reader is positioned inside the meeting stage on purpose,
+  // so it stays in place.
+  const renderPanel = (
+    panel: JSX.Element,
+  ) =>
+    context === 'lobby' &&
+    typeof document !==
+      'undefined'
+      ? createPortal(
+          panel,
+          document.body,
+        )
+      : panel
+
   return (
     <div
       className={
@@ -907,7 +931,8 @@ export default function Room7GuestDocuments({
         </button>
       )}
 
-      {open && (
+      {open &&
+        renderPanel(
         <aside
           className={
             `room7GuestDocumentPanel room7GuestDocumentPanel-${context} ${
@@ -1023,6 +1048,32 @@ export default function Room7GuestDocuments({
                   }
                 />
               </label>
+
+              {accessMode ===
+                'passcode' &&
+               onPasscodeChange && (
+                <label>
+                  <span>
+                    Event passcode
+                  </span>
+
+                  <input
+                    type="password"
+                    value={passcode}
+                    maxLength={128}
+                    autoComplete="off"
+                    placeholder="Passcode from your host"
+                    onChange={
+                      event =>
+                        onPasscodeChange(
+                          event
+                            .target
+                            .value,
+                        )
+                    }
+                  />
+                </label>
+              )}
 
               <button
                 type="button"
@@ -1324,8 +1375,8 @@ export default function Room7GuestDocuments({
               }
             </span>
           </footer>
-        </aside>
-      )}
+        </aside>,
+        )}
     </div>
   )
 }
