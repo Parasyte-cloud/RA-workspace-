@@ -151,6 +151,9 @@ type InviteForm = {
 type Props = {
   roomId: string
   roomTitle: string
+  onSaved?: (
+    message: string,
+  ) => void
 }
 
 const eventKinds: Array<{
@@ -609,6 +612,7 @@ async function invokeControl<T>(
 export default function Room7EventControlCenter({
   roomId,
   roomTitle,
+  onSaved,
 }: Props) {
   const [
     open,
@@ -1140,16 +1144,29 @@ export default function Room7EventControlCenter({
           response,
         )
 
-        setNotice(
+        const savedMessage =
           response.event
             ? 'External ROOM 7 event configuration saved.'
-            : 'ROOM 7 event configuration saved.',
-        )
+            : 'ROOM 7 event configuration saved.'
 
         if (
           response.event
         ) {
           await loadInvitations()
+        }
+
+        // Saving is the end of the task, so close the dialog and let
+        // the room page show the confirmation. Without an onSaved
+        // handler, keep the old behaviour and show it in place.
+        if (onSaved) {
+          close()
+          onSaved(
+            savedMessage,
+          )
+        } else {
+          setNotice(
+            savedMessage,
+          )
         }
       } catch (cause) {
         setError(
