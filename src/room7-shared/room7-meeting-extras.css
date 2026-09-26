@@ -1,0 +1,323 @@
+/* ROOM 7 meeting extras: hand raise, reactions, timer, end prompt.
+   Colours are fixed (not theme variables) because both the staff and the
+   guest meeting frames are always dark. */
+
+.r7xControls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+.r7xButton{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;
+  background:rgba(255,255,255,.06);
+  color:#f5f7fa;
+  font:inherit;
+  font-size:.8rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.r7xButton:hover{
+  border-color:rgba(246,161,26,.45);
+}
+
+.r7xButton.active{
+  border-color:rgba(246,161,26,.6);
+  background:rgba(246,161,26,.18);
+  color:#ffc864;
+}
+
+.r7xControls.compact .r7xButton span{
+  display:none;
+}
+
+.r7xControls.compact .r7xButton{
+  width:36px;
+  padding:0;
+  justify-content:center;
+}
+
+.r7xReactWrap{
+  position:relative;
+}
+
+.r7xPicker{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  z-index:30;
+  display:flex;
+  gap:4px;
+  padding:6px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;
+  background:#0b1421;
+  box-shadow:0 18px 50px rgba(0,0,0,.5);
+}
+
+.r7xPicker button{
+  width:36px;
+  height:36px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.r7xPicker button:hover{
+  background:rgba(255,255,255,.1);
+}
+
+.r7xTimer{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:32px;
+  padding:0 10px;
+  border-radius:999px;
+  background:rgba(246,161,26,.14);
+  color:#ffc864;
+  font-size:.78rem;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+
+.r7xTimer.urgent{
+  background:rgba(239,68,68,.18);
+  color:#fca5a5;
+}
+
+/* Overlay sits on top of the meeting frame without blocking clicks,
+   except on its own interactive panels. */
+.r7xOverlay{
+  position:absolute;
+  inset:0;
+  z-index:20;
+  pointer-events:none;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#f5f7fa;
+}
+
+.r7xHands{
+  position:absolute;
+  top:56px;
+  left:12px;
+  width:min(260px,calc(100% - 24px));
+  max-height:45%;
+  overflow:auto;
+  pointer-events:auto;
+  border:1px solid rgba(246,161,26,.4);
+  border-radius:14px;
+  background:rgba(11,20,33,.94);
+  box-shadow:0 14px 40px rgba(0,0,0,.45);
+}
+
+.r7xHands header{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 11px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:#ffc864;
+  font-size:.78rem;
+}
+
+.r7xHands header strong{
+  flex:1;
+}
+
+.r7xHands header button,
+.r7xHands li button{
+  border:0;
+  background:rgba(255,255,255,.08);
+  color:#f5f7fa;
+  border-radius:8px;
+  font:inherit;
+  font-size:.72rem;
+  cursor:pointer;
+}
+
+.r7xHands header button{
+  padding:4px 8px;
+}
+
+.r7xHands ol{
+  margin:0;
+  padding:6px 8px 8px 30px;
+  display:grid;
+  gap:4px;
+  font-size:.82rem;
+}
+
+.r7xHands li span{
+  display:inline-block;
+  max-width:170px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+
+.r7xHands li{
+  position:relative;
+}
+
+.r7xHands li button{
+  position:absolute;
+  right:0;
+  top:0;
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+}
+
+.r7xReactions{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+
+.r7xReaction{
+  position:absolute;
+  bottom:80px;
+  display:grid;
+  justify-items:center;
+  gap:2px;
+  animation:r7xFloat 3.2s ease-out forwards;
+}
+
+.r7xReaction b{
+  font-size:34px;
+  line-height:1;
+}
+
+.r7xReaction small{
+  padding:2px 7px;
+  border-radius:999px;
+  background:rgba(0,0,0,.55);
+  font-size:.68rem;
+  white-space:nowrap;
+}
+
+@keyframes r7xFloat{
+  0%{transform:translateY(0) scale(.6);opacity:0}
+  12%{transform:translateY(-20px) scale(1.1);opacity:1}
+  80%{opacity:1}
+  100%{transform:translateY(-260px) scale(1);opacity:0}
+}
+
+.r7xToasts{
+  position:absolute;
+  top:56px;
+  right:12px;
+  display:grid;
+  gap:6px;
+  justify-items:end;
+}
+
+.r7xToast{
+  max-width:280px;
+  padding:9px 12px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  background:rgba(11,20,33,.94);
+  box-shadow:0 12px 30px rgba(0,0,0,.4);
+  font-size:.8rem;
+}
+
+.r7xEndPrompt{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:16px;
+  background:rgba(2,6,12,.62);
+  pointer-events:auto;
+}
+
+.r7xEndPrompt>div{
+  width:min(380px,100%);
+  display:grid;
+  gap:10px;
+  justify-items:start;
+  padding:22px;
+  border:1px solid rgba(246,161,26,.4);
+  border-radius:20px;
+  background:#0b1421;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+
+.r7xEndPrompt>div>svg{
+  color:#f6a11a;
+}
+
+.r7xEndPrompt h3{
+  margin:0;
+  font-size:1.1rem;
+}
+
+.r7xEndPrompt p{
+  margin:0;
+  color:#b7c2cf;
+  font-size:.86rem;
+  line-height:1.5;
+}
+
+.r7xEndPrompt .r7xError{
+  color:#fca5a5;
+}
+
+.r7xEndActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:4px;
+}
+
+.r7xEndActions button{
+  min-height:38px;
+  padding:0 14px;
+  border-radius:11px;
+  font:inherit;
+  font-size:.82rem;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.r7xPrimary{
+  border:0;
+  background:#f6a11a;
+  color:#160e03;
+}
+
+.r7xDanger{
+  border:1px solid rgba(239,68,68,.45);
+  background:rgba(239,68,68,.12);
+  color:#fca5a5;
+}
+
+.r7xEndActions button:disabled{
+  opacity:.6;
+  cursor:wait;
+}
+
+@media(max-width:620px){
+  .r7xHands{top:52px;width:min(220px,calc(100% - 24px))}
+  .r7xToasts{top:auto;bottom:84px;left:12px;right:12px;justify-items:center}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .r7xReaction{animation-duration:.01ms}
+}

@@ -44,7 +44,13 @@ type RoomSession={
   auth_token:string
   participant_id:string
   role:'host'|'member'
+  event?:{
+    scheduled_end:string|null
+    event_state:string|null
+  }|null
 }
+
+export type RoomLeaveReason='left'|'ended'|'kicked'|'rejected'|'schedule'|'lost'
 
 type ConfigurationState='checking'|'ready'|'missing'|'error'
 
@@ -100,6 +106,12 @@ export default function RoomModule({
   const [creating,setCreating]=useState(false)
   const [joining,setJoining]=useState(false)
   const [notice,setNotice]=useState('')
+  // While in a call the host can open the room list (to manage events,
+  // documents, or another room) with the call shrunk to the corner.
+  const [showList,setShowList]=useState(false)
+  // Placeholder in the page that the full-size call lines up with. The call
+  // itself lives in a portal on <body> so no parent style can clip it.
+  const [callAnchor,setCallAnchor]=useState<HTMLDivElement|null>(null)
   const [created,setCreated]=useState<{code:string,title:string}|null>(null)
 
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
@@ -196,6 +208,53 @@ export default function RoomModule({
     }
   }
 
+  const rejoinSession=useCallback(async()=>{
+    const code=session?.room.room_code
+    if(!code)return false
+    const data=await invokeRoom({action:'join',room_code:code})
+    if(!data?.room||!data?.auth_token)throw new Error('ROOM 7 service returned an incomplete session.')
+    setSession(data as RoomSession)
+    return true
+  },[invokeRoom,session?.room.room_code])
+
+  const handleLeft=useCallback((reason:RoomLeaveReason)=>{
+    setSession(null)
+    setShowList(false)
+    const messages:Record<RoomLeaveReason,string>={
+      left:'',
+      ended:'This ROOM 7 meeting has ended.',
+      kicked:'You were removed from ROOM 7, or you joined it from another device.',
+      rejected:'Your request to join ROOM 7 was declined.',
+      schedule:'The scheduled time for this ROOM 7 event has ended.',
+      lost:'Your connection to ROOM 7 was lost and could not be restored. Use Join to return.',
+    }
+    setNotice(messages[reason])
+    void loadRooms()
+  },[loadRooms])
+
+  const extendSchedule=useCallback(async(endIso:string)=>{
+    if(!client||!session)throw new Error('Workspace authentication is not configured.')
+    const {data,error}=await client.functions.invoke('room-event-control',{
+      body:{action:'configure',room_id:session.room.id,scheduled_end:endIso}
+    })
+    if(error){
+      let message=error.message||'Unable to extend ROOM 7.'
+      const response=(error as {context?:unknown}).context
+      if(response instanceof Response){
+        const payload=await response.clone().json().catch(()=>null)
+        if(payload&&typeof payload.error==='string')message=payload.error
+      }
+      throw new Error(message)
+    }
+    if(data&&typeof data==='object'&&'error' in data&&typeof data.error==='string'){
+      throw new Error(data.error)
+    }
+    setSession(current=>current?{
+      ...current,
+      event:{scheduled_end:endIso,event_state:current.event?.event_state||null}
+    }:current)
+  },[client,session])
+
   const endCurrentRoom=async()=>{
     if(!session)return
     setNotice('')
@@ -235,31 +294,48 @@ export default function RoomModule({
     }
   }
 
-  if(session){
-    return <Suspense fallback={
-      <div className="roomMeetingState roomMeetingBoot">
-        <LoaderCircle size={32} className="roomSpin"/>
-        <h3>Loading ROOM 7 meeting engine</h3>
-        <p>Preparing secure audio and video controls.</p>
-      </div>
+  const fullCall=Boolean(session&&active&&!showList)
+
+  const callNode=session?(
+    <Suspense fallback={
+      fullCall?
+        <div className="roomMeetingState roomMeetingBoot">
+          <LoaderCircle size={32} className="roomSpin"/>
+          <h3>Loading ROOM 7 meeting engine</h3>
+          <p>Preparing secure audio and video controls.</p>
+        </div>
+      :null
     }>
       <RoomMeeting
         session={session}
-        minimized={!active}
+        minimized={!fullCall}
+        anchor={fullCall?callAnchor:null}
         onMinimize={()=>onMinimize?.()}
-        onRestore={()=>onOpen?.()}
-        onLeft={()=>{setSession(null);void loadRooms()}}
+        onShowList={()=>setShowList(true)}
+        onRestore={()=>{setShowList(false);onOpen?.()}}
+        onLeft={handleLeft}
         onEnded={endCurrentRoom}
+        onRejoin={rejoinSession}
+        onExtend={session.event?extendSchedule:undefined}
       />
     </Suspense>
+  ):null
+
+  if(fullCall){
+    return <>
+      {callNode}
+      <div ref={setCallAnchor} className="roomCallAnchor" aria-hidden="true"/>
+    </>
   }
 
-  if(!active)return null
+  if(!active)return callNode
 
   const activeRooms=rooms.filter(room=>room.status==='active')
   const recentRooms=rooms.filter(room=>room.status==='ended')
 
   return (
+    <>
+    {callNode}
     <section className="roomPage">
       <div className="roomHero glassPanel">
         <div className="roomHeroCopy">
@@ -497,5 +573,6 @@ export default function RoomModule({
         </div>
       }
     </section>
+    </>
   )
 }

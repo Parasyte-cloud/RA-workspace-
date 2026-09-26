@@ -49,6 +49,7 @@ type PublicRoom = {
   scheduled_start: string | null
   scheduled_end: string | null
   join_available: boolean
+  past_scheduled_end?: boolean
   requires_invitation: boolean
   requires_passcode: boolean
   requires_email: boolean
@@ -436,6 +437,9 @@ export default function ExternalRoom7App() {
   const [consent, setConsent] =
     useState(false)
 
+  const [rejoinCount, setRejoinCount] =
+    useState(0)
+
   useEffect(() => {
     document.title =
       room?.title
@@ -497,6 +501,49 @@ export default function ExternalRoom7App() {
       room?.scheduled_start ||
       null,
     )
+
+  // Used by the meeting after a dropped connection: same guest details,
+  // fresh token. The server replaces the dead connection, so the guest does
+  // not appear twice.
+  const rejoin =
+    async () => {
+      if (
+        !room ||
+        !locator
+      ) {
+        return false
+      }
+
+      const response =
+        await room7Request<JoinResponse>({
+          action: 'join',
+          ...locator,
+          display_name:
+            name.trim(),
+          email:
+            email.trim(),
+          passcode:
+            room.requires_passcode
+              ? passcode
+              : undefined,
+          invite_token:
+            room.requires_invitation
+              ? inviteToken
+              : undefined,
+        })
+
+      if (!response.auth_token) {
+        return false
+      }
+
+      if (response.room) {
+        setRoom(response.room)
+      }
+
+      setRejoinCount(count => count + 1)
+      setAuthToken(response.auth_token)
+      return true
+    }
 
   const submitJoin =
     async (
@@ -602,6 +649,9 @@ export default function ExternalRoom7App() {
           }
           email={email.trim()}
           eventState={room.event_state}
+          scheduledEnd={room.scheduled_end}
+          onRejoin={rejoin}
+          rejoined={rejoinCount > 0}
         />
       </Suspense>
     )
@@ -753,6 +803,8 @@ export default function ExternalRoom7App() {
                 <p>
                   {room.join_available
                     ? 'Confirm your details before entering the live room.'
+                    : room.past_scheduled_end
+                      ? 'The scheduled time for this event has ended.'
                     : room.event_state === 'pre_event'
                       ? 'Your event link is active. The host will open the room when it is time to join.'
                       : room.event_state === 'ended'

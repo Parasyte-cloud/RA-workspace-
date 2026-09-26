@@ -24,6 +24,13 @@ import Room7GuestDocuments, {
   type Room7GuestLocator,
 } from './Room7GuestDocuments'
 import Room7GuestMeetingQna from './Room7GuestMeetingQna'
+import {
+  Room7ExtrasControls,
+  Room7ExtrasOverlay,
+  useRoom7MeetingExtras,
+} from '../room7-shared/useRoom7MeetingExtras'
+
+const MAX_REJOIN_ATTEMPTS = 6
 
 type Appearance =
   | 'system'
@@ -77,6 +84,11 @@ type Props = {
   email: string
   eventState:
     Room7GuestEventState
+  scheduledEnd: string | null
+  // Re-runs the guest join for a fresh token after a dropped connection.
+  onRejoin: () => Promise<boolean>
+  // True after a rejoin: skip the setup screen and restore media state.
+  rejoined: boolean
 }
 
 const APPEARANCE_KEY =
@@ -140,6 +152,9 @@ export default function ExternalRoom7Meeting({
   passcode,
   email,
   eventState,
+  scheduledEnd,
+  onRejoin,
+  rejoined,
 }: Props) {
   const [
     meeting,
@@ -262,6 +277,141 @@ export default function ExternalRoom7Meeting({
       ],
     )
 
+  const mediaStateRef =
+    useRef({
+      audio: false,
+      video: false,
+    })
+
+  const onRejoinRef =
+    useRef(onRejoin)
+  onRejoinRef.current = onRejoin
+
+  const rejoinInFlightRef =
+    useRef(false)
+
+  const [
+    connectionLost,
+    setConnectionLost,
+  ] =
+    useState(false)
+
+  const [
+    endedBySchedule,
+    setEndedBySchedule,
+  ] =
+    useState(false)
+
+  const reconnect =
+    useCallback(async () => {
+      if (rejoinInFlightRef.current) {
+        return
+      }
+
+      rejoinInFlightRef.current = true
+      setConnectionLost(false)
+
+      for (
+        let attempt = 1;
+        attempt <= MAX_REJOIN_ATTEMPTS;
+        attempt++
+      ) {
+        if (!navigator.onLine) {
+          await new Promise<void>(resolve => {
+            const done = () => {
+              window.removeEventListener('online', done)
+              resolve()
+            }
+            window.addEventListener('online', done)
+            window.setTimeout(done, 15000)
+          })
+        }
+
+        try {
+          // The server removes the dead connection before issuing a new
+          // token, so a rejoin never shows this guest twice.
+          if (await onRejoinRef.current()) {
+            // Cleared by roomJoined on the new meeting; if that never
+            // arrives, offer a manual reconnect instead of waiting forever.
+            window.setTimeout(() => {
+              if (rejoinInFlightRef.current) {
+                rejoinInFlightRef.current = false
+                setConnectionLost(true)
+              }
+            }, 25000)
+            return
+          }
+        } catch (cause) {
+          const message =
+            cause instanceof Error
+              ? cause.message
+              : ''
+
+          if (/scheduled end|not open|ended/i.test(message)) {
+            break
+          }
+        }
+
+        await new Promise(resolve =>
+          window.setTimeout(resolve, Math.min(2000 * attempt, 10000)),
+        )
+      }
+
+      rejoinInFlightRef.current = false
+      setConnectionLost(true)
+    }, [])
+
+  // A dropped connection is recovered in place instead of leaving the
+  // guest on RealtimeKit's "you left" screen.
+  useEffect(() => {
+    if (!meeting) {
+      return
+    }
+
+    const self = meeting.self
+
+    const handleJoined = () => {
+      rejoinInFlightRef.current = false
+      setConnectionLost(false)
+    }
+
+    const handleLeft = ({ state }: { state: string }) => {
+      mediaStateRef.current = {
+        audio: Boolean(self.audioEnabled),
+        video: Boolean(self.videoEnabled),
+      }
+
+      if (state === 'disconnected' || state === 'failed') {
+        void reconnect()
+      }
+    }
+
+    self.on('roomJoined', handleJoined as never)
+    self.on('roomLeft', handleLeft as never)
+
+    return () => {
+      self.removeListener('roomJoined', handleJoined as never)
+      self.removeListener('roomLeft', handleLeft as never)
+    }
+  }, [
+    meeting,
+    reconnect,
+  ])
+
+  const scheduleLeave =
+    useCallback(() => {
+      setEndedBySchedule(true)
+      void meeting?.leave().catch(() => {})
+    }, [meeting])
+
+  const extras =
+    useRoom7MeetingExtras({
+      meeting,
+      role: 'guest',
+      scheduledEnd,
+      onScheduleLeave: scheduleLeave,
+    })
+
   useEffect(() => {
     let cancelled = false
 
@@ -279,10 +429,12 @@ export default function ExternalRoom7Meeting({
           await initMeeting({
             authToken,
 
-            defaults: {
-              audio: false,
-              video: false,
-            },
+            defaults: rejoined
+              ? mediaStateRef.current
+              : {
+                  audio: false,
+                  video: false,
+                },
           })
         } catch (cause) {
           if (cancelled) {
@@ -896,6 +1048,11 @@ export default function ExternalRoom7Meeting({
             />
           )}
 
+          <Room7ExtrasControls
+            extras={extras}
+            compact
+          />
+
           <button
             type="button"
             className="room7ExperienceSettingsButton"
@@ -922,10 +1079,31 @@ export default function ExternalRoom7Meeting({
       <main className="room7ExperienceStage">
         <div className="room7ExperienceMeetingFrame">
           <RtkMeeting
+            key={authToken}
             meeting={meeting}
-            showSetupScreen={true}
+            showSetupScreen={!rejoined}
             applyDesignSystem={false}
           />
+
+          <Room7ExtrasOverlay
+            extras={extras}
+          />
+
+          {connectionLost && (
+            <div className="room7ExperienceLost" role="alert">
+              <WifiOff size={18} />
+              <span>Your connection to ROOM 7 was lost.</span>
+              <button type="button" onClick={() => void reconnect()}>
+                Reconnect
+              </button>
+            </div>
+          )}
+
+          {endedBySchedule && (
+            <div className="room7ExperienceLost" role="status">
+              <span>The scheduled time for this event has ended. Thank you for joining.</span>
+            </div>
+          )}
         </div>
       </main>
 

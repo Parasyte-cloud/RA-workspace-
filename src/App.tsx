@@ -1191,6 +1191,19 @@ function App(){
     </div>
   }
 </div></div></header>
+      <div className="content" ref={contentRef}>
+      {/* ROOM 7 sits outside the per-section loading and error boundaries.
+          Inside them, loading another section could hide the call and a
+          crash in any section would tear it down, ending the meeting. */}
+      <RouteErrorBoundary resetKey="room7">
+        <Suspense fallback={null}>
+          <RoomModule
+            active={section==='room'}
+            onOpen={()=>{setSection('room');setWorkspace(null)}}
+            onMinimize={()=>{setSection(roomReturnSectionRef.current);setWorkspace(null)}}
+          />
+        </Suspense>
+      </RouteErrorBoundary>
       <RouteErrorBoundary resetKey={`${section}:${workspace?.url || ''}`}>
         <Suspense
           fallback={
@@ -1201,7 +1214,6 @@ function App(){
             </div>
           }
         >
-      <div className="content" ref={contentRef}>
         {section==='overview'&&<Overview setSection={setSection} role={profile.role} profile={profile} assignments={workstationAssignments}/>}
         {section==='profile'&&
           <ProfileModule
@@ -1211,11 +1223,6 @@ function App(){
         }
         {section==='gallery'&&<HeadshotGallery/>}
         {section==='chat'&&<ChatModule/>}
-        <RoomModule
-          active={section==='room'}
-          onOpen={()=>{setSection('room');setWorkspace(null)}}
-          onMinimize={()=>{setSection(roomReturnSectionRef.current);setWorkspace(null)}}
-        />
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
@@ -1242,9 +1249,9 @@ function App(){
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>}
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>}
-      </div>
         </Suspense>
       </RouteErrorBoundary>
+      </div>
 </main>
   </div></div></NotificationsProvider>
 }

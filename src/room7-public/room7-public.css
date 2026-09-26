@@ -1752,3 +1752,40 @@
 .room7GuestDocumentPanel.minimized{
   display:none;
 }
+
+/* ROOM 7 meeting extras host frame and connection notices */
+.room7ExperienceMeetingFrame{
+  position:relative;
+}
+
+.room7ExperienceLost{
+  position:absolute;
+  left:50%;
+  top:14px;
+  z-index:40;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  max-width:calc(100% - 24px);
+  padding:10px 14px;
+  border:1px solid rgba(246,161,26,.45);
+  border-radius:14px;
+  background:rgba(11,20,33,.96);
+  color:#f5f7fa;
+  font-size:.84rem;
+  box-shadow:0 14px 40px rgba(0,0,0,.45);
+}
+
+.room7ExperienceLost button{
+  min-height:30px;
+  padding:0 10px;
+  border:0;
+  border-radius:9px;
+  background:#f6a11a;
+  color:#160e03;
+  font:inherit;
+  font-size:.78rem;
+  font-weight:800;
+  cursor:pointer;
+}
