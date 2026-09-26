@@ -108,7 +108,13 @@ export async function fetchRiderProfile(token: string): Promise<RiderUser | null
   const res = await fetch(`${ARRIVO_API_BASE_URL}/api/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    // A dead token (expired/revoked, surfaced as 401) is cleared here so
+    // every caller gets that cleanup for free, instead of each one having
+    // to remember to call signOutRider() itself after a null result.
+    if (res.status === 401) signOutRider()
+    return null
+  }
   const data = await res.json().catch(() => null)
   return (data as { user?: RiderUser } | null)?.user || null
 }
