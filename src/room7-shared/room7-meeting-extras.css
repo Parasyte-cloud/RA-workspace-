@@ -341,3 +341,18 @@
   line-height:18px;
   text-align:center;
 }
+
+/* Phones: seven emoji in one row is wider than the space to the left of the
+   React button, so the picker was cut off. Use two rows instead. */
+@media(max-width:620px){
+  .r7xPicker{
+    display:grid;
+    grid-template-columns:repeat(4,40px);
+    gap:4px;
+  }
+
+  .r7xPicker button{
+    width:40px;
+    height:40px;
+  }
+}

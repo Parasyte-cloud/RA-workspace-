@@ -1862,3 +1862,13 @@
     gap:6px;
   }
 }
+
+/* The top bar's backdrop blur made it its own layer and the reference box
+   for position:fixed children. So the video stage (a later layer) painted
+   over everything that drops down from the bar (reaction picker, Q&A), and
+   the phone Q&A panel anchored to the bar instead of the screen. The blur
+   only ever covered the shell's own dark background, so drop it. */
+.room7ExperienceChrome{
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}

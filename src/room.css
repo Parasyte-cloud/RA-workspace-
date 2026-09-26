@@ -77,3 +77,6 @@
 @media(max-width:700px){.roomCallPage.roomCallMini{bottom:82px}}
 @media(max-width:640px){.roomCallPortal.roomCallFull{grid-template-rows:auto minmax(0,1fr)}.roomCallPortal .roomCallTopbar{align-items:stretch}}
 .roomCallPortal.roomCallMini .roomCallActions{flex-wrap:nowrap}
+/* Same layering fix for the staff call: without the blur the reaction
+   picker that drops from the call's top bar paints above the video. */
+.roomCallPortal .roomCallTopbar{backdrop-filter:none;-webkit-backdrop-filter:none;background:#0b1421}
