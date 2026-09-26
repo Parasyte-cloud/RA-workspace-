@@ -175,6 +175,44 @@ async function realtimeRequest(
   return payload.data
 }
 
+// One device per guest. A guest rejoining (another device, or after a
+// dropped connection) replaces their older connection instead of showing
+// up twice. "No active session" is normal and ignored.
+async function kickExistingPeers(
+  config: MediaConfig,
+  meetingId: string,
+  participantId: string,
+) {
+  const endpoint =
+    `https://api.cloudflare.com/client/v4/accounts/` +
+    `${encodeURIComponent(config.accountId)}/realtime/kit/` +
+    `${encodeURIComponent(config.appId)}/meetings/` +
+    `${encodeURIComponent(meetingId)}/active-session/kick`
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        participant_ids: [participantId],
+      }),
+    })
+
+    if (!response.ok && response.status !== 404) {
+      const payload = await response.json().catch(() => null)
+      console.warn("ROOM 7 guest stale peer kick was not applied", {
+        status: response.status,
+        errors: payload?.errors || null,
+      })
+    }
+  } catch (error) {
+    console.warn("ROOM 7 guest stale peer kick failed:", error)
+  }
+}
+
 async function addParticipant(
   config: MediaConfig,
   meetingId: string,
@@ -406,9 +444,20 @@ function publicRoomMetadata(
     "intermission",
   ])
 
+  // Guests are cut off at the scheduled end. A host who needs more time
+  // extends the end time from the meeting, which reopens joining.
+  const scheduledEndMs = external.scheduled_end
+    ? Date.parse(external.scheduled_end)
+    : NaN
+
+  const pastScheduledEnd =
+    Number.isFinite(scheduledEndMs) &&
+    Date.now() >= scheduledEndMs
+
   const joinAvailable =
     room.status === "active" &&
-    joinStates.has(external.event_state)
+    joinStates.has(external.event_state) &&
+    !pastScheduledEnd
 
   return {
     title: cleanText(room.title, 180),
@@ -426,6 +475,7 @@ function publicRoomMetadata(
     scheduled_end:
       external.scheduled_end || null,
     join_available: joinAvailable,
+    past_scheduled_end: pastScheduledEnd,
     requires_invitation:
       external.access_mode === "invitation",
     requires_passcode:
@@ -929,6 +979,13 @@ serve(async req => {
       )
     }
 
+    if (metadata.past_scheduled_end) {
+      throw new HttpError(
+        409,
+        "This ROOM 7 event has reached its scheduled end time.",
+      )
+    }
+
     if (
       resolved.room.status !== "active" ||
       metadata.join_available !== true
@@ -978,6 +1035,12 @@ serve(async req => {
     let participantToken = ""
 
     if (participantId) {
+      await kickExistingPeers(
+        media,
+        resolved.room.cloudflare_meeting_id,
+        participantId,
+      )
+
       participantToken =
         await refreshParticipant(
           media,

@@ -171,6 +171,52 @@ async function refreshParticipant(
   return token
 }
 
+// One device per person. When someone joins again (a second device, or a
+// rejoin after their connection dropped), remove their older connection
+// from the live session first, so they never appear twice. "No active
+// session" is the normal case for a first join and is ignored.
+async function kickExistingPeers(config: MediaConfig, meetingId: string, participantId: string) {
+  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.accountId)}/realtime/kit/${encodeURIComponent(config.appId)}/meetings/${encodeURIComponent(meetingId)}/active-session/kick`
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ participant_ids: [participantId] }),
+    })
+    if (!response.ok && response.status !== 404) {
+      const payload = await response.json().catch(() => null)
+      console.warn("ROOM 7 stale peer kick was not applied", {
+        status: response.status,
+        errors: payload?.errors || null,
+      })
+    }
+  } catch (error) {
+    console.warn("ROOM 7 stale peer kick failed:", error)
+  }
+}
+
+// External event schedule for the in-call timer. Staff clients cannot read
+// room7_external_rooms directly, so it travels with the join response.
+async function loadEventSchedule(admin: any, roomId: string) {
+  const { data, error } = await admin
+    .from("room7_external_rooms")
+    .select("scheduled_end,event_state")
+    .eq("room_id", roomId)
+    .maybeSingle()
+  if (error) {
+    console.warn("ROOM 7 schedule lookup failed:", error.message)
+    return null
+  }
+  if (!data) return null
+  return {
+    scheduled_end: data.scheduled_end || null,
+    event_state: data.event_state || null,
+  }
+}
+
 serve(async req => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) })
   if (req.method !== "POST") return json(req, { error: "Method not allowed." }, 405)
@@ -348,6 +394,7 @@ serve(async req => {
       let participantToken = ""
 
       if (participantId) {
+        await kickExistingPeers(config, room.cloudflare_meeting_id, participantId)
         participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
       } else {
         const participant = await addParticipant(config, room.cloudflare_meeting_id, {
@@ -399,6 +446,7 @@ serve(async req => {
         auth_token: participantToken,
         participant_id: participantId,
         role,
+        event: await loadEventSchedule(admin, room.id),
       })
     } catch (error) {
       console.error("ROOM 7 participant session failed:", error)
@@ -443,6 +491,14 @@ serve(async req => {
         event_type: "ended",
       })
       if (audit.error) console.warn("ROOM 7 audit end:", audit.error.message)
+
+      // Keep the public event page in step: an ended room is an ended event.
+      const eventEnd = await admin
+        .from("room7_external_rooms")
+        .update({ event_state: "ended" })
+        .eq("room_id", room.id)
+        .in("event_state", ["draft", "pre_event", "doors_open", "live", "intermission"])
+      if (eventEnd.error) console.warn("ROOM 7 event state end:", eventEnd.error.message)
 
       return json(req, { ended: true })
     } catch (error) {
