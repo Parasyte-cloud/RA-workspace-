@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useRetiredClients } from '../room7-shared/useRetiredClients'
 import {
   DoorOpen,
   LayoutList,
@@ -90,6 +91,9 @@ export default function RoomMeeting({
   onExtend?:(endIso:string)=>Promise<void>
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
+  const {retire,isRetired}=useRetiredClients()
+  const meetingRef=useRef(meeting)
+  meetingRef.current=meeting
   const [initError,setInitError]=useState('')
   const [ending,setEnding]=useState(false)
   const [copied,setCopied]=useState<''|'staff'|'guest'>('')
@@ -119,16 +123,26 @@ export default function RoomMeeting({
 
   useEffect(()=>{
     let active=true
+    let client:{leave:()=>Promise<void>}|undefined
     setInitError('')
     Promise.resolve(initMeeting({
       authToken:session.auth_token,
       defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:true}
-    })).catch(error=>{
+    })).then(created=>{
+      if(!created)return
+      if(active)client=created
+      else retire(created)
+    }).catch(error=>{
       if(active){
         setInitError(error instanceof Error?error.message:'Unable to initialise ROOM 7 media.')
       }
     })
-    return()=>{active=false}
+    // A new token (rejoin) or leaving the page: shut the old client down so
+    // it cannot come back as a ghost copy of this person.
+    return()=>{
+      active=false
+      retire(client)
+    }
   },[session.auth_token])
 
   const reconnect=useCallback(async()=>{
@@ -136,6 +150,9 @@ export default function RoomMeeting({
     rejoinInFlightRef.current=true
     setConnection('reconnecting')
     rejoiningRef.current=true
+    // Stop the dead client first. Otherwise the SDK's own recovery can
+    // bring it back next to the new connection and show us twice.
+    retire(meetingRef.current)
     for(let attempt=1;attempt<=MAX_REJOIN_ATTEMPTS;attempt++){
       setRejoinAttempt(attempt)
       if(!navigator.onLine){
@@ -183,12 +200,15 @@ export default function RoomMeeting({
     const self=meeting.self
 
     const handleJoined=()=>{
+      if(isRetired(meeting))return
       rejoinInFlightRef.current=false
       setConnection('connected')
       setRejoinAttempt(0)
     }
 
     const handleRoomLeft=({state}:{state:string})=>{
+      // Our own shutdown of a replaced client is not the user leaving.
+      if(isRetired(meeting))return
       mediaStateRef.current={
         audio:Boolean(self.audioEnabled),
         video:Boolean(self.videoEnabled)
@@ -234,7 +254,7 @@ export default function RoomMeeting({
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }
-  },[meeting,reconnect,session.role])
+  },[meeting,reconnect,session.role,isRetired])
 
   const scheduleLeave=useCallback(()=>{
     void meeting?.leave().catch(()=>{})
