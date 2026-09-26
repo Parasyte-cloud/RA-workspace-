@@ -1,0 +1,63 @@
+/* ROOM 7 people panel (creator and administrators). */
+.r7pPanel{
+  position:absolute;
+  top:12px;
+  right:12px;
+  bottom:12px;
+  z-index:30;
+  width:min(340px,calc(100% - 24px));
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:14px;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:rgba(11,20,33,.97);
+  color:#f5f7fa;
+  box-shadow:0 18px 48px rgba(0,0,0,.5);
+  font-size:13px;
+}
+.r7pPanel header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.r7pPanel header div{display:flex;align-items:center;gap:8px}
+.r7pPanel header strong{font-size:14px}
+.r7pPanel button{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:32px;min-width:32px;padding:0 10px;
+  border:1px solid rgba(255,255,255,.14);border-radius:10px;
+  background:rgba(255,255,255,.06);color:inherit;font:inherit;cursor:pointer;
+}
+.r7pPanel button:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.r7pPanel button:disabled{opacity:.45;cursor:default}
+.r7pPanel header button{padding:0}
+.r7pBulk{display:flex;gap:8px;flex-wrap:wrap}
+.r7pList{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.r7pList li{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  min-height:42px;padding:4px 6px 4px 10px;border-radius:10px;
+  background:rgba(255,255,255,.03);
+}
+.r7pName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r7pName em{
+  margin-left:6px;padding:1px 6px;border-radius:999px;
+  background:rgba(246,161,26,.16);color:#f6a11a;font-style:normal;font-size:11px;font-weight:700;
+}
+.r7pSelf .r7pName em{background:none;color:#92a0b0;padding:0;margin-left:2px;font-weight:400}
+.r7pActions{display:flex;gap:4px;flex:0 0 auto}
+.r7pActions button{padding:0 8px}
+.r7pConfirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;font-size:12px}
+.r7pPanel .r7pDanger{border-color:rgba(239,68,68,.45);color:#fca5a5}
+.r7pPanel .r7pDanger:hover:not(:disabled){background:rgba(239,68,68,.16)}
+.r7pHint{margin:0;color:#92a0b0;font-size:12px}
+.r7pError{margin:0;color:#fca5a5}
+.r7pNotice{margin:0;color:#86efac}
+.r7pRemoved h4{margin:6px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#92a0b0}
+.r7pCount{
+  margin-left:2px;padding:0 6px;border-radius:999px;
+  background:rgba(255,255,255,.14);font-size:11px;font-weight:700;
+}
+.r7pSpin{animation:r7pSpin 1s linear infinite}
+@keyframes r7pSpin{to{transform:rotate(360deg)}}
+@media(max-width:620px){
+  .r7pPanel{top:8px;left:8px;right:8px;bottom:8px;width:auto}
+}

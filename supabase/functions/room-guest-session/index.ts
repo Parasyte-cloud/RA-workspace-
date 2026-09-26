@@ -696,7 +696,7 @@ async function getOrCreateGuest(
       .from("room7_guest_participants")
       .select(
         "id,display_name,email,role,source," +
-        "cloudflare_participant_id",
+        "cloudflare_participant_id,removed_at",
       )
       .eq(
         "room_id",
@@ -719,7 +719,7 @@ async function getOrCreateGuest(
       .from("room7_guest_participants")
       .select(
         "id,display_name,email,role,source," +
-        "cloudflare_participant_id",
+        "cloudflare_participant_id,removed_at",
       )
       .eq("room_id", roomId)
       .eq("email", access.email)
@@ -763,7 +763,7 @@ async function getOrCreateGuest(
       .eq("room_id", roomId)
       .select(
         "id,display_name,email,role,source," +
-        "cloudflare_participant_id",
+        "cloudflare_participant_id,removed_at",
       )
       .single()
 
@@ -792,7 +792,7 @@ async function getOrCreateGuest(
     })
     .select(
       "id,display_name,email,role,source," +
-      "cloudflare_participant_id",
+      "cloudflare_participant_id,removed_at",
     )
     .single()
 
@@ -809,7 +809,7 @@ async function getOrCreateGuest(
       .from("room7_guest_participants")
       .select(
         "id,display_name,email,role,source," +
-        "cloudflare_participant_id",
+        "cloudflare_participant_id,removed_at",
       )
       .eq("room_id", roomId)
       .eq(
@@ -1025,6 +1025,14 @@ serve(async req => {
         resolved.room.id,
         access,
       )
+
+    // Removed by the host or an administrator: stay out until let back in.
+    if (guest.removed_at) {
+      throw new HttpError(
+        403,
+        "The host removed you from this ROOM 7 event.",
+      )
+    }
 
     let participantId =
       cleanText(
