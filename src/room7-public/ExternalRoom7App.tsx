@@ -440,6 +440,92 @@ export default function ExternalRoom7App() {
   const [rejoinCount, setRejoinCount] =
     useState(0)
 
+  // Front door for room7.ridearrivo.com with no event in the address
+  // (for example the installed app's start page).
+  const [entryValue, setEntryValue] =
+    useState('')
+
+  const [entryError, setEntryError] =
+    useState('')
+
+  const [entryBusy, setEntryBusy] =
+    useState(false)
+
+  const openEntry =
+    async (
+      event: FormEvent,
+    ) => {
+      event.preventDefault()
+      setEntryError('')
+
+      let value =
+        entryValue.trim()
+
+      // Accept a pasted link as well as a bare code or event name.
+      if (/^https?:\/\//i.test(value)) {
+        try {
+          value = new URL(value).pathname
+        } catch {
+          // Fall through with the raw text.
+        }
+      }
+
+      value = value
+        // Links pasted without https:// still carry the domain.
+        .replace(/^(?:https?:\/\/)?(?:www\.)?room7\.ridearrivo\.com/i, '')
+        .replace(/[?#].*$/, '')
+        .replace(/^\/+|\/+$/g, '')
+        .replace(/^r\//i, '')
+
+      const code =
+        value.toUpperCase()
+
+      const looksLikeCode =
+        /^[A-Z2-9]{8}$/.test(code)
+
+      const looksLikeSlug =
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(value)
+
+      if (!looksLikeCode && !looksLikeSlug) {
+        setEntryError(
+          'Enter the 8-character ROOM 7 code or the event link from your invitation.',
+        )
+        return
+      }
+
+      setEntryBusy(true)
+
+      // A short event name can look like a code, so try the code first
+      // and fall back to the event name.
+      const attempts: Array<[string, Locator]> = []
+
+      if (looksLikeCode) {
+        attempts.push([`/r/${code}`, { room_code: code }])
+      }
+
+      if (looksLikeSlug) {
+        attempts.push([`/${value.toLowerCase()}`, { slug: value.toLowerCase() }])
+      }
+
+      for (const [path, candidate] of attempts) {
+        try {
+          await room7Request<{ room: PublicRoom }>({
+            action: 'resolve',
+            ...candidate,
+          })
+          window.location.assign(path)
+          return
+        } catch {
+          // Try the next reading of what was typed.
+        }
+      }
+
+      setEntryBusy(false)
+      setEntryError(
+        'No ROOM 7 event matches that. Check the code or link in your invitation.',
+      )
+    }
+
   useEffect(() => {
     document.title =
       room?.title
@@ -449,9 +535,6 @@ export default function ExternalRoom7App() {
 
   useEffect(() => {
     if (!locator) {
-      setError(
-        'This ROOM 7 link is incomplete.',
-      )
       setLoading(false)
       return
     }
@@ -689,7 +772,58 @@ export default function ExternalRoom7App() {
         </section>
       )}
 
-      {!loading && error && !room && (
+      {!loading && !locator && (
+        <section className="room7PublicErrorCard room7PublicEntry">
+          <span className="room7PublicEyebrow">
+            RIDEARRIVO ROOM 7
+          </span>
+
+          <h1>
+            Join a ROOM 7 event
+          </h1>
+
+          <p>
+            Enter the event code or paste the link from your invitation.
+          </p>
+
+          <form
+            className="room7PublicEntryForm"
+            onSubmit={event => void openEntry(event)}
+          >
+            <input
+              value={entryValue}
+              onChange={event => setEntryValue(event.target.value)}
+              placeholder="Event code or link, e.g. 4YXZTE4K"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-label="ROOM 7 event code or link"
+            />
+
+            <button
+              type="submit"
+              disabled={entryBusy || !entryValue.trim()}
+            >
+              {entryBusy ? 'Checking...' : 'Continue'}
+            </button>
+          </form>
+
+          {entryError && (
+            <p className="room7PublicEntryError" role="alert">
+              {entryError}
+            </p>
+          )}
+
+          <a
+            className="room7PublicEntryStaff"
+            href="https://intranet.ridearrivo.com/?section=room"
+          >
+            RideArrivo staff? Open ROOM 7 in the workspace
+          </a>
+        </section>
+      )}
+
+      {!loading && locator && error && !room && (
         <section className="room7PublicErrorCard">
           <span className="room7PublicEyebrow">
             RIDEARRIVO ROOM 7

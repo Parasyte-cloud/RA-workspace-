@@ -1789,3 +1789,60 @@
   font-weight:800;
   cursor:pointer;
 }
+
+/* Front door when no event is in the address */
+.room7PublicEntry form{
+  display:flex;
+  gap:10px;
+  width:min(520px,100%);
+  margin-top:8px;
+}
+
+.room7PublicEntry input{
+  flex:1;
+  min-width:0;
+  min-height:48px;
+  padding:0 14px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  background:rgba(0,0,0,.25);
+  color:#f5f7fa;
+  font:inherit;
+  font-size:16px;
+  outline:none;
+}
+
+.room7PublicEntry input:focus{
+  border-color:rgba(246,161,26,.6);
+}
+
+.room7PublicEntry button{
+  min-height:48px;
+  padding:0 20px;
+  border:0;
+  border-radius:14px;
+  background:#f6a11a;
+  color:#160e03;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.room7PublicEntry button:disabled{
+  opacity:.55;
+  cursor:default;
+}
+
+.room7PublicEntryError{
+  color:#fca5a5 !important;
+}
+
+.room7PublicEntryStaff{
+  margin-top:10px;
+  color:#f4c472;
+  font-size:.86rem;
+}
+
+@media(max-width:560px){
+  .room7PublicEntry form{flex-direction:column}
+}
