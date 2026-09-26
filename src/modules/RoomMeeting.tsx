@@ -31,6 +31,12 @@ import {
   Room7ExtrasOverlay,
   useRoom7MeetingExtras
 } from '../room7-shared/useRoom7MeetingExtras'
+import {
+  Room7PeopleButton,
+  Room7PeoplePanel,
+  useJoinedCount
+} from '../room7-shared/Room7PeoplePanel'
+import type { Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 import type { RoomLeaveReason } from './RoomModule'
 
 type RoomStatus='active'|'ended'
@@ -53,6 +59,7 @@ type RoomSession={
   auth_token:string
   participant_id:string
   role:'host'|'member'
+  can_moderate?:boolean
   event?:{
     scheduled_end:string|null
     event_state:string|null
@@ -77,7 +84,8 @@ export default function RoomMeeting({
   onLeft,
   onEnded,
   onRejoin,
-  onExtend
+  onExtend,
+  moderation
 }:{
   session:RoomSession
   minimized?:boolean
@@ -89,6 +97,7 @@ export default function RoomMeeting({
   onEnded:()=>Promise<void>
   onRejoin:()=>Promise<boolean>
   onExtend?:(endIso:string)=>Promise<void>
+  moderation?:Room7Moderation
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   const {retire,isRetired}=useRetiredClients()
@@ -100,6 +109,7 @@ export default function RoomMeeting({
   const [connection,setConnection]=useState<Connection>('connected')
   const [rejoinAttempt,setRejoinAttempt]=useState(0)
   const [frameStyle,setFrameStyle]=useState<CSSProperties>({})
+  const [peopleOpen,setPeopleOpen]=useState(false)
 
   // After a reconnect we skip RealtimeKit's setup screen and restore the
   // microphone/camera state the person had before the drop.
@@ -181,6 +191,11 @@ export default function RoomMeeting({
         }
       }catch(error){
         const message=error instanceof Error?error.message:''
+        if(/removed/i.test(message)){
+          rejoinInFlightRef.current=false
+          onLeftRef.current('kicked')
+          return
+        }
         if(/ended|not found/i.test(message)){
           rejoinInFlightRef.current=false
           onLeftRef.current('ended')
@@ -270,6 +285,10 @@ export default function RoomMeeting({
     onScheduleLeave:scheduleLeave
   })
 
+  // Creator or administrator (decided by the server on join).
+  const canModerate=Boolean(moderation)&&(session.can_moderate??session.role==='host')
+  const joinedCount=useJoinedCount(canModerate?meeting:null)
+
   // Full-size mode lines the portaled call up with the placeholder in the
   // page, stopping at the sticky top bar so it never covers it.
   useLayoutEffect(()=>{
@@ -357,6 +376,9 @@ export default function RoomMeeting({
         </div>
         <div className="roomCallActions">
           <Room7ExtrasControls extras={extras} compact={minimized}/>
+          {canModerate&&!minimized&&
+            <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>setPeopleOpen(open=>!open)}/>
+          }
           <button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('staff')} title="Link for RideArrivo staff (intranet sign-in)">
             <Link2 size={16}/>{copied==='staff'?'Copied':'Staff link'}
           </button>
@@ -412,6 +434,15 @@ export default function RoomMeeting({
               leaveOnUnmount={false}
             />
             <Room7ExtrasOverlay extras={extras}/>
+            {canModerate&&moderation&&peopleOpen&&!minimized&&
+              <Room7PeoplePanel
+                meeting={meeting}
+                creatorId={session.room.created_by}
+                selfTarget={String(meeting.self?.customParticipantId||'')}
+                moderation={moderation}
+                onClose={()=>setPeopleOpen(false)}
+              />
+            }
           </RealtimeKitProvider>
         }
         {connection!=='connected'&&

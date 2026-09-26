@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 
-type RoomAction = "config" | "create" | "join" | "end"
+type RoomAction = "config" | "create" | "join" | "end" | "remove" | "removed" | "readmit"
 type MediaConfig = {
   accountId: string
   appId: string
@@ -198,6 +198,48 @@ async function kickExistingPeers(config: MediaConfig, meetingId: string, partici
   }
 }
 
+// Moves an existing participant onto a preset. Used so an administrator who
+// is not the meeting creator still gets the host controls (mute, video off)
+// in the call. Best effort: if the provider refuses, they join as before.
+async function setParticipantPreset(config: MediaConfig, meetingId: string, participantId: string, preset: string) {
+  try {
+    await realtimeRequest(
+      config,
+      `/meetings/${encodeURIComponent(meetingId)}/participants/${encodeURIComponent(participantId)}`,
+      { method: "PATCH", body: JSON.stringify({ preset_name: preset }) },
+    )
+  } catch (error) {
+    console.warn("ROOM 7 preset update skipped:", error)
+  }
+}
+
+// Deletes the provider participant so its old token can no longer be used
+// to get back in. A new participant is created if they are let back in.
+async function deleteParticipant(config: MediaConfig, meetingId: string, participantId: string) {
+  try {
+    await realtimeRequest(
+      config,
+      `/meetings/${encodeURIComponent(meetingId)}/participants/${encodeURIComponent(participantId)}`,
+      { method: "DELETE" },
+    )
+  } catch (error) {
+    console.warn("ROOM 7 participant delete skipped:", error)
+  }
+}
+
+// Staff are identified in the call by their employee id, guests by
+// "guest:<guest id>". Anything else is refused.
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function parseTarget(value: unknown): { kind: "staff" | "guest"; id: string } | null {
+  const raw = cleanText(value, 200)
+  if (uuidPattern.test(raw)) return { kind: "staff", id: raw.toLowerCase() }
+  if (raw.startsWith("guest:") && uuidPattern.test(raw.slice(6))) {
+    return { kind: "guest", id: raw.slice(6).toLowerCase() }
+  }
+  return null
+}
+
 // External event schedule for the in-call timer. Staff clients cannot read
 // room7_external_rooms directly, so it travels with the join response.
 async function loadEventSchedule(admin: any, roomId: string) {
@@ -243,7 +285,7 @@ serve(async req => {
   const employeeId = userData.user.id
   const { data: profile, error: profileError } = await admin
     .from("employee_profiles")
-    .select("id,full_name,active")
+    .select("id,full_name,active,role")
     .eq("id", employeeId)
     .maybeSingle()
 
@@ -342,6 +384,7 @@ serve(async req => {
         auth_token: participant.token,
         participant_id: participant.participantId,
         role: "host",
+        can_moderate: true,
       })
     } catch (error) {
       console.error("ROOM 7 create failed:", error)
@@ -377,9 +420,13 @@ serve(async req => {
     if (room.status !== "active") return json(req, { error: "This ROOM 7 meeting has ended." }, 409)
 
     const role = room.created_by === employeeId ? "host" : "member"
+    // The creator and administrators can moderate: remove people, mute
+    // them, turn their video off. Only the creator can end the meeting.
+    const canModerate = role === "host" || profile.role === "admin"
+    const preset = canModerate ? config.hostPreset : config.memberPreset
     const { data: existing, error: existingError } = await admin
       .from("workspace_room_participants")
-      .select("room_id,user_id,role,cloudflare_participant_id,first_joined_at")
+      .select("room_id,user_id,role,cloudflare_participant_id,first_joined_at,removed_at")
       .eq("room_id", room.id)
       .eq("user_id", employeeId)
       .maybeSingle()
@@ -389,18 +436,25 @@ serve(async req => {
       return json(req, { error: "Unable to verify ROOM 7 membership." }, 500)
     }
 
+    if (existing?.removed_at) {
+      return json(req, { error: "You were removed from this ROOM 7 meeting. Ask the host to let you back in." }, 403)
+    }
+
     try {
       let participantId = cleanText(existing?.cloudflare_participant_id, 160)
       let participantToken = ""
 
       if (participantId) {
         await kickExistingPeers(config, room.cloudflare_meeting_id, participantId)
+        if (profile.role === "admin" && role !== "host") {
+          await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
+        }
         participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
       } else {
         const participant = await addParticipant(config, room.cloudflare_meeting_id, {
           userId: employeeId,
           name: cleanText(profile.full_name, 160) || "RideArrivo Employee",
-          preset: role === "host" ? config.hostPreset : config.memberPreset,
+          preset,
         })
         participantId = participant.participantId
         participantToken = participant.token
@@ -446,6 +500,7 @@ serve(async req => {
         auth_token: participantToken,
         participant_id: participantId,
         role,
+        can_moderate: canModerate,
         event: await loadEventSchedule(admin, room.id),
       })
     } catch (error) {
@@ -504,6 +559,131 @@ serve(async req => {
     } catch (error) {
       console.error("ROOM 7 end failed:", error)
       return json(req, { error: "Unable to end ROOM 7." }, 502)
+    }
+  }
+
+  if (action === "remove" || action === "removed" || action === "readmit") {
+    const roomId = cleanText(body?.room_id, 160)
+    if (!roomId) return json(req, { error: "ROOM 7 ID is required." }, 400)
+
+    const { data: room, error: roomError } = await admin
+      .from("workspace_rooms")
+      .select("id,status,created_by,cloudflare_meeting_id")
+      .eq("id", roomId)
+      .maybeSingle()
+
+    if (roomError || !room) return json(req, { error: "ROOM 7 not found." }, 404)
+    if (room.created_by !== employeeId && profile.role !== "admin") {
+      return json(req, { error: "Only the meeting creator or an administrator can manage people in this ROOM 7." }, 403)
+    }
+
+    try {
+      if (action === "removed") {
+        const [staff, guests] = await Promise.all([
+          admin.from("workspace_room_participants")
+            .select("user_id,removed_at")
+            .eq("room_id", room.id)
+            .not("removed_at", "is", null),
+          admin.from("room7_guest_participants")
+            .select("id,display_name,email,removed_at")
+            .eq("room_id", room.id)
+            .not("removed_at", "is", null),
+        ])
+        if (staff.error) throw staff.error
+        if (guests.error) throw guests.error
+
+        const ids = (staff.data || []).map((row: any) => row.user_id)
+        const names = new Map<string, string>()
+        if (ids.length) {
+          const { data: people, error: peopleError } = await admin
+            .from("employee_profiles")
+            .select("id,full_name")
+            .in("id", ids)
+          if (peopleError) throw peopleError
+          for (const person of people || []) names.set(person.id, person.full_name || "RideArrivo Employee")
+        }
+
+        return json(req, {
+          removed: [
+            ...(staff.data || []).map((row: any) => ({
+              target: row.user_id,
+              name: names.get(row.user_id) || "RideArrivo Employee",
+              kind: "staff",
+              removed_at: row.removed_at,
+            })),
+            ...(guests.data || []).map((row: any) => ({
+              target: `guest:${row.id}`,
+              name: row.display_name || row.email || "Guest",
+              kind: "guest",
+              removed_at: row.removed_at,
+            })),
+          ].sort((a, b) => String(b.removed_at).localeCompare(String(a.removed_at))),
+        })
+      }
+
+      const target = parseTarget(body?.target)
+      if (!target) return json(req, { error: "Choose who to manage." }, 400)
+
+      if (target.kind === "staff") {
+        if (action === "remove" && target.id === employeeId) {
+          return json(req, { error: "You cannot remove yourself. Use Leave instead." }, 400)
+        }
+        if (action === "remove" && target.id === room.created_by) {
+          return json(req, { error: "The meeting creator cannot be removed." }, 403)
+        }
+      }
+
+      const table = target.kind === "staff" ? "workspace_room_participants" : "room7_guest_participants"
+      const key = target.kind === "staff" ? "user_id" : "id"
+
+      const { data: row, error: rowError } = await admin
+        .from(table)
+        .select(`${key},cloudflare_participant_id`)
+        .eq("room_id", room.id)
+        .eq(key, target.id)
+        .maybeSingle()
+
+      if (rowError) throw rowError
+      if (!row) return json(req, { error: "That person is not part of this ROOM 7." }, 404)
+
+      const now = new Date().toISOString()
+
+      if (action === "remove") {
+        const participantId = cleanText(row.cloudflare_participant_id, 160)
+
+        // Block first, so a reconnect racing the kick is already refused.
+        const { error: blockError } = await admin
+          .from(table)
+          .update({ removed_at: now, removed_by: employeeId, cloudflare_participant_id: null })
+          .eq("room_id", room.id)
+          .eq(key, target.id)
+        if (blockError) throw blockError
+
+        if (participantId && room.status === "active") {
+          await kickExistingPeers(config, room.cloudflare_meeting_id, participantId)
+          await deleteParticipant(config, room.cloudflare_meeting_id, participantId)
+        }
+      } else {
+        const { error: clearError } = await admin
+          .from(table)
+          .update({ removed_at: null, removed_by: null })
+          .eq("room_id", room.id)
+          .eq(key, target.id)
+        if (clearError) throw clearError
+      }
+
+      const audit = await admin.from("workspace_room_events").insert({
+        room_id: room.id,
+        actor_id: employeeId,
+        event_type: action === "remove" ? "removed" : "readmitted",
+        metadata: { target: cleanText(body?.target, 200), kind: target.kind },
+      })
+      if (audit.error) console.warn(`ROOM 7 audit ${action}:`, audit.error.message)
+
+      return json(req, action === "remove" ? { removed: true } : { readmitted: true })
+    } catch (error) {
+      console.error(`ROOM 7 ${action} failed:`, error)
+      return json(req, { error: action === "remove" ? "Unable to remove that person." : "Unable to update ROOM 7 access." }, 500)
     }
   }
 

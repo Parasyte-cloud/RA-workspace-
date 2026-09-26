@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabase'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
 import '../room.css'
+import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
 type RoomStatus='active'|'ended'
 
@@ -44,6 +45,7 @@ type RoomSession={
   auth_token:string
   participant_id:string
   role:'host'|'member'
+  can_moderate?:boolean
   event?:{
     scheduled_end:string|null
     event_state:string|null
@@ -55,7 +57,8 @@ export type RoomLeaveReason='left'|'ended'|'kicked'|'rejected'|'schedule'|'lost'
 type ConfigurationState='checking'|'ready'|'missing'|'error'
 
 type FunctionPayload={
-  action:'config'|'create'|'join'|'end'
+  action:'config'|'create'|'join'|'end'|'remove'|'removed'|'readmit'
+  target?:string
   title?:string
   room_code?:string
   room_id?:string
@@ -117,7 +120,16 @@ export default function RoomModule({
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
     if(!client)throw new Error('Workspace authentication is not configured.')
     const {data,error}=await client.functions.invoke('room-session',{body:payload})
-    if(error)throw error
+    if(error){
+      // A 4xx from the function arrives as a generic "non-2xx" error; the
+      // real reason (removed, ended, not found) is in the response body.
+      const response=(error as {context?:unknown}).context
+      if(response instanceof Response){
+        const body=await response.clone().json().catch(()=>null)
+        if(body&&typeof body.error==='string')throw new Error(body.error)
+      }
+      throw error
+    }
     if(data&&typeof data==='object'&&'error' in data&&typeof data.error==='string'){
       throw new Error(data.error)
     }
@@ -223,7 +235,7 @@ export default function RoomModule({
     const messages:Record<RoomLeaveReason,string>={
       left:'',
       ended:'This ROOM 7 meeting has ended.',
-      kicked:'You were removed from ROOM 7, or you joined it from another device.',
+      kicked:'You were removed from this ROOM 7 by the host, or you joined it from another device.',
       rejected:'Your request to join ROOM 7 was declined.',
       schedule:'The scheduled time for this ROOM 7 event has ended.',
       lost:'Your connection to ROOM 7 was lost and could not be restored. Use Join to return.',
@@ -231,6 +243,19 @@ export default function RoomModule({
     setNotice(messages[reason])
     void loadRooms()
   },[loadRooms])
+
+  const roomId=session?.room.id
+  const moderation=useMemo<Room7Moderation|undefined>(()=>{
+    if(!roomId)return undefined
+    return {
+      remove:async target=>{await invokeRoom({action:'remove',room_id:roomId,target})},
+      readmit:async target=>{await invokeRoom({action:'readmit',room_id:roomId,target})},
+      listRemoved:async()=>{
+        const data=await invokeRoom({action:'removed',room_id:roomId})
+        return Array.isArray(data?.removed)?data.removed as RemovedPerson[]:[]
+      }
+    }
+  },[invokeRoom,roomId])
 
   const extendSchedule=useCallback(async(endIso:string)=>{
     if(!client||!session)throw new Error('Workspace authentication is not configured.')
@@ -317,6 +342,7 @@ export default function RoomModule({
         onEnded={endCurrentRoom}
         onRejoin={rejoinSession}
         onExtend={session.event?extendSchedule:undefined}
+        moderation={session.can_moderate?moderation:undefined}
       />
     </Suspense>
   ):null

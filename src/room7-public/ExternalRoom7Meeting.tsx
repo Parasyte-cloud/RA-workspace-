@@ -315,6 +315,12 @@ export default function ExternalRoom7Meeting({
   ] =
     useState(false)
 
+  const [
+    removedByHost,
+    setRemovedByHost,
+  ] =
+    useState(false)
+
   const reconnect =
     useCallback(async () => {
       if (rejoinInFlightRef.current) {
@@ -364,7 +370,7 @@ export default function ExternalRoom7Meeting({
               ? cause.message
               : ''
 
-          if (/scheduled end|not open|ended/i.test(message)) {
+          if (/scheduled end|not open|ended|removed/i.test(message)) {
             break
           }
         }
@@ -407,6 +413,12 @@ export default function ExternalRoom7Meeting({
 
       if (state === 'disconnected' || state === 'failed') {
         void reconnect()
+        return
+      }
+
+      // Kicked outside our own reconnect means the host removed this guest.
+      if (state === 'kicked' && !rejoinInFlightRef.current) {
+        setRemovedByHost(true)
       }
     }
 
@@ -1140,6 +1152,12 @@ export default function ExternalRoom7Meeting({
               <button type="button" onClick={() => void reconnect()}>
                 Reconnect
               </button>
+            </div>
+          )}
+
+          {removedByHost && (
+            <div className="room7ExperienceLost" role="status">
+              <span>The host removed you from this ROOM 7 event.</span>
             </div>
           )}
 
