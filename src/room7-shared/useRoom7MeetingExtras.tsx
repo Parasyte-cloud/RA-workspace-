@@ -8,6 +8,7 @@ import {
 import {
   Clock3,
   Hand,
+  MessageSquare,
   SmilePlus,
   X,
 } from 'lucide-react'
@@ -119,6 +120,10 @@ export function useRoom7MeetingExtras({
   const [endPromptStartedAt, setEndPromptStartedAt] = useState<number | null>(null)
   const [scheduleBusy, setScheduleBusy] = useState(false)
   const [scheduleError, setScheduleError] = useState('')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [unreadChat, setUnreadChat] = useState(0)
+  const chatOpenRef = useRef(false)
+  chatOpenRef.current = chatOpen
 
   const keyRef = useRef(0)
   const lastReactionRef = useRef(0)
@@ -278,6 +283,78 @@ export function useRoom7MeetingExtras({
     }
   }, [meeting, broadcast, pushToast, removeHand, showReaction, upsertHand])
 
+  // When this person leaves or the meeting ends, clear hands, reactions and
+  // any open prompt so nothing lingers over the "meeting ended" screen.
+  useEffect(() => {
+    if (!meeting) return
+    const self = meeting.self
+    const clear = () => {
+      setHands([])
+      setReactions([])
+      setToasts([])
+      setPickerOpen(false)
+      setEndPromptOpen(false)
+      setChatOpen(false)
+    }
+    self.on('roomLeft', clear as never)
+    return () => {
+      self.removeListener('roomLeft', clear as never)
+    }
+  }, [meeting])
+
+  // Unread count for the Chat button while the chat panel is closed.
+  useEffect(() => {
+    if (!meeting?.chat) return
+    const chat = meeting.chat
+    const onMessage = (payload: { action?: string; message?: { userId?: string } }) => {
+      if (payload?.action && payload.action !== 'add') return
+      if (chatOpenRef.current) return
+      if (payload?.message?.userId && payload.message.userId === meeting.self.userId) return
+      setUnreadChat(count => Math.min(99, count + 1))
+    }
+    chat.on('chatUpdate', onMessage as never)
+    return () => {
+      chat.removeListener('chatUpdate', onMessage as never)
+    }
+  }, [meeting])
+
+  // Follow RealtimeKit's own sidebar changes (its × button, or opening
+  // Participants instead) so our Chat button never gets out of step.
+  useEffect(() => {
+    const onState = (event: Event) => {
+      const detail = (event as CustomEvent).detail as
+        | { activeSidebar?: boolean; sidebar?: string }
+        | undefined
+      if (!detail || !('activeSidebar' in detail)) return
+      const open = detail.activeSidebar === true && detail.sidebar === 'chat'
+      setChatOpen(open)
+      if (open) setUnreadChat(0)
+    }
+    document.addEventListener('rtkStateUpdate', onState)
+    return () => document.removeEventListener('rtkStateUpdate', onState)
+  }, [])
+
+  // RealtimeKit only shows its Chat button at 1080px and wider; below that
+  // it hides it in the More menu. ROOM 7 keeps its own Chat button in the
+  // top bar and opens RealtimeKit's chat panel with the same state update
+  // RealtimeKit's button sends. The <rtk-meeting> element listens for it.
+  const toggleChat = useCallback(() => {
+    const element = document.querySelector('rtk-meeting')
+    if (!element) return
+    const next = !chatOpenRef.current
+    element.dispatchEvent(new CustomEvent('rtkStateUpdate', {
+      detail: {
+        activeSidebar: next,
+        sidebar: next ? 'chat' : undefined,
+        activeMoreMenu: false,
+      },
+      bubbles: true,
+      composed: true,
+    }))
+    setChatOpen(next)
+    if (next) setUnreadChat(0)
+  }, [])
+
   const toggleHand = useCallback(() => {
     if (!meeting) return
     const peer = meeting.self.id
@@ -416,8 +493,14 @@ export function useRoom7MeetingExtras({
     }
   }, [promptRemaining, endNow, scheduleBusy])
 
+  const chatAvailable = Boolean(meeting?.chat)
+
   return useMemo(() => ({
     ready: Boolean(meeting),
+    chatAvailable,
+    chatOpen,
+    unreadChat,
+    toggleChat,
     isHost,
     hands,
     myHandRaised,
@@ -439,7 +522,7 @@ export function useRoom7MeetingExtras({
     endNow,
     extend,
   }), [
-    meeting, isHost, hands, myHandRaised, reactions, toasts, pickerOpen,
+    meeting, chatAvailable, chatOpen, unreadChat, toggleChat, isHost, hands, myHandRaised, reactions, toasts, pickerOpen,
     toggleHand, lowerHand, lowerAllHands, react, endAt, remainingMs,
     endPromptOpen, promptRemaining, scheduleBusy, scheduleError, onExtend,
     endNow, extend,
@@ -457,6 +540,24 @@ export function Room7ExtrasControls({
 
   return (
     <div className={`r7xControls ${compact ? 'compact' : ''}`}>
+      {extras.chatAvailable && (
+        <button
+          type="button"
+          className={`r7xButton ${extras.chatOpen ? 'active' : ''}`}
+          aria-pressed={extras.chatOpen}
+          onClick={extras.toggleChat}
+          title={extras.chatOpen ? 'Close chat' : 'Open chat'}
+        >
+          <MessageSquare size={16} />
+          <span>Chat</span>
+          {extras.unreadChat > 0 && !extras.chatOpen && (
+            <b className="r7xBadge" aria-label={`${extras.unreadChat} unread`}>
+              {extras.unreadChat}
+            </b>
+          )}
+        </button>
+      )}
+
       <button
         type="button"
         className={`r7xButton ${extras.myHandRaised ? 'active' : ''}`}

@@ -321,3 +321,23 @@
 @media(prefers-reduced-motion:reduce){
   .r7xReaction{animation-duration:.01ms}
 }
+
+.r7xButton{
+  position:relative;
+}
+
+.r7xBadge{
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#ef4444;
+  color:#fff;
+  font-size:.66rem;
+  font-weight:800;
+  line-height:18px;
+  text-align:center;
+}
