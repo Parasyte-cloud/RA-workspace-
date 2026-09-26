@@ -1081,6 +1081,10 @@ export default function ExternalRoom7Meeting({
           <RtkMeeting
             key={authToken}
             meeting={meeting}
+            // "fill" keeps the call inside ROOM 7's frame. Without it,
+            // RealtimeKit goes position:fixed full screen on phones and
+            // covers ROOM 7's top bar (Documents, Q&A, hand, reactions).
+            mode="fill"
             showSetupScreen={!rejoined}
             applyDesignSystem={false}
           />
