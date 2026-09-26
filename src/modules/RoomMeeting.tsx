@@ -105,6 +105,8 @@ export default function RoomMeeting({
   onLeftRef.current=onLeft
   const onRejoinRef=useRef(onRejoin)
   onRejoinRef.current=onRejoin
+  const onEndedRef=useRef(onEnded)
+  onEndedRef.current=onEnded
   // True only while our own rejoin is running. Guards against a second
   // reconnect loop and against treating our own stale-peer kick as a
   // real removal.
@@ -196,7 +198,18 @@ export default function RoomMeeting({
         return
       }
       if(state==='stageLeft'||state==='connected-meeting')return
-      if(state==='ended'){onLeftRef.current('ended');return}
+      if(state==='ended'){
+        // A host who ends the call with RealtimeKit's own "end meeting for
+        // all" bypasses End ROOM 7. Finish the job so the room and its
+        // public event are closed too. Safe to repeat: ending an ended room
+        // is a no-op on the server.
+        if(session.role==='host'){
+          void onEndedRef.current().catch(()=>onLeftRef.current('ended'))
+          return
+        }
+        onLeftRef.current('ended')
+        return
+      }
       if(state==='kicked'){
         // During our own reconnect the server kicks the old connection;
         // that is expected and must not end the call.
@@ -221,7 +234,7 @@ export default function RoomMeeting({
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }
-  },[meeting,reconnect])
+  },[meeting,reconnect,session.role])
 
   const scheduleLeave=useCallback(()=>{
     void meeting?.leave().catch(()=>{})

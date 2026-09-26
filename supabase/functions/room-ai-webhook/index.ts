@@ -356,12 +356,12 @@ serve(async req => {
     if (eventType === "meeting.ended") {
       const { data: external, error: externalError } = await admin
         .from("room7_external_rooms")
-        .select("event_state")
+        .select("event_state,scheduled_end")
         .eq("room_id", room.id)
         .maybeSingle()
       if (externalError) throw externalError
 
-      keepRoomOpen = Boolean(
+      const eventOpen = Boolean(
         external &&
           [
             "draft",
@@ -371,6 +371,24 @@ serve(async req => {
             "intermission",
           ].includes(String(external.event_state)),
       )
+
+      // Once the scheduled end has passed, an emptied call is the end of the
+      // event too (this also covers the host using RealtimeKit's own "end
+      // meeting for all", which never reaches End ROOM 7).
+      const endMs = external?.scheduled_end
+        ? Date.parse(external.scheduled_end)
+        : NaN
+      const pastScheduledEnd = Number.isFinite(endMs) && Date.now() >= endMs
+
+      keepRoomOpen = eventOpen && !pastScheduledEnd
+
+      if (eventOpen && pastScheduledEnd) {
+        const { error: eventEndError } = await admin
+          .from("room7_external_rooms")
+          .update({ event_state: "ended" })
+          .eq("room_id", room.id)
+        if (eventEndError) throw eventEndError
+      }
     }
 
     if (eventType === "meeting.ended") {
