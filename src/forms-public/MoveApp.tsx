@@ -160,6 +160,25 @@ function computeEstimate(details: MoveDetails): Estimate | null {
   return { low, high }
 }
 
+// Mirrors EasyBookApp's getIdempotencyKey() -- a sessionStorage-persisted
+// UUID so a double-submit (double click, retry after a network hiccup)
+// doesn't create two move bookings. Cleared once the request actually
+// succeeds so a later, separate booking gets a fresh key.
+function getMoveIdempotencyKey(): string {
+  const key = window.sessionStorage.getItem('ra_move_idempotency_key')
+  if (key) return key
+  const fresh =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+          const random = (Math.random() * 16) | 0
+          const value = char === 'x' ? random : (random & 0x3) | 0x8
+          return value.toString(16)
+        })
+  window.sessionStorage.setItem('ra_move_idempotency_key', fresh)
+  return fresh
+}
+
 type Step = 'intro' | 'details' | 'contact' | 'success'
 
 type Contact = {
@@ -179,6 +198,7 @@ export default function MoveApp() {
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
+  const [website, setWebsite] = useState('') // honeypot field, never rendered to real visitors
 
   const estimate = useMemo(() => computeEstimate(details), [details])
 
@@ -241,9 +261,14 @@ export default function MoveApp() {
           email: contact.email.trim(),
           notes: notes.trim(),
           estimated_price: estimate ? `${formatNaira(estimate.low)} to ${formatNaira(estimate.high)}` : '',
+          // Note: not yet a field the intake backend/schema is confirmed to
+          // dedupe on -- see getMoveIdempotencyKey()'s comment.
+          idempotencyKey: getMoveIdempotencyKey(),
         },
+        website,
       })
       setReference(submission.reference || '')
+      window.sessionStorage.removeItem('ra_move_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
@@ -537,7 +562,7 @@ export default function MoveApp() {
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. 080..."
+                  placeholder="+2348012345678"
                   value={contact.phone}
                   onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
                 />
@@ -553,6 +578,11 @@ export default function MoveApp() {
               <label className="formsFieldWide">
                 <span>Anything else we should know? (optional)</span>
                 <textarea rows={3} value={notes} onChange={event => setNotes(event.target.value)} />
+              </label>
+
+              <label className="formsHoney" aria-hidden="true">
+                Website
+                <input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)} />
               </label>
 
               {contactError && (
