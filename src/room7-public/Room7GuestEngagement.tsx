@@ -490,9 +490,13 @@ export function Room7GuestQna({
   ] =
     useState('')
 
+  // Guests are already in the meeting from doors open, so questions are
+  // accepted from then on (they still go through moderation).
   const submissionOpen =
     enabled &&
     (
+      eventState ===
+        'doors_open' ||
       eventState ===
         'live' ||
       eventState ===
@@ -574,6 +578,8 @@ export function Room7GuestQna({
       if (
         !enabled ||
         (
+          eventState !==
+            'doors_open' &&
           eventState !==
             'live' &&
           eventState !==
@@ -946,7 +952,7 @@ export function Room7GuestQna({
                 placeholder={
                   submissionOpen
                     ? 'Ask a question for moderator review'
-                    : 'Questions open when ROOM 7 is live'
+                    : 'Questions open when the doors open'
                 }
               />
 
@@ -997,7 +1003,7 @@ export function Room7GuestQna({
                   ? 'Submitting...'
                   : submissionOpen
                     ? 'Submit question'
-                    : 'Q&A opens when live'
+                    : 'Q&A opens when doors open'
               }
             </button>
           </form>

@@ -25,6 +25,7 @@ const publicStates =
 
 const qnaSubmitStates =
   new Set([
+    "doors_open",
     "live",
     "intermission",
   ])

@@ -355,6 +355,18 @@ export function useRoom7MeetingExtras({
     if (next) setUnreadChat(0)
   }, [])
 
+  // Close the reaction picker when tapping anywhere else.
+  useEffect(() => {
+    if (!pickerOpen) return
+    const onPointer = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (target && target.closest && target.closest('.r7xReactWrap')) return
+      setPickerOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer, true)
+    return () => document.removeEventListener('pointerdown', onPointer, true)
+  }, [pickerOpen])
+
   const toggleHand = useCallback(() => {
     if (!meeting) return
     const peer = meeting.self.id

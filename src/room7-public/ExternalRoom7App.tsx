@@ -731,6 +731,7 @@ export default function ExternalRoom7App() {
               : ''
           }
           email={email.trim()}
+          displayName={name.trim()}
           eventState={room.event_state}
           scheduledEnd={room.scheduled_end}
           onRejoin={rejoin}

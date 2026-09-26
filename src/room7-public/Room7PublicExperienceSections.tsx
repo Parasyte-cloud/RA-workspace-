@@ -973,6 +973,8 @@ export default function Room7PublicExperienceSections({
                     .qna_enabled
                     ? 'Q&A disabled'
                     : eventState ===
+                        'doors_open' ||
+                      eventState ===
                         'live' ||
                       eventState ===
                         'intermission'
