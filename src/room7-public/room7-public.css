@@ -1846,3 +1846,19 @@
 @media(max-width:560px){
   .room7PublicEntry form{flex-direction:column}
 }
+
+/* Phones: the ROOM 7 top bar carries Documents, Q&A, Chat, hand,
+   reactions, the timer and Settings. Drop the wordmark so they fit. */
+@media(max-width:480px){
+  .room7ExperienceIdentity{
+    display:none;
+  }
+
+  .room7ExperienceChrome{
+    justify-content:flex-end;
+  }
+
+  .room7ExperienceControls{
+    gap:6px;
+  }
+}
