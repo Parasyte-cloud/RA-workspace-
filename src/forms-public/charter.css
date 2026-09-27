@@ -1,0 +1,215 @@
+/* Shared styling for ArrivoBoat and ArrivoAir (BoatApp.tsx / AirApp.tsx) --
+   both are "request a quote" charter flows with the same shape as
+   move.css's MoveApp styling, minus the price-estimate box (neither
+   product has a self-serve pricing model -- see the comment at the top
+   of each app for why). Kept as one shared file since the two pages are
+   visually identical, just with different copy and fields. */
+
+.charterShell{
+  max-width:1180px
+}
+
+.charterLead{
+  max-width:640px;
+  margin:16px 0 26px;
+  color:#aeb9c8;
+  font-size:16px;
+  line-height:1.7
+}
+
+.charterIntro h1,
+.charterDetails h1,
+.charterContact h1{
+  margin:10px 0 0;
+  font-size:clamp(30px,4.2vw,48px);
+  line-height:1.1;
+  letter-spacing:-.03em
+}
+
+.charterHighlights{
+  display:grid;
+  gap:10px;
+  margin:0 0 6px;
+  padding:0;
+  list-style:none;
+  max-width:560px
+}
+
+.charterHighlights li{
+  position:relative;
+  padding-left:22px;
+  color:#c4cfdd;
+  font-size:14.5px;
+  line-height:1.55
+}
+
+.charterHighlights li::before{
+  content:"\2713";
+  position:absolute;
+  left:0;
+  color:#ff9f0a;
+  font-weight:800
+}
+
+.charterDetails form,
+.charterContact .formsCard{
+  margin-top:26px
+}
+
+.charterCheckboxGroup{
+  display:grid;
+  gap:10px
+}
+
+.charterCheckboxGroup>span{
+  color:#aeb9c8;
+  font-size:13px;
+  font-weight:600
+}
+
+.charterCheckboxRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px
+}
+
+.charterCheckboxField{
+  display:flex!important;
+  grid-template-columns:none;
+  align-items:center;
+  gap:8px!important
+}
+
+.charterCheckboxField input{
+  width:18px;
+  min-height:18px;
+  height:18px
+}
+
+.charterCheckboxField span{
+  color:#c4cfdd;
+  font-size:13.5px;
+  font-weight:500!important
+}
+
+/* Vessel / aircraft class picker -- same card-select pattern as the main
+   RideArrivo booking flow's vehicle cards (book.html/booking.css) and
+   ArrivoExpress's tier picker, so choosing a boat or jet class feels like
+   the same product, not a bare <select>. */
+.charterClassPicker{
+  display:grid;
+  gap:10px
+}
+
+.charterClassPicker>span{
+  color:#aeb9c8;
+  font-size:13px;
+  font-weight:600
+}
+
+.charterClassOptions{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(190px, 1fr));
+  gap:10px
+}
+
+.charterClassCard{
+  all:unset;
+  box-sizing:border-box;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:14px 16px;
+  border:1.5px solid rgba(255,255,255,.14);
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+  transition:border-color .15s ease, background .15s ease
+}
+
+.charterClassCard:hover{
+  border-color:rgba(255,255,255,.28)
+}
+
+.charterClassName{
+  font-weight:700;
+  font-size:14px;
+  color:#f5f7fa
+}
+
+.charterClassBlurb{
+  font-size:12px;
+  line-height:1.5;
+  color:#8997aa
+}
+
+.charterClassCardSelected{
+  border-color:#ff9f0a;
+  background:rgba(255,159,10,.09)
+}
+
+.charterClassCardSelected .charterClassBlurb{
+  color:#c4cfdd
+}
+
+.charterRecap{
+  margin-top:20px
+}
+
+.charterRecap h3{
+  margin:0 0 16px;
+  font-size:19px
+}
+
+.charterRecap dl{
+  display:grid;
+  gap:12px;
+  margin:0
+}
+
+.charterRecap dl>div{
+  display:grid;
+  grid-template-columns:110px 1fr;
+  gap:14px
+}
+
+.charterRecap dt{
+  color:#758398;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em
+}
+
+.charterRecap dd{
+  margin:0;
+  color:#e4e9f1;
+  font-size:14.5px;
+  line-height:1.5
+}
+
+.charterRecapNote{
+  margin:18px 0 0;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.09);
+  color:#8997aa;
+  font-size:13px;
+  line-height:1.6
+}
+
+.charterBackButton{
+  color:#f5f7fa!important;
+  background:transparent!important;
+  border:1px solid rgba(255,255,255,.16)!important
+}
+
+.charterSuccessActions{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:30px
+}
+
+.charterSuccess a{
+  text-decoration:none
+}
