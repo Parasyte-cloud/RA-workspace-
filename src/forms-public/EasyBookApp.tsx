@@ -637,7 +637,7 @@ export default function EasyBookApp() {
             {typeof result.fareNaira === 'number' && (
               <p className="easybookFareLine">NGN {result.fareNaira.toLocaleString('en-NG')}</p>
             )}
-            {result.authorizationUrl && (
+            {result.authorizationUrl && result.authorizationUrl.startsWith('https://') && (
               <a href={result.authorizationUrl} target="_blank" rel="noopener noreferrer">
                 <button type="button">Pay now</button>
               </a>

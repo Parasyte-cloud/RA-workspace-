@@ -146,20 +146,6 @@
   margin-top:18px
 }
 
-.easybookSignedIn{
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:10px 14px;
-  max-width:640px;
-  margin:8px 0 24px;
-  padding:14px 16px;
-  border:1px solid rgba(120,220,150,.30);
-  border-radius:14px;
-  background:rgba(120,220,150,.07);
-  color:#f5f7fa
-}
-
 .easybookNotYou{
   color:#ff9f0a;
   font-weight:600;
