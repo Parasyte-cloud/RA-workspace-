@@ -133,6 +133,14 @@ const PLANS: Plan[] = [
 // UUID so a double-submit (double click, retry after a network hiccup)
 // doesn't create two membership requests. Cleared once the request
 // actually succeeds so a later, separate signup gets a fresh key.
+//
+// NOT currently sent to the backend: membership-signup's field_schema
+// (supabase/migrations/20260924110000_membership_signup_form.sql) doesn't
+// declare an idempotencyKey field, and the intake edge function's
+// validateSubmission() rejects any payload key it doesn't recognize
+// (see validation.mjs's "Unknown field" check) -- so sending it would
+// 422 every submission. Wire this back in once a migration adds the
+// field to both membership-signup and move-booking's schemas.
 function getMembershipIdempotencyKey(): string {
   const key = window.sessionStorage.getItem('ra_membership_idempotency_key')
   if (key) return key
@@ -298,14 +306,10 @@ export default function MembershipApp() {
           organization_name: selectedPlan.isCorporate ? orgName.trim() : '',
           seats_estimate: selectedPlan.isCorporate ? seats.trim() : '',
           notes: combinedNotes,
-          // Note: not yet a field the intake backend/schema is confirmed to
-          // dedupe on -- see getMembershipIdempotencyKey()'s comment.
-          idempotencyKey: getMembershipIdempotencyKey(),
         },
         website,
       })
       setReference(submission.reference || '')
-      window.sessionStorage.removeItem('ra_membership_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
