@@ -56,6 +56,20 @@ function isPublicFormsSurface() {
     return true
   }
 
+  if (
+    hostname ===
+    'boat.ridearrivo.com'
+  ) {
+    return true
+  }
+
+  if (
+    hostname ===
+    'air.ridearrivo.com'
+  ) {
+    return true
+  }
+
   const requested =
     new URLSearchParams(
       window.location.search,
