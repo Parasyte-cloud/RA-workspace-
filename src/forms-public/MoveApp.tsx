@@ -186,6 +186,14 @@ function computeEstimate(details: MoveDetails): Estimate | null {
 // UUID so a double-submit (double click, retry after a network hiccup)
 // doesn't create two move bookings. Cleared once the request actually
 // succeeds so a later, separate booking gets a fresh key.
+//
+// NOT currently sent to the backend: move-booking's field_schema
+// (supabase/migrations/20260924130000_move_booking_form.sql) doesn't
+// declare an idempotencyKey field, and the intake edge function's
+// validateSubmission() rejects any payload key it doesn't recognize
+// (see validation.mjs's "Unknown field" check) -- so sending it would
+// 422 every submission. Wire this back in once a migration adds the
+// field to both move-booking and membership-signup's schemas.
 function getMoveIdempotencyKey(): string {
   const key = window.sessionStorage.getItem('ra_move_idempotency_key')
   if (key) return key
@@ -306,14 +314,10 @@ export default function MoveApp() {
           email: contact.email.trim(),
           notes: notes.trim(),
           estimated_price: estimate ? `${formatNaira(estimate.low)} to ${formatNaira(estimate.high)}` : '',
-          // Note: not yet a field the intake backend/schema is confirmed to
-          // dedupe on -- see getMoveIdempotencyKey()'s comment.
-          idempotencyKey: getMoveIdempotencyKey(),
         },
         website,
       })
       setReference(submission.reference || '')
-      window.sessionStorage.removeItem('ra_move_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
