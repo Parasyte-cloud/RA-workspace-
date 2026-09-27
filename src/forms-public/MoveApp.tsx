@@ -175,10 +175,13 @@ export default function MoveApp() {
 
   const [contact, setContact] = useState<Contact>({ fullName: '', phone: '', email: '' })
   const [notes, setNotes] = useState('')
+  const [website, setWebsite] = useState('') // honeypot field, never rendered visibly
   const [contactError, setContactError] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
+
+  const todayIsoDate = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const estimate = useMemo(() => computeEstimate(details), [details])
 
@@ -191,6 +194,7 @@ export default function MoveApp() {
     setDetailsError('')
 
     if (!details.moveDate) return setDetailsError('Please choose a moving date.')
+    if (details.moveDate < todayIsoDate) return setDetailsError('Please choose a moving date that is today or later.')
     if (!details.moveWindow) return setDetailsError('Please choose a time window.')
     if (!details.pickupAddress.trim()) return setDetailsError('Please enter the pickup address.')
     if (!details.pickupArea) return setDetailsError('Please choose the pickup area.')
@@ -219,6 +223,7 @@ export default function MoveApp() {
     try {
       const submission = await submitPublicIntakeForm({
         slug: 'move-booking',
+        website,
         payload: {
           move_date: details.moveDate,
           move_window: details.moveWindow,
@@ -313,6 +318,7 @@ export default function MoveApp() {
                 <input
                   type="date"
                   required
+                  min={todayIsoDate}
                   value={details.moveDate}
                   onChange={event => updateDetails('moveDate', event.target.value)}
                 />
@@ -553,6 +559,11 @@ export default function MoveApp() {
               <label className="formsFieldWide">
                 <span>Anything else we should know? (optional)</span>
                 <textarea rows={3} value={notes} onChange={event => setNotes(event.target.value)} />
+              </label>
+
+              <label className="formsHoney" aria-hidden="true">
+                Website
+                <input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)} />
               </label>
 
               {contactError && (
