@@ -4,6 +4,8 @@ import PublicIntakeForm from './PublicIntakeForm'
 import MembershipApp from './MembershipApp'
 import MoveApp from './MoveApp'
 import EasyBookApp from './EasyBookApp'
+import BoatApp from './BoatApp'
+import AirApp from './AirApp'
 import './forms-public.css'
 
 /*
@@ -57,6 +59,14 @@ import './forms-public.css'
  * own comment for why. It posts straight to arrivo-backend, which
  * returns a Paystack payment link (and sends it over WhatsApp)
  * immediately, no Support queue step in between.
+ *
+ * boat.ridearrivo.com and air.ridearrivo.com are their own dedicated
+ * subdomains too, rendering BoatApp / AirApp -- the same intro / details /
+ * contact & confirm shape as MoveApp, submitting through the intake
+ * platform under slugs "boat-charter" and "private-jet-charter"
+ * respectively. Unlike Move, neither shows a price estimate -- there's no
+ * equivalent pricing model for boat or private-jet charters (see each
+ * app's own comment), so both are pure "request a quote" flows.
  */
 function normalizedPath() {
   const path = window.location.pathname.replace(/\/+$/, '')
@@ -88,6 +98,18 @@ export default function FormsApp() {
     window.location.hostname.toLowerCase() === 'easybook.ridearrivo.com'
   ) {
     return <EasyBookApp />
+  }
+
+  if (
+    window.location.hostname.toLowerCase() === 'boat.ridearrivo.com'
+  ) {
+    return <BoatApp />
+  }
+
+  if (
+    window.location.hostname.toLowerCase() === 'air.ridearrivo.com'
+  ) {
+    return <AirApp />
   }
 
   if (path === '/contact-us') {

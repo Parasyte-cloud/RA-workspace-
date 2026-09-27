@@ -30,6 +30,7 @@ type Props = {
   email: string
   eventState: Room7GuestEventState
   title: string
+  displayName?: string
 }
 
 export default function Room7GuestMeetingQna({
@@ -40,6 +41,7 @@ export default function Room7GuestMeetingQna({
   email,
   eventState,
   title,
+  displayName: joinedName = '',
 }: Props) {
   const [
     open,
@@ -51,7 +53,9 @@ export default function Room7GuestMeetingQna({
     displayName,
     setDisplayName,
   ] =
-    useState('')
+    useState(
+      joinedName,
+    )
 
   const [
     guestEmail,

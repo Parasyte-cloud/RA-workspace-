@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useRetiredClients } from '../room7-shared/useRetiredClients'
 import {
   DoorOpen,
   LayoutList,
@@ -30,6 +31,12 @@ import {
   Room7ExtrasOverlay,
   useRoom7MeetingExtras
 } from '../room7-shared/useRoom7MeetingExtras'
+import {
+  Room7PeopleButton,
+  Room7PeoplePanel,
+  useJoinedCount
+} from '../room7-shared/Room7PeoplePanel'
+import type { Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 import type { RoomLeaveReason } from './RoomModule'
 
 type RoomStatus='active'|'ended'
@@ -52,6 +59,7 @@ type RoomSession={
   auth_token:string
   participant_id:string
   role:'host'|'member'
+  can_moderate?:boolean
   event?:{
     scheduled_end:string|null
     event_state:string|null
@@ -76,7 +84,8 @@ export default function RoomMeeting({
   onLeft,
   onEnded,
   onRejoin,
-  onExtend
+  onExtend,
+  moderation
 }:{
   session:RoomSession
   minimized?:boolean
@@ -88,14 +97,19 @@ export default function RoomMeeting({
   onEnded:()=>Promise<void>
   onRejoin:()=>Promise<boolean>
   onExtend?:(endIso:string)=>Promise<void>
+  moderation?:Room7Moderation
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
+  const {retire,isRetired}=useRetiredClients()
+  const meetingRef=useRef(meeting)
+  meetingRef.current=meeting
   const [initError,setInitError]=useState('')
   const [ending,setEnding]=useState(false)
   const [copied,setCopied]=useState<''|'staff'|'guest'>('')
   const [connection,setConnection]=useState<Connection>('connected')
   const [rejoinAttempt,setRejoinAttempt]=useState(0)
   const [frameStyle,setFrameStyle]=useState<CSSProperties>({})
+  const [peopleOpen,setPeopleOpen]=useState(false)
 
   // After a reconnect we skip RealtimeKit's setup screen and restore the
   // microphone/camera state the person had before the drop.
@@ -119,16 +133,26 @@ export default function RoomMeeting({
 
   useEffect(()=>{
     let active=true
+    let client:{leave:()=>Promise<void>}|undefined
     setInitError('')
     Promise.resolve(initMeeting({
       authToken:session.auth_token,
       defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:true}
-    })).catch(error=>{
+    })).then(created=>{
+      if(!created)return
+      if(active)client=created
+      else retire(created)
+    }).catch(error=>{
       if(active){
         setInitError(error instanceof Error?error.message:'Unable to initialise ROOM 7 media.')
       }
     })
-    return()=>{active=false}
+    // A new token (rejoin) or leaving the page: shut the old client down so
+    // it cannot come back as a ghost copy of this person.
+    return()=>{
+      active=false
+      retire(client)
+    }
   },[session.auth_token])
 
   const reconnect=useCallback(async()=>{
@@ -136,6 +160,9 @@ export default function RoomMeeting({
     rejoinInFlightRef.current=true
     setConnection('reconnecting')
     rejoiningRef.current=true
+    // Stop the dead client first. Otherwise the SDK's own recovery can
+    // bring it back next to the new connection and show us twice.
+    retire(meetingRef.current)
     for(let attempt=1;attempt<=MAX_REJOIN_ATTEMPTS;attempt++){
       setRejoinAttempt(attempt)
       if(!navigator.onLine){
@@ -164,6 +191,11 @@ export default function RoomMeeting({
         }
       }catch(error){
         const message=error instanceof Error?error.message:''
+        if(/removed/i.test(message)){
+          rejoinInFlightRef.current=false
+          onLeftRef.current('kicked')
+          return
+        }
         if(/ended|not found/i.test(message)){
           rejoinInFlightRef.current=false
           onLeftRef.current('ended')
@@ -183,12 +215,15 @@ export default function RoomMeeting({
     const self=meeting.self
 
     const handleJoined=()=>{
+      if(isRetired(meeting))return
       rejoinInFlightRef.current=false
       setConnection('connected')
       setRejoinAttempt(0)
     }
 
     const handleRoomLeft=({state}:{state:string})=>{
+      // Our own shutdown of a replaced client is not the user leaving.
+      if(isRetired(meeting))return
       mediaStateRef.current={
         audio:Boolean(self.audioEnabled),
         video:Boolean(self.videoEnabled)
@@ -234,7 +269,7 @@ export default function RoomMeeting({
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }
-  },[meeting,reconnect,session.role])
+  },[meeting,reconnect,session.role,isRetired])
 
   const scheduleLeave=useCallback(()=>{
     void meeting?.leave().catch(()=>{})
@@ -249,6 +284,10 @@ export default function RoomMeeting({
     onExtend:session.role==='host'?onExtend:undefined,
     onScheduleLeave:scheduleLeave
   })
+
+  // Creator or administrator (decided by the server on join).
+  const canModerate=Boolean(moderation)&&(session.can_moderate??session.role==='host')
+  const joinedCount=useJoinedCount(canModerate?meeting:null)
 
   // Full-size mode lines the portaled call up with the placeholder in the
   // page, stopping at the sticky top bar so it never covers it.
@@ -337,6 +376,9 @@ export default function RoomMeeting({
         </div>
         <div className="roomCallActions">
           <Room7ExtrasControls extras={extras} compact={minimized}/>
+          {canModerate&&!minimized&&
+            <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>setPeopleOpen(open=>!open)}/>
+          }
           <button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('staff')} title="Link for RideArrivo staff (intranet sign-in)">
             <Link2 size={16}/>{copied==='staff'?'Copied':'Staff link'}
           </button>
@@ -392,6 +434,15 @@ export default function RoomMeeting({
               leaveOnUnmount={false}
             />
             <Room7ExtrasOverlay extras={extras}/>
+            {canModerate&&moderation&&peopleOpen&&!minimized&&
+              <Room7PeoplePanel
+                meeting={meeting}
+                creatorId={session.room.created_by}
+                selfTarget={String(meeting.self?.customParticipantId||'')}
+                moderation={moderation}
+                onClose={()=>setPeopleOpen(false)}
+              />
+            }
           </RealtimeKitProvider>
         }
         {connection!=='connected'&&

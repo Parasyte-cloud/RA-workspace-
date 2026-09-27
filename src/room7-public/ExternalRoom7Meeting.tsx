@@ -14,6 +14,7 @@ import {
 import {
   useRealtimeKitClient,
 } from '@cloudflare/realtimekit-react'
+import { useRetiredClients } from '../room7-shared/useRetiredClients'
 import {
   RtkMeeting,
   provideRtkDesignSystem,
@@ -82,6 +83,7 @@ type Props = {
   inviteToken: string
   passcode: string
   email: string
+  displayName?: string
   eventState:
     Room7GuestEventState
   scheduledEnd: string | null
@@ -151,6 +153,7 @@ export default function ExternalRoom7Meeting({
   inviteToken,
   passcode,
   email,
+  displayName = '',
   eventState,
   scheduledEnd,
   onRejoin,
@@ -161,6 +164,16 @@ export default function ExternalRoom7Meeting({
     initMeeting,
   ] =
     useRealtimeKitClient()
+
+  const {
+    retire,
+    isRetired,
+  } =
+    useRetiredClients()
+
+  const meetingRef =
+    useRef(meeting)
+  meetingRef.current = meeting
 
   const shellRef =
     useRef<HTMLDivElement>(
@@ -302,6 +315,12 @@ export default function ExternalRoom7Meeting({
   ] =
     useState(false)
 
+  const [
+    removedByHost,
+    setRemovedByHost,
+  ] =
+    useState(false)
+
   const reconnect =
     useCallback(async () => {
       if (rejoinInFlightRef.current) {
@@ -310,6 +329,10 @@ export default function ExternalRoom7Meeting({
 
       rejoinInFlightRef.current = true
       setConnectionLost(false)
+
+      // Stop the dead client first. Otherwise the SDK's own recovery can
+      // bring it back next to the new connection and show this guest twice.
+      retire(meetingRef.current)
 
       for (
         let attempt = 1;
@@ -347,7 +370,7 @@ export default function ExternalRoom7Meeting({
               ? cause.message
               : ''
 
-          if (/scheduled end|not open|ended/i.test(message)) {
+          if (/scheduled end|not open|ended|removed/i.test(message)) {
             break
           }
         }
@@ -359,7 +382,7 @@ export default function ExternalRoom7Meeting({
 
       rejoinInFlightRef.current = false
       setConnectionLost(true)
-    }, [])
+    }, [retire])
 
   // A dropped connection is recovered in place instead of leaving the
   // guest on RealtimeKit's "you left" screen.
@@ -371,11 +394,18 @@ export default function ExternalRoom7Meeting({
     const self = meeting.self
 
     const handleJoined = () => {
+      if (isRetired(meeting)) {
+        return
+      }
       rejoinInFlightRef.current = false
       setConnectionLost(false)
     }
 
     const handleLeft = ({ state }: { state: string }) => {
+      // Our own shutdown of a replaced client is not a dropped connection.
+      if (isRetired(meeting)) {
+        return
+      }
       mediaStateRef.current = {
         audio: Boolean(self.audioEnabled),
         video: Boolean(self.videoEnabled),
@@ -383,6 +413,12 @@ export default function ExternalRoom7Meeting({
 
       if (state === 'disconnected' || state === 'failed') {
         void reconnect()
+        return
+      }
+
+      // Kicked outside our own reconnect means the host removed this guest.
+      if (state === 'kicked' && !rejoinInFlightRef.current) {
+        setRemovedByHost(true)
       }
     }
 
@@ -396,6 +432,7 @@ export default function ExternalRoom7Meeting({
   }, [
     meeting,
     reconnect,
+    isRetired,
   ])
 
   const scheduleLeave =
@@ -414,6 +451,7 @@ export default function ExternalRoom7Meeting({
 
   useEffect(() => {
     let cancelled = false
+    let client: { leave: () => Promise<void> } | undefined
 
     const initialise =
       async () => {
@@ -426,7 +464,7 @@ export default function ExternalRoom7Meeting({
            * the server-selected RealtimeKit preset,
            * never from browser defaults.
            */
-          await initMeeting({
+          const created = await initMeeting({
             authToken,
 
             defaults: rejoined
@@ -436,6 +474,14 @@ export default function ExternalRoom7Meeting({
                   video: false,
                 },
           })
+
+          if (created) {
+            if (cancelled) {
+              retire(created)
+            } else {
+              client = created
+            }
+          }
         } catch (cause) {
           if (cancelled) {
             return
@@ -456,8 +502,11 @@ export default function ExternalRoom7Meeting({
 
     void initialise()
 
+    // A new token (rejoin) or leaving the page: shut the old client down so
+    // it cannot come back as a ghost copy of this guest.
     return () => {
       cancelled = true
+      retire(client)
     }
   }, [
     authToken,
@@ -1042,6 +1091,9 @@ export default function ExternalRoom7Meeting({
               eventState={
                 eventState
               }
+              displayName={
+                displayName
+              }
               title={
                 title
               }
@@ -1100,6 +1152,12 @@ export default function ExternalRoom7Meeting({
               <button type="button" onClick={() => void reconnect()}>
                 Reconnect
               </button>
+            </div>
+          )}
+
+          {removedByHost && (
+            <div className="room7ExperienceLost" role="status">
+              <span>The host removed you from this ROOM 7 event.</span>
             </div>
           )}
 
