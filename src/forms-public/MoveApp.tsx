@@ -182,6 +182,25 @@ function computeEstimate(details: MoveDetails): Estimate | null {
   return { low, high }
 }
 
+// Mirrors EasyBookApp's getIdempotencyKey() -- a sessionStorage-persisted
+// UUID so a double-submit (double click, retry after a network hiccup)
+// doesn't create two move bookings. Cleared once the request actually
+// succeeds so a later, separate booking gets a fresh key.
+function getMoveIdempotencyKey(): string {
+  const key = window.sessionStorage.getItem('ra_move_idempotency_key')
+  if (key) return key
+  const fresh =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+          const random = (Math.random() * 16) | 0
+          const value = char === 'x' ? random : (random & 0x3) | 0x8
+          return value.toString(16)
+        })
+  window.sessionStorage.setItem('ra_move_idempotency_key', fresh)
+  return fresh
+}
+
 type Step = 'intro' | 'details' | 'contact' | 'success'
 
 type Contact = {
@@ -197,11 +216,11 @@ export default function MoveApp() {
 
   const [contact, setContact] = useState<Contact>({ fullName: '', phone: '', email: '' })
   const [notes, setNotes] = useState('')
-  const [website, setWebsite] = useState('') // honeypot field, never rendered visibly
   const [contactError, setContactError] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
+  const [website, setWebsite] = useState('') // honeypot field, never rendered to real visitors
 
   const todayIsoDate = useMemo(() => localIsoDate(new Date()), [])
 
@@ -265,7 +284,6 @@ export default function MoveApp() {
     try {
       const submission = await submitPublicIntakeForm({
         slug: 'move-booking',
-        website,
         payload: {
           move_date: details.moveDate,
           move_window: details.moveWindow,
@@ -288,9 +306,14 @@ export default function MoveApp() {
           email: contact.email.trim(),
           notes: notes.trim(),
           estimated_price: estimate ? `${formatNaira(estimate.low)} to ${formatNaira(estimate.high)}` : '',
+          // Note: not yet a field the intake backend/schema is confirmed to
+          // dedupe on -- see getMoveIdempotencyKey()'s comment.
+          idempotencyKey: getMoveIdempotencyKey(),
         },
+        website,
       })
       setReference(submission.reference || '')
+      window.sessionStorage.removeItem('ra_move_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
@@ -587,7 +610,7 @@ export default function MoveApp() {
                   type="tel"
                   required
                   autoComplete="tel"
-                  placeholder="e.g. 080..."
+                  placeholder="+2348012345678"
                   value={contact.phone}
                   onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
                 />

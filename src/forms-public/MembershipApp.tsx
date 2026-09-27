@@ -129,6 +129,25 @@ const PLANS: Plan[] = [
   },
 ]
 
+// Mirrors EasyBookApp's getIdempotencyKey() -- a sessionStorage-persisted
+// UUID so a double-submit (double click, retry after a network hiccup)
+// doesn't create two membership requests. Cleared once the request
+// actually succeeds so a later, separate signup gets a fresh key.
+function getMembershipIdempotencyKey(): string {
+  const key = window.sessionStorage.getItem('ra_membership_idempotency_key')
+  if (key) return key
+  const fresh =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+          const random = (Math.random() * 16) | 0
+          const value = char === 'x' ? random : (random & 0x3) | 0x8
+          return value.toString(16)
+        })
+  window.sessionStorage.setItem('ra_membership_idempotency_key', fresh)
+  return fresh
+}
+
 type Step = 'identify' | 'plans' | 'success'
 
 type Identity = {
@@ -157,6 +176,7 @@ export default function MembershipApp() {
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
+  const [website, setWebsite] = useState('') // honeypot field, never rendered to real visitors
 
   function applyRiderUser(user: RiderUser, provider: RiderOAuthProvider | null) {
     setRiderUser(user)
@@ -278,9 +298,14 @@ export default function MembershipApp() {
           organization_name: selectedPlan.isCorporate ? orgName.trim() : '',
           seats_estimate: selectedPlan.isCorporate ? seats.trim() : '',
           notes: combinedNotes,
+          // Note: not yet a field the intake backend/schema is confirmed to
+          // dedupe on -- see getMembershipIdempotencyKey()'s comment.
+          idempotencyKey: getMembershipIdempotencyKey(),
         },
+        website,
       })
       setReference(submission.reference || '')
+      window.sessionStorage.removeItem('ra_membership_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
@@ -356,36 +381,41 @@ export default function MembershipApp() {
             )}
 
             <form className="formsCard membershipIdentifyForm" onSubmit={handleIdentify}>
+              {(!riderUser || !identity.fullName.trim()) && (
+                <label>
+                  <span>Full Name *</span>
+                  <input
+                    type="text"
+                    required
+                    value={identity.fullName}
+                    onChange={event => setIdentity(current => ({ ...current, fullName: event.target.value }))}
+                  />
+                </label>
+              )}
               {!riderUser && (
-                <>
-                  <label>
-                    <span>Full Name *</span>
-                    <input
-                      type="text"
-                      required
-                      value={identity.fullName}
-                      onChange={event => setIdentity(current => ({ ...current, fullName: event.target.value }))}
-                    />
-                  </label>
-                  <label className="formsFieldWide">
-                    <span>Email (optional)</span>
-                    <input
-                      type="email"
-                      value={identity.email}
-                      onChange={event => setIdentity(current => ({ ...current, email: event.target.value }))}
-                    />
-                  </label>
-                </>
+                <label className="formsFieldWide">
+                  <span>Email (optional)</span>
+                  <input
+                    type="email"
+                    value={identity.email}
+                    onChange={event => setIdentity(current => ({ ...current, email: event.target.value }))}
+                  />
+                </label>
               )}
               <label className={riderUser ? 'formsFieldWide' : undefined}>
                 <span>Phone Number *</span>
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. 080..."
+                  placeholder="+2348012345678"
                   value={identity.phone}
                   onChange={event => setIdentity(current => ({ ...current, phone: event.target.value }))}
                 />
+              </label>
+
+              <label className="formsHoney" aria-hidden="true">
+                Website
+                <input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)} />
               </label>
 
               {identifyError && (

@@ -1,0 +1,371 @@
+/* ArrivoAir-only styling. Layered on top of forms-public.css and the
+   shared charter.css (charter.css stays exactly what BoatApp also uses --
+   nothing in here touches those selectors, it only adds new "air*"
+   classes AirApp.tsx opts into). */
+
+@media (prefers-reduced-motion: no-preference) {
+  .airStepEnter {
+    animation: airStepIn .32s ease both;
+  }
+}
+
+@keyframes airStepIn {
+  from { opacity: 0; transform: translateY(6px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+
+.airBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px
+}
+
+.airHighlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 0
+}
+
+.airHighlights li::before {
+  content: none
+}
+
+.airHighlights li svg {
+  flex: none;
+  margin-top: 1px;
+  color: #ff9f0a
+}
+
+/* Progress stepper -- Trip / Aircraft / Contact */
+.airStepper {
+  display: flex;
+  align-items: center;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none
+}
+
+.airStepperItem {
+  display: flex;
+  align-items: center;
+  gap: 10px
+}
+
+.airStepperDot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .18);
+  color: #8997aa;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, .03);
+  transition: border-color .2s ease, color .2s ease, background .2s ease
+}
+
+.airStepperItem--active .airStepperDot {
+  border-color: #ff9f0a;
+  color: #07111f;
+  background: #ff9f0a
+}
+
+.airStepperItem--done .airStepperDot {
+  border-color: rgba(255, 159, 10, .55);
+  color: #ff9f0a;
+  background: rgba(255, 159, 10, .12)
+}
+
+.airStepperLabel {
+  color: #8997aa;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .02em
+}
+
+.airStepperItem--active .airStepperLabel,
+.airStepperItem--done .airStepperLabel {
+  color: #e4e9f1
+}
+
+.airStepperConnector {
+  width: clamp(24px, 5vw, 56px);
+  height: 1.5px;
+  margin: 0 12px;
+  background: rgba(255, 255, 255, .14)
+}
+
+@media (max-width: 560px) {
+  .airStepperLabel { display: none }
+  .airStepperConnector { width: 18px; margin: 0 8px }
+}
+
+/* Airport combobox */
+.airAirportField {
+  position: relative
+}
+
+.airAirportInputWrap {
+  position: relative
+}
+
+.airAirportDropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 14px;
+  background: #0c1a2c;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+  max-height: 280px;
+  overflow-y: auto
+}
+
+.airAirportOption {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left
+}
+
+.airAirportOption:hover,
+.airAirportOptionActive {
+  background: rgba(255, 159, 10, .12)
+}
+
+.airAirportOptionCode {
+  flex: none;
+  min-width: 40px;
+  padding: 3px 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .08);
+  color: #f5f7fa;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: .03em
+}
+
+.airAirportOptionName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #e4e9f1;
+  font-size: 13.5px;
+  font-weight: 600
+}
+
+.airAirportOptionName small {
+  color: #758398;
+  font-size: 11.5px;
+  font-weight: 500
+}
+
+/* Live trip summary strip shown once a route is picked */
+.airTripBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0 -4px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 159, 10, .22);
+  border-radius: 16px;
+  background: rgba(255, 159, 10, .06)
+}
+
+.airTripBarRoute {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0
+}
+
+.airTripBarPoint {
+  color: #f5f7fa;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis
+}
+
+.airTripBarLine {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 40px;
+  height: 1px;
+  background: repeating-linear-gradient(to right, rgba(255, 159, 10, .55) 0 6px, transparent 6px 11px)
+}
+
+.airTripBarPlane {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #ff9f0a
+}
+
+.airTripBarMeta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: #c4cfdd;
+  font-size: 12.5px;
+  font-weight: 600
+}
+
+/* Jet class cards */
+.airClassOptions {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))
+}
+
+.airClassCard {
+  position: relative;
+  padding-top: 18px !important
+}
+
+.airClassBadge {
+  position: absolute;
+  top: -9px;
+  right: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ff9f0a;
+  color: #07111f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase
+}
+
+.airClassIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  background: rgba(255, 159, 10, .1);
+  color: #ff9f0a
+}
+
+.charterClassCardSelected .airClassIcon {
+  background: rgba(255, 159, 10, .2)
+}
+
+.airClassCapacity {
+  color: #ff9f0a;
+  font-size: 11px;
+  font-weight: 700
+}
+
+/* Add-on chips */
+.airAddOnRow {
+  gap: 10px
+}
+
+.airAddOnField {
+  padding: 9px 14px !important;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  transition: border-color .15s ease, background .15s ease
+}
+
+.airAddOnField svg {
+  color: #8997aa;
+  flex: none
+}
+
+.airAddOnFieldChecked {
+  border-color: rgba(255, 159, 10, .55);
+  background: rgba(255, 159, 10, .09)
+}
+
+.airAddOnFieldChecked svg {
+  color: #ff9f0a
+}
+
+/* Route visualization on the final review card */
+.airRouteVisual {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 20px
+}
+
+.airRouteVisualPoint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f5f7fa;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap
+}
+
+.airRouteVisualPoint svg {
+  color: #ff9f0a;
+  flex: none
+}
+
+.airRouteVisualTrack {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  min-width: 60px;
+  background: repeating-linear-gradient(to right, rgba(255, 159, 10, .5) 0 7px, transparent 7px 13px)
+}
+
+.airRouteVisualPlane {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  color: #ff9f0a
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .airRouteVisualPlane {
+    animation: airRouteFly 3.4s ease-in-out infinite
+  }
+}
+
+@keyframes airRouteFly {
+  0% { left: 0 }
+  50% { left: calc(100% - 14px) }
+  100% { left: 0 }
+}
+
+@media (max-width: 560px) {
+  .airTripBar {
+    flex-direction: column;
+    align-items: flex-start
+  }
+
+  .airRouteVisual {
+    flex-wrap: wrap
+  }
+
+  .airRouteVisualTrack {
+    order: 3;
+    width: 100%
+  }
+}

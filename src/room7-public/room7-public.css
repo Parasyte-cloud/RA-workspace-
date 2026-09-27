@@ -1872,7 +1872,6 @@
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
 }
-
 /*
  * The meeting screen and its loader sit outside .room7Public, and this entry
  * never sets a body font, so they fell back to the browser serif (Times).
