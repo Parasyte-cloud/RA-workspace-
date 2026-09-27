@@ -28,6 +28,10 @@ const productionOrigins = new Set([
   "https://bookings.ridearrivo.com",
   "https://membership.ridearrivo.com",
   "https://move.ridearrivo.com",
+  // ArrivoBoat / ArrivoAir (boat-charter / private-jet-charter intake
+  // forms) submit from these subdomains -- added alongside those forms.
+  "https://boat.ridearrivo.com",
+  "https://air.ridearrivo.com",
 ])
 
 const allowLocalOrigins =
