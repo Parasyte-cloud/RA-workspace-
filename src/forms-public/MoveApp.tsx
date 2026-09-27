@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
@@ -101,6 +101,28 @@ function formatNaira(value: number) {
   return `₦${Math.round(value).toLocaleString('en-NG')}`
 }
 
+// Today's date as YYYY-MM-DD in the *device's local* calendar, not UTC.
+// toISOString() reports the UTC date, which for a Lagos-based visitor
+// (UTC+1) runs an hour behind local time. During the last hour of every
+// UTC day (00:00-00:59 WAT the next morning), a UTC-based "today" would
+// be one calendar day behind the visitor's real today, letting them pick
+// a date that's already in the past for them. Reading the local
+// year/month/day off the Date object avoids that entirely.
+function localIsoDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function hasEnoughDigitsForPhone(value: string) {
+  return (value.match(/\d/g) || []).length >= 7
+}
+
 type MoveDetails = {
   moveDate: string
   moveWindow: string
@@ -181,9 +203,23 @@ export default function MoveApp() {
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
 
-  const todayIsoDate = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayIsoDate = useMemo(() => localIsoDate(new Date()), [])
 
   const estimate = useMemo(() => computeEstimate(details), [details])
+
+  // index.html sets a single static <title> shared by every subdomain
+  // this app serves (forms/bookings/membership/move/easybook/boat/air
+  // .ridearrivo.com), so without this the browser tab and bookmark for
+  // a moving quote would read "RideArrivo Workspace" -- the same title
+  // as every other one of those subdomains. Scoped to this component so
+  // it only affects move.ridearrivo.com, not the shared default.
+  useEffect(() => {
+    const previousTitle = document.title
+    document.title = 'Get a Moving Quote | RideArrivo Moving'
+    return () => {
+      document.title = previousTitle
+    }
+  }, [])
 
   function updateDetails<K extends keyof MoveDetails>(key: K, value: MoveDetails[K]) {
     setDetails(current => ({ ...current, [key]: value }))
@@ -218,6 +254,12 @@ export default function MoveApp() {
 
     if (!contact.fullName.trim()) return setContactError('Please tell us your name.')
     if (!contact.phone.trim()) return setContactError('A phone number is required so our crew can reach you.')
+    if (!hasEnoughDigitsForPhone(contact.phone)) {
+      return setContactError('Please enter a valid phone number our crew can call.')
+    }
+    if (contact.email.trim() && !isValidEmail(contact.email.trim())) {
+      return setContactError('Please enter a valid email address, or leave it blank.')
+    }
 
     setBusy(true)
     try {
@@ -534,6 +576,7 @@ export default function MoveApp() {
                 <input
                   type="text"
                   required
+                  autoComplete="name"
                   value={contact.fullName}
                   onChange={event => setContact(current => ({ ...current, fullName: event.target.value }))}
                 />
@@ -543,6 +586,7 @@ export default function MoveApp() {
                 <input
                   type="tel"
                   required
+                  autoComplete="tel"
                   placeholder="e.g. 080..."
                   value={contact.phone}
                   onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
@@ -552,6 +596,7 @@ export default function MoveApp() {
                 <span>Email (optional)</span>
                 <input
                   type="email"
+                  autoComplete="email"
                   value={contact.email}
                   onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
                 />
