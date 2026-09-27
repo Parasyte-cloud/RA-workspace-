@@ -18,6 +18,17 @@ const productionOrigins = new Set([
   "https://ridearrivo.com",
   "https://www.ridearrivo.com",
   "https://intranet.ridearrivo.com",
+  // ArrivoBoat / ArrivoAir (boat-charter / private-jet-charter intake
+  // forms) submit from these subdomains -- added alongside those forms.
+  // NOTE: move.ridearrivo.com, membership.ridearrivo.com,
+  // bookings.ridearrivo.com and easybook.ridearrivo.com are NOT in this
+  // list either, despite each submitting to this same function from its
+  // own subdomain origin. If those are working in production, this
+  // deployed function differs from what's in this git checkout (it may
+  // have been hotfixed directly against Supabase); if they're not
+  // working, this allowlist is why. Worth a quick check either way.
+  "https://boat.ridearrivo.com",
+  "https://air.ridearrivo.com",
 ])
 
 const allowLocalOrigins =
