@@ -257,9 +257,16 @@ function AirportField({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
+          onBlur={() => setOpen(false)}
         />
         {open && results.length > 0 && (
-          <ul className="airAirportDropdown" role="listbox">
+          // onMouseDown here (not onClick) fires before the input's onBlur,
+          // and preventDefault stops that mousedown from shifting focus off
+          // the input in the first place -- so clicking an option still
+          // reaches its own onClick normally, instead of the blur closing
+          // the dropdown (and unmounting the option) a moment before the
+          // click would have registered.
+          <ul className="airAirportDropdown" role="listbox" onMouseDown={event => event.preventDefault()}>
             {results.map((airport, index) => (
               <li key={airport.code} role="option" aria-selected={index === highlighted}>
                 <button
@@ -368,6 +375,9 @@ export default function AirApp() {
     if (!details.tripType) return setTripError('Please choose one-way or round-trip.')
     if (!details.departureAirport.trim()) return setTripError('Please enter a departure airport or city.')
     if (!details.destinationAirport.trim()) return setTripError('Please enter a destination airport or city.')
+    if (details.departureAirport.trim().toLowerCase() === details.destinationAirport.trim().toLowerCase()) {
+      return setTripError('Departure and destination can\'t be the same airport.')
+    }
     if (!details.departureDate) return setTripError('Please choose a departure date.')
     if (!details.departureTime) return setTripError('Please choose a departure time.')
     if (isRoundTrip && !details.returnDate) return setTripError('Please choose a return date.')
