@@ -164,7 +164,14 @@ function computeEstimate(details: MoveDetails): Estimate | null {
   if (!base || !details.pickupArea || !details.dropoffArea) return null
 
   const isInterstate = details.pickupArea === 'Interstate' || details.dropoffArea === 'Interstate'
-  const isLocal = !isInterstate && details.pickupArea === details.dropoffArea
+  // 'Other' is a catch-all for areas not in the named list, not a real
+  // specific zone -- two addresses that are both just "Other" could be
+  // anywhere and any distance apart, so treating pickupArea === dropoffArea
+  // as "local" when they're both 'Other' would price a possibly-long move
+  // at the cheapest same-zone rate. Only a real, named, matching zone
+  // counts as local.
+  const isLocal =
+    !isInterstate && details.pickupArea === details.dropoffArea && details.pickupArea !== 'Other'
   const zoneMultiplier = isInterstate ? 2.4 : isLocal ? 1 : 1.35
 
   let subtotal = base * zoneMultiplier
@@ -187,13 +194,12 @@ function computeEstimate(details: MoveDetails): Estimate | null {
 // doesn't create two move bookings. Cleared once the request actually
 // succeeds so a later, separate booking gets a fresh key.
 //
-// NOT currently sent to the backend: move-booking's field_schema
-// (supabase/migrations/20260924130000_move_booking_form.sql) doesn't
-// declare an idempotencyKey field, and the intake edge function's
-// validateSubmission() rejects any payload key it doesn't recognize
-// (see validation.mjs's "Unknown field" check) -- so sending it would
-// 422 every submission. Wire this back in once a migration adds the
-// field to both move-booking and membership-signup's schemas.
+// Sent to the backend as idempotency_key -- move-booking's field_schema
+// (supabase/migrations/20260928150000_move_booking_v2_idempotency_key.sql,
+// v2) declares it as an optional field. Requires that migration (or later)
+// to be the form's published version; against v1 the intake edge
+// function's validateSubmission() would reject it as an unrecognized
+// payload key (see validation.mjs's "Unknown field" check).
 function getMoveIdempotencyKey(): string {
   const key = window.sessionStorage.getItem('ra_move_idempotency_key')
   if (key) return key
@@ -257,7 +263,14 @@ export default function MoveApp() {
     setDetailsError('')
 
     if (!details.moveDate) return setDetailsError('Please choose a moving date.')
-    if (details.moveDate < todayIsoDate) return setDetailsError('Please choose a moving date that is today or later.')
+    // Recomputed here rather than trusting the mount-time todayIsoDate --
+    // if the tab has been open since before local midnight, that memoized
+    // value is stale and would wrongly accept a date that's now in the
+    // past. todayIsoDate itself is left as-is for the date input's `min`,
+    // which is only a soft UI hint anyway.
+    if (details.moveDate < localIsoDate(new Date())) {
+      return setDetailsError('Please choose a moving date that is today or later.')
+    }
     if (!details.moveWindow) return setDetailsError('Please choose a time window.')
     if (!details.pickupAddress.trim()) return setDetailsError('Please enter the pickup address.')
     if (!details.pickupArea) return setDetailsError('Please choose the pickup area.')
@@ -293,6 +306,7 @@ export default function MoveApp() {
       const submission = await submitPublicIntakeForm({
         slug: 'move-booking',
         payload: {
+          idempotency_key: getMoveIdempotencyKey(),
           move_date: details.moveDate,
           move_window: details.moveWindow,
           pickup_address: details.pickupAddress.trim(),
@@ -318,6 +332,10 @@ export default function MoveApp() {
         website,
       })
       setReference(submission.reference || '')
+      // A later, separate booking should get its own fresh key rather than
+      // reusing this one -- otherwise the backend would see it as a retry
+      // of this already-successful submission and dedupe it away.
+      window.sessionStorage.removeItem('ra_move_idempotency_key')
       setStep('success')
     } catch (cause) {
       setSubmitError(
