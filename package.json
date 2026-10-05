@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "npm run prepare-brand && tsc -b && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "test": "node scripts/run-tests.mjs",
+    "test:supabase": "node --test scripts/intake-platform-security.test.mjs scripts/intake-service-e2e.test.mjs",
     "prepare-brand": "node scripts/prepare-brand-assets.mjs",
     "gateway:build": "npm --prefix gateway run build",
     "gateway:test": "npm --prefix gateway test"

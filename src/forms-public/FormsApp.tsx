@@ -7,6 +7,7 @@ import EasyBookApp from './EasyBookApp'
 import BoatApp from './BoatApp'
 import AirApp from './AirApp'
 import AnalyticsConsent from './AnalyticsConsent'
+import FormsErrorBoundary from './FormsErrorBoundary'
 import { initAnalytics, trackOnce } from '../lib/analytics'
 import { useEffect } from 'react'
 import './forms-public.css'
@@ -102,7 +103,9 @@ export default function FormsApp() {
 
   return (
     <>
-      <FormsRoutes />
+      <FormsErrorBoundary>
+        <FormsRoutes />
+      </FormsErrorBoundary>
       <AnalyticsConsent />
     </>
   )

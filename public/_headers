@@ -1,0 +1,28 @@
+# Cloudflare Pages response headers. Applies to every host served by this
+# project (workspace and the public forms subdomains).
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=(self), usb=(), serial=(), bluetooth=()
+  X-Frame-Options: SAMEORIGIN
+
+# Hashed build output never changes, cache it hard.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The service worker and manifest must always revalidate or a bad deploy sticks.
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+
+# Report-only CSP on the public forms hosts. It enforces nothing yet: watch the
+# browser console on each form for violations, then rename the header to
+# Content-Security-Policy to enforce. googletagmanager / google-analytics are
+# the analytics allowances (see src/lib/analytics.ts).
+https://forms.ridearrivo.com/*
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.onrender.com; img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
