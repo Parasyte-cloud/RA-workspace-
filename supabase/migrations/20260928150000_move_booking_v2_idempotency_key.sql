@@ -85,7 +85,7 @@ version as (
       )
     ),
     now()
-  from form
+  from form, next_version
   returning id, form_id
 )
 update public.intake_forms f
