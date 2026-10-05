@@ -1,3 +1,4 @@
+import { trackFormSubmit } from '../lib/analytics'
 import { useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import './forms-public.css'
@@ -93,6 +94,7 @@ export default function InvestorInterestForm() {
         throw new Error(result?.error || 'Unable to submit your request.')
       }
 
+      trackFormSubmit('investor-interest', true)
       setSubmitted(true)
       setForm(emptyForm)
     } catch (cause) {
