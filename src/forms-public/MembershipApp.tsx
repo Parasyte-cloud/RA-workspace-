@@ -14,6 +14,7 @@ import {
   type RiderUser,
 } from '../lib/riderAuth'
 import './forms-public.css'
+import FormsHeroImage from './FormsHeroImage'
 import './membership.css'
 
 /*
@@ -331,6 +332,8 @@ export default function MembershipApp() {
           <RideArrivoExactLogo />
           <span className="formsBadge">MEMBERSHIP</span>
         </header>
+
+        {step === 'identify' && <FormsHeroImage variant="membership" />}
 
         {step === 'identify' && (
           <div className="membershipIdentify">

@@ -17,6 +17,7 @@ import {
   type RiderOAuthProvider,
 } from '../lib/riderAuth'
 import './forms-public.css'
+import FormsHeroImage from './FormsHeroImage'
 import './easybook.css'
 
 /*
@@ -355,6 +356,8 @@ export default function EasyBookApp() {
           <RideArrivoExactLogo />
           <span className="formsBadge">QUICK BOOK</span>
         </header>
+
+        {step === 'identify' && <FormsHeroImage variant="easybook" />}
 
         {step === 'identify' && (
           <div className="easybookIdentify">
