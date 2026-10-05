@@ -6,6 +6,10 @@ import MoveApp from './MoveApp'
 import EasyBookApp from './EasyBookApp'
 import BoatApp from './BoatApp'
 import AirApp from './AirApp'
+import AnalyticsConsent from './AnalyticsConsent'
+import FormsErrorBoundary from './FormsErrorBoundary'
+import { initAnalytics, trackOnce } from '../lib/analytics'
+import { useEffect } from 'react'
 import './forms-public.css'
 
 /*
@@ -73,7 +77,41 @@ function normalizedPath() {
   return path === '' ? '/' : path
 }
 
+function currentFormSlug() {
+  const host = window.location.hostname.toLowerCase()
+  const byHost: Record<string, string> = {
+    'bookings.ridearrivo.com': 'charter-booking',
+    'membership.ridearrivo.com': 'membership-signup',
+    'move.ridearrivo.com': 'move-booking',
+    'easybook.ridearrivo.com': 'easybook',
+    'boat.ridearrivo.com': 'boat-charter',
+    'air.ridearrivo.com': 'private-jet-charter',
+  }
+  if (byHost[host]) return byHost[host]
+  const path = normalizedPath()
+  if (path === '/contact-us') return 'contact-us'
+  if (path === '/charter-booking') return 'charter-booking'
+  if (path === '/' || path === '/investor') return 'investor-interest'
+  return 'not-found'
+}
+
 export default function FormsApp() {
+  useEffect(() => {
+    initAnalytics()
+    trackOnce('form_view', currentFormSlug())
+  }, [])
+
+  return (
+    <>
+      <FormsErrorBoundary>
+        <FormsRoutes />
+      </FormsErrorBoundary>
+      <AnalyticsConsent />
+    </>
+  )
+}
+
+function FormsRoutes() {
   const path = normalizedPath()
 
   if (

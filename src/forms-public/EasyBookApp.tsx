@@ -1,3 +1,4 @@
+import { trackFormSubmit } from '../lib/analytics'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import {
@@ -313,6 +314,7 @@ export default function EasyBookApp() {
         return
       }
 
+      trackFormSubmit('easybook', true)
       setResult(data)
       setStep('success')
       setBusy(false)

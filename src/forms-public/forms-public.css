@@ -353,3 +353,22 @@ button,input,select,textarea{
 .formsSuccess a{
   text-decoration:none
 }
+
+/* Analytics consent banner (see AnalyticsConsent.tsx) */
+.raConsent{
+  position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;
+  max-width:520px;margin:0 auto;padding:16px;border-radius:12px;
+  background:#0c1a2e;color:#f5f7fa;border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 12px 40px rgba(0,0,0,.45);font-size:14px;line-height:1.5;
+}
+.raConsent p{margin:0 0 12px}
+.raConsentActions{display:flex;gap:8px;justify-content:flex-end}
+.raConsentActions button{
+  padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.25);
+  background:transparent;color:inherit;font:inherit;cursor:pointer;
+}
+.raConsentActions .raConsentAccept{background:#f5f7fa;color:#07111f;border-color:#f5f7fa}
+.raConsentLink{
+  position:fixed;left:12px;bottom:8px;z-index:9998;background:none;border:0;
+  color:rgba(245,247,250,.6);font-size:11px;text-decoration:underline;cursor:pointer;
+}

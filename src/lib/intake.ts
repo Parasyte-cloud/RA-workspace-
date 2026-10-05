@@ -1,3 +1,4 @@
+import { trackFormSubmit } from './analytics'
 import { supabase } from './supabase'
 
 export const INTAKE_STATUSES = [
@@ -515,27 +516,38 @@ export async function submitPublicIntakeForm(
     website?: string
   },
 ) {
-  const response =
-    await intakeRequest<{
-      ok: true
-      submission: IntakeSubmissionReceipt
-    }>(
-      new URLSearchParams(),
-      {
-        method: 'POST',
-        body: {
-          slug:
-            normalizeIntakeSlug(
-              input.slug,
-            ),
-          payload: input.payload,
-          website:
-            input.website || '',
-        },
-      },
-    )
+  const slug = normalizeIntakeSlug(input.slug)
 
-  return response.submission
+  try {
+    const response =
+      await intakeRequest<{
+        ok: true
+        submission: IntakeSubmissionReceipt
+      }>(
+        new URLSearchParams(),
+        {
+          method: 'POST',
+          body: {
+            slug,
+            payload: input.payload,
+            website:
+              input.website || '',
+          },
+        },
+      )
+
+    trackFormSubmit(slug, true)
+    return response.submission
+  } catch (cause) {
+    trackFormSubmit(
+      slug,
+      false,
+      cause instanceof IntakeRequestError
+        ? 'request_' + String(cause.status ?? 'error')
+        : 'network',
+    )
+    throw cause
+  }
 }
 
 export async function submitInternalIntakeForm(

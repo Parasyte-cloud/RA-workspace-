@@ -158,6 +158,14 @@ const publicRoom7 =
   !publicForms &&
   isPublicRoom7Surface()
 
+// The employee workspace sign-in page must never show up in search results.
+if (!publicForms && !publicRoom7) {
+  const robots = document.createElement('meta')
+  robots.name = 'robots'
+  robots.content = 'noindex, nofollow'
+  document.head.appendChild(robots)
+}
+
 ReactDOM.createRoot(
   document.getElementById('root')!,
 ).render(
