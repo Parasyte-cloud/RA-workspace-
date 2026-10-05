@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
+import FormsHeroImage from './FormsHeroImage'
 import './charter.css'
 
 /*
@@ -165,6 +166,8 @@ export default function BoatApp() {
           <RideArrivoExactLogo />
           <span className="formsBadge">BOAT &amp; YACHT CHARTER</span>
         </header>
+
+        {step === 'intro' && <FormsHeroImage variant="boat" />}
 
         {step === 'intro' && (
           <div className="charterIntro">
