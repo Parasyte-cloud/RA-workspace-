@@ -372,3 +372,42 @@ button,input,select,textarea{
   position:fixed;left:12px;bottom:8px;z-index:9998;background:none;border:0;
   color:rgba(245,247,250,.6);font-size:11px;text-decoration:underline;cursor:pointer;
 }
+
+/* Banner photo (see FormsHeroImage.tsx) */
+.formsHeroImage{
+  position:relative;
+  margin-top:26px;
+  border-radius:20px;
+  overflow:hidden;
+  aspect-ratio:21/8;
+  background:#0c1a2e;
+  border:1px solid rgba(255,255,255,.08)
+}
+
+.formsHeroImage picture,
+.formsHeroImage img{
+  display:block;
+  width:100%;
+  height:100%
+}
+
+.formsHeroImage img{
+  object-fit:cover;
+  object-position:50% 45%
+}
+
+.formsHeroImage::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(7,17,31,0) 45%,rgba(7,17,31,.72) 100%);
+  pointer-events:none
+}
+
+@media (max-width:640px){
+  .formsHeroImage{
+    margin-top:18px;
+    border-radius:16px;
+    aspect-ratio:16/10
+  }
+}

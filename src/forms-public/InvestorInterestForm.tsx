@@ -1,6 +1,7 @@
 import { trackFormSubmit } from '../lib/analytics'
 import { useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeroImage from './FormsHeroImage'
 import './forms-public.css'
 
 /*
@@ -136,6 +137,8 @@ export default function InvestorInterestForm() {
           <RideArrivoExactLogo />
           <span className="formsBadge">SECURE FORM</span>
         </header>
+
+        <FormsHeroImage />
 
         <div className="formsHero">
           <div>
