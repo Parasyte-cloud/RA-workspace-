@@ -16,6 +16,7 @@ import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { AIRPORTS, searchAirports, formatAirport, type Airport } from './airports'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
+import FormsHeroImage from './FormsHeroImage'
 import './charter.css'
 import './air.css'
 
@@ -449,6 +450,8 @@ export default function AirApp() {
         </header>
 
         <TripStepper current={step} />
+
+        {step === 'intro' && <FormsHeroImage variant="air" />}
 
         {step === 'intro' && (
           <div className="charterIntro airStepEnter">

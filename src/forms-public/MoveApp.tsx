@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
+import FormsHeroImage from './FormsHeroImage'
 import './move.css'
 
 /*
@@ -365,6 +366,8 @@ export default function MoveApp() {
           <RideArrivoExactLogo />
           <span className="formsBadge">MOVING</span>
         </header>
+
+        {step === 'intro' && <FormsHeroImage variant="move" />}
 
         {step === 'intro' && (
           <div className="moveIntro">
