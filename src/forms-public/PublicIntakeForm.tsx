@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeroImage from './FormsHeroImage'
 import './forms-public.css'
 
 /*
@@ -393,6 +394,8 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
           <RideArrivoExactLogo />
           <span className="formsBadge">SECURE FORM</span>
         </header>
+
+        <FormsHeroImage />
 
         <div className="formsHero formsHeroCompact">
           <div>
