@@ -1114,27 +1114,34 @@ serve(async(req)=>{
       }
 
       const {
-        count:approvals,
+        data:approvalRows,
         error:approvalError,
       } =
         await admin
           .from("admin_audit_log")
-          .select("id",{count:"exact",head:true})
+          .select("id")
           .eq("target_employee_id",userId)
           .eq("action","employee.approve")
+          .limit(1)
 
       if(approvalError){
         console.error(
           "workspace-user-admin delete-pending approval check",
           approvalError
         )
+        const detail =
+          [approvalError.code,approvalError.message,approvalError.details,approvalError.hint]
+            .filter(Boolean)
+            .join(" | ") || "no detail returned"
         return json(
-          {error:`Unable to confirm this account was never approved (${errorMessage(approvalError)}). Nothing was deleted.`},
+          {error:`Unable to confirm this account was never approved (${detail}). Nothing was deleted.`},
           500
         )
       }
 
-      if((approvals||0)>0){
+      const approvals = approvalRows?.length || 0
+
+      if(approvals>0){
         return json(
           {error:"This account was approved before, so it is kept as a former employee record. Nothing was deleted."},
           409
@@ -1163,7 +1170,7 @@ serve(async(req)=>{
           auditError
         )
         return json(
-          {error:"Could not write the audit record. Nothing was deleted."},
+          {error:`Could not write the audit record (${[auditError.code,auditError.message,auditError.details].filter(Boolean).join(" | ") || "no detail returned"}). Nothing was deleted.`},
           500
         )
       }
