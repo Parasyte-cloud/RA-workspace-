@@ -9,7 +9,7 @@ import './move.css'
  * move.ridearrivo.com (see isPublicFormsSurface() in main.tsx and the
  * hostname check in FormsApp.tsx).
  *
- * Flow: intro (marketing copy, "Get my moving quote") -> move details
+ * Flow: intro (marketing copy, "Get my removals quote") -> move details
  * (date, time window, pickup/dropoff address + area + floor access,
  * property size, packing help, special items, crew size, with a live
  * estimate that updates as the form fills in) -> contact details, a
@@ -249,7 +249,7 @@ export default function MoveApp() {
   // it only affects move.ridearrivo.com, not the shared default.
   useEffect(() => {
     const previousTitle = document.title
-    document.title = 'Get a Moving Quote | RideArrivo Moving'
+    document.title = 'Get a Removals Quote | RideArrivo Removals'
     return () => {
       document.title = previousTitle
     }
@@ -364,15 +364,15 @@ export default function MoveApp() {
       <section className="formsShell moveShell">
         <header className="formsHeader">
           <RideArrivoExactLogo />
-          <span className="formsBadge">MOVING</span>
+          <span className="formsBadge">REMOVALS</span>
         </header>
 
         {step === 'intro' && <FormsHeroImage variant="move" />}
 
         {step === 'intro' && (
           <div className="moveIntro">
-            <span className="formsEyebrow">RIDEARRIVO MOVING</span>
-            <h1>Need to move from your old apartment to a new one? Book us now.</h1>
+            <span className="formsEyebrow">RIDEARRIVO REMOVALS</span>
+            <h1>Need a removal service to move from your old apartment to a new one? Book us now.</h1>
             <p className="moveLead">
               A truck, a careful crew and one point of contact for your whole move, from a single
               room to a full house or office relocation. Tell us the details and see a starting
@@ -380,14 +380,14 @@ export default function MoveApp() {
             </p>
 
             <ul className="moveHighlights">
-              <li>Vetted moving crews, not a stranger with a truck</li>
+              <li>Vetted removal crews, not a stranger with a truck</li>
               <li>See a price estimate before you commit to anything</li>
               <li>One booking covers loading, transport and unloading</li>
             </ul>
 
             <div className="formsActions">
               <button type="button" onClick={() => setStep('details')}>
-                Get my moving quote
+                Get my removals quote
               </button>
               <small>Takes about two minutes. No payment required to get an estimate.</small>
             </div>
@@ -399,7 +399,7 @@ export default function MoveApp() {
             <span className="formsEyebrow">STEP 1 OF 2</span>
             <h1>Tell us about your move.</h1>
             <p className="moveLead">
-              The more we know, the more accurate your estimate and your moving crew will be.
+              The more we know, the more accurate your estimate and your removal crew will be.
             </p>
 
             <form className="formsCard formsGrid" onSubmit={handleDetailsSubmit}>
@@ -701,7 +701,7 @@ export default function MoveApp() {
 
               <p className="moveRecapNote">
                 This is a starting estimate, not a final price. Before your move is confirmed, a
-                member of the RideArrivo Moving team will contact you to confirm the exact price,
+                member of the RideArrivo Removals team will contact you to confirm the exact price,
                 crew and arrival window.
               </p>
 
@@ -728,7 +728,7 @@ export default function MoveApp() {
             <span className="formsEyebrow">BOOKING RECEIVED</span>
             <h1>Your move is booked in for review.</h1>
             <p>
-              A member of the RideArrivo Moving team will review your details and reach out to{' '}
+              A member of the RideArrivo Removals team will review your details and reach out to{' '}
               {contact.phone} to confirm your exact price, crew and arrival window ahead of{' '}
               {details.moveDate || 'your moving date'}.
               {reference ? ` Reference: ${reference}.` : ''}
@@ -748,7 +748,7 @@ export default function MoveApp() {
 
         <footer className="formsFooter">
           <span>RideArrivo Limited</span>
-          <span>Moving</span>
+          <span>Removals</span>
         </footer>
       </section>
     </main>

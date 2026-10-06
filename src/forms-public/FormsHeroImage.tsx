@@ -69,7 +69,7 @@ const PICTURES = {
   },
   move: {
     large: moveLarge, small: moveSmall, mobile: moveMobile,
-    alt: 'A chauffeur opening the car door for a passenger outside an airport terminal',
+    alt: 'A removal crew carrying wrapped furniture and boxes from a truck while a couple watches at sunset',
     width: 1024, height: 409, mobileWidth: 560, mobileHeight: 373,
   },
 } satisfies Record<string, Picture>
