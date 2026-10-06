@@ -115,6 +115,8 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
   const [active, setActive] = useState(0)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const wasOpen = useRef(false)
   const requestSequence = useRef(0)
 
   // Cmd/Ctrl+K opens search from anywhere in the workspace.
@@ -131,9 +133,12 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
   useEffect(() => {
     if (open) {
+      wasOpen.current = true
       const timer = setTimeout(() => inputRef.current?.focus(), 10)
       return () => clearTimeout(timer)
     }
+    if (wasOpen.current) triggerRef.current?.focus()
+    wasOpen.current = false
     setQuery('')
     setResults(null)
     setMail(null)
@@ -238,7 +243,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
   if (!open) {
     return (
-      <button type="button" className="iconButton" title="Search (⌘K)" aria-label="Search the workspace" onClick={() => setOpen(true)}>
+      <button type="button" ref={triggerRef} className="iconButton" title="Search (⌘K)" aria-label="Search the workspace" onClick={() => setOpen(true)}>
         <Search size={17}/>
       </button>
     )
@@ -248,7 +253,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
   let index = -1
 
   return (
-    <div className="socialModal searchModal" role="dialog" aria-modal="true" onClick={() => setOpen(false)}>
+    <div className="socialModal searchModal" role="dialog" aria-modal="true" aria-label="Search the workspace" onClick={() => setOpen(false)}>
       <div className="searchModalPanel" onClick={event => event.stopPropagation()}>
         <div className="searchModalHeader">
           <Search size={18}/>
@@ -259,13 +264,17 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
             onKeyDown={onInputKeyDown}
             placeholder="Search tasks, files, knowledge, people, chat, mail…"
             aria-label="Search the workspace"
+            role="combobox"
+            aria-expanded={flat.length > 0}
+            aria-controls="searchResultsList"
+            aria-activedescendant={flat[active] ? `searchResult-${flat[active].key}` : undefined}
           />
           <button type="button" className="modalClose" onClick={() => setOpen(false)} aria-label="Close search">
             <X size={16}/>
           </button>
         </div>
 
-        <div className="searchModalBody">
+        <div className="searchModalBody" id="searchResultsList" role="listbox" aria-live="polite">
           {trimmed.length > 0 && trimmed.length < 2 && (
             <p className="searchHint">Keep typing. Search needs at least 2 characters.</p>
           )}
@@ -289,6 +298,9 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
                       <button
                         type="button"
                         key={item.key}
+                        id={`searchResult-${item.key}`}
+                        role="option"
+                        aria-selected={position === active}
                         className={`searchResultRow${position === active ? ' active' : ''}`}
                         onMouseEnter={() => setActive(position)}
                         onClick={() => choose(item)}
