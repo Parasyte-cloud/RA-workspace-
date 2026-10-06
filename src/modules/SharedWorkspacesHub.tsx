@@ -1,3 +1,4 @@
+import { peekSearchFocus, clearSearchFocus, onSearchFocus } from '../lib/searchFocus'
 import {
   useCallback,
   useEffect,
@@ -330,6 +331,20 @@ export default function SharedWorkspacesHub({
       baseRequestRef.current+=1
     }
   },[loadBase])
+
+  // Opened from global search: select the chosen space once spaces load.
+  useEffect(()=>{
+    const open=()=>{
+      const id=peekSearchFocus('shared')
+      if(!id) return
+      if(spaces.some(space=>space.id===id)){
+        setSelectedSpaceId(id)
+        clearSearchFocus()
+      }
+    }
+    open()
+    return onSearchFocus(open)
+  },[spaces])
 
   useEffect(()=>{
     void loadSpace(selectedSpaceId)

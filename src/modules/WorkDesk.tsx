@@ -1,3 +1,4 @@
+import { peekSearchFocus, clearSearchFocus, onSearchFocus } from '../lib/searchFocus'
 import {
   useCallback,
   useEffect,
@@ -313,6 +314,21 @@ export function WorkDesk(){
     loadWork
   ])
 
+
+  // Opened from global search: show the chosen task once loaded.
+  useEffect(()=>{
+    const open=()=>{
+      const id=peekSearchFocus('task')
+      if(!id) return
+      const found=items.find(item=>item.id===id)
+      if(found){
+        setSelectedWork(found)
+        clearSearchFocus()
+      }
+    }
+    open()
+    return onSearchFocus(open)
+  },[items])
 
   useEffect(()=>{
     void initialise()

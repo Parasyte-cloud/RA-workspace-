@@ -139,17 +139,20 @@ html[data-ra-glow='off'] {
 
 html[data-ra-glow='subtle'] {
   --ra-ring-shadow:
-    0 0 0 1px var(--ra-shell-edge),
-    0 0 22px rgba(255,153,0,.17),
-    0 0 54px rgba(45,112,214,.13),
+    0 0 0 1px rgba(255,177,59,.45),
+    0 0 18px rgba(255,153,0,.36),
+    0 0 44px rgba(255,153,0,.24),
+    0 0 90px rgba(45,112,214,.26),
     var(--ra-frame-shadow);
 }
 
 html[data-ra-glow='medium'] {
   --ra-ring-shadow:
-    0 0 0 1px var(--ra-shell-edge),
-    0 0 28px 3px rgba(255,153,0,.22),
-    0 0 72px 9px rgba(45,112,214,.19),
+    0 0 0 1px rgba(255,177,59,.7),
+    0 0 24px 2px rgba(255,153,0,.52),
+    0 0 60px 8px rgba(255,153,0,.36),
+    0 0 120px 18px rgba(68,128,255,.36),
+    0 0 180px 24px rgba(68,128,255,.20),
     var(--ra-frame-shadow);
 }
 
@@ -913,14 +916,14 @@ html[data-ra-theme='dark']
 
 .glowSwatch.subtle {
   box-shadow:
-    0 0 10px rgba(255,153,0,.38),
-    0 0 18px rgba(46,110,220,.26);
+    0 0 14px 2px rgba(255,153,0,.65),
+    0 0 26px 3px rgba(46,110,220,.45);
 }
 
 .glowSwatch.medium {
   box-shadow:
-    0 0 13px 2px rgba(255,153,0,.52),
-    0 0 25px 4px rgba(46,110,220,.36);
+    0 0 18px 4px rgba(255,153,0,.8),
+    0 0 36px 8px rgba(46,110,220,.6);
 }
 
 
@@ -4825,11 +4828,11 @@ html[data-ra-theme='dark'] .authCopy p {
 
 html[data-ra-glow="high"] {
   --ra-ring-shadow:
-    0 0 0 1px rgba(255,177,59,.62),
-    0 0 20px rgba(255,153,0,.34),
-    0 0 46px rgba(255,153,0,.25),
-    0 0 86px rgba(68,128,255,.22),
-    0 0 135px rgba(68,128,255,.14),
+    0 0 0 1px rgba(255,200,90,.9),
+    0 0 28px 4px rgba(255,170,30,.75),
+    0 0 70px 14px rgba(255,153,0,.55),
+    0 0 140px 30px rgba(68,128,255,.55),
+    0 0 240px 50px rgba(68,128,255,.32),
     0 30px 90px rgba(2,17,40,.28);
 }
 

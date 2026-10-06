@@ -89,7 +89,8 @@
   color:var(--navy)
 }
 
-.searchResultRow:hover{
+.searchResultRow:hover,
+.searchResultRow.active{
   background:rgba(7,26,56,.045)
 }
 

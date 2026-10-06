@@ -29,10 +29,14 @@ export type AppearancePreferences = {
 export const APPEARANCE_STORAGE_KEY =
   'ridearrivo-workspace-appearance'
 
+// Bump when the default lighting changes so existing users get the
+// new always-on ambiance once. Their later choices are kept.
+const APPEARANCE_VERSION = 2
+
 export const defaultAppearance: AppearancePreferences = {
   theme: 'light',
   workspace: 'ambient',
-  glow: 'subtle',
+  glow: 'medium',
   size: 'balanced'
 }
 
@@ -77,7 +81,17 @@ export function readAppearance(): AppearancePreferences {
     }
 
     const parsed =
-      JSON.parse(raw) as Partial<AppearancePreferences>
+      JSON.parse(raw) as Partial<AppearancePreferences> & {
+        v?: number
+      }
+
+    if ((parsed.v ?? 1) < APPEARANCE_VERSION) {
+      parsed.glow = defaultAppearance.glow
+      parsed.workspace =
+        parsed.workspace === 'clean'
+          ? defaultAppearance.workspace
+          : parsed.workspace
+    }
 
     return {
       theme:
@@ -139,7 +153,7 @@ export function saveAppearance(
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(
       APPEARANCE_STORAGE_KEY,
-      JSON.stringify(preferences)
+      JSON.stringify({ ...preferences, v: APPEARANCE_VERSION })
     )
   }
 
