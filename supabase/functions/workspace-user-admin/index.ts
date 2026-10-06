@@ -1129,7 +1129,7 @@ serve(async(req)=>{
           approvalError
         )
         return json(
-          {error:"Unable to confirm this account was never approved. Nothing was deleted."},
+          {error:`Unable to confirm this account was never approved (${errorMessage(approvalError)}). Nothing was deleted.`},
           500
         )
       }
