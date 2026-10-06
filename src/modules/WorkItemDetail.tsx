@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import { formatWorkTime, isWorkOverdue } from '../lib/workTime'
 
 
 type Employee = {
@@ -114,6 +115,7 @@ type WorkItem = {
   department:string|null
   created_by:string
   due_at:string|null
+  created_at?:string
   escalation_level?:number
   escalated_at?:string|null
   escalation_reason?:string|null
@@ -909,16 +911,28 @@ export function WorkItemDetail({
                 </strong>
               </span>
 
-              {item.due_at&&
+              {item.created_at&&
                 <span>
-                  Due
+                  Assigned
                   <strong>
-                    {new Date(
-                      item.due_at
-                    ).toLocaleString()}
+                    {formatWorkTime(item.created_at)}
                   </strong>
                 </span>
               }
+
+              <span>
+                Due
+                <strong>
+                  {item.due_at
+                    ? formatWorkTime(item.due_at)
+                    : 'Not set'
+                  }
+                  {isWorkOverdue(item.due_at,item.status)
+                    ? ' (overdue)'
+                    : ''
+                  }
+                </strong>
+              </span>
 
               <span>
                 Escalation
