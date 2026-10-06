@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   UserCheck,
   UserPlus,
+  Trash2,
   UserX,
 } from 'lucide-react'
 
@@ -351,6 +352,35 @@ export default function AdminAccessManager(){
       setMessage(
         error?.message ||
         'Unable to revoke access.'
+      )
+    }
+  }
+
+  const deletePending=async(
+    user:AccessUser
+  )=>{
+    const confirmed=window.confirm(
+      `Permanently delete the pending request from ${user.full_name || user.email} (${user.email})?\n\nThey will no longer be able to sign in and the account cannot be recovered. They can sign up again later.`
+    )
+    if(!confirmed) return
+
+    setMessage('')
+
+    try{
+      await invokeAdmin({
+        action:'delete-pending',
+        userId:user.id,
+      })
+
+      setMessage(
+        `Pending request from ${user.email} deleted.`
+      )
+
+      await loadUsers()
+    }catch(error:any){
+      setMessage(
+        error?.message ||
+        'Unable to delete this request.'
       )
     }
   }
@@ -808,6 +838,18 @@ export default function AdminAccessManager(){
                     >
                       <UserCheck size={16}/>
                       Approve access
+                    </button>
+                  }
+
+                  {!user.active &&
+                    <button
+                      className="dangerButton"
+                      onClick={()=>
+                        void deletePending(user)
+                      }
+                    >
+                      <Trash2 size={16}/>
+                      Delete request
                     </button>
                   }
 

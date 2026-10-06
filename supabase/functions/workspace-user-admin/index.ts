@@ -1054,6 +1054,137 @@ serve(async(req)=>{
       })
     }
 
+    /*
+     * DELETE PENDING
+     *
+     * Permanently removes a sign-up that was never approved. Refused when:
+     *  - the target is the caller,
+     *  - the profile is active (use Revoke instead),
+     *  - the account was ever approved (a former employee keeps their
+     *    record so history and audit trails stay intact).
+     * An audit row is written first, because the target's profile (and its
+     * cascade) disappears with the Auth user.
+     */
+    if(action==="delete-pending"){
+      const userId =
+        String(
+          body?.userId || ""
+        ).trim()
+
+      if(!/^[0-9a-f-]{36}$/i.test(userId)){
+        return json(
+          {error:"A valid user ID is required."},
+          400
+        )
+      }
+
+      if(userId===administratorId){
+        return json(
+          {error:"You cannot delete your own account."},
+          400
+        )
+      }
+
+      const {
+        data:target,
+        error:targetError,
+      } =
+        await admin
+          .from("employee_profiles")
+          .select("id,email,full_name,active")
+          .eq("id",userId)
+          .maybeSingle()
+
+      if(targetError){
+        console.error(
+          "workspace-user-admin delete-pending lookup",
+          targetError
+        )
+        return json(
+          {error:`Unable to look up the account: ${errorMessage(targetError)}`},
+          500
+        )
+      }
+
+      if(target?.active===true){
+        return json(
+          {error:"This account is active. Revoke access instead of deleting it."},
+          409
+        )
+      }
+
+      const {
+        count:approvals,
+        error:approvalError,
+      } =
+        await admin
+          .from("admin_audit_log")
+          .select("id",{count:"exact",head:true})
+          .eq("target_employee_id",userId)
+          .eq("action","employee.approve")
+
+      if(approvalError){
+        console.error(
+          "workspace-user-admin delete-pending approval check",
+          approvalError
+        )
+        return json(
+          {error:"Unable to confirm this account was never approved. Nothing was deleted."},
+          500
+        )
+      }
+
+      if((approvals||0)>0){
+        return json(
+          {error:"This account was approved before, so it is kept as a former employee record. Nothing was deleted."},
+          409
+        )
+      }
+
+      const {error:auditError}=
+        await admin
+          .from("admin_audit_log")
+          .insert({
+            actor_id:administratorId,
+            target_employee_id:null,
+            action:"employee.delete_pending",
+            entity_type:"employee_profiles",
+            entity_id:userId,
+            source:"workspace-user-admin",
+            metadata:{
+              email:target?.email || null,
+              full_name:target?.full_name || null,
+            },
+          })
+
+      if(auditError){
+        console.error(
+          "workspace-user-admin delete-pending audit",
+          auditError
+        )
+        return json(
+          {error:"Could not write the audit record. Nothing was deleted."},
+          500
+        )
+      }
+
+      const {error:deleteError}=
+        await admin.auth.admin.deleteUser(userId)
+
+      if(deleteError){
+        console.error(
+          "workspace-user-admin delete-pending",
+          deleteError
+        )
+        return json(
+          {error:`Unable to delete the account: ${errorMessage(deleteError)}`},
+          500
+        )
+      }
+
+      return json({success:true,userId})
+    }
+
     return json(
       {
         error:
