@@ -1,3 +1,4 @@
+import { peekSearchFocus, clearSearchFocus, onSearchFocus } from '../lib/searchFocus'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
@@ -358,6 +359,21 @@ export function KnowledgeBaseModule() {
   useEffect(() => {
     load()
   }, [])
+
+  // Opened from global search: show the chosen article once loaded.
+  useEffect(() => {
+    const open = () => {
+      const id = peekSearchFocus('knowledge')
+      if (!id) return
+      const found = items.find(item => item.id === id)
+      if (found) {
+        setSelected(found)
+        clearSearchFocus()
+      }
+    }
+    open()
+    return onSearchFocus(open)
+  }, [items])
 
   async function load() {
     if (!supabase) return

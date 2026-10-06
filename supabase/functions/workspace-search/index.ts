@@ -32,6 +32,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
  * real PostgREST parser. Per-column .ilike() calls take the pattern as a
  * plain, library-encoded argument, so there's nothing to get wrong here.
  *
+ * A second group of areas (tasks, knowledge base, company files,
+ * announcements, calendar, shared workspaces, brand library, CRM, legal and
+ * meeting rooms) is searched with a client that carries the CALLER'S OWN
+ * access token and the anon key, so Postgres row level security decides what
+ * comes back and there is no hand-copied rule to drift. That is only safe if
+ * every one of those tables really has RLS on, which is why
+ * supabase/checks/workspace_search_rls_check.sql exists and a contract test
+ * keeps its table list in step with USER_SCOPED_DOMAINS below. Legal areas
+ * also carry a role guard in code, as a second lock.
+ *
+ * Deliberately NOT searchable: employee KYC documents and HR detail records,
+ * performance reviews, candidates, bank and ledger records, marketing wallet
+ * records and stored mail bodies. Those stay in their own screens.
+ *
  * Mail is NOT included here: RideArrivo mail is Zoho's, fetched live via
  * the zoho-mail-* functions rather than stored in Postgres, so it needs
  * its own live per-mailbox call (see zoho-mail-search). The frontend
@@ -84,9 +98,16 @@ async function searchColumns<T extends Row>(
   pattern: string,
   limit: number,
   sortKey?: string,
+  ascending = false,
 ): Promise<T[]> {
+  // Order and cap inside Postgres, per column. Without this each column query
+  // returned every matching row and the trimming happened afterwards, so a
+  // common word could move thousands of rows through the function.
   const responses = await Promise.all(
-    columns.map((column) => factory().ilike(column, pattern)),
+    columns.map((column) => {
+      const query = factory().ilike(column, pattern)
+      return (sortKey ? query.order(sortKey, { ascending }) : query).limit(limit * 2)
+    }),
   )
   for (const response of responses) {
     if (response.error) console.error("workspace-search column query failed", response.error.message)
@@ -96,12 +117,162 @@ async function searchColumns<T extends Row>(
     limit * 4, // merge generously, trim after sort
   ) as T[]
   if (sortKey) {
-    rows.sort((a, b) => String((b as any)[sortKey] || "").localeCompare(String((a as any)[sortKey] || "")))
+    // People used to be sorted Z to A, because the comparison was always
+    // newest-first. Names read A to Z; dates stay newest-first.
+    rows.sort((a, b) => {
+      const left = String((a as any)[sortKey] || "")
+      const right = String((b as any)[sortKey] || "")
+      return ascending ? left.localeCompare(right) : right.localeCompare(left)
+    })
   }
   return rows.slice(0, limit)
 }
 
 type Actor = { id: string; role: string; active: boolean }
+
+// Areas searched as the signed-in user (row level security applies). Each
+// entry names ONE table; `roles` is an extra guard in code on top of RLS and
+// `filter` only hides rows that are not meant to be listed anyway (drafts,
+// archived records), it is never a security rule.
+type Domain = {
+  key: string
+  table: string
+  select: string
+  columns: string[]
+  titleColumn: string
+  sortKey: string
+  limit: number
+  roles?: string[]
+  filter?: (query: any) => any
+}
+
+const LEGAL_ROLES = ["legal", "manager", "admin"]
+
+const USER_SCOPED_DOMAINS: Domain[] = [
+  {
+    key: "tasks", table: "work_items",
+    select: "id,title,status,priority,department,due_at,created_at",
+    columns: ["title", "description"], titleColumn: "title", sortKey: "created_at", limit: 8,
+  },
+  {
+    key: "knowledge", table: "workspace_knowledge_articles",
+    select: "id,title,slug,summary,category,status,updated_at",
+    columns: ["title", "summary", "category", "content"], titleColumn: "title", sortKey: "updated_at", limit: 6,
+    filter: (query) => query.eq("status", "published"),
+  },
+  {
+    key: "files", table: "workspace_files",
+    select: "id,name,description,folder_path,department,file_type,updated_at",
+    columns: ["name", "description", "folder_path"], titleColumn: "name", sortKey: "updated_at", limit: 6,
+    filter: (query) => query.eq("is_active", true),
+  },
+  {
+    key: "announcements", table: "workspace_announcements",
+    select: "id,title,category,priority,published_at",
+    columns: ["title", "body"], titleColumn: "title", sortKey: "published_at", limit: 5,
+    filter: (query) => query.eq("published", true),
+  },
+  {
+    key: "calendar", table: "workspace_events",
+    select: "id,title,description,event_type,location,starts_at",
+    columns: ["title", "description", "location"], titleColumn: "title", sortKey: "starts_at", limit: 5,
+  },
+  {
+    key: "shared", table: "collaboration_spaces",
+    select: "id,name,description,space_type,home_department,updated_at",
+    columns: ["name", "description"], titleColumn: "name", sortKey: "updated_at", limit: 5,
+    filter: (query) => query.is("archived_at", null),
+  },
+  {
+    key: "brand", table: "brand_assets",
+    select: "id,name,description,category,updated_at",
+    columns: ["name", "description"], titleColumn: "name", sortKey: "updated_at", limit: 5,
+    filter: (query) => query.eq("is_active", true),
+  },
+  {
+    key: "crmAccounts", table: "crm_accounts",
+    select: "id,name,account_type,status,lifecycle_stage,updated_at",
+    columns: ["name"], titleColumn: "name", sortKey: "updated_at", limit: 5,
+  },
+  {
+    key: "crmContacts", table: "crm_contacts",
+    select: "id,account_id,full_name,email,contact_type,created_at",
+    columns: ["full_name", "email"], titleColumn: "full_name", sortKey: "created_at", limit: 5,
+  },
+  {
+    key: "legalStatutes", table: "legal_statutes_regulations",
+    select: "id,title,instrument_type,status,reference_number,risk_rating,updated_at",
+    columns: ["title", "reference_number", "summary"], titleColumn: "title", sortKey: "updated_at", limit: 5,
+    roles: LEGAL_ROLES,
+  },
+  {
+    key: "legalOpinions", table: "legal_research_opinions",
+    select: "id,title,status,risk_rating,privileged,updated_at",
+    columns: ["title", "question_presented"], titleColumn: "title", sortKey: "updated_at", limit: 5,
+    roles: LEGAL_ROLES,
+  },
+  {
+    key: "legalContracts", table: "legal_contracts",
+    select: "id,title,counterparty,status,renewal_date,created_at",
+    columns: ["title", "counterparty"], titleColumn: "title", sortKey: "created_at", limit: 5,
+    roles: LEGAL_ROLES,
+  },
+  {
+    key: "rooms", table: "workspace_rooms",
+    select: "id,room_code,title,status,started_at,created_at",
+    columns: ["title", "room_code"], titleColumn: "title", sortKey: "created_at", limit: 5,
+  },
+]
+
+// 0 = exact title, 1 = title starts with the term, 2 = title contains it,
+// 3 = matched only in another column. Lower ranks first.
+function relevance(row: Row, titleColumn: string, needle: string) {
+  const title = String(row[titleColumn] || "").toLowerCase()
+  if (title === needle) return 0
+  if (title.startsWith(needle)) return 1
+  if (title.includes(needle)) return 2
+  return 3
+}
+
+async function searchDomain(
+  client: any,
+  actor: Actor,
+  domain: Domain,
+  pattern: string,
+  needle: string,
+): Promise<{ key: string; rows: Row[]; failed: boolean }> {
+  if (domain.roles && !domain.roles.includes(actor.role)) {
+    return { key: domain.key, rows: [], failed: false }
+  }
+  try {
+    const responses = await Promise.all(
+      domain.columns.map((column) => {
+        let query = client.from(domain.table).select(domain.select)
+        if (domain.filter) query = domain.filter(query)
+        return query.ilike(column, pattern).order(domain.sortKey, { ascending: false }).limit(domain.limit * 2)
+      }),
+    )
+    let errors = 0
+    for (const response of responses) {
+      if (response.error) {
+        errors += 1
+        console.error("workspace-search domain query failed", domain.key, response.error.message)
+      }
+    }
+    const rows = mergeById(responses.map((response: any) => (response.data || []) as Row[]), domain.limit * 4)
+    rows.sort((a, b) => {
+      const byRelevance = relevance(a, domain.titleColumn, needle) - relevance(b, domain.titleColumn, needle)
+      if (byRelevance !== 0) return byRelevance
+      return String(b[domain.sortKey] || "").localeCompare(String(a[domain.sortKey] || ""))
+    })
+    // Only report a failure when every column query failed and nothing came
+    // back, so one odd column cannot hide results the others found.
+    return { key: domain.key, rows: rows.slice(0, domain.limit), failed: errors === responses.length && rows.length === 0 }
+  } catch (error) {
+    console.error("workspace-search domain threw", domain.key, error)
+    return { key: domain.key, rows: [], failed: true }
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -156,6 +327,26 @@ serve(async (req) => {
     }
     const pattern = likePattern(rawQuery)
 
+    // Second client: the caller's own token plus the anon key, so RLS applies.
+    // If the anon key is not configured the extra areas are skipped and
+    // reported as unavailable instead of falling back to the service role.
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || ""
+    const userClient = anonKey
+      ? createClient(supabaseUrl, anonKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: authHeader } },
+        })
+      : null
+    const scopedPromise = userClient
+      ? Promise.all(
+          USER_SCOPED_DOMAINS.map((domain) =>
+            searchDomain(userClient, actor, domain, pattern, rawQuery.toLowerCase()),
+          ),
+        )
+      : Promise.resolve(
+          USER_SCOPED_DOMAINS.map((domain) => ({ key: domain.key, rows: [] as Row[], failed: true })),
+        )
+
     const canSeeSupport = ["support", "manager", "admin"].includes(actor.role)
     const canSeeIncidents = ["manager", "admin"].includes(actor.role)
     const canSeeAllHr = ["hr", "admin"].includes(actor.role)
@@ -179,6 +370,7 @@ serve(async (req) => {
         pattern,
         8,
         "full_name",
+        true,
       ),
 
       canSeeSupport
@@ -281,9 +473,19 @@ serve(async (req) => {
       : { data: [] as { id: string; full_name: string }[] }
     const senderNames = new Map((senders.data || []).map((row) => [row.id, row.full_name]))
 
+    const scoped = await scopedPromise
+    const scopedResults: Record<string, Row[]> = {}
+    const partial: string[] = []
+    for (const entry of scoped) {
+      scopedResults[entry.key] = entry.rows
+      if (entry.failed) partial.push(entry.key)
+    }
+
     return json({
       query: rawQuery,
+      partial,
       results: {
+        ...scopedResults,
         people,
         cases,
         incidents,

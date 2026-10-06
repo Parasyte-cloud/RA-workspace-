@@ -16,9 +16,20 @@ import {
   Inbox,
   MessagesSquare,
   Mail,
+  CheckSquare,
+  BookOpen,
+  FileText,
+  Megaphone,
+  Palette,
+  Building2,
+  Scale,
+  Video,
+  FolderKanban,
+  type LucideIcon,
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import { setSearchFocus } from '../lib/searchFocus'
 import '../global-search.css'
 
 /*
@@ -35,45 +46,62 @@ import '../global-search.css'
  * Mail is separate so a slow/failing Zoho call never blocks the rest —
  * see the comments in both edge functions for why.
  *
- * Clicking a result navigates to that result's section (onNavigate) via
- * the same setSection the sidebar uses; it does not deep-link to the
- * specific record inside that section, since that would need thread-ing
- * a selected-id prop through every target module. Landing in the right
- * section and letting people find the exact record there felt like the
- * right size for a first version of this — deep-linking is a reasonable
- * follow-up if it turns out to matter.
+ * Clicking a result navigates to its section. Tasks, knowledge articles and
+ * shared spaces also open the chosen record, through lib/searchFocus. Other
+ * areas land in the right section. Arrow keys and Enter work without a mouse.
  */
 
-type PersonRow = { id: string; full_name: string; email: string; department: string; job_title: string }
-type CaseRow = { id: string; reference: string; subject: string; status: string; priority: string }
-type IncidentRow = { id: string; reference: string; summary: string; severity: string; status: string }
-type HrRow = { id: string; subject: string; category: string; status: string }
-type LeaveRow = { id: string; leave_type: string; status: string; start_date: string; end_date: string }
-type IntakeRow = { id: string; form_title_snapshot: string; category_title_snapshot: string; status: string; source_reference: string | null }
-type ChatRow = { id: string; conversation_id: string; body: string; sender_name: string }
+type AnyRow = Record<string, any>
 type MailRow = { messageId: string; mailboxEmail: string; subject: string; sender: string; summary: string }
+type SearchResults = Record<string, AnyRow[]>
 
-type SearchResults = {
-  people: PersonRow[]
-  cases: CaseRow[]
-  incidents: IncidentRow[]
-  hr: HrRow[]
-  leave: LeaveRow[]
-  intake: IntakeRow[]
-  chat: ChatRow[]
+type ResultItem = {
+  key: string
+  icon: LucideIcon
+  title: string
+  sub: string
+  meta?: string
+  section: string
+  focus?: { kind: string; id: string }
 }
+type ResultGroup = { label: string; items: ResultItem[] }
 
-const emptyResults: SearchResults = {
-  people: [], cases: [], incidents: [], hr: [], leave: [], intake: [], chat: [],
-}
+const text = (value: unknown) => (value == null ? '' : String(value))
+const join = (...parts: unknown[]) => parts.map(text).filter(Boolean).join(' · ')
 
-function resultCount(results: SearchResults | null, mail: MailRow[] | null) {
-  if (!results) return 0
-  return (
-    results.people.length + results.cases.length + results.incidents.length +
-    results.hr.length + results.leave.length + results.intake.length +
-    results.chat.length + (mail?.length || 0)
-  )
+function buildGroups(results: SearchResults | null, mail: MailRow[] | null): ResultGroup[] {
+  if (!results) return []
+  const r = (key: string) => results[key] || []
+  const groups: ResultGroup[] = [
+    { label: 'People', items: r('people').map(x => ({ key: `p${x.id}`, icon: User, title: text(x.full_name || x.email), sub: join(x.job_title, x.department) || text(x.email), section: 'people' })) },
+    { label: 'Tasks', items: r('tasks').map(x => ({ key: `t${x.id}`, icon: CheckSquare, title: text(x.title), sub: join(x.department, x.priority), meta: text(x.status), section: 'tasks', focus: { kind: 'task', id: x.id } })) },
+    { label: 'Knowledge', items: r('knowledge').map(x => ({ key: `k${x.id}`, icon: BookOpen, title: text(x.title), sub: join(x.category, x.summary), section: 'knowledge', focus: { kind: 'knowledge', id: x.id } })) },
+    { label: 'Files', items: r('files').map(x => ({ key: `f${x.id}`, icon: FileText, title: text(x.name), sub: join(x.folder_path, x.department), meta: text(x.file_type), section: 'files' })) },
+    { label: 'Announcements', items: r('announcements').map(x => ({ key: `a${x.id}`, icon: Megaphone, title: text(x.title), sub: text(x.category), meta: text(x.priority), section: 'announcements' })) },
+    { label: 'Calendar', items: r('calendar').map(x => ({ key: `c${x.id}`, icon: CalendarDays, title: text(x.title), sub: join(x.event_type, x.location, text(x.starts_at).slice(0, 10)), section: 'calendar' })) },
+    { label: 'Shared spaces', items: r('shared').map(x => ({ key: `s${x.id}`, icon: FolderKanban, title: text(x.name), sub: join(x.space_type, x.home_department), section: 'shared', focus: { kind: 'shared', id: x.id } })) },
+    { label: 'Rooms', items: r('rooms').map(x => ({ key: `r${x.id}`, icon: Video, title: text(x.title || x.room_code), sub: text(x.room_code), meta: text(x.status), section: 'room' })) },
+    { label: 'Brand', items: r('brand').map(x => ({ key: `b${x.id}`, icon: Palette, title: text(x.name), sub: join(x.category, x.description), section: 'brand' })) },
+    { label: 'CRM', items: [
+      ...r('crmAccounts').map(x => ({ key: `ca${x.id}`, icon: Building2, title: text(x.name), sub: join(x.account_type, x.lifecycle_stage), meta: text(x.status), section: 'crm' })),
+      ...r('crmContacts').map(x => ({ key: `cc${x.id}`, icon: User, title: text(x.full_name), sub: join(x.contact_type, x.email), section: 'crm' })),
+    ] },
+    { label: 'Legal', items: [
+      ...r('legalStatutes').map(x => ({ key: `ls${x.id}`, icon: Scale, title: text(x.title), sub: join(x.instrument_type, x.reference_number), meta: text(x.status), section: 'legal' })),
+      ...r('legalOpinions').map(x => ({ key: `lo${x.id}`, icon: Scale, title: text(x.title), sub: 'Legal opinion', meta: text(x.status), section: 'legal' })),
+      ...r('legalContracts').map(x => ({ key: `lc${x.id}`, icon: Scale, title: text(x.title), sub: text(x.counterparty), meta: text(x.status), section: 'legal' })),
+    ] },
+    { label: 'Support cases', items: r('cases').map(x => ({ key: `sc${x.id}`, icon: Headphones, title: text(x.subject), sub: text(x.reference), meta: text(x.status), section: 'support' })) },
+    { label: 'Incidents', items: r('incidents').map(x => ({ key: `i${x.id}`, icon: ShieldAlert, title: text(x.summary), sub: text(x.reference), meta: text(x.severity), section: 'operations' })) },
+    { label: 'People & HR', items: [
+      ...r('hr').map(x => ({ key: `h${x.id}`, icon: Users, title: text(x.subject), sub: text(x.category), meta: text(x.status), section: 'people' })),
+      ...r('leave').map(x => ({ key: `l${x.id}`, icon: CalendarDays, title: text(x.leave_type), sub: `${text(x.start_date)} → ${text(x.end_date)}`, meta: text(x.status), section: 'people' })),
+    ] },
+    { label: 'Intake submissions', items: r('intake').map(x => ({ key: `in${x.id}`, icon: Inbox, title: text(x.form_title_snapshot), sub: text(x.category_title_snapshot), meta: text(x.status), section: 'support' })) },
+    { label: 'Chat', items: r('chat').map(x => ({ key: `ch${x.id}`, icon: MessagesSquare, title: text(x.sender_name), sub: text(x.body), section: 'chat' })) },
+    { label: 'Mail', items: (mail || []).map(x => ({ key: `m${x.messageId}`, icon: Mail, title: text(x.subject) || '(no subject)', sub: join(x.sender, x.mailboxEmail), section: 'mail' })) },
+  ]
+  return groups.filter(group => group.items.length > 0)
 }
 
 export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => void }) {
@@ -83,6 +111,8 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
   const [results, setResults] = useState<SearchResults | null>(null)
   const [mail, setMail] = useState<MailRow[] | null>(null)
   const [error, setError] = useState('')
+  const [partial, setPartial] = useState(false)
+  const [active, setActive] = useState(0)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
   const requestSequence = useRef(0)
@@ -108,6 +138,8 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
     setResults(null)
     setMail(null)
     setError('')
+    setPartial(false)
+    setActive(0)
   }, [open])
 
   useEffect(() => {
@@ -119,6 +151,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
       setMail(null)
       setLoading(false)
       setError('')
+      setPartial(false)
       return
     }
 
@@ -130,7 +163,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
       const client = supabase
       if (!client) {
         if (sequence === requestSequence.current) {
-          setError('Search is unavailable — Supabase is not configured.')
+          setError('Search is unavailable because Supabase is not configured.')
           setLoading(false)
         }
         return
@@ -152,42 +185,67 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
         client.functions.invoke('zoho-mail-search', { body: { query: trimmed }, headers }),
       ])
 
-      // A later keystroke already started a newer request — drop this
+      // A later keystroke already started a newer request, so drop this
       // stale one rather than let it clobber more recent results.
       if (sequence !== requestSequence.current) return
 
       if (searchResult.error) {
         setError('Search failed. Please try again.')
-        setResults(emptyResults)
+        setResults({})
+        setPartial(false)
       } else {
-        setResults({ ...emptyResults, ...(searchResult.data?.results || {}) })
+        setResults((searchResult.data?.results || {}) as SearchResults)
+        setPartial(Array.isArray(searchResult.data?.partial) && searchResult.data.partial.length > 0)
       }
 
-      // Mail failing (no mailbox connected, Zoho token issue, etc.) isn't
-      // a reason to show an error for the whole search — just show no
-      // mail results.
+      // Mail failing (no mailbox connected, Zoho token issue, etc.) is not
+      // a reason to fail the whole search; show no mail results.
       setMail(mailResult.error ? [] : (mailResult.data?.messages || []))
+      setActive(0)
       setLoading(false)
     }, 250)
 
     return () => clearTimeout(timer)
   }, [query, open])
 
-  function go(section: string) {
+  function choose(item: ResultItem) {
     setOpen(false)
-    onNavigate(section)
+    if (item.focus) setSearchFocus(item.focus.kind, item.focus.id)
+    onNavigate(item.section)
   }
+
+  const groups = buildGroups(results, mail)
+  const flat = groups.flatMap(group => group.items)
+
+  function onInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setOpen(false)
+    } else if (event.key === 'ArrowDown' && flat.length) {
+      event.preventDefault()
+      setActive(current => (current + 1) % flat.length)
+    } else if (event.key === 'ArrowUp' && flat.length) {
+      event.preventDefault()
+      setActive(current => (current - 1 + flat.length) % flat.length)
+    } else if (event.key === 'Enter' && flat[active]) {
+      event.preventDefault()
+      choose(flat[active])
+    }
+  }
+
+  useEffect(() => {
+    document.querySelector('.searchResultRow.active')?.scrollIntoView({ block: 'nearest' })
+  }, [active])
 
   if (!open) {
     return (
-      <button type="button" className="iconButton" title="Search (⌘K)" onClick={() => setOpen(true)}>
+      <button type="button" className="iconButton" title="Search (⌘K)" aria-label="Search the workspace" onClick={() => setOpen(true)}>
         <Search size={17}/>
       </button>
     )
   }
 
   const trimmed = query.trim()
-  const total = resultCount(results, mail)
+  let index = -1
 
   return (
     <div className="socialModal searchModal" role="dialog" aria-modal="true" onClick={() => setOpen(false)}>
@@ -198,8 +256,8 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
             ref={inputRef}
             value={query}
             onChange={event => setQuery(event.target.value)}
-            onKeyDown={event => { if (event.key === 'Escape') setOpen(false) }}
-            placeholder="Search people, cases, chat, mail…"
+            onKeyDown={onInputKeyDown}
+            placeholder="Search tasks, files, knowledge, people, chat, mail…"
             aria-label="Search the workspace"
           />
           <button type="button" className="modalClose" onClick={() => setOpen(false)} aria-label="Close search">
@@ -209,7 +267,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
         <div className="searchModalBody">
           {trimmed.length > 0 && trimmed.length < 2 && (
-            <p className="searchHint">Keep typing — search needs at least 2 characters.</p>
+            <p className="searchHint">Keep typing. Search needs at least 2 characters.</p>
           )}
 
           {loading && (
@@ -220,126 +278,38 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
           {!loading && !error && results && (
             <>
-              {results.people.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">People</div>
-                  {results.people.map(person => (
-                    <button type="button" key={person.id} className="searchResultRow" onClick={() => go('people')}>
-                      <span className="searchResultIcon"><User size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{person.full_name || person.email}</strong>
-                        <small>{[person.job_title, person.department].filter(Boolean).join(' · ') || person.email}</small>
-                      </span>
-                    </button>
-                  ))}
+              {groups.map(group => (
+                <div className="searchGroup" key={group.label}>
+                  <div className="searchGroupLabel">{group.label}</div>
+                  {group.items.map(item => {
+                    index += 1
+                    const position = index
+                    const Icon = item.icon
+                    return (
+                      <button
+                        type="button"
+                        key={item.key}
+                        className={`searchResultRow${position === active ? ' active' : ''}`}
+                        onMouseEnter={() => setActive(position)}
+                        onClick={() => choose(item)}
+                      >
+                        <span className="searchResultIcon"><Icon size={16}/></span>
+                        <span className="searchResultBody">
+                          <strong>{item.title}</strong>
+                          <small>{item.sub}</small>
+                        </span>
+                        {item.meta && <span className="searchResultMeta">{item.meta}</span>}
+                      </button>
+                    )
+                  })}
                 </div>
+              ))}
+
+              {partial && (
+                <p className="searchHint">Some areas could not be searched just now. Results may be incomplete.</p>
               )}
 
-              {results.cases.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">Support cases</div>
-                  {results.cases.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('support')}>
-                      <span className="searchResultIcon"><Headphones size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.subject}</strong>
-                        <small>{item.reference}</small>
-                      </span>
-                      <span className="searchResultMeta">{item.status}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {results.incidents.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">Incidents</div>
-                  {results.incidents.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('operations')}>
-                      <span className="searchResultIcon"><ShieldAlert size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.summary}</strong>
-                        <small>{item.reference}</small>
-                      </span>
-                      <span className="searchResultMeta">{item.severity}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {(results.hr.length > 0 || results.leave.length > 0) && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">People & HR</div>
-                  {results.hr.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('people')}>
-                      <span className="searchResultIcon"><Users size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.subject}</strong>
-                        <small>{item.category}</small>
-                      </span>
-                      <span className="searchResultMeta">{item.status}</span>
-                    </button>
-                  ))}
-                  {results.leave.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('people')}>
-                      <span className="searchResultIcon"><CalendarDays size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.leave_type}</strong>
-                        <small>{item.start_date} → {item.end_date}</small>
-                      </span>
-                      <span className="searchResultMeta">{item.status}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {results.intake.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">Intake submissions</div>
-                  {results.intake.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('support')}>
-                      <span className="searchResultIcon"><Inbox size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.form_title_snapshot}</strong>
-                        <small>{item.category_title_snapshot}</small>
-                      </span>
-                      <span className="searchResultMeta">{item.status}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {results.chat.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">Chat</div>
-                  {results.chat.map(item => (
-                    <button type="button" key={item.id} className="searchResultRow" onClick={() => go('chat')}>
-                      <span className="searchResultIcon"><MessagesSquare size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.sender_name}</strong>
-                        <small>{item.body}</small>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {mail && mail.length > 0 && (
-                <div className="searchGroup">
-                  <div className="searchGroupLabel">Mail</div>
-                  {mail.map(item => (
-                    <button type="button" key={item.messageId} className="searchResultRow" onClick={() => go('mail')}>
-                      <span className="searchResultIcon"><Mail size={16}/></span>
-                      <span className="searchResultBody">
-                        <strong>{item.subject || '(no subject)'}</strong>
-                        <small>{item.sender} · {item.mailboxEmail}</small>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {trimmed.length >= 2 && total === 0 && (
+              {trimmed.length >= 2 && flat.length === 0 && (
                 <p className="searchEmpty">No results for "{trimmed}".</p>
               )}
             </>
