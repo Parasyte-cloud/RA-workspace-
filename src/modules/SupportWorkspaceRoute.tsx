@@ -4,6 +4,7 @@ import SupportAssistedBookingPanel from './SupportAssistedBookingPanel'
 import SupportWhatsAppPanel from './SupportWhatsAppPanel'
 import InvestorEnquiriesPanel from './InvestorEnquiriesPanel'
 import IntakeSubmissionInbox from './IntakeSubmissionInbox'
+import OperationsExportsCard from '../components/OperationsExportsCard'
 
 export default function SupportWorkspaceRoute({
   onNavigate,
@@ -23,6 +24,7 @@ export default function SupportWorkspaceRoute({
           />
           <SupportWhatsAppPanel/>
           <SupportAssistedBookingPanel/>
+          <OperationsExportsCard/>
         </div>
       }
       onNavigate={onNavigate}
