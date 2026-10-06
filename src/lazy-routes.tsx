@@ -291,3 +291,9 @@ export const AppearanceSettings = lazy(
     )
 )
 
+
+
+export const VendorsPanel = lazy(
+  () =>
+    import('./modules/VendorsPanel')
+)
