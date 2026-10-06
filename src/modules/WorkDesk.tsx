@@ -21,6 +21,7 @@ import {
 
 import { supabase } from '../lib/supabase'
 import { WorkItemDetail } from './WorkItemDetail'
+import { formatWorkTime, isWorkOverdue } from '../lib/workTime'
 
 
 type WorkItem = {
@@ -449,6 +450,11 @@ export function WorkDesk(){
       return
     }
 
+    if(!form.due_at){
+      setMessage('Set a due date and time before assigning this work.')
+      return
+    }
+
     const assignee=
       form.assignee ||
       profile.id
@@ -719,14 +725,28 @@ export function WorkDesk(){
                     )}
                   </span>
 
-                  {item.due_at&&
-                    <span>
-                      <Clock3 size={15}/>
-                      {new Date(
-                        item.due_at
-                      ).toLocaleString()}
-                    </span>
-                  }
+                  <span>
+                    <Clock3 size={15}/>
+                    Assigned {formatWorkTime(item.created_at)}
+                  </span>
+
+                  <span
+                    className={
+                      isWorkOverdue(item.due_at,item.status)
+                        ? 'workDue overdue'
+                        : 'workDue'
+                    }
+                  >
+                    <Clock3 size={15}/>
+                    {item.due_at
+                      ? `Due ${formatWorkTime(item.due_at)}`
+                      : 'No due date set'
+                    }
+                    {isWorkOverdue(item.due_at,item.status)
+                      ? ' (overdue)'
+                      : ''
+                    }
+                  </span>
                 </div>
 
                 <div className="workAssignees">
@@ -963,10 +983,11 @@ export function WorkDesk(){
               </div>
 
               <label>
-                Due date
+                Due date and time
 
                 <input
                   type="datetime-local"
+                  required
                   value={form.due_at}
                   onChange={event=>
                     setForm({
