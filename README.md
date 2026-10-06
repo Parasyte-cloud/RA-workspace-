@@ -54,3 +54,5 @@ non-personal parameters. Code: `src/lib/analytics.ts`,
 - `public/_headers` sets baseline security headers. The CSP on the forms host is
   report-only: check the console for violations, then rename it to
   `Content-Security-Policy` to enforce.
+
+Older release notes and one-off audit logs live in `docs/archive/`.
