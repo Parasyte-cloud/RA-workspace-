@@ -24,6 +24,7 @@ import {
 } from '../lib/supabase'
 import WorkstationWindow from '../components/WorkstationWindow'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
+import OperationsExportsCard from '../components/OperationsExportsCard'
 import DepartmentDiscussionPanel from './DepartmentDiscussionPanel'
 import DepartmentFinanceRequestPanel from './DepartmentFinanceRequestPanel'
 import ProvidusBankingPanel from './ProvidusBankingPanel'
@@ -911,13 +912,16 @@ export function OperationsTeamWorkspace({
       eyebrow="OPERATIONS"
       workstationSlug="operations"
       workstationContent={
-        <WorkstationGuideCard
-          slug="driver-guide"
-          workstationLabel="Driver Guide"
-          eyebrow="DRIVER GUIDE"
-          title="RideArrivo Driver Guide"
-          description="How drivers set up, go online, take scheduled rides and ArrivoExpress requests, run a trip, and fix common problems. Share it with every new driver."
-        />
+        <div style={{display:'grid',gap:14}}>
+          <OperationsExportsCard/>
+          <WorkstationGuideCard
+            slug="driver-guide"
+            workstationLabel="Driver Guide"
+            eyebrow="DRIVER GUIDE"
+            title="RideArrivo Driver Guide"
+            description="How drivers set up, go online, take scheduled rides and ArrivoExpress requests, run a trip, and fix common problems. Share it with every new driver."
+          />
+        </div>
       }
       title="Operations Team Workspace"
       subtitle="Dispatch, trip execution, fleet readiness, drivers, incidents and operating control."

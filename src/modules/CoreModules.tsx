@@ -9,6 +9,7 @@ import AdministrationControlPlane from './AdministrationControlPlane'
 import OperationsControlPanel from './OperationsControlPanel'
 import SupportWhatsAppPanel from './SupportWhatsAppPanel'
 import LegalLawReportsPanel from './LegalLawReportsPanel'
+import OperationsExportsCard from '../components/OperationsExportsCard'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
@@ -289,5 +290,10 @@ export function PeopleModule({
 }
 
 export function AdminModule(){
-  return <AdministrationControlPlane/>
+  return (
+    <div style={{display:'grid',gap:14}}>
+      <AdministrationControlPlane/>
+      <OperationsExportsCard/>
+    </div>
+  )
 }
