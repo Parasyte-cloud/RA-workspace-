@@ -20,9 +20,15 @@ import '../workstation-guide.css'
 export default function WorkstationGuideCard({
   slug = DEFAULT_WORKSTATION_GUIDE_SLUG,
   workstationLabel = 'This Workstation',
+  title,
+  description,
+  eyebrow = 'WORKSTATION GUIDE',
 }: {
   slug?: string
   workstationLabel?: string
+  title?: string
+  description?: string
+  eyebrow?: string
 }) {
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
@@ -100,7 +106,7 @@ export default function WorkstationGuideCard({
       )
 
       setError(
-        'README is unavailable. Contact Administration.'
+        'This guide is unavailable. Contact Administration.'
       )
     } finally {
       setOpening(false)
@@ -162,7 +168,7 @@ export default function WorkstationGuideCard({
       <div className="workstationGuideContent">
         <div className="workstationGuideHeading">
           <span className="eyebrow">
-            WORKSTATION GUIDE
+            {eyebrow}
           </span>
 
           <div className="workstationGuideBadges">
@@ -174,13 +180,11 @@ export default function WorkstationGuideCard({
           </div>
         </div>
 
-        <h3>{workstationLabel} — README</h3>
+        <h3>{title ?? `${workstationLabel}: README`}</h3>
 
         <p>
-          Open this guide before using {workstationLabel} for
-          the first time. It explains daily workflow, key
-          tools, security boundaries and end-of-day
-          procedures for this workstation.
+          {description ??
+            `Open this guide before using ${workstationLabel} for the first time. It explains daily workflow, key tools, security boundaries and end-of-day procedures for this workstation.`}
         </p>
 
         {error && (

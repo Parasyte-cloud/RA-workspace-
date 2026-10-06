@@ -910,6 +910,15 @@ export function OperationsTeamWorkspace({
     <DepartmentTeamWorkspace
       eyebrow="OPERATIONS"
       workstationSlug="operations"
+      workstationContent={
+        <WorkstationGuideCard
+          slug="driver-guide"
+          workstationLabel="Driver Guide"
+          eyebrow="DRIVER GUIDE"
+          title="RideArrivo Driver Guide"
+          description="How drivers set up, go online, take scheduled rides and ArrivoExpress requests, run a trip, and fix common problems. Share it with every new driver."
+        />
+      }
       title="Operations Team Workspace"
       subtitle="Dispatch, trip execution, fleet readiness, drivers, incidents and operating control."
       departmentAliases={[
