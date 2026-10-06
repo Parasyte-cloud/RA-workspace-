@@ -21,3 +21,8 @@ test('UI offers delete only for inactive accounts and asks for confirmation', ()
   assert.match(ui, /!user\.active &&\s*<button[\s\S]{0,200}deletePending\(user\)/)
   assert.match(ui, /window\.confirm\(\s*`Permanently delete/)
 })
+
+test('service role is granted access to the admin audit log', () => {
+  const sql = readFileSync('supabase/migrations/20261006130000_admin_audit_log_service_role_grant.sql', 'utf8')
+  assert.match(sql, /grant select, insert on public\.admin_audit_log to service_role/)
+})
