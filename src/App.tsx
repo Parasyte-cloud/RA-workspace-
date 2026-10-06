@@ -121,6 +121,7 @@ import {
   CalendarModule,
   KnowledgeBaseModule,
   CompanyFilesModule,
+  VendorsPanel,
   OverviewMetrics,
   HeadshotGallery,
   AppearanceSettings,
@@ -129,7 +130,7 @@ import {
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -250,6 +251,12 @@ const sectionAccess:Record<Section,Role[]>={
   finance:[
     'finance',
     'manager',
+    'admin'
+  ],
+
+  vendors:[
+    'operations',
+    'finance',
     'admin'
   ],
 
@@ -955,7 +962,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -970,7 +977,7 @@ function App(){
       groups:[
         {id:'communication',label:'Communication',items:pick(['chat','room','social','mail','calendar','announcements'])},
         {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','knowledge','crm','parasyte','apps'])},
-        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','marketing','partnerships','legal'])}
+        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','vendors','marketing','partnerships','legal'])}
       ].filter(group=>group.items.length>0),
       system:pick(['settings','admin'])
     }
@@ -1240,6 +1247,7 @@ function App(){
         {section==='linux'&&<ParasyteLinux/>}
         {section==='people'&&<PeopleTeamWorkspace execution={<PeopleModule accessMode={profile.role==='operations'?'operations':'full'}/>} onNavigate={navigateToSection}/>}
         {section==='operations'&&<OperationsTeamWorkspace execution={<OperationsModule/>} onNavigate={navigateToSection}/>}
+        {section==='vendors'&&<VendorsPanel/>}
         {section==='finance'&&<FinanceTeamWorkspace execution={<FinanceModule/>} onNavigate={navigateToSection}/>}
         {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
