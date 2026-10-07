@@ -1,4 +1,6 @@
+import './formsTheme'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import InvestorInterestForm from './InvestorInterestForm'
 import PublicIntakeForm from './PublicIntakeForm'
 import MembershipApp from './MembershipApp'
@@ -168,6 +170,7 @@ function FormsRoutes() {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">NOT FOUND</span>
+          <FormsHeaderNav />
         </header>
 
         <div className="formsSuccess">

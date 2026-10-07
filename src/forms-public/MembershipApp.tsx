@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import {
   appleSignInConfigured,
@@ -331,6 +332,7 @@ export default function MembershipApp() {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">MEMBERSHIP</span>
+          <FormsHeaderNav />
         </header>
 
         {step === 'identify' && <FormsHeroImage variant="membership" />}

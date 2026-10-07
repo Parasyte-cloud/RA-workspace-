@@ -1,6 +1,7 @@
 import { trackFormSubmit } from '../lib/analytics'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import {
   ARRIVO_API_BASE_URL,
   appleSignInConfigured,
@@ -355,6 +356,7 @@ export default function EasyBookApp() {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">QUICK BOOK</span>
+          <FormsHeaderNav />
         </header>
 
         {step === 'identify' && <FormsHeroImage variant="easybook" />}
