@@ -19,6 +19,8 @@ type Props = {
   fullName: string
   jobTitle: string
   email: string
+  // True when an administrator added this person individually (Administration > Letterhead).
+  granted?: boolean
 }
 
 const KINDS: Array<{ value: DocKind; label: string; hint: string }> = [
@@ -37,8 +39,8 @@ const CLOSINGS: Array<{ value: ClosingKind; label: string }> = [
 
 type LogState = 'idle' | 'recorded' | 'unavailable' | 'denied'
 
-export default function LetterheadStudio({ role, fullName, jobTitle, email }: Props) {
-  const allowed = canUseLetterhead(role)
+export default function LetterheadStudio({ role, fullName, jobTitle, email, granted = false }: Props) {
+  const allowed = canUseLetterhead(role) || granted
 
   const [input, setInput] = useState<LetterheadInput>(() => ({
     ...emptyInput(),
