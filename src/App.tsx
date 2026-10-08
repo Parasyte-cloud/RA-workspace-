@@ -58,6 +58,7 @@ import {
   Video,
   Wrench,
   Images,
+  FileSignature,
   Globe2
 } from 'lucide-react'
 import { supabase,
@@ -86,12 +87,14 @@ import { WorkspaceClock } from './components/WorkspaceClock'
 
 
 import { applyStoredAppearance } from './lib/appearance'
+import { LETTERHEAD_ROLES } from './lib/letterheadAccess'
 
 import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
 import type { ParasyteOpenDetail } from './lib/parasyte'
 import {
   MarketingTeamWorkspace,
   BrandLibrary,
+  LetterheadStudio,
   ParasyteLinux,
   ParasyteBrowser,
   SupportWorkspaceRoute,
@@ -130,7 +133,7 @@ import {
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -254,6 +257,8 @@ const sectionAccess:Record<Section,Role[]>={
     'admin'
   ],
 
+  letterhead:[...LETTERHEAD_ROLES],
+
   vendors:[
     'operations',
     'finance',
@@ -328,6 +333,7 @@ const workstationForSection:Partial<Record<Section,string>>={
   legal:'legal',
   executive:'executive',
   admin:'administration',
+  letterhead:'letterhead',
 }
 
 const canAccess=(role:Role,section:Section,assignments:WorkstationAssignment[]=[])=>{
@@ -708,21 +714,33 @@ function App(){
     let cancelled=false
     setAssignmentsReady(false)
 
-    void client
-      .from('workspace_workstation_assignments')
-      .select('workstation,is_primary,active')
-      .eq('employee_id',profile.id)
-      .eq('active',true)
-      .then(({data,error})=>{
+    // A letterhead grant (set by an administrator) is carried as a
+    // pseudo assignment so canAccess treats it like any other workstation.
+    // A missing table or failed lookup simply means no extra access.
+    void Promise.all([
+      client
+        .from('workspace_workstation_assignments')
+        .select('workstation,is_primary,active')
+        .eq('employee_id',profile.id)
+        .eq('active',true),
+      client
+        .from('workspace_letterhead_access')
+        .select('employee_id')
+        .eq('employee_id',profile.id)
+        .maybeSingle(),
+    ]).then(([{data,error},grant])=>{
         if(cancelled) return
+        const letterheadGrant:WorkstationAssignment[]=grant.data
+          ? [{workstation:'letterhead',is_primary:false,active:true}]
+          : []
         if(error){
           console.error('[RideArrivo Workstation] assignment load failed',error)
-          setWorkstationAssignments([])
+          setWorkstationAssignments(letterheadGrant)
           setAssignmentsReady(true)
           return
         }
 
-        setWorkstationAssignments((data || []) as WorkstationAssignment[])
+        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant])
         setAssignmentsReady(true)
       })
 
@@ -962,7 +980,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -976,7 +994,7 @@ function App(){
       primary:pick(['overview','tasks','projects']),
       groups:[
         {id:'communication',label:'Communication',items:pick(['chat','room','social','mail','calendar','announcements'])},
-        {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','knowledge','crm','parasyte','apps'])},
+        {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','letterhead','knowledge','crm','parasyte','apps'])},
         {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','vendors','marketing','partnerships','legal'])}
       ].filter(group=>group.items.length>0),
       system:pick(['settings','admin'])
@@ -1238,6 +1256,7 @@ function App(){
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
         {section==='brand'&&<BrandLibrary/>}
+        {section==='letterhead'&&<LetterheadStudio role={profile.role} fullName={profile.full_name} jobTitle={profile.job_title} email={profile.email}/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
