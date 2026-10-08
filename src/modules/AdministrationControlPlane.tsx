@@ -22,6 +22,7 @@ import { invokeWorkspaceAdmin } from '../lib/workspaceAdmin'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import AdminAccessManager from './AdminAccessManager'
 import AdminDownloadAccessManager from './AdminDownloadAccessManager'
+import AdminLetterheadAccess from './AdminLetterheadAccess'
 import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
@@ -44,6 +45,7 @@ type AdminTab=
   | 'performance'
   | 'assets'
   | 'downloads'
+  | 'letterhead'
   | 'applications'
   | 'backups'
   | 'room-minutes'
@@ -158,6 +160,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['performance','Performance',BarChart3],
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
+  ['letterhead','Letterhead',FileText],
   ['applications','Applications',AppWindow],
   ['payments','Payments',CreditCard],
   ['backups','Backups',DatabaseBackup],
@@ -515,6 +518,7 @@ export default function AdministrationControlPlane(){
       {tab==='performance'&&<KpiManagementPanel/>}
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
+      {tab==='letterhead'&&<AdminLetterheadAccess/>}
       {tab==='applications'&&<ApplicationsPanel/>}
       {tab==='payments'&&
         <div className="adminPaymentsStack">

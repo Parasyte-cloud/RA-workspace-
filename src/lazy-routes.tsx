@@ -24,6 +24,10 @@ export const ParasyteLinux = lazy(
   () => import('./modules/ParasyteLinux')
 )
 
+export const LetterheadStudio = lazy(
+  () => import('./modules/LetterheadStudio')
+)
+
 export const BrandLibrary = lazy(
   () => import('./modules/BrandLibrary')
 )
