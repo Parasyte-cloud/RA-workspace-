@@ -324,6 +324,7 @@ const sectionAccess:Record<Section,Role[]>={
 const workstationForSection:Partial<Record<Section,string>>={
   support:'support',
   operations:'operations',
+  vendors:'operations',
   people:'people',
   engineering:'engineering',
   linux:'engineering',
