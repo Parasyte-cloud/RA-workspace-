@@ -1257,7 +1257,7 @@ function App(){
         {section==='announcements'&&<AnnouncementsModule/>}
         {section==='files'&&<CompanyFilesModule/>}
         {section==='brand'&&<BrandLibrary/>}
-        {section==='letterhead'&&<LetterheadStudio role={profile.role} fullName={profile.full_name} jobTitle={profile.job_title} email={profile.email}/>}
+        {section==='letterhead'&&<LetterheadStudio role={profile.role} fullName={profile.full_name} jobTitle={profile.job_title} email={profile.email} granted={workstationAssignments.some(item=>item.active && item.workstation==='letterhead')}/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
