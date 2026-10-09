@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import type { RiderUser } from '../lib/riderAuth'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
@@ -160,13 +161,27 @@ export default function BoatApp() {
     setStep('intro')
   }
 
+  // The header booking button: sign-in was already checked there. Jump to the
+  // first form step and prefill the contact details for a signed-in rider.
+  function startFromHeader(user: RiderUser | null) {
+    if (user) {
+      setContact(current => ({
+        fullName: current.fullName || user.name || '',
+        phone: current.phone || user.phone || user.whatsapp_number || '',
+        email: current.email || user.email || '',
+      }))
+    }
+    setStep(current => (current === 'intro' || current === 'success' ? 'details' : current))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <main className="formsPage charterPage">
       <section className="formsShell charterShell">
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">BOAT &amp; YACHT CHARTER</span>
-          <FormsHeaderNav />
+          <FormsHeaderNav bookLabel="Request a charter" onBook={startFromHeader} />
         </header>
 
         {step === 'intro' && <FormsHeroImage variant="boat" />}

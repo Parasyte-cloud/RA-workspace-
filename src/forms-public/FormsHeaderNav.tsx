@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { currentTheme, setTheme, tagLinks, type FormsTheme } from './formsTheme'
 import { attachHeaderMove } from './headerMove'
+import { fetchRiderProfile, getStoredRiderToken, type RiderUser } from '../lib/riderAuth'
+import RiderSignInSheet from './RiderSignInSheet'
 
 /*
  * The homepage's header controls for the public forms: the main links, the
@@ -12,6 +15,7 @@ import { attachHeaderMove } from './headerMove'
 const SERVICES = [
   { label: 'ArrivoExpress', href: 'https://express.ridearrivo.com' },
   { label: 'ArrivoRemovals', href: 'https://move.ridearrivo.com' },
+  { label: 'Chauffeur', href: 'https://www.ridearrivo.com/charter-booking.html' },
   { label: 'ArrivoBoat', href: 'https://boat.ridearrivo.com' },
   { label: 'ArrivoAir', href: 'https://air.ridearrivo.com' },
   { label: 'Membership', href: 'https://membership.ridearrivo.com' },
@@ -23,11 +27,39 @@ const MAIN = [
   { label: 'Safety', href: 'https://www.ridearrivo.com/#safety' },
 ]
 
-export default function FormsHeaderNav() {
+type Props = {
+  /*
+   * When an app passes these, the header button is that app's own booking
+   * button (for example "Book removals") instead of the generic "Book a ride"
+   * link to the main site. Pressing it checks whether the visitor is signed
+   * in: signed in goes straight to the form with their details; otherwise a
+   * sheet offers sign in, create account or guest, then continues to the form.
+   */
+  bookLabel?: string
+  onBook?: (user: RiderUser | null) => void
+}
+
+export default function FormsHeaderNav({ bookLabel, onBook }: Props = {}) {
+  const [sheet, setSheet] = useState(false)
+  const [checking, setChecking] = useState(false)
   const [theme, setThemeState] = useState<FormsTheme>(currentTheme())
   const [open, setOpen] = useState(false)
   const [menu, setMenu] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+
+  async function startBooking() {
+    if (!onBook || checking) return
+    setMenu(false)
+    setChecking(true)
+    try {
+      const token = getStoredRiderToken()
+      const user = token ? await fetchRiderProfile(token).catch(() => null) : null
+      if (user) onBook(user)
+      else setSheet(true)
+    } finally {
+      setChecking(false)
+    }
+  }
 
   useEffect(() => {
     tagLinks(theme)
@@ -108,7 +140,13 @@ export default function FormsHeaderNav() {
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
           </svg>
         </button>
-        <a className="formsCta" href="https://www.ridearrivo.com/book.html">Book a ride</a>
+        {onBook ? (
+          <button type="button" className="formsCta" onClick={startBooking} disabled={checking}>
+            {bookLabel || 'Book a ride'}
+          </button>
+        ) : (
+          <a className="formsCta" href="https://www.ridearrivo.com/book.html">Book a ride</a>
+        )}
         <button
           type="button"
           className="formsMenuBtn"
@@ -131,9 +169,27 @@ export default function FormsHeaderNav() {
           {SERVICES.map((s) => (
             <a key={s.label} href={s.href}>{s.label}</a>
           ))}
-          <a href="https://www.ridearrivo.com/book.html">Book a ride</a>
+          {onBook ? (
+            <button type="button" className="formsMobileBook" onClick={startBooking}>
+              {bookLabel || 'Book a ride'}
+            </button>
+          ) : (
+            <a href="https://www.ridearrivo.com/book.html">Book a ride</a>
+          )}
           <a href="https://www.ridearrivo.com/login.html">Register or Login</a>
         </div>
+      )}
+      {/* Portaled to <body>: the floating header has its own stacking and
+          containing block, which would clip a fixed-position sheet. */}
+      {sheet && onBook && createPortal(
+        <RiderSignInSheet
+          onClose={() => setSheet(false)}
+          onDone={user => {
+            setSheet(false)
+            onBook(user)
+          }}
+        />,
+        document.body,
       )}
     </div>
   )
