@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { RiderUser } from '../lib/riderAuth'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
+import LateBookingDialog from './LateBookingDialog'
+import {
+  earliestWindow,
+  formatDay,
+  lagosInstant,
+  lagosToday,
+  lateRequestNote,
+  leadStatus,
+  windowStartTime,
+} from './lateBooking'
 import './forms-public.css'
 import FormsHeroImage from './FormsHeroImage'
 import './move.css'
@@ -104,19 +114,11 @@ function formatNaira(value: number) {
   return `₦${Math.round(value).toLocaleString('en-NG')}`
 }
 
-// Today's date as YYYY-MM-DD in the *device's local* calendar, not UTC.
-// toISOString() reports the UTC date, which for a Lagos-based visitor
-// (UTC+1) runs an hour behind local time. During the last hour of every
-// UTC day (00:00-00:59 WAT the next morning), a UTC-based "today" would
-// be one calendar day behind the visitor's real today, letting them pick
-// a date that's already in the past for them. Reading the local
-// year/month/day off the Date object avoids that entirely.
-function localIsoDate(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+// "Today" for this form is the date in Lagos, from lagosToday() in
+// lateBooking.ts, not the visitor's device date. The crew works to the Lagos
+// calendar, so a visitor abroad must be offered and refused the same dates as
+// someone standing in Lagos. (The old device-date helper also read the UTC
+// date for anyone whose device was set to UTC, an hour behind Lagos.)
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -239,7 +241,13 @@ export default function MoveApp() {
   const [reference, setReference] = useState('')
   const [website, setWebsite] = useState('') // honeypot field, never rendered to real visitors
 
-  const todayIsoDate = useMemo(() => localIsoDate(new Date()), [])
+  const todayIsoDate = useMemo(() => lagosToday(), [])
+
+  // Late-booking dialog. lateSent remembers that the request went to Support
+  // as a late request, so the success step can say so.
+  const [lateOpen, setLateOpen] = useState(false)
+  const [lateSent, setLateSent] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   const estimate = useMemo(() => computeEstimate(details), [details])
 
@@ -285,7 +293,7 @@ export default function MoveApp() {
     // value is stale and would wrongly accept a date that's now in the
     // past. todayIsoDate itself is left as-is for the date input's `min`,
     // which is only a soft UI hint anyway.
-    if (details.moveDate < localIsoDate(new Date())) {
+    if (details.moveDate < lagosToday()) {
       return setDetailsError('Please choose a moving date that is today or later.')
     }
     if (!details.moveWindow) return setDetailsError('Please choose a time window.')
@@ -301,7 +309,52 @@ export default function MoveApp() {
     }
     if (!details.propertySize) return setDetailsError('Please choose the size of the place you are moving.')
 
+    // Checked last, so a late request carries every other answer complete.
+    if (noticeFor(details).status !== 'ok') return setLateOpen(true)
+
     setStep('contact')
+  }
+
+  // Removals is booked by date and window, not by clock time, so notice is
+  // measured to the start of the chosen window, read as Lagos time. A window
+  // that has already begun today is still a real, urgent request, so unlike
+  // Boat and Air this never treats "already started" as a mistake: any date
+  // from today on that is under the notice limit goes to the dialog.
+  function noticeFor(current: MoveDetails) {
+    const start = windowStartTime(current.moveWindow)
+    const when = start ? lagosInstant(current.moveDate, start) : null
+    return { when, status: when ? leadStatus(when) : ('ok' as const) }
+  }
+
+  // One place that builds the intake payload, used by the normal confirm and by
+  // the late-request dialog, so the two can never drift apart. The intake
+  // function rejects unknown keys, so this must stay in step with the form's
+  // published schema (supabase/migrations/20260928150000_move_booking_v2_*).
+  function buildMovePayload(who: { fullName: string; phone: string; email: string }, noteText: string) {
+    return {
+      idempotency_key: getMoveIdempotencyKey(),
+      move_date: details.moveDate,
+      move_window: details.moveWindow,
+      pickup_address: details.pickupAddress.trim(),
+      pickup_area: details.pickupArea,
+      pickup_access: details.pickupAccess,
+      pickup_interstate_state:
+        details.pickupArea === 'Interstate' ? details.pickupInterstateState.trim() : '',
+      dropoff_address: details.dropoffAddress.trim(),
+      dropoff_area: details.dropoffArea,
+      dropoff_access: details.dropoffAccess,
+      dropoff_interstate_state:
+        details.dropoffArea === 'Interstate' ? details.dropoffInterstateState.trim() : '',
+      property_size: details.propertySize,
+      packing_help: details.packingHelp,
+      special_items: details.specialItems,
+      crew_size: details.crewSize,
+      full_name: who.fullName.trim(),
+      phone: who.phone.trim(),
+      email: who.email.trim(),
+      notes: noteText.trim(),
+      estimated_price: estimate ? `${formatNaira(estimate.low)} to ${formatNaira(estimate.high)}` : '',
+    }
   }
 
   async function confirmBooking() {
@@ -318,34 +371,19 @@ export default function MoveApp() {
       return setContactError('Please enter a valid email address, or leave it blank.')
     }
 
+    // The tab may have sat open while the time got closer. Check again now,
+    // not just when the details step was submitted.
+    if (details.moveDate < lagosToday()) {
+      setStep('details')
+      return setDetailsError('That moving date has now passed. Please choose a new date.')
+    }
+    if (noticeFor(details).status !== 'ok') return setLateOpen(true)
+
     setBusy(true)
     try {
       const submission = await submitPublicIntakeForm({
         slug: 'move-booking',
-        payload: {
-          idempotency_key: getMoveIdempotencyKey(),
-          move_date: details.moveDate,
-          move_window: details.moveWindow,
-          pickup_address: details.pickupAddress.trim(),
-          pickup_area: details.pickupArea,
-          pickup_access: details.pickupAccess,
-          pickup_interstate_state:
-            details.pickupArea === 'Interstate' ? details.pickupInterstateState.trim() : '',
-          dropoff_address: details.dropoffAddress.trim(),
-          dropoff_area: details.dropoffArea,
-          dropoff_access: details.dropoffAccess,
-          dropoff_interstate_state:
-            details.dropoffArea === 'Interstate' ? details.dropoffInterstateState.trim() : '',
-          property_size: details.propertySize,
-          packing_help: details.packingHelp,
-          special_items: details.specialItems,
-          crew_size: details.crewSize,
-          full_name: contact.fullName.trim(),
-          phone: contact.phone.trim(),
-          email: contact.email.trim(),
-          notes: notes.trim(),
-          estimated_price: estimate ? `${formatNaira(estimate.low)} to ${formatNaira(estimate.high)}` : '',
-        },
+        payload: buildMovePayload(contact, notes),
         website,
       })
       setReference(submission.reference || '')
@@ -372,8 +410,12 @@ export default function MoveApp() {
     setContact({ fullName: '', phone: '', email: '' })
     setNotes('')
     setReference('')
+    setLateSent(false)
     setStep('intro')
   }
+
+  const lateNotice = lateOpen ? noticeFor(details) : null
+  const earliest = lateOpen ? earliestWindow(MOVE_WINDOWS) : null
 
   return (
     <main className="formsPage movePage">
@@ -423,6 +465,7 @@ export default function MoveApp() {
               <label>
                 <span>Moving Date *</span>
                 <input
+                  ref={dateInputRef}
                   type="date"
                   required
                   min={todayIsoDate}
@@ -750,6 +793,12 @@ export default function MoveApp() {
               {details.moveDate || 'your moving date'}.
               {reference ? ` Reference: ${reference}.` : ''}
             </p>
+            {lateSent && (
+              <p>
+                Because this is under 12 hours away, we will confirm by phone whether we can make it
+                work. For the fastest answer, message us on WhatsApp.
+              </p>
+            )}
             <div className="moveSuccessActions">
               <button type="button" onClick={bookAnotherMove}>
                 Book another move
@@ -761,6 +810,60 @@ export default function MoveApp() {
               </a>
             </div>
           </div>
+        )}
+
+        {lateOpen && lateNotice?.when && (
+          <LateBookingDialog
+            serviceName="Removals"
+            slug="move-booking"
+            when={lateNotice.when}
+            summary={[
+              { label: 'Date', value: formatDay(details.moveDate) },
+              { label: 'Window', value: details.moveWindow },
+              { label: 'From', value: [details.pickupAddress.trim(), details.pickupArea].filter(Boolean).join(', ') },
+              { label: 'To', value: [details.dropoffAddress.trim(), details.dropoffArea].filter(Boolean).join(', ') },
+              { label: 'Size', value: details.propertySize },
+            ]}
+            initialName={contact.fullName}
+            initialPhone={contact.phone}
+            earliest={
+              earliest
+                ? {
+                    label: `Use the earliest window: ${formatDay(earliest.date)}, ${earliest.window}`,
+                    onUse: () => {
+                      updateDetails('moveDate', earliest.date)
+                      updateDetails('moveWindow', earliest.window)
+                      setLateOpen(false)
+                      setStep('details')
+                    },
+                  }
+                : undefined
+            }
+            buildPayload={who =>
+              buildMovePayload(
+                { fullName: who.fullName, phone: who.phone, email: contact.email },
+                lateRequestNote(notes, lateNotice.when as Date, 1000),
+              )
+            }
+            onAdjust={() => {
+              setLateOpen(false)
+              setStep('details')
+              // After the dialog has handed focus back to the button that opened it.
+              window.setTimeout(() => dateInputRef.current?.focus(), 0)
+            }}
+            onClose={() => setLateOpen(false)}
+            onSent={(ref, who) => {
+              setReference(ref)
+              setContact(current => ({ ...current, fullName: who.fullName, phone: who.phone }))
+              setLateSent(true)
+              // A later, separate booking needs a fresh key, same as a normal submit.
+              window.sessionStorage.removeItem('ra_move_idempotency_key')
+            }}
+            onDone={() => {
+              setLateOpen(false)
+              setStep('success')
+            }}
+          />
         )}
 
         <footer className="formsFooter">

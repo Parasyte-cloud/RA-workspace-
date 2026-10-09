@@ -17,6 +17,18 @@ import { RideArrivoExactLogo } from './RideArrivoLogo'
 import FormsHeaderNav from './FormsHeaderNav'
 import { AIRPORTS, searchAirports, formatAirport, type Airport } from './airports'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
+import LateBookingDialog from './LateBookingDialog'
+import {
+  earliestAllowed,
+  formatDay,
+  formatLagos,
+  lagosInstant,
+  lagosParts,
+  lagosToday,
+  lateRequestNote,
+  leadStatus,
+  type TimeZoneReading,
+} from './lateBooking'
 import './forms-public.css'
 import FormsHeroImage from './FormsHeroImage'
 import './charter.css'
@@ -163,6 +175,24 @@ const INITIAL_DETAILS: Details = {
 }
 
 type Step = 'intro' | 'trip' | 'aircraft' | 'contact' | 'success'
+
+// Whether the departure airport is in Nigeria, which decides if the typed
+// departure time can honestly be called Lagos time. The airport picker fills
+// the field as "Lagos (LOS)", but free text is allowed too, so this reads the
+// code in brackets first and falls back to a city or code typed on its own.
+// Anything it cannot place counts as not Nigerian, so the time is shown as typed.
+function departsFromNigeria(text: string) {
+  const code = /\(([A-Za-z]{3})\)\s*$/.exec(text.trim())?.[1]?.toUpperCase()
+  const byCode = code ? AIRPORTS.find(airport => airport.code === code) : undefined
+  if (byCode) return byCode.country === 'Nigeria'
+  const typed = text.trim().toLowerCase()
+  if (!typed) return false
+  return AIRPORTS.some(
+    airport =>
+      airport.country === 'Nigeria' &&
+      (airport.city.toLowerCase() === typed || airport.code.toLowerCase() === typed),
+  )
+}
 
 const STEP_ORDER: Step[] = ['trip', 'aircraft', 'contact']
 const STEP_LABELS: Record<Step, string> = {
@@ -355,6 +385,12 @@ export default function AirApp() {
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
 
+  // Late-booking dialog. lateSent remembers that the request went to Support
+  // as a late request, so the success step can say so.
+  const [lateOpen, setLateOpen] = useState(false)
+  const [lateSent, setLateSent] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
   function updateDetails<K extends keyof Details>(key: K, value: Details[K]) {
     setDetails(current => ({ ...current, [key]: value }))
   }
@@ -371,6 +407,37 @@ export default function AirApp() {
   const isRoundTrip = details.tripType === 'Round-trip'
   const bestMatchJetClass = recommendedJetClass(details.passengers)
 
+  // The typed date and time are read as wall-clock time for the notice check.
+  // See TimeZoneReading in lateBooking.ts for why a far-off airport is only
+  // approximate and how the dialog labels it.
+  const zone: TimeZoneReading = departsFromNigeria(details.departureAirport) ? 'lagos' : 'local'
+
+  function noticeFor(current: Details) {
+    const when = lagosInstant(current.departureDate, current.departureTime)
+    return { when, status: when ? leadStatus(when) : ('ok' as const) }
+  }
+
+  // One place that builds the intake payload, used by the normal confirm and by
+  // the late-request dialog. The intake function rejects unknown keys, so this
+  // must stay in step with the published private-jet-charter schema.
+  function buildAirPayload(who: { fullName: string; phone: string; email: string }, noteText: string) {
+    return {
+      trip_type: details.tripType,
+      departure_airport: details.departureAirport.trim(),
+      destination_airport: details.destinationAirport.trim(),
+      departure_date: details.departureDate,
+      departure_time: details.departureTime,
+      return_date: isRoundTrip ? details.returnDate : '',
+      passengers: details.passengers,
+      jet_class: details.jetClass,
+      add_ons: details.addOns.join(', '),
+      full_name: who.fullName.trim(),
+      phone: who.phone.trim(),
+      email: who.email.trim(),
+      notes: noteText.trim(),
+    }
+  }
+
   function handleTripSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setTripError('')
@@ -386,6 +453,13 @@ export default function AirApp() {
     if (isRoundTrip && !details.returnDate) return setTripError('Please choose a return date.')
     if (!details.passengers) return setTripError('Please choose how many passengers.')
 
+    // Checked last, so a late request carries every other answer complete.
+    const notice = noticeFor(details)
+    if (notice.status === 'past') {
+      return setTripError('That departure date and time have already passed. Please choose a later time.')
+    }
+    if (notice.status === 'late') return setLateOpen(true)
+
     setStep('aircraft')
   }
 
@@ -397,25 +471,20 @@ export default function AirApp() {
     if (!contact.fullName.trim()) return setContactError('Please tell us your name.')
     if (!contact.phone.trim()) return setContactError('A phone number is required so our team can reach you.')
 
+    // The tab may have sat open while the time got closer. Check again now,
+    // not just when the trip step was submitted.
+    const notice = noticeFor(details)
+    if (notice.status === 'past') {
+      setStep('trip')
+      return setTripError('That departure date and time have now passed. Please choose a later time.')
+    }
+    if (notice.status === 'late') return setLateOpen(true)
+
     setBusy(true)
     try {
       const submission = await submitPublicIntakeForm({
         slug: 'private-jet-charter',
-        payload: {
-          trip_type: details.tripType,
-          departure_airport: details.departureAirport.trim(),
-          destination_airport: details.destinationAirport.trim(),
-          departure_date: details.departureDate,
-          departure_time: details.departureTime,
-          return_date: isRoundTrip ? details.returnDate : '',
-          passengers: details.passengers,
-          jet_class: details.jetClass,
-          add_ons: details.addOns.join(', '),
-          full_name: contact.fullName.trim(),
-          phone: contact.phone.trim(),
-          email: contact.email.trim(),
-          notes: notes.trim(),
-        },
+        payload: buildAirPayload(contact, notes),
       })
       setReference(submission.reference || '')
       setStep('success')
@@ -437,6 +506,7 @@ export default function AirApp() {
     setContact({ fullName: '', phone: '', email: '' })
     setNotes('')
     setReference('')
+    setLateSent(false)
     setStep('intro')
   }
 
@@ -543,8 +613,10 @@ export default function AirApp() {
               <label>
                 <span>Departure Date *</span>
                 <input
+                  ref={dateInputRef}
                   type="date"
                   required
+                  min={lagosToday()}
                   value={details.departureDate}
                   onChange={event => updateDetails('departureDate', event.target.value)}
                 />
@@ -801,6 +873,12 @@ export default function AirApp() {
               {details.departureDate || 'your requested date'}.
               {reference ? ` Reference: ${reference}.` : ''}
             </p>
+            {lateSent && (
+              <p>
+                Because this is under 12 hours away, we will confirm by phone whether we can make it
+                work. For the fastest answer, message us on WhatsApp.
+              </p>
+            )}
             <div className="charterSuccessActions">
               <button type="button" onClick={requestAnother}>
                 Request another flight
@@ -812,6 +890,60 @@ export default function AirApp() {
               </a>
             </div>
           </div>
+        )}
+
+        {lateOpen && noticeFor(details).when && (
+          <LateBookingDialog
+            serviceName="Private jet charter"
+            slug="private-jet-charter"
+            when={noticeFor(details).when as Date}
+            zone={zone}
+            summary={[
+              { label: 'Trip', value: details.tripType },
+              { label: 'From', value: details.departureAirport.trim() },
+              { label: 'To', value: details.destinationAirport.trim() },
+              {
+                label: 'Departs',
+                value: `${formatDay(details.departureDate)}, ${details.departureTime}${zone === 'lagos' ? ' (Lagos time)' : ''}`,
+              },
+              { label: 'Return', value: isRoundTrip ? formatDay(details.returnDate) : '' },
+              { label: 'Passengers', value: details.passengers },
+            ]}
+            initialName={contact.fullName}
+            initialPhone={contact.phone}
+            earliest={{
+              label: `Use the earliest time: ${formatLagos(earliestAllowed(), zone === 'lagos')}`,
+              onUse: () => {
+                const parts = lagosParts(earliestAllowed())
+                updateDetails('departureDate', parts.date)
+                updateDetails('departureTime', parts.time)
+                setLateOpen(false)
+                setStep('trip')
+              },
+            }}
+            buildPayload={who =>
+              buildAirPayload(
+                { fullName: who.fullName, phone: who.phone, email: contact.email },
+                lateRequestNote(notes, noticeFor(details).when as Date, 2000, zone),
+              )
+            }
+            onAdjust={() => {
+              setLateOpen(false)
+              setStep('trip')
+              // After the dialog has handed focus back to the button that opened it.
+              window.setTimeout(() => dateInputRef.current?.focus(), 0)
+            }}
+            onClose={() => setLateOpen(false)}
+            onSent={(ref, who) => {
+              setReference(ref)
+              setContact(current => ({ ...current, fullName: who.fullName, phone: who.phone }))
+              setLateSent(true)
+            }}
+            onDone={() => {
+              setLateOpen(false)
+              setStep('success')
+            }}
+          />
         )}
 
         <footer className="formsFooter">

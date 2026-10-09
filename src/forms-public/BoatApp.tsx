@@ -1,8 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import type { RiderUser } from '../lib/riderAuth'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
+import LateBookingDialog from './LateBookingDialog'
+import {
+  earliestAllowed,
+  formatDay,
+  formatLagos,
+  lagosInstant,
+  lagosParts,
+  lagosToday,
+  lateRequestNote,
+  leadStatus,
+} from './lateBooking'
 import './forms-public.css'
 import FormsHeroImage from './FormsHeroImage'
 import './charter.css'
@@ -89,11 +100,45 @@ export default function BoatApp() {
   const [submitError, setSubmitError] = useState('')
   const [reference, setReference] = useState('')
 
+  // Late-booking dialog. lateSent remembers that the request went to Support
+  // as a late request, so the success step can say so.
+  const [lateOpen, setLateOpen] = useState(false)
+  const [lateSent, setLateSent] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
   function updateDetails<K extends keyof Details>(key: K, value: Details[K]) {
     setDetails(current => ({ ...current, [key]: value }))
   }
 
   const isPointToPoint = details.charterType === 'Point-to-point transfer'
+
+  // The date and time are typed as Lagos wall-clock time, so they are read as
+  // Lagos time whatever timezone the visitor's device is in.
+  function noticeFor(current: Details) {
+    const when = lagosInstant(current.charterDate, current.charterTime)
+    return { when, status: when ? leadStatus(when) : ('ok' as const) }
+  }
+
+  // One place that builds the intake payload, used by the normal confirm and by
+  // the late-request dialog. The intake function rejects unknown keys, so this
+  // must stay in step with the published boat-charter schema.
+  function buildBoatPayload(who: { fullName: string; phone: string; email: string }, noteText: string) {
+    return {
+      charter_type: details.charterType,
+      departure_point: details.departurePoint.trim(),
+      destination: isPointToPoint ? details.destination.trim() : '',
+      charter_date: details.charterDate,
+      charter_time: details.charterTime,
+      duration: isPointToPoint ? '' : details.duration,
+      passengers: details.passengers,
+      vessel_preference: details.vesselPreference,
+      special_requests: details.specialRequests.trim(),
+      full_name: who.fullName.trim(),
+      phone: who.phone.trim(),
+      email: who.email.trim(),
+      notes: noteText.trim(),
+    }
+  }
 
   function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -107,6 +152,13 @@ export default function BoatApp() {
     if (!isPointToPoint && !details.duration) return setDetailsError('Please choose how long you need the vessel.')
     if (!details.passengers) return setDetailsError('Please choose how many passengers.')
 
+    // Checked last, so a late request carries every other answer complete.
+    const notice = noticeFor(details)
+    if (notice.status === 'past') {
+      return setDetailsError('That date and time have already passed. Please choose a later time.')
+    }
+    if (notice.status === 'late') return setLateOpen(true)
+
     setStep('contact')
   }
 
@@ -118,25 +170,20 @@ export default function BoatApp() {
     if (!contact.fullName.trim()) return setContactError('Please tell us your name.')
     if (!contact.phone.trim()) return setContactError('A phone number is required so our team can reach you.')
 
+    // The tab may have sat open while the time got closer. Check again now,
+    // not just when the details step was submitted.
+    const notice = noticeFor(details)
+    if (notice.status === 'past') {
+      setStep('details')
+      return setDetailsError('That date and time have now passed. Please choose a later time.')
+    }
+    if (notice.status === 'late') return setLateOpen(true)
+
     setBusy(true)
     try {
       const submission = await submitPublicIntakeForm({
         slug: 'boat-charter',
-        payload: {
-          charter_type: details.charterType,
-          departure_point: details.departurePoint.trim(),
-          destination: isPointToPoint ? details.destination.trim() : '',
-          charter_date: details.charterDate,
-          charter_time: details.charterTime,
-          duration: isPointToPoint ? '' : details.duration,
-          passengers: details.passengers,
-          vessel_preference: details.vesselPreference,
-          special_requests: details.specialRequests.trim(),
-          full_name: contact.fullName.trim(),
-          phone: contact.phone.trim(),
-          email: contact.email.trim(),
-          notes: notes.trim(),
-        },
+        payload: buildBoatPayload(contact, notes),
       })
       setReference(submission.reference || '')
       setStep('success')
@@ -158,6 +205,7 @@ export default function BoatApp() {
     setContact({ fullName: '', phone: '', email: '' })
     setNotes('')
     setReference('')
+    setLateSent(false)
     setStep('intro')
   }
 
@@ -277,8 +325,10 @@ export default function BoatApp() {
               <label>
                 <span>Date *</span>
                 <input
+                  ref={dateInputRef}
                   type="date"
                   required
+                  min={lagosToday()}
                   value={details.charterDate}
                   onChange={event => updateDetails('charterDate', event.target.value)}
                 />
@@ -455,6 +505,12 @@ export default function BoatApp() {
               {details.charterDate || 'your requested date'}.
               {reference ? ` Reference: ${reference}.` : ''}
             </p>
+            {lateSent && (
+              <p>
+                Because this is under 12 hours away, we will confirm by phone whether we can make it
+                work. For the fastest answer, message us on WhatsApp.
+              </p>
+            )}
             <div className="charterSuccessActions">
               <button type="button" onClick={requestAnother}>
                 Request another charter
@@ -466,6 +522,56 @@ export default function BoatApp() {
               </a>
             </div>
           </div>
+        )}
+
+        {lateOpen && noticeFor(details).when && (
+          <LateBookingDialog
+            serviceName="Boat charter"
+            slug="boat-charter"
+            when={noticeFor(details).when as Date}
+            summary={[
+              { label: 'Type', value: details.charterType },
+              { label: 'From', value: details.departurePoint.trim() },
+              { label: 'To', value: isPointToPoint ? details.destination.trim() : '' },
+              { label: 'When', value: `${formatDay(details.charterDate)}, ${details.charterTime} (Lagos time)` },
+              { label: 'Passengers', value: details.passengers },
+              { label: 'Duration', value: isPointToPoint ? '' : details.duration },
+            ]}
+            initialName={contact.fullName}
+            initialPhone={contact.phone}
+            earliest={{
+              label: `Use the earliest time: ${formatLagos(earliestAllowed())}`,
+              onUse: () => {
+                const parts = lagosParts(earliestAllowed())
+                updateDetails('charterDate', parts.date)
+                updateDetails('charterTime', parts.time)
+                setLateOpen(false)
+                setStep('details')
+              },
+            }}
+            buildPayload={who =>
+              buildBoatPayload(
+                { fullName: who.fullName, phone: who.phone, email: contact.email },
+                lateRequestNote(notes, noticeFor(details).when as Date, 2000),
+              )
+            }
+            onAdjust={() => {
+              setLateOpen(false)
+              setStep('details')
+              // After the dialog has handed focus back to the button that opened it.
+              window.setTimeout(() => dateInputRef.current?.focus(), 0)
+            }}
+            onClose={() => setLateOpen(false)}
+            onSent={(ref, who) => {
+              setReference(ref)
+              setContact(current => ({ ...current, fullName: who.fullName, phone: who.phone }))
+              setLateSent(true)
+            }}
+            onDone={() => {
+              setLateOpen(false)
+              setStep('success')
+            }}
+          />
         )}
 
         <footer className="formsFooter">
