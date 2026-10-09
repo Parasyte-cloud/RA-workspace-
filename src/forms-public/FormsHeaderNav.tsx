@@ -12,6 +12,7 @@ import { attachHeaderMove } from './headerMove'
 const SERVICES = [
   { label: 'ArrivoExpress', href: 'https://express.ridearrivo.com' },
   { label: 'ArrivoRemovals', href: 'https://move.ridearrivo.com' },
+  { label: 'Chauffeur', href: 'https://www.ridearrivo.com/charter-booking.html' },
   { label: 'ArrivoBoat', href: 'https://boat.ridearrivo.com' },
   { label: 'ArrivoAir', href: 'https://air.ridearrivo.com' },
   { label: 'Membership', href: 'https://membership.ridearrivo.com' },
