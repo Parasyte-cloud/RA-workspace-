@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import { AIRPORTS, searchAirports, formatAirport, type Airport } from './airports'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
@@ -447,6 +448,7 @@ export default function AirApp() {
             <Plane size={12} />
             PRIVATE JET CHARTER
           </span>
+          <FormsHeaderNav />
         </header>
 
         <TripStepper current={step} />

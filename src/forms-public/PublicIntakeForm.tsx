@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import FormsHeroImage from './FormsHeroImage'
 import './forms-public.css'
 
@@ -135,6 +136,7 @@ function StatusShell({ badge, eyebrow, title, children }: {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">{badge}</span>
+          <FormsHeaderNav />
         </header>
 
         <div className="formsSuccess">
@@ -393,6 +395,7 @@ export default function PublicIntakeForm({ slug }: { slug: string }) {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">SECURE FORM</span>
+          <FormsHeaderNav />
         </header>
 
         <FormsHeroImage />
