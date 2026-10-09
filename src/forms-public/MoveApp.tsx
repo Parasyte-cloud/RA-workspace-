@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import type { RiderUser } from '../lib/riderAuth'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
 import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
@@ -256,6 +257,20 @@ export default function MoveApp() {
     }
   }, [])
 
+  // The header booking button: sign-in was already checked there. Jump to the
+  // first form step and prefill the contact details for a signed-in rider.
+  function startFromHeader(user: RiderUser | null) {
+    if (user) {
+      setContact(current => ({
+        fullName: current.fullName || user.name || '',
+        phone: current.phone || user.phone || user.whatsapp_number || '',
+        email: current.email || user.email || '',
+      }))
+    }
+    setStep(current => (current === 'intro' || current === 'success' ? 'details' : current))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function updateDetails<K extends keyof MoveDetails>(key: K, value: MoveDetails[K]) {
     setDetails(current => ({ ...current, [key]: value }))
   }
@@ -366,7 +381,7 @@ export default function MoveApp() {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">REMOVALS</span>
-          <FormsHeaderNav />
+          <FormsHeaderNav bookLabel="Book removals" onBook={startFromHeader} />
         </header>
 
         {step === 'intro' && <FormsHeroImage variant="move" />}

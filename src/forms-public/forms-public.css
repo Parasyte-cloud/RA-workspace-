@@ -724,3 +724,49 @@ html[data-theme="light"] .formsLogoLink .logoOnLight{display:block}
   .formsHeader.is-side-left .formsNavMenu{left:calc(100% + 12px);right:auto}
   .formsHeader.is-side-right .formsNavMenu{right:calc(100% + 12px);left:auto}
 }
+
+/* Header booking button when an app supplies its own (a real <button>). */
+button.formsCta{border:0;cursor:pointer;font-family:inherit}
+button.formsCta:disabled{opacity:.7;cursor:progress}
+.formsMobilePanel .formsMobileBook{
+  display:block;width:100%;text-align:left;border:0;background:none;
+  color:inherit;font:inherit;padding:0;cursor:pointer
+}
+
+/* Sign-in sheet opened by the header booking button. */
+.formsSheetOverlay{
+  position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:rgba(10,12,36,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)
+}
+.formsSheet{
+  position:relative;width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;
+  padding:26px 22px;border-radius:22px;background:var(--f-surface);color:var(--f-text);
+  border:1px solid rgba(var(--f-fg),.14);box-shadow:0 24px 60px rgba(10,12,36,.4)
+}
+.formsSheet h2{margin:0 36px 6px 0;font-size:20px;line-height:1.25;color:inherit}
+.formsSheetLead{margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--f-muted)}
+.formsSheetClose{
+  position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;
+  background:transparent;color:inherit;font-size:24px;line-height:1;cursor:pointer
+}
+.formsSheetGoogle{display:flex;justify-content:center;min-height:0;margin:0 0 12px}
+.formsSheetForm{display:grid;gap:10px}
+.formsSheetRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.formsSheetForm input:not([type=checkbox]){
+  width:100%;box-sizing:border-box;padding:12px 13px;border-radius:12px;
+  border:1.5px solid rgba(var(--f-fg),.2);background:var(--f-field);color:var(--f-text);font:15px inherit
+}
+.formsSheetCheck{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--f-muted)}
+.formsSheetCheck a{color:var(--f-amber-text)}
+.formsSheetError{margin:0;font-size:13.5px;color:var(--f-err-text)}
+.formsSheetPrimary{
+  padding:13px 16px;border:0;border-radius:12px;background:var(--f-amber);color:var(--f-on-amber);
+  font:700 15px inherit;cursor:pointer
+}
+.formsSheetPrimary:disabled{opacity:.7;cursor:progress}
+.formsSheetLink,.formsSheetGuest{
+  display:block;width:100%;margin-top:10px;padding:10px;border:0;background:none;
+  color:var(--f-amber-text);font:600 14px inherit;cursor:pointer;text-align:center
+}
+.formsSheetGuest{border:1.5px solid rgba(var(--f-fg),.2);border-radius:12px;color:inherit}
+.formsSheet input:focus-visible,.formsSheet button:focus-visible{outline:3px solid var(--f-amber);outline-offset:2px}

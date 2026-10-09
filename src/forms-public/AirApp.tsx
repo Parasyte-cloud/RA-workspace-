@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import type { RiderUser } from '../lib/riderAuth'
 import {
   Briefcase,
   Car,
@@ -439,6 +440,20 @@ export default function AirApp() {
     setStep('intro')
   }
 
+  // The header booking button: sign-in was already checked there. Jump to the
+  // first form step and prefill the contact details for a signed-in rider.
+  function startFromHeader(user: RiderUser | null) {
+    if (user) {
+      setContact(current => ({
+        fullName: current.fullName || user.name || '',
+        phone: current.phone || user.phone || user.whatsapp_number || '',
+        email: current.email || user.email || '',
+      }))
+    }
+    setStep(current => (current === 'intro' || current === 'success' ? 'trip' : current))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <main className="formsPage charterPage airPage">
       <section className="formsShell charterShell">
@@ -448,7 +463,7 @@ export default function AirApp() {
             <Plane size={12} />
             PRIVATE JET CHARTER
           </span>
-          <FormsHeaderNav />
+          <FormsHeaderNav bookLabel="Request a jet" onBook={startFromHeader} />
         </header>
 
         <TripStepper current={step} />
