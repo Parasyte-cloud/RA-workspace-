@@ -5,7 +5,7 @@
 .moveLead{
   max-width:640px;
   margin:16px 0 26px;
-  color:#aeb9c8;
+  color:var(--f-text-3);
   font-size:16px;
   line-height:1.7
 }
@@ -31,7 +31,7 @@
 .moveHighlights li{
   position:relative;
   padding-left:22px;
-  color:#c4cfdd;
+  color:var(--f-text-2);
   font-size:14.5px;
   line-height:1.55
 }
@@ -40,7 +40,7 @@
   content:"\2713";
   position:absolute;
   left:0;
-  color:#ff9f0a;
+  color:var(--f-amber-text);
   font-weight:800
 }
 
@@ -63,7 +63,7 @@
 }
 
 .moveCheckboxField span{
-  color:#c4cfdd;
+  color:var(--f-text-2);
   font-size:13.5px;
   font-weight:500!important
 }
@@ -73,13 +73,13 @@
   gap:6px;
   margin-top:6px;
   padding:18px 20px;
-  border:1px solid rgba(255,159,10,.35);
+  border:1px solid rgba(var(--f-amber-rgb),.35);
   border-radius:16px;
-  background:rgba(255,159,10,.07)
+  background:rgba(var(--f-amber-rgb),.07)
 }
 
 .moveEstimateLabel{
-  color:#ff9f0a;
+  color:var(--f-amber-text);
   font-size:11px;
   font-weight:800;
   letter-spacing:.1em;
@@ -92,12 +92,12 @@
 }
 
 .moveEstimateBox small{
-  color:#8997aa;
+  color:var(--f-muted);
   line-height:1.55
 }
 
 .moveEstimatePlaceholder{
-  color:#758398;
+  color:var(--f-muted);
   font-size:13.5px;
   line-height:1.6
 }
@@ -124,7 +124,7 @@
 }
 
 .moveRecap dt{
-  color:#758398;
+  color:var(--f-muted);
   font-size:12px;
   font-weight:700;
   text-transform:uppercase;
@@ -133,7 +133,7 @@
 
 .moveRecap dd{
   margin:0;
-  color:#e4e9f1;
+  color:var(--f-text-2);
   font-size:14.5px;
   line-height:1.5
 }
@@ -141,27 +141,27 @@
 .moveRecapPrice{
   margin:18px 0 0;
   padding-top:16px;
-  border-top:1px solid rgba(255,255,255,.09);
-  color:#c4cfdd;
+  border-top:1px solid rgba(var(--f-fg),.09);
+  color:var(--f-text-2);
   font-size:15px
 }
 
 .moveRecapPrice strong{
-  color:#ff9f0a;
+  color:var(--f-amber-text);
   font-size:18px
 }
 
 .moveRecapNote{
   margin:12px 0 0;
-  color:#8997aa;
+  color:var(--f-muted);
   font-size:13px;
   line-height:1.6
 }
 
 .moveBackButton{
-  color:#f5f7fa!important;
+  color:var(--f-text)!important;
   background:transparent!important;
-  border:1px solid rgba(255,255,255,.16)!important
+  border:1px solid rgba(var(--f-fg),.16)!important
 }
 
 .moveSuccessActions{

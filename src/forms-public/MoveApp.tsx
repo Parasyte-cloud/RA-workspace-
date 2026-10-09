@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { RideArrivoExactLogo } from './RideArrivoLogo'
+import FormsHeaderNav from './FormsHeaderNav'
 import { submitPublicIntakeForm, IntakeRequestError } from '../lib/intake'
 import './forms-public.css'
 import FormsHeroImage from './FormsHeroImage'
@@ -365,6 +366,7 @@ export default function MoveApp() {
         <header className="formsHeader">
           <RideArrivoExactLogo />
           <span className="formsBadge">REMOVALS</span>
+          <FormsHeaderNav />
         </header>
 
         {step === 'intro' && <FormsHeroImage variant="move" />}

@@ -13,7 +13,7 @@
 .membershipLead{
   max-width:640px;
   margin:16px 0 30px;
-  color:#aeb9c8;
+  color:var(--f-text-3);
   font-size:16px;
   line-height:1.7
 }
@@ -36,18 +36,18 @@
 .membershipAuthButton{
   min-height:52px;
   padding:14px 22px;
-  border:1px solid rgba(255,255,255,.16);
+  border:1px solid rgba(var(--f-fg),.16);
   border-radius:14px;
   cursor:pointer;
-  color:#f5f7fa;
-  background:rgba(255,255,255,.045);
+  color:var(--f-text);
+  background:rgba(var(--f-fg),.045);
   font-weight:700;
   transition:border-color .15s,background .15s
 }
 
 .membershipAuthButton:hover{
-  border-color:rgba(255,255,255,.32);
-  background:rgba(255,255,255,.08)
+  border-color:rgba(var(--f-fg),.32);
+  background:rgba(var(--f-fg),.08)
 }
 
 /* Google renders its own button asynchronously into this slot once its
@@ -79,10 +79,10 @@
   max-width:520px;
   margin:14px 0 0;
   padding:12px 15px;
-  border:1px solid rgba(255,159,10,.30);
+  border:1px solid rgba(var(--f-amber-rgb),.30);
   border-radius:12px;
-  color:#e7cfa3;
-  background:rgba(255,159,10,.08);
+  color:var(--f-amber-text);
+  background:rgba(var(--f-amber-rgb),.08);
   font-size:13.5px;
   line-height:1.6
 }
@@ -95,17 +95,17 @@
   max-width:640px;
   margin-top:8px;
   padding:14px 16px;
-  border:1px solid rgba(120,220,150,.30);
+  border:1px solid rgba(var(--f-ok-rgb),.30);
   border-radius:14px;
-  background:rgba(120,220,150,.07);
-  color:#f5f7fa
+  background:rgba(var(--f-ok-rgb),.07);
+  color:var(--f-text)
 }
 
 .membershipSignedInBadge{
   padding:5px 10px;
   border-radius:999px;
-  background:rgba(120,220,150,.16);
-  color:#a9ecc0;
+  background:rgba(var(--f-ok-rgb),.16);
+  color:var(--f-ok-text);
   font-size:11px;
   font-weight:800;
   letter-spacing:.06em;
@@ -117,7 +117,7 @@
 }
 
 .membershipSignedIn span{
-  color:#8997aa;
+  color:var(--f-muted);
   font-size:13px
 }
 
@@ -126,7 +126,7 @@
   padding:0;
   border:none;
   background:transparent;
-  color:#758398;
+  color:var(--f-muted);
   font-size:12.5px;
   font-weight:600;
   text-decoration:underline;
@@ -138,7 +138,7 @@
   align-items:center;
   gap:14px;
   margin:30px 0 24px;
-  color:#758398;
+  color:var(--f-muted);
   font-size:12.5px;
   font-weight:700;
   letter-spacing:.04em
@@ -149,7 +149,7 @@
   content:"";
   flex:1;
   height:1px;
-  background:rgba(255,255,255,.10)
+  background:rgba(var(--f-fg),.10)
 }
 
 .membershipIdentifyForm{
@@ -176,15 +176,15 @@
 
 .planCard{
   padding:26px;
-  border:1px solid rgba(255,255,255,.11);
+  border:1px solid rgba(var(--f-fg),.11);
   border-radius:24px;
-  background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+  background:linear-gradient(145deg,rgba(var(--f-fg),.05),rgba(var(--f-fg),.02));
   transition:border-color .15s
 }
 
 .planCardSelected{
-  border-color:rgba(255,159,10,.65);
-  background:linear-gradient(145deg,rgba(255,159,10,.10),rgba(255,255,255,.02))
+  border-color:rgba(var(--f-amber-rgb),.65);
+  background:linear-gradient(145deg,rgba(var(--f-amber-rgb),.10),rgba(var(--f-fg),.02))
 }
 
 .planCardHeader{
@@ -210,7 +210,7 @@
 .planTagline{
   display:block;
   margin-top:6px;
-  color:#8997aa;
+  color:var(--f-muted);
   font-size:13px;
   line-height:1.5;
   max-width:280px
@@ -225,13 +225,13 @@
   display:block;
   font-weight:800;
   font-size:15px;
-  color:#ff9f0a
+  color:var(--f-amber-text)
 }
 
 .planPrice small{
   display:block;
   margin-top:4px;
-  color:#758398;
+  color:var(--f-muted);
   font-size:11.5px
 }
 
@@ -239,8 +239,8 @@
   margin:16px 0 0;
   padding:10px 13px;
   border-radius:11px;
-  background:rgba(255,255,255,.045);
-  color:#c4cfdd;
+  background:rgba(var(--f-fg),.045);
+  color:var(--f-text-2);
   font-size:13px;
   font-weight:700
 }
@@ -256,7 +256,7 @@
 .planBenefits li{
   position:relative;
   padding-left:20px;
-  color:#c4cfdd;
+  color:var(--f-text-2);
   font-size:13.5px;
   line-height:1.55
 }
@@ -265,7 +265,7 @@
   content:"✓";
   position:absolute;
   left:0;
-  color:#ff9f0a;
+  color:var(--f-amber-text);
   font-weight:800
 }
 
@@ -273,18 +273,18 @@
   width:100%;
   margin-top:18px;
   min-height:46px;
-  border:1px solid rgba(255,159,10,.5);
+  border:1px solid rgba(var(--f-amber-rgb),.5);
   border-radius:13px;
   cursor:pointer;
-  color:#ff9f0a;
+  color:var(--f-amber-text);
   background:transparent;
   font-weight:800;
   transition:background .15s,color .15s
 }
 
 .planCardSelected .planChooseButton{
-  color:#07111f;
-  background:#ff9f0a
+  color:var(--f-on-amber);
+  background:var(--f-amber)
 }
 
 .membershipConfirm{
