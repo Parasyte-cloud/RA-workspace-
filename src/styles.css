@@ -5778,6 +5778,32 @@ textarea {
   gap:2px;
 }
 
+.workAttachmentRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:stretch;
+  gap:7px;
+}
+
+.workAttachmentList .workAttachmentRemove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  width:auto;
+  min-width:44px;
+  padding:0 13px;
+
+  border-color:rgba(180,35,24,.28);
+  background:rgba(180,35,24,.06);
+  color:#b42318;
+}
+
+.workAttachmentList .workAttachmentRemove:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
 .workAttachmentList small{
   color:var(--muted);
 }
