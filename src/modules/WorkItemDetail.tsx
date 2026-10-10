@@ -20,6 +20,7 @@ import {
   Plus,
   Send,
   ShieldCheck,
+  Trash2,
   UserPlus,
   Users,
   X
@@ -831,6 +832,56 @@ export function WorkItemDetail({
   }
 
 
+  const removeFile=async(
+    attachment:Attachment
+  )=>{
+    if(!supabase){
+      return
+    }
+
+    const confirmed=window.confirm(
+      `Remove "${attachment.file_name}" from this task? This cannot be undone.`
+    )
+
+    if(!confirmed){
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    const {data:storagePath,error}=
+      await supabase.rpc(
+        'remove_work_attachment',
+        {target_attachment:attachment.id}
+      )
+
+    if(error){
+      setMessage(error.message)
+      setBusy(false)
+      return
+    }
+
+    // The record is gone. Now delete the stored file too.
+    if(typeof storagePath==='string' && storagePath){
+      const {error:storageError}=
+        await supabase.storage
+          .from('work-attachments')
+          .remove([storagePath])
+
+      if(storageError){
+        setMessage(
+          'The attachment was removed from the task, but the stored file could not be deleted: '+
+          storageError.message
+        )
+      }
+    }
+
+    await loadDetail()
+    setBusy(false)
+  }
+
+
   const formatSize=(size:number|null)=>{
     if(!size){
       return ''
@@ -1135,29 +1186,51 @@ export function WorkItemDetail({
 
             <div className="workAttachmentList">
               {attachments.map(file=>
-                <button
-                  type="button"
+                <div
+                  className="workAttachmentRow"
                   key={file.id}
-                  onClick={()=>
-                    void downloadFile(file)
-                  }
                 >
-                  <FileText size={17}/>
+                  <button
+                    type="button"
+                    onClick={()=>
+                      void downloadFile(file)
+                    }
+                  >
+                    <FileText size={17}/>
 
-                  <span>
-                    <strong>
-                      {file.file_name}
-                    </strong>
+                    <span>
+                      <strong>
+                        {file.file_name}
+                      </strong>
 
-                    <small>
-                      {formatSize(
-                        file.file_size
-                      )}
-                    </small>
-                  </span>
+                      <small>
+                        {formatSize(
+                          file.file_size
+                        )}
+                      </small>
+                    </span>
 
-                  <Download size={15}/>
-                </button>
+                    <Download size={15}/>
+                  </button>
+
+                  {(file.uploaded_by===currentUserId ||
+                    isManager) &&
+                    <button
+                      type="button"
+                      className="workAttachmentRemove"
+                      aria-label={
+                        `Remove ${file.file_name}`
+                      }
+                      title="Remove this file"
+                      disabled={busy}
+                      onClick={()=>
+                        void removeFile(file)
+                      }
+                    >
+                      <Trash2 size={16}/>
+                    </button>
+                  }
+                </div>
               )}
 
               {!attachments.length&&
