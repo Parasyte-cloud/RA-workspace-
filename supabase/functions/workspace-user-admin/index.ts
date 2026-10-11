@@ -191,12 +191,18 @@ serve(async(req)=>{
       )
     }
 
+    const callerRole =
+      String(
+        administrator?.role || ""
+      ).toLowerCase()
+
+    const callerIsAdmin =
+      callerRole === "admin"
+
     if(
       !administrator ||
       administrator.active !== true ||
-      String(
-        administrator.role
-      ).toLowerCase() !== "admin"
+      (!callerIsAdmin && callerRole !== "hr")
     ){
       return json(
         {
@@ -218,6 +224,20 @@ serve(async(req)=>{
       )
         .trim()
         .toLowerCase()
+
+    /*
+     * People & HR may permanently delete a former employee. Everything else
+     * in this function stays administrator only.
+     */
+    if(
+      !callerIsAdmin &&
+      action !== "delete-former"
+    ){
+      return json(
+        {error:"Only an administrator can do that."},
+        403
+      )
+    }
 
     /*
      * LIST
@@ -1186,6 +1206,138 @@ serve(async(req)=>{
         return json(
           {error:`Unable to delete the account: ${errorMessage(deleteError)}`},
           500
+        )
+      }
+
+      return json({success:true,userId})
+    }
+
+    /*
+     * DELETE FORMER
+     *
+     * Permanently removes a former employee (People & HR or administrator).
+     * Refused when the target is the caller, is still active (archive first),
+     * or is an administrator (change their role first). The audit row is
+     * written before the Auth user is deleted, because the profile and its
+     * cascade disappear with it. A person whose work history is still
+     * referenced elsewhere cannot be erased and stays as a former employee.
+     */
+    if(action==="delete-former"){
+      const userId =
+        String(
+          body?.userId || ""
+        ).trim()
+
+      if(!/^[0-9a-f-]{36}$/i.test(userId)){
+        return json(
+          {error:"A valid user ID is required."},
+          400
+        )
+      }
+
+      if(userId===administratorId){
+        return json(
+          {error:"You cannot delete your own account."},
+          400
+        )
+      }
+
+      const {
+        data:former,
+        error:formerError,
+      } =
+        await admin
+          .from("employee_profiles")
+          .select("id,email,full_name,active,role,department,job_title")
+          .eq("id",userId)
+          .maybeSingle()
+
+      if(formerError){
+        console.error(
+          "workspace-user-admin delete-former lookup",
+          formerError
+        )
+        return json(
+          {error:`Unable to look up the account: ${errorMessage(formerError)}`},
+          500
+        )
+      }
+
+      if(!former){
+        return json(
+          {error:"Employee profile was not found."},
+          404
+        )
+      }
+
+      if(former.active===true){
+        return json(
+          {error:"This person is still active. Offboard them first, then delete."},
+          409
+        )
+      }
+
+      if(String(former.role).toLowerCase()==="admin"){
+        return json(
+          {error:"An administrator cannot be deleted. Change their role first."},
+          409
+        )
+      }
+
+      const {error:formerAuditError}=
+        await admin
+          .from("admin_audit_log")
+          .insert({
+            actor_id:administratorId,
+            target_employee_id:null,
+            action:"employee.delete_former",
+            entity_type:"employee_profiles",
+            entity_id:userId,
+            source:"workspace-user-admin",
+            metadata:{
+              email:former.email || null,
+              full_name:former.full_name || null,
+              department:former.department || null,
+              job_title:former.job_title || null,
+            },
+          })
+
+      if(formerAuditError){
+        console.error(
+          "workspace-user-admin delete-former audit",
+          formerAuditError
+        )
+        return json(
+          {error:`Could not write the audit record (${[formerAuditError.code,formerAuditError.message,formerAuditError.details].filter(Boolean).join(" | ") || "no detail returned"}). Nothing was deleted.`},
+          500
+        )
+      }
+
+      const {error:formerDeleteError}=
+        await admin.auth.admin.deleteUser(userId)
+
+      if(formerDeleteError){
+        console.error(
+          "workspace-user-admin delete-former",
+          formerDeleteError
+        )
+
+        await admin
+          .from("admin_audit_log")
+          .insert({
+            actor_id:administratorId,
+            target_employee_id:userId,
+            action:"employee.delete_former_failed",
+            entity_type:"employee_profiles",
+            entity_id:userId,
+            source:"workspace-user-admin",
+            metadata:{reason:errorMessage(formerDeleteError)},
+          })
+          .then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
+
+        return json(
+          {error:`Could not delete this person: ${errorMessage(formerDeleteError)}. This usually means their work history is still linked to other records, so they are kept as a former employee.`},
+          409
         )
       }
 

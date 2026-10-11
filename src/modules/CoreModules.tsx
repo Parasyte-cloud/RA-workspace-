@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { BadgeCheck, CalendarDays, Headphones, Phone, Route, ShieldAlert, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DataWorkbench } from './DataWorkbench'
+import PeopleDirectory from './PeopleDirectory'
 import SupportOperationsPanel from './SupportOperationsPanel'
 import EmployeeHrDetailsAdminPanel from '../components/EmployeeHrDetailsAdminPanel'
 import AdministrationControlPlane from './AdministrationControlPlane'
@@ -269,14 +270,15 @@ export function PeopleModule({
   const [message,setMessage]=useState('')
   useEffect(()=>{if(!supabase)return;void supabase.from('employee_profiles').select('id,full_name,email,department,job_title,role').order('full_name').then(({data})=>setEmployees((data||[]) as Record<string,unknown>[]))},[])
   const [viewerRole,setViewerRole]=useState('')
-  useEffect(()=>{if(!supabase)return;let cancelled=false;(async()=>{const {data:{user}}=await supabase!.auth.getUser();if(!user)return;const {data}=await supabase!.from('employee_profiles').select('role').eq('id',user.id).maybeSingle();if(!cancelled)setViewerRole(String(data?.role||'employee').toLowerCase())})();return ()=>{cancelled=true}},[])
+  const [viewerId,setViewerId]=useState('')
+  useEffect(()=>{if(!supabase)return;let cancelled=false;(async()=>{const {data:{user}}=await supabase!.auth.getUser();if(!user)return;const {data}=await supabase!.from('employee_profiles').select('role').eq('id',user.id).maybeSingle();if(!cancelled)setViewerId(user.id);if(!cancelled)setViewerRole(String(data?.role||'employee').toLowerCase())})();return ()=>{cancelled=true}},[])
   const canApproveLeave=['hr','manager','admin'].includes(viewerRole)
   const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})}
   return <section>
     <Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee records, recruitment, onboarding, leave, performance and learning under role-based controls."/>
     {operationsView&&<div className="moduleNotice">Operations access is limited to the active employee directory and personal leave self-service. Recruitment, performance, training administration and HR profile changes remain restricted to People & HR and authorised management.</div>}
     <div className="grid2">
-      <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Employee directory</h3><p>Live company directory. Private employee headshots are not exposed here.</p></div><Users/></div><div className="moduleTableWrap"><table className="moduleTable"><thead><tr><th>Name</th><th>Department</th><th>Job title</th><th>Role</th></tr></thead><tbody>{employees.map(e=><tr key={String(e.id)}><td>{String(e.full_name||e.email)}</td><td>{String(e.department||'—')}</td><td>{String(e.job_title||'—')}</td><td>{String(e.role||'employee')}</td></tr>)}</tbody></table></div></div>
+      <PeopleDirectory canManage={['hr','admin'].includes(viewerRole)} viewerId={viewerId} viewerRole={viewerRole}/>
       <div className="glassCard workbench"><div className="workbenchHead"><div><h3>Request leave</h3><p>Employee self-service protected by RLS.</p></div><CalendarDays/></div><form className="quickForm" onSubmit={submit}><div className="quickFormGrid"><label>Leave type<select value={leave.leave_type} onChange={e=>setLeave({...leave,leave_type:e.target.value})}><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Study</option><option>Unpaid</option></select></label><label>Start date<input type="date" required value={leave.start_date} onChange={e=>setLeave({...leave,start_date:e.target.value})}/></label><label>End date<input type="date" required value={leave.end_date} onChange={e=>setLeave({...leave,end_date:e.target.value})}/></label><label>Reason<textarea value={leave.reason} onChange={e=>setLeave({...leave,reason:e.target.value})}/></label></div>{message&&<div className="moduleNotice">{message}</div>}<button className="primaryButton">Submit request</button></form></div>
       {canApproveLeave&&<LeaveApprovalPanel employees={employees}/>}
       {['hr','admin'].includes(viewerRole)&&<EmployeeHrDetailsAdminPanel employees={employees}/>}
