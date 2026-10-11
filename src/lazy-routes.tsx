@@ -301,3 +301,7 @@ export const VendorsPanel = lazy(
   () =>
     import('./modules/VendorsPanel')
 )
+
+export const DepartmentAdminView = lazy(
+  () => import('./modules/DepartmentAdminView')
+)

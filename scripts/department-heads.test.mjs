@@ -48,3 +48,32 @@ test('UI: Workstation Control names heads and Work Desk shows Department Work', 
   assert.ok(desk.includes("rpc('get_department_head_scope')") && desk.includes('Department Work'))
   assert.ok(read('../src/modules/WorkItemDetail.tsx').includes('departmentScopeIds'))
 })
+
+const ov = read('../supabase/migrations/20261011240000_department_head_overview.sql')
+
+test('department admin overview is scoped to heads and leaks no location or hardware ids', () => {
+  assert.match(ov, /h\.is_head = true/)
+  assert.match(ov, /is_department_head_of\(target_user\)/)
+  const select = ov.slice(ov.indexOf('create or replace function public.get_department_team_overview'), ov.indexOf('create or replace function public.get_department_member_detail'))
+  for (const banned of ['source_ip', 'address_full', 'browser_name', 'serial_number', 'imei', 'city', 'location_']) {
+    assert.ok(!select.includes(banned), `overview must not expose ${banned}`)
+  }
+  assert.ok(!/'serial_number'|'imei'/.test(ov.slice(ov.indexOf('get_department_member_detail'))))
+})
+
+test('every view of a person is audited and both functions are closed to anon', () => {
+  assert.match(ov, /'department_head\.member_viewed'/)
+  for (const fn of ['get_department_team_overview()', 'get_department_member_detail(uuid)']) {
+    assert.ok(ov.includes(`revoke all on function public.${fn} from public, anon`), fn)
+  }
+  assert.ok(!ov.includes('—'))
+})
+
+test('Department Admin is only reachable through a head grant and tolerates a missing column', () => {
+  const app = read('../src/App.tsx')
+  assert.match(app, /deptadmin:\[\]/)
+  assert.match(app, /workstation:'deptadmin'/)
+  assert.match(app, /\.select\('is_head'\)/)
+  assert.ok(!app.includes(".select('workstation,is_primary,active,is_head')"))
+  assert.match(read('../src/lazy-routes.tsx'), /DepartmentAdminView/)
+})
