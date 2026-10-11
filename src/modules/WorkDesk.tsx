@@ -88,6 +88,16 @@ type View =
   | 'assigned'
   | 'watching'
   | 'all'
+  | 'department'
+
+// One person in a department the signed in user is head of.
+type HeadMember = {
+  workstation:string
+  employee_id:string
+  full_name:string
+  email:string
+  job_title:string|null
+}
 
 
 const emptyForm = {
@@ -103,6 +113,7 @@ export function WorkDesk(){
   const [profile,setProfile]=useState<Profile|null>(null)
   const [items,setItems]=useState<WorkItem[]>([])
   const [people,setPeople]=useState<Employee[]>([])
+  const [headScope,setHeadScope]=useState<HeadMember[]>([])
 
   const [view,setView]=useState<View>('my')
   const [showFinished,setShowFinished]=useState(false)
@@ -195,6 +206,25 @@ export function WorkDesk(){
     }
 
     setPeople((data || []) as Employee[])
+  },[])
+
+
+  // Only a head of department gets rows back. Before the database change is
+  // applied the function does not exist, so any error just means "not a head".
+  const loadHeadScope=useCallback(async()=>{
+    if(!supabase){
+      return
+    }
+
+    const {data,error}=await supabase
+      .rpc('get_department_head_scope')
+
+    if(error){
+      setHeadScope([])
+      return
+    }
+
+    setHeadScope((data || []) as HeadMember[])
   },[])
 
 
@@ -295,6 +325,7 @@ export function WorkDesk(){
 
       await Promise.all([
         loadPeople(current),
+        loadHeadScope(),
         loadWork()
       ])
     }catch(error:any){
@@ -312,6 +343,7 @@ export function WorkDesk(){
     }
   },[
     loadPeople,
+    loadHeadScope,
     loadProfile,
     loadWork
   ])
@@ -391,10 +423,36 @@ export function WorkDesk(){
     profile?.role==='admin' ||
     profile?.role==='manager'
 
+  const isDepartmentHead=headScope.length>0
+
   const canDelegate=
     canAssignCompanyWide ||
+    isDepartmentHead ||
     profile?.role==='cto' ||
     profile?.role==='operations'
+
+  const departmentIds=useMemo(
+    ()=>headScope.map(member=>member.employee_id),
+    [headScope]
+  )
+
+  // People the signed in user can pick: whatever their role already allows,
+  // plus every member of the departments they head.
+  const peoplePool=useMemo(()=>{
+    const known=new Set(people.map(person=>person.id))
+    const extra:Employee[]=headScope
+      .filter(member=>!known.has(member.employee_id))
+      .map(member=>({
+        id:member.employee_id,
+        full_name:member.full_name,
+        email:member.email,
+        department:member.workstation,
+        job_title:member.job_title || '',
+        role:''
+      }))
+
+    return extra.length ? [...people,...extra] : people
+  },[people,headScope])
 
 
   const viewItems=useMemo(()=>{
@@ -413,6 +471,19 @@ export function WorkDesk(){
       canAssignCompanyWide
     ){
       return items
+    }
+
+    if(view==='department' && isDepartmentHead){
+      const scope=new Set(departmentIds)
+      return items.filter(
+        item=>
+          scope.has(item.created_by) ||
+          item.work_item_assignees
+            ?.some(
+              assignment=>
+                scope.has(assignment.assignee_id)
+            )
+      )
     }
 
     if(view==='watching'){
@@ -438,7 +509,9 @@ export function WorkDesk(){
     items,
     profile,
     view,
-    canAssignCompanyWide
+    canAssignCompanyWide,
+    isDepartmentHead,
+    departmentIds
   ])
 
   // Finished work leaves the board by default so the desk only shows what
@@ -671,6 +744,22 @@ export function WorkDesk(){
           </button>
         }
 
+        {isDepartmentHead&&
+          <button
+            className={
+              view==='department'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setView('department')
+            }
+          >
+            <UsersRound size={16}/>
+            Department Work
+          </button>
+        }
+
         {canAssignCompanyWide&&
           <button
             className={
@@ -859,7 +948,8 @@ export function WorkDesk(){
       {selectedWork&&profile&&
         <WorkItemDetail
           item={selectedWork}
-          people={people}
+          people={peoplePool}
+          departmentScopeIds={departmentIds}
           currentUserId={profile.id}
           currentUserRole={profile.role}
           onClose={()=>
@@ -965,7 +1055,7 @@ export function WorkDesk(){
                       Myself
                     </option>
 
-                    {people
+                    {peoplePool
                       .filter(
                         person=>
                           person.id!==profile?.id
@@ -976,7 +1066,7 @@ export function WorkDesk(){
                           value={person.id}
                         >
                           {person.full_name}
-                          {' — '}
+                          {' · '}
                           {person.department}
                         </option>
                       )

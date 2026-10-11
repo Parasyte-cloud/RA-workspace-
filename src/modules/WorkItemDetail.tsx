@@ -129,6 +129,7 @@ export function WorkItemDetail({
   people,
   currentUserId,
   currentUserRole,
+  departmentScopeIds,
   onClose,
   onChanged
 }:{
@@ -136,6 +137,8 @@ export function WorkItemDetail({
   people:Employee[]
   currentUserId:string
   currentUserRole:string
+  // People in the departments the viewer heads (empty when not a head).
+  departmentScopeIds?:string[]
   onClose:()=>void
   onChanged:()=>void
 }){
@@ -169,9 +172,27 @@ export function WorkItemDetail({
     currentUserRole==='manager' ||
     currentUserRole==='admin'
 
+  // A head of department acts like a manager, but only on work that belongs to
+  // their department. The database enforces the same boundary.
+  const isDepartmentHead=useMemo(()=>{
+    if(!departmentScopeIds?.length){
+      return false
+    }
+
+    const scope=new Set(departmentScopeIds)
+
+    return (
+      scope.has(item.created_by) ||
+      assignees.some(
+        assignment=>scope.has(assignment.assignee_id)
+      )
+    )
+  },[departmentScopeIds,item.created_by,assignees])
+
   const canRequestApproval=
     item.created_by===currentUserId ||
-    isManager
+    isManager ||
+    isDepartmentHead
 
 
   const availableAssignees=useMemo(()=>{
@@ -1091,7 +1112,7 @@ export function WorkItemDetail({
                     value={person.id}
                   >
                     {person.full_name}
-                    {' — '}
+                    {' · '}
                     {person.department}
                   </option>
                 )}
@@ -1163,7 +1184,7 @@ export function WorkItemDetail({
                     value={person.id}
                   >
                     {person.full_name}
-                    {' — '}
+                    {' · '}
                     {person.department}
                   </option>
                 )}
@@ -1282,14 +1303,19 @@ export function WorkItemDetail({
                   approval.status==='pending' &&
                   (
                     approval.approver_id===currentUserId ||
-                    isManager
+                    isManager ||
+                    (
+                      isDepartmentHead &&
+                      approval.requested_by!==currentUserId
+                    )
                   )
 
                 const canCancel=
                   approval.status==='pending' &&
                   (
                     approval.requested_by===currentUserId ||
-                    isManager
+                    isManager ||
+                    isDepartmentHead
                   )
 
                 return (
@@ -1436,7 +1462,7 @@ export function WorkItemDetail({
                       value={person.id}
                     >
                       {person.full_name}
-                      {' — '}
+                      {' · '}
                       {person.department}
                     </option>
                   )}
