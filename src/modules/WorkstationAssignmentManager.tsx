@@ -18,6 +18,7 @@ type Assignment={
   workstation:string
   is_primary:boolean
   active:boolean
+  is_head:boolean
 }
 
 const workstations=[
@@ -59,7 +60,7 @@ export default function WorkstationAssignmentManager(){
         .order('full_name'),
       client
         .from('workspace_workstation_assignments')
-        .select('employee_id,workstation,is_primary,active')
+        .select('employee_id,workstation,is_primary,active,is_head')
         .eq('active',true)
         .eq('is_primary',true),
     ])
@@ -92,6 +93,38 @@ export default function WorkstationAssignmentManager(){
     ()=>new Map(assignments.map(row=>[row.employee_id,row.workstation])),
     [assignments]
   )
+
+  const headByEmployee=useMemo(
+    ()=>new Map(assignments.map(row=>[row.employee_id,row.is_head===true])),
+    [assignments]
+  )
+
+  const setHead=async(person:Employee,makeHead:boolean)=>{
+    const client=supabase
+    if(!client) return
+
+    setSaving(person.id)
+    setMessage('')
+
+    try{
+      const {error}=await client.rpc('set_workstation_head',{
+        target_user:person.id,
+        make_head:makeHead,
+      })
+      if(error) throw error
+
+      setMessage(
+        makeHead
+          ? `${person.full_name || person.email} is now head of their department.`
+          : `${person.full_name || person.email} is no longer head of their department.`
+      )
+      await load()
+    }catch(error){
+      setMessage(error instanceof Error ? error.message : 'Unable to update the department head.')
+    }finally{
+      setSaving('')
+    }
+  }
 
   const save=async(person:Employee)=>{
     const client=supabase
@@ -130,6 +163,8 @@ export default function WorkstationAssignmentManager(){
           <h3>Assign or reassign employee workstations</h3>
           <p>
             A workstation assignment grants the corresponding secured department environment.
+            Tick Head of department to give someone admin-style control of their own department
+            only: they can monitor its work, assign, sign off and cancel it.
             Employment role and job title remain separate. Administration and Executive stations
             remain restricted to Admin and Manager/Admin roles.
           </p>
@@ -182,6 +217,21 @@ export default function WorkstationAssignmentManager(){
                     <><ShieldCheck size={15}/><span>{workstations.find(([value])=>value===current)?.[1] || current}</span></>
                   ) : (
                     <><BriefcaseBusiness size={15}/><span>No workstation</span></>
+                  )}
+
+                  {current && current!=='administration' && current!=='executive' && (
+                    <label
+                      className="workstationHeadToggle"
+                      title="A head can monitor, assign, sign off and cancel work for their own department only."
+                    >
+                      <input
+                        type="checkbox"
+                        checked={headByEmployee.get(person.id)===true}
+                        disabled={saving===person.id || changed}
+                        onChange={event=>void setHead(person,event.target.checked)}
+                      />
+                      Head of department
+                    </label>
                   )}
                 </div>
 
