@@ -13,6 +13,7 @@ type Person = {
   role: string | null
   active: boolean
   manager_id: string | null
+  start_date?: string | null
 }
 
 type Offboarding = {
@@ -27,6 +28,7 @@ type EditForm = {
   job_title: string
   manager_id: string
   role: string
+  start_date: string
 }
 
 const ROLES = [
@@ -42,6 +44,7 @@ const formFor = (p: Person): EditForm => ({
   job_title: p.job_title || '',
   manager_id: p.manager_id || '',
   role: (p.role || 'employee').toLowerCase(),
+  start_date: p.start_date || '',
 })
 
 export default function PeopleDirectory({
@@ -77,7 +80,7 @@ export default function PeopleDirectory({
     setLoading(true)
     const { data, error: loadError } = await supabase
       .from('employee_profiles')
-      .select('id,full_name,email,department,job_title,role,active,manager_id')
+      .select('id,full_name,email,department,job_title,role,active,manager_id,start_date')
       .order('full_name')
     if (loadError) setError(loadError.message)
     setPeople(((data || []) as Person[]).map(p => ({ ...p, active: p.active !== false })))
@@ -141,6 +144,7 @@ export default function PeopleDirectory({
       new_job_title: form.job_title,
       new_manager: form.manager_id || null,
       new_role: isAdmin ? form.role : null,
+      new_start_date: form.start_date || null,
     })
     setBusy(false)
     if (rpcError) {
@@ -338,6 +342,9 @@ export default function PeopleDirectory({
                   </label>
                   <label>Job title
                     <input value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+                  </label>
+                  <label>Start date (work anniversary on the calendar)
+                    <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
                   </label>
                   <label>Reports to
                     <select value={form.manager_id} onChange={e => setForm({ ...form, manager_id: e.target.value })}>

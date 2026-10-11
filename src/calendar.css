@@ -1,0 +1,59 @@
+.wcal{display:grid;gap:14px;--c-event:#315bc1;--c-birthday:#c2398a;--c-anniversary:#7a4cc2;--c-holiday:#197647;--c-festival:#b36200}
+.wcalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.wcalHead h2{margin:6px 0}
+.wcalHead p{margin:0;max-width:680px;color:#697686}
+.wcalForm{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end}
+.wcalForm label,.wcalFestForm label{display:grid;gap:5px;font-size:12px;font-weight:700}
+.wcalForm .wide{grid-column:1/-1}
+.wcalForm input,.wcalForm select,.wcalForm textarea,.wcalFestForm input,.wcalFestForm select{border:1px solid rgba(7,26,56,.14);border-radius:10px;padding:9px;background:#fff;color:#071a38;font:inherit;font-weight:400}
+.wcalCheck{display:flex!important;align-items:center;gap:8px!important;grid-auto-flow:column}
+.wcalFest h3{margin:0 0 4px}
+.wcalFestForm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.wcalFestForm input[placeholder]{flex:1 1 220px}
+.wcalFestList{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-height:300px;overflow:auto}
+.wcalFestList li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(7,26,56,.08);font-size:13px}
+.wcalFestList small{color:#697686}
+.wcalLayout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.wcalMain{padding:14px}
+.wcalNav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.wcalNav h3{margin:0;font-size:20px}
+.wcalIcon{width:36px;height:36px;border-radius:10px;border:1px solid rgba(7,26,56,.1);background:rgba(255,255,255,.7);display:grid;place-items:center;cursor:pointer;color:#071a38}
+.wcalChips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.wcalChip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(7,26,56,.12);background:transparent;color:#697686}
+.wcalChip.on.event{background:var(--c-event);border-color:var(--c-event);color:#fff}
+.wcalChip.on.birthday{background:var(--c-birthday);border-color:var(--c-birthday);color:#fff}
+.wcalChip.on.anniversary{background:var(--c-anniversary);border-color:var(--c-anniversary);color:#fff}
+.wcalChip.on.holiday{background:var(--c-holiday);border-color:var(--c-holiday);color:#fff}
+.wcalChip.on.festival{background:var(--c-festival);border-color:var(--c-festival);color:#fff}
+.wcalGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid rgba(7,26,56,.1);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.7)}
+.wcalDow{padding:8px;text-align:center;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#697686;background:rgba(7,26,56,.04)}
+.wcalCell{min-height:104px;padding:6px;border:0;border-top:1px solid rgba(7,26,56,.08);border-left:1px solid rgba(7,26,56,.08);background:transparent;text-align:left;display:flex;flex-direction:column;gap:4px;cursor:pointer;color:#071a38;min-width:0}
+.wcalCell:nth-child(7n+8){border-left:0}
+.wcalCell:hover{background:rgba(7,26,56,.04)}
+.wcalCell.outside{opacity:.45}
+.wcalCell.selected{outline:2px solid #ff9900;outline-offset:-2px}
+.wcalNum{font-size:12px;font-weight:800;width:24px;height:24px;display:grid;place-items:center;border-radius:50%}
+.wcalCell.today .wcalNum{background:#ff9900;color:#071a38}
+.wcalChipsCol{display:grid;gap:2px;min-width:0}
+.wcalTag{display:block;font-size:11px;line-height:1.25;padding:2px 6px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.wcalTag.event{background:var(--c-event)}.wcalTag.birthday{background:var(--c-birthday)}.wcalTag.anniversary{background:var(--c-anniversary)}.wcalTag.holiday{background:var(--c-holiday)}.wcalTag.festival{background:var(--c-festival)}
+.wcalMore{font-size:11px;color:#697686}
+.wcalDots{display:none;gap:3px}
+.wcalDots i{width:6px;height:6px;border-radius:50%;display:block}
+.wcalDots i.event{background:var(--c-event)}.wcalDots i.birthday{background:var(--c-birthday)}.wcalDots i.anniversary{background:var(--c-anniversary)}.wcalDots i.holiday{background:var(--c-holiday)}.wcalDots i.festival{background:var(--c-festival)}
+.wcalSide{display:grid;gap:14px}
+.wcalSide h3{margin:4px 0 8px}
+.wcalNone{color:#697686;font-size:13px}
+.wcalList{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
+.wcalList li{display:flex;gap:10px;align-items:flex-start}
+.wcalList li>div{flex:1;min-width:0;display:grid;gap:2px}
+.wcalList small{color:#697686}
+.wcalList a{font-size:12px;display:inline-flex;align-items:center;gap:4px}
+.wcalIco{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.wcalList li.event .wcalIco{background:var(--c-event)}.wcalList li.birthday .wcalIco{background:var(--c-birthday)}.wcalList li.anniversary .wcalIco{background:var(--c-anniversary)}.wcalList li.holiday .wcalIco{background:var(--c-holiday)}.wcalList li.festival .wcalIco{background:var(--c-festival)}
+@media(max-width:980px){.wcalLayout{grid-template-columns:1fr}}
+@media(max-width:640px){
+  .wcalCell{min-height:56px;align-items:center}
+  .wcalChipsCol{display:none}
+  .wcalDots{display:flex}
+}

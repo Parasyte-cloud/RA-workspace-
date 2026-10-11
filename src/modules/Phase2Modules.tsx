@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import WorkspaceCalendar from './WorkspaceCalendar'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
 import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
 
@@ -274,81 +275,7 @@ export function TasksModule() {
 }
 
 export function CalendarModule() {
-  const [items, setItems] = useState<WorkspaceEvent[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    load()
-  }, [])
-
-  async function load() {
-    if (!supabase) return
-
-    const { data } = await supabase
-      .from('workspace_events')
-      .select('*')
-      .gte('starts_at', new Date().toISOString())
-      .order('starts_at', { ascending: true })
-      .limit(100)
-
-    setItems((data || []) as WorkspaceEvent[])
-    setLoading(false)
-  }
-
-  return (
-    <section className="phase2Module">
-      <ModuleHeader
-        eyebrow="MY WORK"
-        title="Calendar"
-        subtitle="Company events, meetings, deadlines and operational schedules."
-      />
-
-      {loading && <EmptyState text="Loading calendar..." />}
-
-      <div className="phase2Stack">
-        {items.map((event) => (
-          <article className="glassCard phase2Record" key={event.id}>
-            <div className="phase2RecordTop">
-              <div className="phase2Icon">
-                <CalendarDays size={18} />
-              </div>
-
-              <div>
-                <span className="eyebrow">
-                  {event.event_type || 'EVENT'}
-                </span>
-                <h3>{event.title}</h3>
-              </div>
-            </div>
-
-            {event.description && <p>{event.description}</p>}
-
-            <div className="phase2Meta">
-              <span>
-                {new Date(event.starts_at).toLocaleString()}
-              </span>
-
-              {event.location && <span>{event.location}</span>}
-
-              {event.meeting_url && (
-                <a
-                  href={event.meeting_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Join meeting <ExternalLink size={13} />
-                </a>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {!loading && items.length === 0 && (
-        <EmptyState text="No upcoming events." />
-      )}
-    </section>
-  )
+  return <WorkspaceCalendar />
 }
 
 export function KnowledgeBaseModule() {
