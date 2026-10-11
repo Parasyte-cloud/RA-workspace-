@@ -857,27 +857,55 @@ export function WorkItemDetail({
       )
 
     if(error){
-      setMessage(error.message)
+      // PGRST202 / 42883: the database does not have the function yet, which
+      // means the migration 20261010190000_work_attachment_remove.sql has not
+      // been run in the Supabase SQL Editor.
+      const missing=
+        error.code==='PGRST202' ||
+        error.code==='42883' ||
+        /could not find the function/i.test(error.message)
+
+      setMessage(
+        missing
+          ? 'Removing files is not switched on in the database yet. An administrator needs to run the 20261010190000_work_attachment_remove migration.'
+          : error.message
+      )
       setBusy(false)
       return
     }
 
-    // The record is gone. Now delete the stored file too.
+    // The record is gone: take it off the screen straight away, then reload.
+    setAttachments(current=>
+      current.filter(file=>file.id!==attachment.id)
+    )
+
+    let notice=''
+
+    // Now delete the stored file too. Storage answers "ok" with an empty list
+    // when the delete policy refuses, so count what was actually deleted.
     if(typeof storagePath==='string' && storagePath){
-      const {error:storageError}=
+      const {data:removed,error:storageError}=
         await supabase.storage
           .from('work-attachments')
           .remove([storagePath])
 
       if(storageError){
-        setMessage(
+        notice=
           'The attachment was removed from the task, but the stored file could not be deleted: '+
           storageError.message
-        )
+      }else if(!removed || !removed.length){
+        notice=
+          'The attachment was removed from the task, but the stored file is still in storage (the storage rules did not allow deleting it). Ask an administrator to remove it.'
       }
     }
 
     await loadDetail()
+
+    // loadDetail clears the message, so show ours after it.
+    if(notice){
+      setMessage(notice)
+    }
+
     setBusy(false)
   }
 
