@@ -1171,6 +1171,10 @@ function App(){
   onOpenWork={()=>{
     setSection('tasks')
   }}
+  onOpenSection={target=>{
+    setSection(target as Section)
+    setWorkspace(null)
+  }}
 />{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<div className="profileMenuWrap">
   <button
     type="button"

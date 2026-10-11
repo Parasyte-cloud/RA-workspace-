@@ -13,9 +13,11 @@ import {
 } from '../context/NotificationsContext'
 
 export function NotificationCenter({
-  onOpenWork
+  onOpenWork,
+  onOpenSection
 }:{
   onOpenWork:()=>void
+  onOpenSection?:(section:string)=>void
 }){
   const {
     items,
@@ -89,6 +91,40 @@ export function NotificationCenter({
     ){
       setOpen(false)
       onOpenWork()
+      return
+    }
+
+    if(
+      item.entity_type==='social_conversation' &&
+      onOpenSection
+    ){
+      try{
+        if(item.entity_id){
+          sessionStorage.setItem('ra.chat.open',item.entity_id)
+        }
+      }catch{
+        // Opening Chat still works without the remembered conversation.
+      }
+      setOpen(false)
+      onOpenSection('chat')
+      return
+    }
+
+    if(
+      item.entity_type==='workspace_announcement' &&
+      onOpenSection
+    ){
+      setOpen(false)
+      onOpenSection('announcements')
+      return
+    }
+
+    if(
+      item.entity_type==='social_post' &&
+      onOpenSection
+    ){
+      setOpen(false)
+      onOpenSection('social')
     }
   }
 
