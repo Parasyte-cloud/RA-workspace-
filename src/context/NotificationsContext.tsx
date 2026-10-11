@@ -31,6 +31,8 @@ type NotificationsContextValue = {
   setOpen:(value:boolean|((current:boolean)=>boolean))=>void
   markRead:(item:NotificationItem)=>Promise<void>
   markAllRead:()=>Promise<void>
+  dismiss:(item:NotificationItem)=>Promise<void>
+  clearRead:()=>Promise<void>
 }
 
 /*
@@ -146,9 +148,38 @@ export function NotificationsProvider({children}:{children:ReactNode}){
     ))
   },[items])
 
+  // Removes notifications for good. Rows are only dropped from the screen once
+  // the database confirms it deleted them, so a blocked delete never looks done.
+  const removeIds=useCallback(async(ids:string[])=>{
+    if(!supabase || !ids.length) return
+    const {data,error}=await supabase
+      .from('notifications')
+      .delete()
+      .in('id',ids)
+      .select('id')
+
+    if(error){
+      console.error('[RideArrivo Notifications]',error)
+      return
+    }
+
+    const gone=new Set((data||[]).map(row=>row.id as string))
+    setItems(current=>current.filter(item=>!gone.has(item.id)))
+  },[])
+
+  const dismiss=useCallback(
+    (item:NotificationItem)=>removeIds([item.id]),
+    [removeIds]
+  )
+
+  const clearRead=useCallback(
+    ()=>removeIds(items.filter(item=>item.read_at).map(item=>item.id)),
+    [items,removeIds]
+  )
+
   const value=useMemo(
-    ()=>({items,unreadCount,loading,open,setOpen,markRead,markAllRead}),
-    [items,unreadCount,loading,open,markRead,markAllRead]
+    ()=>({items,unreadCount,loading,open,setOpen,markRead,markAllRead,dismiss,clearRead}),
+    [items,unreadCount,loading,open,markRead,markAllRead,dismiss,clearRead]
   )
 
   return (
