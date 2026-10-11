@@ -432,3 +432,10 @@ test('renaming a sheet rewrites the formulas that point to it', () => {
   assert.equal(next.sheets[1].cells.A2.v, "='Q3 Budget'!A1+1")
   assert.equal(val(next, 1, 'A1'), 14)
 })
+
+test('Sheets export is a direct download for finance and admin (no approval gate)', async () => {
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('../src/modules/SheetEditor.tsx', import.meta.url), 'utf8')
+  assert.ok(!src.includes('ControlledDownloadButton'))
+  assert.ok(src.includes('aria-label="Export Excel"'))
+})

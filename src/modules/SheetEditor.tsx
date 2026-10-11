@@ -2,10 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { ChangeEvent, ClipboardEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import {
   AlignCenter, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Check, ChevronDown, Database, Loader2,
-  Plus, Redo2, Sigma, Undo2, Upload,
+  Download, Plus, Redo2, Sigma, Undo2, Upload,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import ControlledDownloadButton from '../components/ControlledDownloadButton'
 import { Calc, SUPPORTED_FUNCTIONS, isErr } from '../lib/sheetFormula'
 import {
   DEFAULT_COL_WIDTH, MAX_COLS, MAX_COL_WIDTH, MAX_ROWS, MIN_COL_WIDTH,
@@ -989,7 +988,7 @@ export default function SheetEditor({ id, initialTitle, initialVersion, initialD
         </div>
         <button className="fs-tool" onClick={() => fileInput.current?.click()} title="Import an Excel or CSV file as new sheets"><Upload size={15} />Import</button>
         <input ref={fileInput} type="file" accept=".xlsx,.csv" hidden onChange={e => void importFile(e)} />
-        <ControlledDownloadButton compact className="fs-tool" label="Export Excel" resource={{ resourceType: 'finance_export', resourceKey: `sheet-${id}`, resourceName: `${title} (Excel)` }} onGranted={exportExcel} />
+        <button className="fs-tool" onClick={exportExcel} disabled={!!busy} title="Download as an Excel file" aria-label="Export Excel"><Download size={15} />Export Excel</button>
       </div>
 
       <div className="fs-formulabar">
