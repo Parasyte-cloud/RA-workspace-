@@ -1,4 +1,4 @@
-const CACHE = 'ra-workspace-shell-v5'
+const CACHE = 'ra-workspace-shell-v6'
 const SHELL = [
   '/',
   '/index.html',
@@ -49,8 +49,11 @@ self.addEventListener('fetch', event => {
     try {
       let response = await fetch(request)
       if (isWrongType(url, response)) {
-        // Skip the browser's own cache once; it may be holding the bad copy.
-        response = await fetch(url.href, { cache: 'reload', credentials: 'same-origin' })
+        // Ask again with a throwaway query string. That skips the browser cache
+        // and Cloudflare's edge cache, either of which may be holding the bad copy.
+        const retry = new URL(url.href)
+        retry.searchParams.set('_r', Date.now().toString(36))
+        response = await fetch(retry.href, { cache: 'reload', credentials: 'same-origin' })
         if (isWrongType(url, response)) return Response.error()
       }
       if (response.ok) {

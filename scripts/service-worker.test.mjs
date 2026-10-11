@@ -46,6 +46,7 @@ test('HTML in place of a script triggers one cache-bypassing retry and recovers'
   const r = await sw.run('/assets/index-abc.js')
   assert.equal(r.headers.get('content-type'), 'application/javascript')
   assert.equal(sw.calls[1].cache, 'reload')
+  assert.match(sw.calls[1].url, /\?_r=/, 'the retry must carry a throwaway query so edge caches are skipped')
   assert.deepEqual(sw.cachePut.length, 1)
 })
 
@@ -67,4 +68,11 @@ test('pages themselves may be HTML', async () => {
   const r = await sw.run('/')
   assert.equal(r.headers.get('content-type'), 'text/html; charset=utf-8')
   assert.equal(sw.calls.length, 1)
+})
+
+test('headers: hashed assets are not marked immutable', () => {
+  const headers = fs.readFileSync(new URL('../public/_headers', import.meta.url), 'utf8')
+  const block = headers.split('\n/assets/*\n')[1].split('\n')[0]
+  assert.ok(!/immutable/.test(block), block)
+  assert.match(block, /must-revalidate/)
 })
