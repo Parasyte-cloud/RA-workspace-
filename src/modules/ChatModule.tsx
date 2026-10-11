@@ -1,11 +1,15 @@
 import {
+  ArrowLeft,
+  Check,
+  CheckCheck,
   MessageSquareText,
-  RefreshCw,
+  Phone,
+  Plus,
   Search,
   Send,
   ShieldCheck,
-  UserPlus,
-  Users
+  Video,
+  X
 } from 'lucide-react'
 import {
   useCallback,
@@ -47,15 +51,21 @@ type Message = {
   body:string
   edited_at:string|null
   created_at:string
+  pending?:boolean
+  failed?:boolean
 }
 
 type DirectRow = {
   conversation:Conversation
   other:Person|null
   membership:Membership
+  otherReadAt:string|null
   latest:Message|null
   unread:number
 }
+
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at'
+const OPEN_KEY='ra.chat.open'
 
 const initials=(value?:string|null)=>{
   const words=(value || '').trim().split(/\s+/).filter(Boolean)
@@ -77,16 +87,38 @@ const formatTime=(value?:string|null)=>{
   return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(date)
 }
 
+const dayLabel=(value:string)=>{
+  const date=new Date(value)
+  const today=new Date()
+  const yesterday=new Date()
+  yesterday.setDate(today.getDate()-1)
+  if(date.toDateString()===today.toDateString())return 'Today'
+  if(date.toDateString()===yesterday.toDateString())return 'Yesterday'
+  return new Intl.DateTimeFormat(undefined,{weekday:'long',month:'short',day:'numeric'}).format(date)
+}
+
 const formatListTime=(value?:string|null)=>{
   if(!value)return ''
   const date=new Date(value)
   if(Number.isNaN(date.getTime()))return ''
   const today=new Date()
   if(date.toDateString()===today.toDateString())return formatTime(value)
+  const yesterday=new Date()
+  yesterday.setDate(today.getDate()-1)
+  if(date.toDateString()===yesterday.toDateString())return 'Yesterday'
   return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric'}).format(date)
 }
 
 const canMarkReadNow=()=>document.visibilityState==='visible' && document.hasFocus()
+
+const byTime=(a:Message,b:Message)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime()
+
+const mergeMessages=(current:Message[],incoming:Message[])=>{
+  const map=new Map<string,Message>()
+  for(const message of current)map.set(message.id,message)
+  for(const message of incoming)map.set(message.id,message)
+  return Array.from(map.values()).sort(byTime)
+}
 
 export function ChatModule(){
   const [userId,setUserId]=useState('')
@@ -96,20 +128,34 @@ export function ChatModule(){
   const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
   const [messages,setMessages]=useState<Message[]>([])
   const [query,setQuery]=useState('')
+  const [filter,setFilter]=useState<'all'|'unread'>('all')
+  const [newChatOpen,setNewChatOpen]=useState(false)
   const [messageText,setMessageText]=useState('')
   const [loading,setLoading]=useState(true)
   const [threadLoading,setThreadLoading]=useState(false)
-  const [busy,setBusy]=useState(false)
+  const [starting,setStarting]=useState(false)
   const [notice,setNotice]=useState('')
+  const [callNotice,setCallNotice]=useState('')
+
+  const selectedRef=useRef('')
+  const directsRef=useRef<DirectRow[]>([])
+  const peopleRef=useRef<Map<string,Person>>(new Map())
+  const userRef=useRef('')
   const threadRequestRef=useRef(0)
-  const messageEndRef=useRef<HTMLDivElement|null>(null)
+  const scrollRef=useRef<HTMLDivElement|null>(null)
+  const stickToBottomRef=useRef(true)
+  const forceScrollRef=useRef(true)
+  const composerRef=useRef<HTMLTextAreaElement|null>(null)
+  const loadedOnceRef=useRef(false)
+
+  useEffect(()=>{selectedRef.current=selectedId},[selectedId])
+  useEffect(()=>{directsRef.current=directs},[directs])
+  useEffect(()=>{userRef.current=userId},[userId])
+  useEffect(()=>{peopleRef.current=new Map(people.map(person=>[person.id,person]))},[people])
 
   const peopleMap=useMemo(()=>new Map(people.map(person=>[person.id,person])),[people])
   const selected=useMemo(()=>directs.find(row=>row.conversation.id===selectedId) || null,[directs,selectedId])
-  const directConversationKey=useMemo(
-    ()=>directs.map(row=>row.conversation.id).sort().join(','),
-    [directs]
-  )
+  const totalUnread=useMemo(()=>directs.reduce((sum,row)=>sum+row.unread,0),[directs])
 
   const matchingPeople=useMemo(()=>{
     const normalized=query.trim().toLowerCase()
@@ -121,15 +167,25 @@ export function ChatModule(){
           .filter(Boolean)
           .some(value=>String(value).toLowerCase().includes(normalized))
       })
-      .slice(0,30)
+      .slice(0,40)
   },[people,query,userId])
 
-  const loadBase=useCallback(async(preferredConversationId?:string)=>{
+  const visibleDirects=useMemo(()=>{
+    const normalized=query.trim().toLowerCase()
+    return directs
+      .filter(row=>filter==='all' || row.unread>0)
+      .filter(row=>{
+        if(!normalized || newChatOpen)return true
+        return displayName(row.other).toLowerCase().includes(normalized) ||
+          (row.latest?.body || '').toLowerCase().includes(normalized)
+      })
+  },[directs,filter,query,newChatOpen])
+
+  // Loads the conversation list. Silent after the first load, so refreshes
+  // never blank the list or flash a loading state.
+  const loadBase=useCallback(async()=>{
     const client=supabase
     if(!client)return
-
-    setLoading(true)
-    setNotice('')
     try{
       const {data:sessionData,error:sessionError}=await client.auth.getSession()
       if(sessionError)throw sessionError
@@ -137,29 +193,30 @@ export function ChatModule(){
       if(!me)throw new Error('Your workspace session is unavailable.')
       setUserId(me)
 
-      const {data:peopleData,error:peopleError}=await client
-        .from('employee_profiles')
-        .select('id,full_name,email,department,job_title')
-        .eq('active',true)
-        .order('full_name')
-      if(peopleError)throw peopleError
-      const activePeople=(peopleData || []) as Person[]
-      setPeople(activePeople)
-      const localPeopleMap=new Map(activePeople.map(person=>[person.id,person]))
+      let localPeople=peopleRef.current
+      if(!localPeople.size){
+        const {data:peopleData,error:peopleError}=await client
+          .from('employee_profiles')
+          .select('id,full_name,email,department,job_title')
+          .eq('active',true)
+          .order('full_name')
+        if(peopleError)throw peopleError
+        const activePeople=(peopleData || []) as Person[]
+        setPeople(activePeople)
+        localPeople=new Map(activePeople.map(person=>[person.id,person]))
+        peopleRef.current=localPeople
+      }
 
       const {data:ownMembershipData,error:membershipError}=await client
         .from('social_conversation_members')
         .select('conversation_id,user_id,joined_at,last_read_at')
         .eq('user_id',me)
-        .order('joined_at',{ascending:false})
       if(membershipError)throw membershipError
       const ownMemberships=(ownMembershipData || []) as Membership[]
       const ids=ownMemberships.map(row=>row.conversation_id)
 
       if(!ids.length){
         setDirects([])
-        setSelectedId('')
-        setMessages([])
         return
       }
 
@@ -168,16 +225,12 @@ export function ChatModule(){
         .select('id,is_group,title,created_by,created_at')
         .in('id',ids)
         .eq('is_group',false)
-
       if(conversationError)throw conversationError
 
       const conversations=(conversationData || []) as Conversation[]
       const directIds=conversations.map(conversation=>conversation.id)
-
       if(!directIds.length){
         setDirects([])
-        setSelectedId('')
-        setMessages([])
         return
       }
 
@@ -188,12 +241,11 @@ export function ChatModule(){
           .in('conversation_id',directIds),
         client
           .from('social_messages')
-          .select('id,conversation_id,sender_id,body,edited_at,created_at')
+          .select(MESSAGE_COLUMNS)
           .in('conversation_id',directIds)
           .order('created_at',{ascending:false})
           .limit(500)
       ])
-
       if(memberResult.error)throw memberResult.error
       if(messageResult.error)throw messageResult.error
 
@@ -218,12 +270,14 @@ export function ChatModule(){
       const rows:DirectRow[]=conversations.map(conversation=>{
         const membership=ownMap.get(conversation.id)!
         const otherMember=members.find(member=>member.conversation_id===conversation.id && member.user_id!==me)
+        const isOpenNow=conversation.id===selectedRef.current && canMarkReadNow()
         return {
           conversation,
-          other:otherMember ? localPeopleMap.get(otherMember.user_id) || null : null,
+          other:otherMember ? localPeople.get(otherMember.user_id) || null : null,
           membership,
+          otherReadAt:otherMember?.last_read_at || null,
           latest:latestMap.get(conversation.id) || null,
-          unread:unreadMap.get(conversation.id) || 0
+          unread:isOpenNow ? 0 : unreadMap.get(conversation.id) || 0
         }
       }).sort((a,b)=>{
         const aTime=new Date(a.latest?.created_at || a.conversation.created_at).getTime()
@@ -232,141 +286,185 @@ export function ChatModule(){
       })
 
       setDirects(rows)
-      const wanted=preferredConversationId || selectedId
-      const next=rows.some(row=>row.conversation.id===wanted) ? wanted : rows[0]?.conversation.id || ''
-      setSelectedId(next)
+      setNotice('')
     }catch(error){
       setNotice(error instanceof Error ? error.message : 'Unable to load Chat.')
     }finally{
+      loadedOnceRef.current=true
       setLoading(false)
     }
-  },[selectedId])
+  },[])
 
-  const loadThread=useCallback(async(conversationId:string,markRead=true)=>{
+  const markRead=useCallback(async(conversationId:string)=>{
     const client=supabase
-    const requestSequence=++threadRequestRef.current
+    if(!client || !conversationId || !canMarkReadNow())return
+    setDirects(rows=>rows.map(row=>row.conversation.id===conversationId && row.unread>0
+      ? {...row,unread:0}
+      : row))
+    const {error}=await client.rpc('mark_social_conversation_read',{p_conversation_id:conversationId})
+    if(error)setNotice(error.message)
+  },[])
+
+  const loadThread=useCallback(async(conversationId:string)=>{
+    const client=supabase
+    const sequence=++threadRequestRef.current
     if(!client || !conversationId){
       setMessages([])
       return
     }
-
-    setThreadLoading(true)
     try{
       const {data,error}=await client
         .from('social_messages')
-        .select('id,conversation_id,sender_id,body,edited_at,created_at')
+        .select(MESSAGE_COLUMNS)
         .eq('conversation_id',conversationId)
         .order('created_at',{ascending:false})
         .limit(300)
       if(error)throw error
-      if(requestSequence!==threadRequestRef.current)return
-      setMessages(((data || []) as Message[]).reverse())
-
-      if(markRead){
-        const {error:readError}=await client.rpc('mark_social_conversation_read',{
-          p_conversation_id:conversationId
-        })
-        if(readError)throw readError
-      }
+      if(sequence!==threadRequestRef.current)return
+      const fresh=((data || []) as Message[]).reverse()
+      // Keep local messages that are still sending or failed.
+      setMessages(current=>{
+        const local=current.filter(m=>m.conversation_id===conversationId && (m.pending || m.failed))
+        return mergeMessages(fresh,local)
+      })
+      void markRead(conversationId)
     }catch(error){
-      if(requestSequence===threadRequestRef.current){
+      if(sequence===threadRequestRef.current){
         setNotice(error instanceof Error ? error.message : 'Unable to load this conversation.')
       }
     }finally{
-      if(requestSequence===threadRequestRef.current)setThreadLoading(false)
+      if(sequence===threadRequestRef.current)setThreadLoading(false)
     }
-  },[])
+  },[markRead])
 
+  // First load, plus a conversation opened from a notification.
   useEffect(()=>{
+    let wanted=''
+    try{
+      wanted=sessionStorage.getItem(OPEN_KEY) || ''
+      if(wanted)sessionStorage.removeItem(OPEN_KEY)
+    }catch{
+      wanted=''
+    }
+    if(wanted){
+      setSelectedId(wanted)
+      setMobileThreadOpen(true)
+    }
     void loadBase()
-  },[])
+  },[loadBase])
+
+  // Open the first conversation on wide screens once the list is known.
+  useEffect(()=>{
+    if(selectedId || !directs.length)return
+    if(typeof window!=='undefined' && window.matchMedia('(min-width: 861px)').matches){
+      setSelectedId(directs[0].conversation.id)
+    }
+  },[directs,selectedId])
 
   useEffect(()=>{
     if(!selectedId){
       setMessages([])
       return
     }
-    void loadThread(selectedId,canMarkReadNow()).then(()=>loadBase(selectedId))
+    setMessages([])
+    setThreadLoading(true)
+    forceScrollRef.current=true
+    stickToBottomRef.current=true
+    void loadThread(selectedId)
     return()=>{
       threadRequestRef.current+=1
     }
   },[selectedId,loadThread])
 
+  // Scroll: jump on open or own send, follow new messages only if already at the bottom.
   useEffect(()=>{
-    messageEndRef.current?.scrollIntoView({block:'end',behavior:'smooth'})
+    const element=scrollRef.current
+    if(!element)return
+    if(forceScrollRef.current || stickToBottomRef.current){
+      element.scrollTop=element.scrollHeight
+      if(messages.length)forceScrollRef.current=false
+    }
   },[messages])
 
-  useEffect(()=>{
-    if(!selectedId)return
+  const onScroll=()=>{
+    const element=scrollRef.current
+    if(!element)return
+    stickToBottomRef.current=element.scrollHeight-element.scrollTop-element.clientHeight<80
+  }
 
-    const markVisible=()=>{
-      if(!canMarkReadNow())return
-      void loadThread(selectedId,true).then(()=>loadBase(selectedId))
-    }
-
-    window.addEventListener('focus',markVisible)
-    document.addEventListener('visibilitychange',markVisible)
-
-    return()=>{
-      window.removeEventListener('focus',markVisible)
-      document.removeEventListener('visibilitychange',markVisible)
-    }
-  },[selectedId,loadBase,loadThread])
-
+  // One realtime channel for the whole session. Handlers read refs, so the
+  // channel is never torn down and rebuilt as the user clicks around.
   useEffect(()=>{
     const client=supabase
     if(!client || !userId)return
 
-    const directConversationIds=directConversationKey
-      ? directConversationKey.split(',')
-      : []
-
-    let channel=client.channel(`native-chat-${userId}`)
-
-    for(const conversationId of directConversationIds){
-      channel=channel.on(
+    const channel=client
+      .channel(`native-chat-${userId}`)
+      .on(
         'postgres_changes',
-        {
-          event:'*',
-          schema:'public',
-          table:'social_messages',
-          filter:`conversation_id=eq.${conversationId}`
-        },
+        {event:'INSERT',schema:'public',table:'social_messages'},
         payload=>{
-          const row=(payload.new || payload.old) as Partial<Message>
-          if(row.conversation_id===selectedId){
-            void loadThread(selectedId,canMarkReadNow()).then(()=>loadBase(selectedId))
-          }else{
-            void loadBase(selectedId)
+          const row=payload.new as Message
+          const known=directsRef.current.some(item=>item.conversation.id===row.conversation_id)
+          if(!known){
+            void loadBase()
+            return
+          }
+          const mine=row.sender_id===userRef.current
+          const open=row.conversation_id===selectedRef.current
+          setDirects(rows=>rows.map(item=>item.conversation.id===row.conversation_id
+            ? {
+                ...item,
+                latest:row,
+                unread:!mine && !(open && canMarkReadNow()) ? item.unread+1 : item.unread
+              }
+            : item
+          ).sort((a,b)=>new Date(b.latest?.created_at || b.conversation.created_at).getTime()-new Date(a.latest?.created_at || a.conversation.created_at).getTime()))
+          if(open){
+            setMessages(current=>{
+              // Replace our own optimistic copy instead of showing it twice.
+              const withoutTemp=mine
+                ? current.filter(m=>!(m.pending && m.body===row.body))
+                : current
+              return mergeMessages(withoutTemp,[row])
+            })
+            if(!mine)void markRead(row.conversation_id)
           }
         }
       )
-    }
-
-    channel=channel.on(
-      'postgres_changes',
-      {
-        event:'*',
-        schema:'public',
-        table:'social_conversation_members',
-        filter:`user_id=eq.${userId}`
-      },
-      ()=>{
-        void loadBase(selectedId)
-      }
-    )
-
-    channel.subscribe()
+      .on(
+        'postgres_changes',
+        {event:'*',schema:'public',table:'social_conversation_members'},
+        ()=>{void loadBase()}
+      )
+      .subscribe()
 
     return()=>{
       void client.removeChannel(channel)
     }
-  },[userId,selectedId,directConversationKey,loadBase,loadThread])
+  },[userId,loadBase,markRead])
+
+  // Safety net if the realtime socket drops: quiet refresh, and on return to the tab.
+  useEffect(()=>{
+    const refresh=()=>{
+      if(document.visibilityState!=='visible')return
+      void loadBase()
+      if(selectedRef.current)void loadThread(selectedRef.current)
+    }
+    const timer=window.setInterval(refresh,45000)
+    document.addEventListener('visibilitychange',refresh)
+    window.addEventListener('focus',refresh)
+    return()=>{
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange',refresh)
+      window.removeEventListener('focus',refresh)
+    }
+  },[loadBase,loadThread])
 
   const startDirect=async(person:Person)=>{
     const client=supabase
-    if(!client || busy)return
-    setBusy(true)
+    if(!client || starting)return
+    setStarting(true)
     setNotice('')
     try{
       const {data,error}=await client.rpc('start_or_get_social_direct_conversation',{
@@ -376,38 +474,70 @@ export function ChatModule(){
       const conversationId=typeof data==='string' ? data : String(data || '')
       if(!conversationId)throw new Error('Chat could not create the conversation.')
       setQuery('')
-      await loadBase(conversationId)
+      setNewChatOpen(false)
+      await loadBase()
       setSelectedId(conversationId)
       setMobileThreadOpen(true)
     }catch(error){
       setNotice(error instanceof Error ? error.message : 'Unable to start conversation.')
     }finally{
-      setBusy(false)
+      setStarting(false)
     }
   }
 
-  const sendMessage=async(event:FormEvent)=>{
-    event.preventDefault()
+  const resizeComposer=()=>{
+    const element=composerRef.current
+    if(!element)return
+    element.style.height='auto'
+    element.style.height=`${Math.min(element.scrollHeight,140)}px`
+  }
+
+  const sendBody=async(body:string,tempId?:string)=>{
     const client=supabase
-    const body=messageText.trim()
-    if(!client || !userId || !selectedId || !body || busy)return
-    setBusy(true)
-    setNotice('')
-    try{
-      const {error}=await client.from('social_messages').insert({
-        conversation_id:selectedId,
-        sender_id:userId,
-        body
-      })
-      if(error)throw error
-      setMessageText('')
-      await loadThread(selectedId,true)
-      await loadBase(selectedId)
-    }catch(error){
-      setNotice(error instanceof Error ? error.message : 'Unable to send message.')
-    }finally{
-      setBusy(false)
+    if(!client || !userId || !selectedId)return
+    const conversationId=selectedId
+    const id=tempId || `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+    const optimistic:Message={
+      id,
+      conversation_id:conversationId,
+      sender_id:userId,
+      body,
+      edited_at:null,
+      created_at:new Date().toISOString(),
+      pending:true
     }
+    forceScrollRef.current=true
+    setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[optimistic]))
+
+    const {data,error}=await client
+      .from('social_messages')
+      .insert({conversation_id:conversationId,sender_id:userId,body})
+      .select(MESSAGE_COLUMNS)
+      .single()
+
+    if(error || !data){
+      setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
+      setNotice(error?.message || 'Unable to send message.')
+      return
+    }
+    const saved=data as Message
+    setNotice('')
+    setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
+    setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
+  }
+
+  const submit=(event:FormEvent)=>{
+    event.preventDefault()
+    const body=messageText.trim()
+    if(!body)return
+    setMessageText('')
+    requestAnimationFrame(resizeComposer)
+    void sendBody(body)
+  }
+
+  const retry=(message:Message)=>{
+    setMessages(current=>current.map(m=>m.id===message.id ? {...m,failed:false,pending:true} : m))
+    void sendBody(message.body,message.id)
   }
 
   const openConversation=(id:string)=>{
@@ -416,159 +546,216 @@ export function ChatModule(){
     setMobileThreadOpen(true)
   }
 
+  const showCallNotice=(kind:'Voice'|'Video')=>{
+    setCallNotice(`${kind} calling is not enabled on your account yet. Reach out to Admin to give you access.`)
+  }
+
+  const rows=useMemo(()=>{
+    const out:Array<{type:'day';key:string;label:string}|{type:'message';message:Message}>=[]
+    let last=''
+    for(const message of messages){
+      const label=dayLabel(message.created_at)
+      if(label!==last){
+        out.push({type:'day',key:`${message.id}-day`,label})
+        last=label
+      }
+      out.push({type:'message',message})
+    }
+    return out
+  },[messages])
+
   return (
-    <section className="chatModule">
-      <header className="chatHero glassCard">
-        <div>
-          <span className="eyebrow">COMMUNICATION</span>
-          <h1>Chat</h1>
-          <p>Private employee-to-employee messaging inside the RideArrivo workspace.</p>
-        </div>
-        <div className="chatHeroSecurity">
-          <ShieldCheck size={18}/>
-          <span>Employee-only conversations</span>
-        </div>
-      </header>
+    <section className="cm">
+      {notice&&<div className="cmNotice" role="status">{notice}<button type="button" aria-label="Dismiss" onClick={()=>setNotice('')}><X size={14}/></button></div>}
 
-      {notice&&<div className="moduleNotice chatNotice">{notice}</div>}
-
-      <div
-        className={`chatShell glassCard ${mobileThreadOpen && selectedId?'mobileThreadOpen':'mobileListOpen'}`}
-      >
-        <aside className="chatSidebar">
-          <div className="chatSidebarHead">
-            <div>
-              <span className="eyebrow">DIRECT MESSAGES</span>
-              <strong>{directs.length} conversation{directs.length===1?'':'s'}</strong>
-            </div>
-            <button className="chatIconButton" type="button" title="Refresh Chat" onClick={()=>void loadBase(selectedId)} disabled={loading}>
-              <RefreshCw size={17}/>
+      <div className={`cmShell ${mobileThreadOpen && selectedId?'threadOpen':'listOpen'}`}>
+        <aside className="cmSide">
+          <header className="cmSideHead">
+            <h2>Chats{totalUnread>0&&<span className="cmTotal">{totalUnread>99?'99+':totalUnread}</span>}</h2>
+            <button
+              type="button"
+              className="cmRound"
+              title="New chat"
+              aria-label="New chat"
+              onClick={()=>{setNewChatOpen(open=>!open);setQuery('')}}
+            >
+              {newChatOpen?<X size={18}/>:<Plus size={18}/>}
             </button>
-          </div>
+          </header>
 
-          <label className="chatSearch">
-            <Search size={17}/>
-            <input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Find an employee"/>
+          <label className="cmSearch">
+            <Search size={16}/>
+            <input
+              value={query}
+              onChange={event=>setQuery(event.target.value)}
+              placeholder={newChatOpen?'Search employees':'Search or start a new chat'}
+              aria-label="Search chats or employees"
+            />
           </label>
 
-          {query.trim()&&(
-            <div className="chatPeopleResults">
-              <div className="chatResultLabel"><UserPlus size={15}/>Start a conversation</div>
-              {matchingPeople.map(person=>(
-                <button key={person.id} type="button" className="chatPersonResult" onClick={()=>void startDirect(person)} disabled={busy}>
-                  <span className="chatAvatar">{initials(displayName(person))}</span>
-                  <span className="chatPersonCopy">
-                    <strong>{displayName(person)}</strong>
-                    <small>{secondary(person)}</small>
-                  </span>
-                </button>
-              ))}
-              {matchingPeople.length===0&&<div className="chatEmptySmall">No active employee matches your search.</div>}
+          {!newChatOpen&&(
+            <div className="cmChips">
+              <button type="button" className={filter==='all'?'on':''} onClick={()=>setFilter('all')}>All</button>
+              <button type="button" className={filter==='unread'?'on':''} onClick={()=>setFilter('unread')}>
+                Unread{totalUnread>0?` ${totalUnread}`:''}
+              </button>
             </div>
           )}
 
-          <div className="chatConversationList">
-            {loading&&<div className="chatEmptySmall">Loading conversations…</div>}
-            {!loading&&directs.map(row=>(
-              <button
-                key={row.conversation.id}
-                type="button"
-                className={`chatConversation ${selectedId===row.conversation.id?'active':''}`}
-                onClick={()=>openConversation(row.conversation.id)}
-              >
-                <span className="chatAvatar">{initials(displayName(row.other))}</span>
-                <span className="chatConversationCopy">
-                  <span className="chatConversationTop">
-                    <strong>{displayName(row.other)}</strong>
-                    <small>{formatListTime(row.latest?.created_at || row.conversation.created_at)}</small>
-                  </span>
-                  <span className="chatConversationBottom">
-                    <small>{row.latest?.body || secondary(row.other)}</small>
-                    {row.unread>0&&<span className="chatUnread">{row.unread>99?'99+':row.unread}</span>}
-                  </span>
-                </span>
-              </button>
-            ))}
-            {!loading&&directs.length===0&&!query.trim()&&(
-              <div className="chatEmptySidebar">
-                <Users size={24}/>
-                <strong>No direct messages yet</strong>
-                <small>Search for an employee above to start a private conversation.</small>
+          <div className="cmList">
+            {(newChatOpen || query.trim())&&(
+              <div className="cmGroup">
+                <div className="cmGroupLabel">{newChatOpen?'Start a conversation':'People'}</div>
+                {matchingPeople.map(person=>(
+                  <button key={person.id} type="button" className="cmRow" onClick={()=>void startDirect(person)} disabled={starting}>
+                    <span className="cmAvatar">{initials(displayName(person))}</span>
+                    <span className="cmRowCopy">
+                      <span className="cmRowTop"><strong>{displayName(person)}</strong></span>
+                      <span className="cmRowBottom"><small>{secondary(person)}</small></span>
+                    </span>
+                  </button>
+                ))}
+                {matchingPeople.length===0&&<div className="cmEmpty">No active employee matches.</div>}
               </div>
+            )}
+
+            {!newChatOpen&&(
+              <>
+                {loading&&!loadedOnceRef.current&&<div className="cmEmpty">Loading chats...</div>}
+                {visibleDirects.map(row=>{
+                  const mine=row.latest?.sender_id===userId
+                  return (
+                    <button
+                      key={row.conversation.id}
+                      type="button"
+                      className={`cmRow ${selectedId===row.conversation.id?'active':''}`}
+                      onClick={()=>openConversation(row.conversation.id)}
+                    >
+                      <span className="cmAvatar">{initials(displayName(row.other))}</span>
+                      <span className="cmRowCopy">
+                        <span className="cmRowTop">
+                          <strong>{displayName(row.other)}</strong>
+                          <small className={row.unread>0?'unread':''}>{formatListTime(row.latest?.created_at || row.conversation.created_at)}</small>
+                        </span>
+                        <span className="cmRowBottom">
+                          <small>{row.latest?`${mine?'You: ':''}${row.latest.body}`:secondary(row.other)}</small>
+                          {row.unread>0&&<span className="cmBadge">{row.unread>99?'99+':row.unread}</span>}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+                {!loading&&visibleDirects.length===0&&(
+                  <div className="cmEmpty cmEmptyBlock">
+                    <MessageSquareText size={26}/>
+                    <strong>{filter==='unread'?'No unread chats':'No chats yet'}</strong>
+                    <span>{filter==='unread'?'You are all caught up.':'Tap + to message a colleague.'}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </aside>
 
-        <div className="chatThread">
+        <div className="cmThread">
           {selected ? (
             <>
-              <header className="chatThreadHead">
-                <button
-                  type="button"
-                  className="chatMobileBack"
-                  aria-label="Back to conversations"
-                  onClick={()=>setMobileThreadOpen(false)}
-                >
-                  <span aria-hidden="true">←</span>
-                  <span>Back</span>
+              <header className="cmThreadHead">
+                <button type="button" className="cmBack" aria-label="Back to chats" onClick={()=>setMobileThreadOpen(false)}>
+                  <ArrowLeft size={20}/>
                 </button>
-                <span className="chatAvatar large">{initials(displayName(selected.other))}</span>
-                <div>
+                <span className="cmAvatar">{initials(displayName(selected.other))}</span>
+                <div className="cmHeadCopy">
                   <strong>{displayName(selected.other)}</strong>
                   <small>{secondary(selected.other)}</small>
                 </div>
-                <span className="chatPrivateBadge"><ShieldCheck size={14}/>Private</span>
+                <div className="cmHeadActions">
+                  <button type="button" className="cmRound" title="Video call" aria-label="Video call" onClick={()=>showCallNotice('Video')}>
+                    <Video size={18}/>
+                  </button>
+                  <button type="button" className="cmRound" title="Voice call" aria-label="Voice call" onClick={()=>showCallNotice('Voice')}>
+                    <Phone size={18}/>
+                  </button>
+                </div>
               </header>
 
-              <div className="chatMessages" aria-live="polite">
-                {threadLoading&&<div className="chatThreadState">Loading messages…</div>}
+              {callNotice&&(
+                <div className="cmCallNotice" role="alert">
+                  <Phone size={16}/>
+                  <span>{callNotice}</span>
+                  <button type="button" aria-label="Dismiss" onClick={()=>setCallNotice('')}><X size={14}/></button>
+                </div>
+              )}
+
+              <div className="cmMessages" ref={scrollRef} onScroll={onScroll} aria-live="polite">
+                <div className="cmLock"><ShieldCheck size={13}/>Private. Only the two of you can see this conversation.</div>
+                {threadLoading&&messages.length===0&&<div className="cmEmpty">Loading messages...</div>}
                 {!threadLoading&&messages.length===0&&(
-                  <div className="chatThreadState chatThreadWelcome">
-                    <MessageSquareText size={30}/>
-                    <strong>Start the conversation</strong>
-                    <span>Messages here are visible only to members of this direct conversation.</span>
+                  <div className="cmEmpty cmEmptyBlock">
+                    <MessageSquareText size={28}/>
+                    <strong>Say hello</strong>
+                    <span>Send the first message to {displayName(selected.other)}.</span>
                   </div>
                 )}
-                {messages.map(message=>{
+                {rows.map(item=>{
+                  if(item.type==='day')return <div className="cmDay" key={item.key}><span>{item.label}</span></div>
+                  const message=item.message
                   const mine=message.sender_id===userId
                   const sender=mine ? null : peopleMap.get(message.sender_id)
+                  const read=mine && !message.pending && !message.failed && selected.otherReadAt &&
+                    new Date(selected.otherReadAt).getTime()>=new Date(message.created_at).getTime()
                   return (
-                    <div key={message.id} className={`chatMessageRow ${mine?'mine':'theirs'}`}>
-                      {!mine&&<span className="chatAvatar messageAvatar">{initials(displayName(sender))}</span>}
-                      <div className="chatBubble">
-                        {!mine&&<strong>{displayName(sender)}</strong>}
+                    <div key={message.id} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}`}>
+                      <div className="cmBubble" title={displayName(sender)}>
                         <p>{message.body}</p>
-                        <small>{formatTime(message.created_at)}{message.edited_at?' · edited':''}</small>
+                        <span className="cmMeta">
+                          {formatTime(message.created_at)}
+                          {message.edited_at?' edited':''}
+                          {mine&&(
+                            message.failed ? null :
+                            message.pending ? <Check size={14} className="cmTick pending"/> :
+                            read ? <CheckCheck size={15} className="cmTick read"/> :
+                            <Check size={14} className="cmTick"/>
+                          )}
+                        </span>
                       </div>
+                      {message.failed&&(
+                        <button type="button" className="cmRetry" onClick={()=>retry(message)}>Not sent. Tap to retry</button>
+                      )}
                     </div>
                   )
                 })}
-                <div ref={messageEndRef}/>
               </div>
 
-              <form className="chatComposer" onSubmit={sendMessage}>
+              <form className="cmComposer" onSubmit={submit}>
                 <textarea
+                  ref={composerRef}
                   value={messageText}
-                  onChange={event=>setMessageText(event.target.value.slice(0,10000))}
-                  placeholder={`Message ${displayName(selected.other)}`}
+                  onChange={event=>{
+                    setMessageText(event.target.value.slice(0,10000))
+                    resizeComposer()
+                  }}
+                  placeholder="Type a message"
                   rows={1}
+                  aria-label={`Message ${displayName(selected.other)}`}
                   onKeyDown={event=>{
-                    if(event.key==='Enter'&&!event.shiftKey){
+                    if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){
                       event.preventDefault()
                       event.currentTarget.form?.requestSubmit()
                     }
                   }}
                 />
-                <button className="primaryButton chatSendButton" disabled={busy||!messageText.trim()}>
-                  <Send size={17}/>Send
+                <button className="cmSend" type="submit" aria-label="Send" disabled={!messageText.trim()}>
+                  <Send size={19}/>
                 </button>
               </form>
             </>
           ) : (
-            <div className="chatNoSelection">
-              <MessageSquareText size={36}/>
+            <div className="cmNone">
+              <span className="cmNoneIcon"><MessageSquareText size={38}/></span>
               <h2>RideArrivo Chat</h2>
-              <p>Select a direct message or search for an employee to start a secure conversation.</p>
+              <p>Pick a chat on the left or press + to message a colleague.</p>
+              <small><ShieldCheck size={13}/> Employee-only, private conversations</small>
             </div>
           )}
         </div>
