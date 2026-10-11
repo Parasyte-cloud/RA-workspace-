@@ -2,6 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { requestJoinRoom } from '../lib/roomApi'
+import {
+  alertPermission,
+  alertsPromptDismissed,
+  dismissAlertsPrompt,
+  flashTitle,
+  requestAlertPermission
+} from '../lib/desktopAlerts'
 import '../call-ringer.css'
 
 type CallRow = {
@@ -30,6 +37,8 @@ export default function CallRinger() {
   const namesRef = useRef<Record<string, string>>({})
   const timerRef = useRef<number | null>(null)
   const meRef = useRef('')
+  const [permission, setPermission] = useState(alertPermission())
+  const [promptHidden, setPromptHidden] = useState(alertsPromptDismissed())
 
   const nameOf = (id: string) => names[id] || 'A colleague'
 
@@ -163,6 +172,26 @@ export default function CallRinger() {
     }
   }, [incoming.length])
 
+  // Flash the tab title so a call is noticed from another tab.
+  const firstCaller = incoming.length ? names[incoming[0].caller_id] || 'a colleague' : ''
+  useEffect(() => {
+    if (!firstCaller) return
+    return flashTitle(`Incoming call: ${firstCaller}`)
+  }, [firstCaller])
+
+  const showPrompt = Boolean(me) && permission === 'default' && !promptHidden
+
+  const turnOnAlerts = async () => {
+    setPermission(await requestAlertPermission())
+    dismissAlertsPrompt()
+    setPromptHidden(true)
+  }
+
+  const laterAlerts = () => {
+    dismissAlertsPrompt()
+    setPromptHidden(true)
+  }
+
   const respond = async (call: CallRow, status: 'accepted' | 'declined') => {
     const client = supabase
     if (!client || busy) return
@@ -188,7 +217,7 @@ export default function CallRinger() {
     await client.rpc('respond_chat_call', { p_call: call.id, p_status: 'cancelled' })
   }
 
-  if (!me || (!incoming.length && !outgoing && !outcome)) return null
+  if (!me || (!incoming.length && !outgoing && !outcome && !showPrompt)) return null
 
   return (
     <div className="callRinger" role="alert" aria-live="assertive">
@@ -217,6 +246,16 @@ export default function CallRinger() {
           <button type="button" className="callBtn decline" onClick={() => void cancel(outgoing)} aria-label="Cancel call">
             <PhoneOff size={18} />
           </button>
+        </div>
+      )}
+      {showPrompt && (
+        <div className="callCard alerts">
+          <div className="callCopy">
+            <strong>Get alerts for calls and messages</strong>
+            <small>Shown when this tab is in the background</small>
+          </div>
+          <button type="button" className="callBtn later" onClick={laterAlerts}>Later</button>
+          <button type="button" className="callBtn accept" onClick={() => void turnOnAlerts()}>On</button>
         </div>
       )}
       {outcome && !outgoing && (

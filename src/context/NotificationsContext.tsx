@@ -10,6 +10,7 @@ import {
 } from 'react'
 
 import { supabase } from '../lib/supabase'
+import { sectionForNotification, showDesktopAlert } from '../lib/desktopAlerts'
 
 export type NotificationItem = {
   id:string
@@ -99,7 +100,22 @@ export function NotificationsProvider({children}:{children:ReactNode}){
       .on(
         'postgres_changes',
         {event:'*',schema:'public',table:'notifications'},
-        ()=>{ void load() }
+        payload=>{
+          const row=payload.new as Partial<NotificationItem>|null
+          const fresh=payload.eventType==='INSERT'
+            || (payload.eventType==='UPDATE' && row?.type==='chat_message' && !row?.read_at)
+          if(fresh && row?.title){
+            showDesktopAlert({
+              title:row.title,
+              body:row.body||'',
+              urgent:row.type==='call',
+              tag:row.type==='chat_message' ? `chat-${row.entity_id}` : row.id,
+              section:sectionForNotification(row.entity_type??null,row.type||''),
+              conversationId:row.entity_type==='social_conversation' ? row.entity_id : null
+            })
+          }
+          void load()
+        }
       )
       .subscribe()
 
