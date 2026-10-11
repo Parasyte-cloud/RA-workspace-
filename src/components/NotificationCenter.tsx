@@ -139,6 +139,22 @@ export function NotificationCenter({
     }
 
     if(
+      item.entity_type==='workspace_event' &&
+      onOpenSection
+    ){
+      try{
+        if(item.entity_id){
+          sessionStorage.setItem('ra.calendar.event',item.entity_id)
+        }
+      }catch{
+        // The calendar still opens without jumping to the event.
+      }
+      setOpen(false)
+      onOpenSection('calendar')
+      return
+    }
+
+    if(
       item.entity_type==='social_post' &&
       onOpenSection
     ){

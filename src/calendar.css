@@ -1,4 +1,4 @@
-.wcal{display:grid;gap:14px;--c-event:#315bc1;--c-birthday:#c2398a;--c-anniversary:#7a4cc2;--c-holiday:#197647;--c-festival:#b36200}
+.wcal{display:grid;gap:14px;--c-event:#315bc1;--c-birthday:#c2398a;--c-anniversary:#7a4cc2;--c-holiday:#197647;--c-festival:#b36200;--c-leave:#5b6b7f}
 .wcalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .wcalHead h2{margin:6px 0}
 .wcalHead p{margin:0;max-width:680px;color:#697686}
@@ -56,4 +56,87 @@
   .wcalCell{min-height:56px;align-items:center}
   .wcalChipsCol{display:none}
   .wcalDots{display:flex}
+}
+
+.wcalChip.on.leave{background:var(--c-leave);border-color:var(--c-leave);color:#fff}
+.wcalTag.leave{background:var(--c-leave)}
+.wcalDots i.leave{background:var(--c-leave)}
+.wcalList li.leave .wcalIco,.wcalIco.leave{background:var(--c-leave)}
+.wcalIco.event{background:var(--c-event)}.wcalIco.birthday{background:var(--c-birthday)}.wcalIco.anniversary{background:var(--c-anniversary)}.wcalIco.holiday{background:var(--c-holiday)}.wcalIco.festival{background:var(--c-festival)}
+.wcalTag{display:flex;align-items:center;gap:4px;cursor:pointer}
+.wcalTag.private,.wcalBlock.private{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.18) 0 6px,transparent 6px 12px)}
+.wcalMore{background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.wcalCell{cursor:pointer}
+.wcalViews{display:inline-flex;border:1px solid rgba(7,26,56,.14);border-radius:12px;overflow:hidden}
+.wcalViews button{border:0;background:transparent;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#697686}
+.wcalViews button.on{background:#071a38;color:#fff}
+.wcalTools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px}
+.wcalSearch{display:flex;align-items:center;gap:6px;border:1px solid rgba(7,26,56,.14);border-radius:10px;padding:0 10px;background:#fff;flex:1 1 200px;max-width:320px}
+.wcalSearch input{border:0;outline:0;padding:8px 0;font:inherit;width:100%;background:transparent}
+.wcalJump{display:inline-flex;gap:6px;margin-left:auto}
+.wcalJump select,.wcalJump input{border:1px solid rgba(7,26,56,.14);border-radius:10px;padding:7px 8px;font:inherit;background:#fff;width:auto}
+.wcalJump input{width:84px}
+.wcalTime{border:1px solid rgba(7,26,56,.1);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.7)}
+.wcalTimeHead,.wcalAllDay{display:grid}
+.wcalColHead{border:0;background:rgba(7,26,56,.04);padding:8px 4px;display:grid;justify-items:center;gap:2px;cursor:pointer;color:#071a38}
+.wcalColHead small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#697686}
+.wcalColHead strong{font-size:16px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%}
+.wcalColHead.today strong{background:#ff9900}
+.wcalAllDay{border-top:1px solid rgba(7,26,56,.08);border-bottom:1px solid rgba(7,26,56,.08)}
+.wcalAllDayLabel{font-size:10px;color:#697686;padding:6px 4px;text-align:right}
+.wcalAllDayCol{display:grid;gap:2px;padding:4px;min-height:30px;border-left:1px solid rgba(7,26,56,.08);align-content:start;min-width:0}
+.wcalScroll{max-height:560px;overflow:auto}
+.wcalHours{display:grid;position:relative}
+.wcalGutter{position:relative}
+.wcalGutter span{position:absolute;right:6px;transform:translateY(-7px);font-size:10px;color:#697686}
+.wcalDayCol{position:relative;border-left:1px solid rgba(7,26,56,.08);cursor:pointer}
+.wcalDayCol.today{background:rgba(255,153,0,.05)}
+.wcalHourLine{position:absolute;left:0;right:0;border-top:1px solid rgba(7,26,56,.07);pointer-events:none}
+.wcalBlock{position:absolute;border:0;border-radius:8px;padding:3px 6px;color:#fff;text-align:left;overflow:hidden;cursor:pointer;display:grid;align-content:start;gap:1px;font:inherit;font-size:12px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.wcalBlock strong{font-size:12px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcalBlock small{font-size:11px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wcalBlock.event{background:var(--c-event)}.wcalBlock.birthday{background:var(--c-birthday)}.wcalBlock.anniversary{background:var(--c-anniversary)}.wcalBlock.holiday{background:var(--c-holiday)}.wcalBlock.festival{background:var(--c-festival)}.wcalBlock.leave{background:var(--c-leave)}
+.wcalNow{position:absolute;left:0;right:0;height:2px;background:#e03131;pointer-events:none}
+.wcalNow::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#e03131}
+.wcalAgenda{display:grid;gap:14px}
+.wcalAgenda h4{margin:0;font-size:13px;color:#697686}
+.wcalAgenda h4.today{color:#b36200}
+.wcalLink{background:none;border:0;padding:0;text-align:left;cursor:pointer;display:grid;gap:2px;color:inherit;font:inherit;flex:1;min-width:0}
+.wcalDetail{border:1px solid rgba(255,153,0,.5)}
+.wcalDetailHead{display:flex;align-items:center;gap:10px}
+.wcalDetailHead h3{margin:0;flex:1;font-size:16px}
+.wcalWhen{margin:6px 0;font-weight:700}
+.wcalMeta{display:flex;align-items:center;gap:6px;margin:4px 0;color:#697686;font-size:13px}
+.wcalNotes{margin:8px 0;white-space:pre-wrap;font-size:13px}
+.wcalRsvp{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.wcalRsvp .on{background:#071a38;color:#fff}
+.wcalAttendees{list-style:none;margin:8px 0;padding:0;display:grid;gap:4px;font-size:13px}
+.wcalAttendees li{display:flex;justify-content:space-between;gap:8px}
+.wcalAttendees small{color:#697686}
+.wcalModalBack{position:fixed;inset:0;z-index:2100;background:rgba(2,17,40,.5);display:grid;place-items:center;padding:16px;overflow:auto}
+.wcalModal{width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;color:#071a38;border-radius:18px;padding:18px;display:grid;gap:12px;box-shadow:0 30px 80px rgba(2,17,40,.4)}
+.wcalModal label{display:grid;gap:5px;font-size:12px;font-weight:700}
+.wcalModal input,.wcalModal select,.wcalModal textarea{border:1px solid rgba(7,26,56,.14);border-radius:10px;padding:9px;background:#fff;color:#071a38;font:inherit;font-weight:400;min-width:0;width:100%}
+.wcalModal .wcalCheck input{width:auto}
+.wcalModalHead{display:flex;justify-content:space-between;align-items:center}
+.wcalModalHead h3{margin:0}
+.wcalRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.wcalHint{margin:-4px 0 0;font-size:12px;color:#697686}
+.wcalModalFoot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wcalInvite{display:grid;gap:6px}
+.wcalPick{list-style:none;margin:0;padding:4px;border:1px solid rgba(7,26,56,.12);border-radius:10px;display:grid}
+.wcalPick button{width:100%;text-align:left;background:none;border:0;padding:8px;border-radius:8px;cursor:pointer;font:inherit}
+.wcalPick button:hover{background:rgba(7,26,56,.06)}
+.wcalPeople{display:flex;flex-wrap:wrap;gap:6px}
+.wcalPerson{display:inline-flex;align-items:center;gap:4px;background:rgba(49,91,193,.12);border-radius:999px;padding:4px 6px 4px 10px;font-size:12px}
+.wcalPerson button{border:0;background:none;cursor:pointer;display:grid;place-items:center;padding:2px;color:inherit}
+.evRemind{position:fixed;right:16px;bottom:16px;z-index:2000;display:grid;gap:8px;width:min(340px,calc(100vw - 32px))}
+.evRemindCard{background:#0b2850;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 18px 50px rgba(2,17,40,.45)}
+.evRemindCard div{flex:1;min-width:0;display:grid}
+.evRemindCard small{color:#b9c8da}
+.evRemindCard button{border:0;border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:700}
+@media(max-width:640px){
+  .wcalViews button{padding:8px 10px}
+  .wcalJump{margin-left:0}
+  .wcalScroll{max-height:480px}
 }
