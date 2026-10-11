@@ -4,6 +4,10 @@ import React, {
 } from 'react'
 import ReactDOM from 'react-dom/client'
 
+// Changing this value changes the entry script's hashed filename. Used to move
+// every visitor off a filename a CDN cache has poisoned (see public/recover.js).
+;(window as unknown as { __RA_BUILD__?: string }).__RA_BUILD__ = '2026-10-11-cache-fix'
+
 const InternalApp = lazy(
   () => import('./InternalApp'),
 )
