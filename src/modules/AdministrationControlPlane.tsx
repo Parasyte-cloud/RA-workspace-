@@ -9,6 +9,7 @@ import {
   DatabaseBackup,
   FileText,
   Gauge,
+  Headset,
   KeyRound,
   Laptop,
   MapPin,
@@ -52,6 +53,7 @@ type AdminTab=
   | 'audit'  | 'payments'
 
   | 'operations'
+  | 'ride-desk'
 
 type AuthUser={
   id:string
@@ -167,6 +169,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['room-minutes','ROOM 7 Minutes',FileText],
   ['audit','Audit',Activity],
   ['operations','Operations',BriefcaseBusiness],
+  ['ride-desk','Ride Desk',Headset],
 ]
 
 function when(value:string|null|undefined){
@@ -476,6 +479,36 @@ function ApplicationsPanel(){
   </div>
 }
 
+const ARRIVOOPS_RIDE_DESK_URL='https://admin.ridearrivo.com/#/ride-desk'
+
+function RideDeskPanel(){
+  return <div className="adminNativeOperations">
+    <div className="glassCard adminOperationsNativeHeader">
+      <Headset size={25}/>
+      <div>
+        <span className="eyebrow">ARRIVOOPS</span>
+        <h3>Ride Desk</h3>
+        <p>
+          Every ride with its support agent, operations person and driver, the
+          rider and driver profiles, in-app calling by name, who is on duty and
+          how many rides each person carries. Owners and admins also see the
+          People tab (who can promote and remove staff) and the number access
+          log.
+        </p>
+        <p>
+          <a className="btn primary" href={ARRIVOOPS_RIDE_DESK_URL} target="_blank" rel="noopener noreferrer">
+            Open Ride Desk in ArrivoOps
+          </a>
+        </p>
+        <p className="muted">
+          ArrivoOps opens in a new tab and has its own sign-in. Use your
+          ArrivoOps account there.
+        </p>
+      </div>
+    </div>
+  </div>
+}
+
 function OperationsPanel(){
   return <div className="adminNativeOperations">
     <div className="glassCard adminOperationsNativeHeader">
@@ -531,6 +564,7 @@ export default function AdministrationControlPlane(){
       {tab==='room-minutes'&&<Room7MinutesPanel/>}
       {tab==='audit'&&<AdminAuditPanel/>}
       {tab==='operations'&&<OperationsPanel/>}
+      {tab==='ride-desk'&&<RideDeskPanel/>}
     </div>
   </section>
 }

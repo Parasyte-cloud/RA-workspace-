@@ -887,6 +887,7 @@ export function SupportTeamWorkspace({
         {title:'Capacity & Scheduling',description:'Agent availability, workload, handovers and queue coverage.'}
     ]}
     tools={[
+        {name:'ArrivoOps Ride Desk',purpose:'Your rides with the rider and driver profiles, in-app calling by name and who is on duty.',url:'https://admin.ridearrivo.com/#/ride-desk'},
         {name:'HubSpot Help Desk',purpose:'Omnichannel ticketing, SLA, routing and customer context when connected.',url:'https://app.hubspot.com/'},
         {name:'Zoho Mail',purpose:'RideArrivo company email and case communication.',url:'https://mail.zoho.com/'},
         {name:'Google Maps',purpose:'Route, pickup and service-location context.',url:'https://maps.google.com/'}
@@ -948,6 +949,7 @@ export function OperationsTeamWorkspace({
     ]}
     tools={[
         {name:'ArrivoOps Live Dispatch',purpose:'Connected RideArrivo backend for live bookings, riders, drivers, trips and operational status.',url:'https://admin.ridearrivo.com/?surface=operations'},
+        {name:'ArrivoOps Ride Desk',purpose:'Your rides with the rider and driver profiles, in-app calling by name and who is on duty.',url:'https://admin.ridearrivo.com/?surface=operations#/ride-desk'},
         {name:'Google Maps',purpose:'Routing, pickup points, geocoding and traffic context.',url:'https://maps.google.com/'},
         {name:'FlightAware',purpose:'Flight status and alert context for airport pickup operations.',url:'https://www.flightaware.com/'},
         {name:'FlightRadar24',purpose:'Live flight movement cross-check for airport operations.',url:'https://www.flightradar24.com/'}
