@@ -44,6 +44,7 @@ export function sectionForNotification(entityType: string | null, type: string):
   if (entityType === 'social_conversation' || type === 'call' || type === 'call_missed' || type === 'chat_message') return 'chat'
   if (entityType === 'workspace_announcement') return 'announcements'
   if (entityType === 'social_post') return 'social'
+  if (entityType === 'workspace_event') return 'calendar'
   return null
 }
 
