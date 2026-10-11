@@ -5243,6 +5243,38 @@ textarea {
   overflow:auto;
 }
 
+.notificationHeaderActions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:4px 14px;
+}
+
+.notificationRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+}
+
+.notificationDismiss{
+  margin:12px 12px 0 0;
+  padding:6px;
+
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:inherit;
+  opacity:.55;
+
+  cursor:pointer;
+}
+
+.notificationDismiss:hover,
+.notificationDismiss:focus-visible{
+  opacity:1;
+  background:rgba(7,26,56,.08);
+}
+
 .notificationItem{
   width:100%;
 

@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 
 import {
   Bell,
-  CheckCheck
+  CheckCheck,
+  Trash2,
+  X
 } from 'lucide-react'
 
 import {
@@ -22,8 +24,12 @@ export function NotificationCenter({
     open,
     setOpen,
     markRead,
-    markAllRead
+    markAllRead,
+    dismiss,
+    clearRead
   }=useNotificationsContext()
+
+  const readCount=items.filter(item=>item.read_at).length
 
   const rootRef=useRef<HTMLDivElement|null>(null)
 
@@ -125,18 +131,33 @@ export function NotificationCenter({
               </h3>
             </div>
 
-            {unreadCount>0&&
-              <button
-                type="button"
-                className="notificationMarkAll"
-                onClick={()=>
-                  void markAllRead()
-                }
-              >
-                <CheckCheck size={15}/>
-                Mark all read
-              </button>
-            }
+            <div className="notificationHeaderActions">
+              {unreadCount>0&&
+                <button
+                  type="button"
+                  className="notificationMarkAll"
+                  onClick={()=>
+                    void markAllRead()
+                  }
+                >
+                  <CheckCheck size={15}/>
+                  Mark all read
+                </button>
+              }
+
+              {readCount>0&&
+                <button
+                  type="button"
+                  className="notificationMarkAll"
+                  onClick={()=>
+                    void clearRead()
+                  }
+                >
+                  <Trash2 size={15}/>
+                  Clear read
+                </button>
+              }
+            </div>
           </div>
 
           <div className="notificationList">
@@ -147,6 +168,7 @@ export function NotificationCenter({
             }
 
             {items.map(item=>
+              <div className="notificationRow" key={item.id}>
               <button
                 type="button"
                 className={
@@ -154,7 +176,6 @@ export function NotificationCenter({
                     ? 'notificationItem'
                     : 'notificationItem unread'
                 }
-                key={item.id}
                 onClick={()=>
                   void openNotification(item)
                 }
@@ -179,6 +200,19 @@ export function NotificationCenter({
                   </small>
                 </span>
               </button>
+
+              <button
+                type="button"
+                className="notificationDismiss"
+                aria-label={`Dismiss notification: ${item.title}`}
+                title="Dismiss"
+                onClick={()=>
+                  void dismiss(item)
+                }
+              >
+                <X size={14}/>
+              </button>
+              </div>
             )}
 
             {!loading&&!items.length&&

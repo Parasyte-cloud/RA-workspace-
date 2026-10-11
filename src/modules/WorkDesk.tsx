@@ -105,6 +105,7 @@ export function WorkDesk(){
   const [people,setPeople]=useState<Employee[]>([])
 
   const [view,setView]=useState<View>('my')
+  const [showFinished,setShowFinished]=useState(false)
   const [loading,setLoading]=useState(true)
   const [refreshing,setRefreshing]=useState(false)
   const workRequestRef=useRef(0)
@@ -396,7 +397,7 @@ export function WorkDesk(){
     profile?.role==='operations'
 
 
-  const filtered=useMemo(()=>{
+  const viewItems=useMemo(()=>{
     if(!profile){
       return []
     }
@@ -439,6 +440,23 @@ export function WorkDesk(){
     view,
     canAssignCompanyWide
   ])
+
+  // Finished work leaves the board by default so the desk only shows what
+  // still needs doing. It is one click away, never deleted.
+  const isFinished=(status:string)=>
+    status==='completed' || status==='cancelled'
+
+  const finishedCount=useMemo(
+    ()=>viewItems.filter(item=>isFinished(item.status)).length,
+    [viewItems]
+  )
+
+  const filtered=useMemo(
+    ()=>showFinished
+      ? viewItems
+      : viewItems.filter(item=>!isFinished(item.status)),
+    [viewItems,showFinished]
+  )
 
 
   const createWork=async()=>{
@@ -668,6 +686,19 @@ export function WorkDesk(){
             Company Work
           </button>
         }
+
+        <button
+          type="button"
+          className={showFinished ? 'active' : ''}
+          aria-pressed={showFinished}
+          onClick={()=>
+            setShowFinished(value=>!value)
+          }
+        >
+          <CheckCircle2 size={16}/>
+          {showFinished?'Hide':'Show'} completed
+          {finishedCount>0?` (${finishedCount})`:''}
+        </button>
       </div>
 
 
@@ -816,7 +847,9 @@ export function WorkDesk(){
 
           {!filtered.length&&
             <div className="glassCard workEmpty">
-              No work in this view.
+              {!showFinished&&finishedCount>0
+                ? `Nothing open here. ${finishedCount} completed ${finishedCount===1?'item is':'items are'} hidden.`
+                : 'No work in this view.'}
             </div>
           }
         </div>
