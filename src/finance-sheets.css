@@ -1,0 +1,98 @@
+/* Finance Sheets. The grid is deliberately "paper": white cells, fine grey lines,
+   whatever the workspace theme, so numbers stay readable and look like Excel. */
+
+.fs-list{display:grid;gap:14px}
+.fs-listhead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.fs-listhead h3{margin:0 0 4px}
+.fs-listhead p{margin:0;color:#667386;font-size:12px;max-width:640px;line-height:1.5}
+.fs-listactions{display:flex;gap:8px;flex-wrap:wrap}
+.fs-templates{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.fs-template{display:grid;gap:6px;text-align:left;cursor:pointer;color:var(--navy);border:1px solid rgba(255,255,255,.55)}
+.fs-template svg{color:#b66e00}
+.fs-template span{font-size:12px;color:#667386}
+.fs-listtabs{display:flex;gap:6px}
+.fs-listtabs button{border:0;background:transparent;padding:7px 12px;border-radius:10px;font-weight:800;color:#5e6d7f;cursor:pointer}
+.fs-listtabs button.on{background:#fff;color:var(--navy);box-shadow:0 6px 18px rgba(7,26,56,.08)}
+.fs-link{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--navy);font-weight:800;cursor:pointer;padding:0}
+.fs-link svg{color:#1d7a46}
+.fs-link:hover{text-decoration:underline}
+.fs-rowaction{text-align:right}
+.fs-loading{display:flex;gap:10px;align-items:center;padding:24px}
+
+.fs-editor{position:relative;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fs-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fs-title{flex:1 1 220px;min-width:160px;max-width:520px;border:1px solid transparent;background:transparent;font-size:18px;font-weight:800;color:var(--navy);padding:6px 8px;border-radius:10px}
+.fs-title:hover{border-color:rgba(7,26,56,.12)}
+.fs-title:focus{outline:0;border-color:var(--amber);background:#fff}
+.fs-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(7,26,56,.06);color:#566476}
+.fs-status.saved{background:#e7f8ee;color:#197647}
+.fs-status.dirty,.fs-status.saving{background:#fff2dc;color:#9a5c00}
+.fs-status.error,.fs-status.conflict{background:#ffe9e9;color:#9d2424}
+.fs-spin{animation:fs-spin .8s linear infinite}
+@keyframes fs-spin{to{transform:rotate(360deg)}}
+
+.fs-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px;border-radius:14px;background:rgba(255,255,255,.62);border:1px solid rgba(7,26,56,.08)}
+.fs-tool{border:1px solid transparent;background:transparent;color:var(--navy);border-radius:9px;padding:6px 9px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap}
+.fs-tool:hover:not(:disabled){background:rgba(7,26,56,.07)}
+.fs-tool.on{background:#fff;border-color:rgba(7,26,56,.14);box-shadow:inset 0 0 0 1px rgba(255,153,0,.5)}
+.fs-tool:disabled{opacity:.35;cursor:default}
+.fs-sep{width:1px;height:20px;background:rgba(7,26,56,.14);margin:0 4px}
+.fs-select{border:1px solid rgba(7,26,56,.14);background:#fff;border-radius:9px;padding:6px 8px;font-size:12px;color:var(--navy)}
+.fs-dropwrap{position:relative}
+.fs-drop{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:220px;display:grid;padding:6px;border-radius:12px;background:#fff;border:1px solid rgba(7,26,56,.12);box-shadow:0 18px 50px rgba(7,26,56,.2)}
+.fs-drop p{margin:4px 8px 6px;font-size:11px;color:#7b8795}
+.fs-drop button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--navy);font-size:13px}
+.fs-drop button:hover{background:#f2f5fa}
+
+.fs-formulabar{display:flex;align-items:center;gap:6px}
+.fs-namebox{width:96px;border:1px solid #cfd6df;background:#fff;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:700;text-align:center;color:var(--navy)}
+.fs-fx{font-style:italic;font-weight:800;color:#8a6a1f;font-size:13px;padding:0 2px}
+.fs-bar{flex:1;min-width:0;border:1px solid #cfd6df;background:#fff;border-radius:8px;padding:6px 10px;font-size:13px;color:#0b203e;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.fs-bar:focus,.fs-namebox:focus{outline:0;border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,153,0,.15)}
+
+.fs-banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 12px;border-radius:11px;background:#eef6ff;color:#17406e;font-size:12px}
+.fs-banner.warn{background:#fff1f0;color:#8a1f1f}
+.fs-banner span{flex:1 1 280px}
+.fs-x{border:0;background:transparent;cursor:pointer;font-weight:800;color:inherit}
+
+.fs-grid{position:relative;height:min(64vh,640px);min-height:320px;background:#fff;border:1px solid #c9d1db;border-radius:10px;overflow:hidden;outline:0;font-size:13px;color:#111d2e}
+.fs-grid:focus-within{border-color:#9db3d6}
+.fs-corner{position:absolute;left:0;top:0;width:52px;height:26px;background:#eef1f5;border-right:1px solid #c9d1db;border-bottom:1px solid #c9d1db;z-index:6;cursor:pointer}
+.fs-colheads{position:absolute;left:52px;right:0;top:0;height:26px;overflow:hidden;background:#eef1f5;border-bottom:1px solid #c9d1db;z-index:5}
+.fs-rowheads{position:absolute;left:0;top:26px;bottom:0;width:52px;overflow:hidden;background:#eef1f5;border-right:1px solid #c9d1db;z-index:5}
+.fs-colhead,.fs-rowhead{position:absolute;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4f5d70;user-select:none;cursor:pointer}
+.fs-colhead{top:0;height:26px;border-right:1px solid #d5dbe4}
+.fs-rowhead{left:0;width:52px;height:26px;border-bottom:1px solid #d5dbe4}
+.fs-colhead.on,.fs-rowhead.on{background:#dce6f7;color:#16407a}
+.fs-grip{position:absolute;right:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:2}
+.fs-grip:hover{background:rgba(255,153,0,.5)}
+.fs-scroller{position:absolute;left:52px;top:26px;right:0;bottom:0;overflow:auto;overscroll-behavior:contain}
+.fs-content{position:relative}
+.fs-cell{position:absolute;height:26px;line-height:25px;padding:0 6px;border-right:1px solid #e6eaf0;border-bottom:1px solid #e6eaf0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;user-select:none;cursor:cell}
+.fs-cell.b{font-weight:800}
+.fs-cell.al-r{text-align:right}
+.fs-cell.al-c{text-align:center}
+.fs-cell.err{color:#b42318}
+.fs-active{position:absolute;pointer-events:none;border:2px solid #1a73e8;box-sizing:border-box;z-index:3}
+.fs-range{position:absolute;pointer-events:none;background:rgba(26,115,232,.12);border:1px solid rgba(26,115,232,.55);box-sizing:border-box;z-index:2}
+.fs-clip{position:absolute;pointer-events:none;border:2px dashed #1a73e8;box-sizing:border-box;z-index:3}
+.fs-clip.cut{border-color:#e8590c}
+.fs-editor-input{position:absolute;z-index:8;border:2px solid #1a73e8;background:#fff;padding:0 5px;font:inherit;color:#111d2e;box-sizing:border-box;outline:0;box-shadow:0 4px 18px rgba(7,26,56,.2)}
+
+.fs-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.fs-tabs{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.fs-tab button{border:1px solid rgba(7,26,56,.12);background:rgba(255,255,255,.6);border-radius:9px 9px 0 0;padding:6px 14px;font-size:12px;font-weight:700;color:#425166;cursor:pointer}
+.fs-tab.on button{background:#fff;color:var(--navy);box-shadow:inset 0 -3px var(--amber)}
+.fs-tabinput{border:2px solid var(--amber);border-radius:8px;padding:5px 8px;font-size:12px;width:130px}
+.fs-stats{font-size:12px;color:#566476}
+
+.fs-menu{position:fixed;z-index:90;min-width:190px;display:grid;padding:6px;border-radius:12px;background:#fff;border:1px solid rgba(7,26,56,.12);box-shadow:0 18px 50px rgba(7,26,56,.25)}
+.fs-menu button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--navy);font-size:13px}
+.fs-menu button:hover{background:#f2f5fa}
+.fs-busy{position:absolute;inset:0;z-index:60;display:flex;gap:10px;align-items:center;justify-content:center;background:rgba(255,255,255,.7);backdrop-filter:blur(2px);font-weight:700;color:var(--navy);border-radius:14px}
+
+@media(max-width:700px){
+  .fs-grid{height:56vh}
+  .fs-namebox{width:72px}
+  .fs-toolbar{overflow-x:auto;flex-wrap:nowrap}
+}
