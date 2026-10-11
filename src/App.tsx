@@ -71,6 +71,7 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 
 import { NotificationCenter } from './components/NotificationCenter'
+import CallRinger from './modules/CallRinger'
 import { NotificationsProvider } from './context/NotificationsContext'
 import { GlobalSearch } from './components/GlobalSearch'
 import { useIdleSignOut } from './lib/useIdleSignOut'
@@ -1243,6 +1244,7 @@ function App(){
       {/* ROOM 7 sits outside the per-section loading and error boundaries.
           Inside them, loading another section could hide the call and a
           crash in any section would tear it down, ending the meeting. */}
+      <CallRinger/>
       <RouteErrorBoundary resetKey="room7">
         <Suspense fallback={null}>
           <RoomModule

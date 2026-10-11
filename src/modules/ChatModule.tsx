@@ -20,6 +20,7 @@ import {
 } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { createCallRoom, requestJoinRoom } from '../lib/roomApi'
 
 type Person = {
   id:string
@@ -136,6 +137,8 @@ export function ChatModule(){
   const [starting,setStarting]=useState(false)
   const [notice,setNotice]=useState('')
   const [callNotice,setCallNotice]=useState('')
+  const [hasCalling,setHasCalling]=useState(false)
+  const [calling,setCalling]=useState(false)
 
   const selectedRef=useRef('')
   const directsRef=useRef<DirectRow[]>([])
@@ -546,8 +549,37 @@ export function ChatModule(){
     setMobileThreadOpen(true)
   }
 
-  const showCallNotice=(kind:'Voice'|'Video')=>{
-    setCallNotice(`${kind} calling is not enabled on your account yet. Reach out to Admin to give you access.`)
+  useEffect(()=>{
+    const client=supabase
+    if(!client)return
+    void client.rpc('has_calling_access').then(({data,error})=>{
+      setHasCalling(!error && data===true)
+    })
+  },[])
+
+  const startCall=async(kind:'Voice'|'Video')=>{
+    const client=supabase
+    if(!client || !selected || calling)return
+    if(!hasCalling){
+      setCallNotice(`${kind} calling is not enabled on your account yet. Reach out to Admin to give you access.`)
+      return
+    }
+    setCalling(true)
+    setCallNotice('')
+    try{
+      const room=await createCallRoom(`Call with ${displayName(selected.other)}`)
+      const {error}=await client.rpc('start_chat_call',{
+        p_conversation:selected.conversation.id,
+        p_kind:kind==='Video'?'video':'voice',
+        p_room_code:room.room.room_code
+      })
+      if(error)throw error
+      requestJoinRoom({code:room.room.room_code,audioOnly:kind==='Voice'})
+    }catch(error){
+      setCallNotice(error instanceof Error ? error.message : 'Unable to start the call.')
+    }finally{
+      setCalling(false)
+    }
   }
 
   const rows=useMemo(()=>{
@@ -670,10 +702,10 @@ export function ChatModule(){
                   <small>{secondary(selected.other)}</small>
                 </div>
                 <div className="cmHeadActions">
-                  <button type="button" className="cmRound" title="Video call" aria-label="Video call" onClick={()=>showCallNotice('Video')}>
+                  <button type="button" className="cmRound" title="Video call" aria-label="Video call" disabled={calling} onClick={()=>void startCall('Video')}>
                     <Video size={18}/>
                   </button>
-                  <button type="button" className="cmRound" title="Voice call" aria-label="Voice call" onClick={()=>showCallNotice('Voice')}>
+                  <button type="button" className="cmRound" title="Voice call" aria-label="Voice call" disabled={calling} onClick={()=>void startCall('Voice')}>
                     <Phone size={18}/>
                   </button>
                 </div>

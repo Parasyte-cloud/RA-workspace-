@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -20,6 +21,7 @@ import {
   X
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { JOIN_ROOM_EVENT, type JoinRoomDetail } from '../lib/roomApi'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
 import '../room.css'
@@ -116,6 +118,7 @@ export default function RoomModule({
   // itself lives in a portal on <body> so no parent style can clip it.
   const [callAnchor,setCallAnchor]=useState<HTMLDivElement|null>(null)
   const [created,setCreated]=useState<{code:string,title:string}|null>(null)
+  const [audioOnly,setAudioOnly]=useState(false)
 
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
     if(!client)throw new Error('Workspace authentication is not configured.')
@@ -197,7 +200,7 @@ export default function RoomModule({
     }
   }
 
-  const joinRoom=async(codeOverride?:string)=>{
+  const joinRoom=async(codeOverride?:string,voiceOnly=false)=>{
     const code=normalizeRoomCode(codeOverride||joinCode)
     if(joining||code.length!==8){
       if(code.length!==8)setNotice('Enter the 8-character ROOM 7 code.')
@@ -210,6 +213,7 @@ export default function RoomModule({
       if(!data?.room||!data?.auth_token)throw new Error('ROOM 7 service returned an incomplete session.')
       setJoinCode(code)
       setCreated(null)
+      setAudioOnly(voiceOnly)
       setSession(data as RoomSession)
       await loadRooms()
     }catch(error){
@@ -219,6 +223,23 @@ export default function RoomModule({
       setJoining(false)
     }
   }
+
+  // Chat calls ask ROOM 7 to open a specific room: the caller after starting
+  // a call, the callee after pressing Accept.
+  const joinRoomRef=useRef(joinRoom)
+  joinRoomRef.current=joinRoom
+  const onOpenRef=useRef(onOpen)
+  onOpenRef.current=onOpen
+  useEffect(()=>{
+    const handler=(event:Event)=>{
+      const detail=(event as CustomEvent<JoinRoomDetail>).detail
+      if(!detail?.code)return
+      onOpenRef.current?.()
+      void joinRoomRef.current(detail.code,detail.audioOnly)
+    }
+    window.addEventListener(JOIN_ROOM_EVENT,handler)
+    return()=>window.removeEventListener(JOIN_ROOM_EVENT,handler)
+  },[])
 
   const rejoinSession=useCallback(async()=>{
     const code=session?.room.room_code
@@ -343,6 +364,7 @@ export default function RoomModule({
         onRejoin={rejoinSession}
         onExtend={session.event?extendSchedule:undefined}
         moderation={session.can_moderate?moderation:undefined}
+        audioOnly={audioOnly}
       />
     </Suspense>
   ):null
