@@ -45,6 +45,7 @@ export function sectionForNotification(entityType: string | null, type: string):
   if (entityType === 'workspace_announcement') return 'announcements'
   if (entityType === 'social_post') return 'social'
   if (entityType === 'workspace_event') return 'calendar'
+  if (entityType === 'leave_request') return type === 'leave_request_decided' ? 'profile' : 'people'
   return null
 }
 
