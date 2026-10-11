@@ -128,12 +128,13 @@ import {
   OverviewMetrics,
   HeadshotGallery,
   AppearanceSettings,
-  SharedWorkspacesHub
+  SharedWorkspacesHub,
+  DepartmentAdminView
 } from './lazy-routes'
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -259,6 +260,9 @@ const sectionAccess:Record<Section,Role[]>={
 
   letterhead:[...LETTERHEAD_ROLES],
 
+  // Reached through a head-of-department grant, never by role alone.
+  deptadmin:[],
+
   vendors:[
     'operations',
     'finance',
@@ -335,6 +339,7 @@ const workstationForSection:Partial<Record<Section,string>>={
   executive:'executive',
   admin:'administration',
   letterhead:'letterhead',
+  deptadmin:'deptadmin',
 }
 
 const canAccess=(role:Role,section:Section,assignments:WorkstationAssignment[]=[])=>{
@@ -729,7 +734,16 @@ function App(){
         .select('employee_id')
         .eq('employee_id',profile.id)
         .maybeSingle(),
-    ]).then(([{data,error},grant])=>{
+      // Kept as its own query on purpose: if the head-of-department column is
+      // not there yet, only this lookup fails and every other workstation
+      // still loads.
+      client
+        .from('workspace_workstation_assignments')
+        .select('is_head')
+        .eq('employee_id',profile.id)
+        .eq('active',true)
+        .eq('is_head',true),
+    ]).then(([{data,error},grant,heads])=>{
         if(cancelled) return
         const letterheadGrant:WorkstationAssignment[]=grant.data
           ? [{workstation:'letterhead',is_primary:false,active:true}]
@@ -741,7 +755,11 @@ function App(){
           return
         }
 
-        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant])
+        // A head of department also gets the scoped Department Admin view.
+        const headGrant:WorkstationAssignment[]=!heads.error && (heads.data || []).length>0
+          ? [{workstation:'deptadmin',is_primary:false,active:true}]
+          : []
+        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant,...headGrant])
         setAssignmentsReady(true)
       })
 
@@ -981,7 +999,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -996,7 +1014,7 @@ function App(){
       groups:[
         {id:'communication',label:'Communication',items:pick(['chat','room','social','mail','calendar','announcements'])},
         {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','letterhead','knowledge','crm','parasyte','apps'])},
-        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','vendors','marketing','partnerships','legal'])}
+        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','vendors','marketing','partnerships','legal','deptadmin'])}
       ].filter(group=>group.items.length>0),
       system:pick(['settings','admin'])
     }
@@ -1274,6 +1292,7 @@ function App(){
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
         {section==='settings'&&<AppearanceSettings/>}
         {section==='admin'&&<AdminModule/>}
+        {section==='deptadmin'&&<DepartmentAdminView onNavigate={navigateToSection}/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>}
         {section==='workspace'&&workspace&&<WorkspaceView workspace={workspace}/>}
