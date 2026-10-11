@@ -73,6 +73,7 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 import { NotificationCenter } from './components/NotificationCenter'
 import CallRinger from './modules/CallRinger'
 import EventReminders from './modules/EventReminders'
+import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
 import { GlobalSearch } from './components/GlobalSearch'
 import { useIdleSignOut } from './lib/useIdleSignOut'
@@ -1247,6 +1248,7 @@ function App(){
           crash in any section would tear it down, ending the meeting. */}
       <CallRinger/>
       <EventReminders/>
+      <BirthdayCelebration/>
       <RouteErrorBoundary resetKey="room7">
         <Suspense fallback={null}>
           <RoomModule
