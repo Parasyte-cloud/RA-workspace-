@@ -85,7 +85,8 @@ export default function RoomMeeting({
   onEnded,
   onRejoin,
   onExtend,
-  moderation
+  moderation,
+  audioOnly=false
 }:{
   session:RoomSession
   minimized?:boolean
@@ -98,6 +99,7 @@ export default function RoomMeeting({
   onRejoin:()=>Promise<boolean>
   onExtend?:(endIso:string)=>Promise<void>
   moderation?:Room7Moderation
+  audioOnly?:boolean
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   const {retire,isRetired}=useRetiredClients()
@@ -137,7 +139,7 @@ export default function RoomMeeting({
     setInitError('')
     Promise.resolve(initMeeting({
       authToken:session.auth_token,
-      defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:true}
+      defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:!audioOnly}
     })).then(created=>{
       if(!created)return
       if(active)client=created
