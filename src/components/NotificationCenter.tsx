@@ -139,6 +139,16 @@ export function NotificationCenter({
     }
 
     if(
+      item.entity_type==='leave_request' &&
+      onOpenSection
+    ){
+      setOpen(false)
+      // The person who asked sees the decision on My Profile; approvers open People & HR.
+      onOpenSection(item.type==='leave_request_decided' ? 'profile' : 'people')
+      return
+    }
+
+    if(
       item.entity_type==='workspace_event' &&
       onOpenSection
     ){

@@ -1,0 +1,17 @@
+.myLeave{display:grid;gap:12px}
+.myLeaveHead{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.myLeaveHead h3{margin:4px 0}
+.myLeaveHead p{margin:0;color:#697686;max-width:560px;font-size:13px}
+.myLeaveForm{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}
+.myLeaveForm label{display:grid;gap:5px;font-size:12px;font-weight:700}
+.myLeaveForm .wide{grid-column:1/-1}
+.myLeaveForm input,.myLeaveForm select,.myLeaveForm textarea{border:1px solid rgba(7,26,56,.14);border-radius:10px;padding:9px;background:#fff;color:#071a38;font:inherit;font-weight:400;width:100%;min-width:0}
+.myLeaveNone{color:#697686;font-size:13px;margin:0;display:flex;gap:6px;align-items:center}
+.myLeaveList{list-style:none;margin:0;padding:0;display:grid}
+.myLeaveList li{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(7,26,56,.08);flex-wrap:wrap}
+.myLeaveList li>div{flex:1;min-width:160px;display:grid;gap:2px}
+.myLeaveList small{color:#697686}
+.myLeaveBadge{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;background:rgba(7,26,56,.08);color:#071a38}
+.myLeaveBadge.pending{background:rgba(255,153,0,.2);color:#8a4b00}
+.myLeaveBadge.approved{background:rgba(31,157,85,.18);color:#14693a}
+.myLeaveBadge.declined{background:rgba(211,51,51,.15);color:#a02020}

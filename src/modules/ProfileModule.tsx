@@ -37,6 +37,7 @@ import {
   type EmployeeCardProfile
 } from '../components/EmployeeVirtualCard'
 import EmployeeAttendance from '../components/EmployeeAttendance'
+import MyLeave from '../components/MyLeave'
 import EmployeeKycDocuments from '../components/EmployeeKycDocuments'
 import EmployeeHrDetailsForm from '../components/EmployeeHrDetailsForm'
 
@@ -610,6 +611,8 @@ export function ProfileModule({
       <EmployeeKycDocuments/>
 
       <EmployeeHrDetailsForm/>
+
+      <MyLeave/>
 
       <EmployeeAttendance/>
 
