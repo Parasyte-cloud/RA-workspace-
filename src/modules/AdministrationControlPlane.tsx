@@ -482,29 +482,32 @@ function ApplicationsPanel(){
 const ARRIVOOPS_RIDE_DESK_URL='https://admin.ridearrivo.com/#/ride-desk'
 
 function RideDeskPanel(){
+  const[loaded,setLoaded]=useState(false)
   return <div className="adminNativeOperations">
-    <div className="glassCard adminOperationsNativeHeader">
-      <Headset size={25}/>
+    <div className="glassCard rideDeskBar">
+      <Headset size={22}/>
       <div>
         <span className="eyebrow">ARRIVOOPS</span>
         <h3>Ride Desk</h3>
-        <p>
-          Every ride with its support agent, operations person and driver, the
-          rider and driver profiles, in-app calling by name, who is on duty and
-          how many rides each person carries. Owners and admins also see the
-          People tab (who can promote and remove staff) and the number access
-          log.
-        </p>
-        <p>
-          <a className="btn primary" href={ARRIVOOPS_RIDE_DESK_URL} target="_blank" rel="noopener noreferrer">
-            Open Ride Desk in ArrivoOps
-          </a>
-        </p>
         <p className="muted">
-          ArrivoOps opens in a new tab and has its own sign-in. Use your
-          ArrivoOps account there.
+          Every ride with its support agent, operations person and driver, in-app
+          calling by name, who is on duty and the People tab. Sign in with your
+          ArrivoOps account the first time.
         </p>
       </div>
+      <a className="btn" href={ARRIVOOPS_RIDE_DESK_URL} target="_blank" rel="noopener noreferrer">Open in a new tab</a>
+    </div>
+    <div className="rideDeskFrameWrap">
+      {!loaded&&<div className="rideDeskLoading" role="status">Loading ArrivoOps…</div>}
+      <iframe
+        className="rideDeskFrame"
+        title="ArrivoOps Ride Desk"
+        src={ARRIVOOPS_RIDE_DESK_URL}
+        onLoad={()=>setLoaded(true)}
+        allow="microphone; camera; autoplay"
+        referrerPolicy="strict-origin"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"
+      />
     </div>
   </div>
 }
