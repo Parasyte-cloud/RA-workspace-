@@ -8,9 +8,14 @@
   Permissions-Policy: camera=(self "https://admin.ridearrivo.com"), microphone=(self "https://admin.ridearrivo.com"), geolocation=(self), payment=(self), usb=(), serial=(), bluetooth=()
   X-Frame-Options: SAMEORIGIN
 
-# Hashed build output never changes, cache it hard.
+# Hashed build output is cheap to revalidate (the host answers 304), so do not
+# mark it immutable. This header also lands on the single-page fallback, which
+# answers with HTML for a file that is missing for a moment during a deploy.
+# With a one-year immutable lifetime Cloudflare and browsers kept that HTML for
+# a year and the workspace showed a white page. Revalidating heals within one
+# request.
 /assets/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=0, must-revalidate
 
 # The service worker and manifest must always revalidate or a bad deploy sticks.
 /sw.js
