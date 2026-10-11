@@ -1,0 +1,34 @@
+.pdir{grid-column:1/-1;display:grid;gap:12px}
+.pdirMetrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.pdirMetrics>div{display:grid;gap:2px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid rgba(7,26,56,.07)}
+.pdirMetrics span{font-size:11px;color:var(--muted,#6f7b8a)}
+.pdirMetrics strong{font-size:22px}
+.pdirBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pdirTabs{display:flex;gap:6px}
+.pdirTabs button{border:1px solid rgba(7,26,56,.09);border-radius:11px;padding:8px 12px;background:rgba(255,255,255,.55);color:var(--navy);font-weight:700;cursor:pointer}
+.pdirTabs button.active{background:var(--navy);color:#fff}
+.pdirSearch{flex:1 1 220px;display:flex;align-items:center;gap:8px;border:1px solid rgba(7,26,56,.12);border-radius:11px;padding:0 10px;background:rgba(255,255,255,.88)}
+.pdirSearch input{flex:1;border:0;outline:0;background:transparent;padding:9px 0;color:var(--navy)}
+.pdirBar select{border:1px solid rgba(7,26,56,.12);border-radius:11px;padding:9px;background:rgba(255,255,255,.88);color:var(--navy)}
+.pdirError{background:#fde8e8;color:#a5322c}
+.pdirSplit{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:14px;align-items:start}
+.pdirTable tbody tr{cursor:pointer}
+.pdirTable tbody tr:hover,.pdirTable tbody tr.selected{background:rgba(7,26,56,.05)}
+.pdirTable td small{display:block;color:var(--muted,#6f7b8a);font-size:11px}
+.pdirPanel{display:grid;gap:8px;padding:14px;border-radius:16px;background:rgba(255,255,255,.55);border:1px solid rgba(7,26,56,.07)}
+.pdirPanel h4,.pdirPanel h5,.pdirPanel p{margin:0}
+.pdirHint{color:var(--muted,#6f7b8a);font-size:12px;line-height:1.5}
+.pdirFacts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13px}
+.pdirFacts dt{color:var(--muted,#6f7b8a)}
+.pdirFacts dd{margin:0}
+.pdirForm{display:grid;gap:10px}
+.pdirForm label,.pdirLabel{display:grid;gap:5px;font-size:12px;font-weight:700}
+.pdirForm input,.pdirForm select,.pdirLabel input,.pdirLabel select{border:1px solid rgba(7,26,56,.12);border-radius:10px;padding:9px;background:#fff;color:var(--navy);font-weight:400}
+.pdirDanger{display:grid;gap:8px;margin-top:6px;padding-top:12px;border-top:1px solid rgba(7,26,56,.1)}
+.pdirDanger h5{display:flex;align-items:center;gap:6px}
+.pdirChecklist{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.pdirChecklist li{display:block}
+.pdirChecklist small{display:block;color:var(--muted,#6f7b8a);font-size:11px}
+.pdirDeleteButton{border:0;background:#b42318;color:#fff;border-radius:12px;padding:10px 14px;font-weight:800;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.pdirDeleteButton:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:900px){.pdirSplit{grid-template-columns:1fr}}
