@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
 
 import {
   Bell,
@@ -34,6 +35,24 @@ export function NotificationCenter({
   const readCount=items.filter(item=>item.read_at).length
 
   const rootRef=useRef<HTMLDivElement|null>(null)
+
+  useEffect(()=>{
+    if(!onOpenSection) return
+    const handleOpen=(event:Event)=>{
+      const detail=(event as CustomEvent<OpenSectionDetail>).detail
+      if(!detail?.section) return
+      try{
+        if(detail.section==='chat' && detail.conversationId){
+          sessionStorage.setItem('ra.chat.open',detail.conversationId)
+        }
+      }catch{
+        // Opening Chat still works without the remembered conversation.
+      }
+      onOpenSection(detail.section)
+    }
+    window.addEventListener(OPEN_SECTION_EVENT,handleOpen)
+    return()=>window.removeEventListener(OPEN_SECTION_EVENT,handleOpen)
+  },[onOpenSection])
 
   useEffect(()=>{
     if(!open){
