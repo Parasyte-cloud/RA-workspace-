@@ -22,6 +22,10 @@
   Cache-Control: no-cache
 /manifest.webmanifest
   Cache-Control: no-cache
+/room7.webmanifest
+  Cache-Control: no-cache
+/room7-sw.js
+  Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
 /recover.js

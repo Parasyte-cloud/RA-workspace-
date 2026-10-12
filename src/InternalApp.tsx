@@ -15,3 +15,4 @@ import './runtime-stability.css'
 import './workspace-nav.css'
 
 export default App
+import './phone-shell.css'

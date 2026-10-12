@@ -60,8 +60,11 @@ import {
   Images,
   FileSignature,
   Globe2,
-  Star
+  Star,
+  Menu as MenuIcon,
+  X as CloseIcon
 } from 'lucide-react'
+import PhoneNav from './modules/PhoneNav'
 import { supabase,
   supabaseConfigured,
   initialAuthLink } from './lib/supabase'
@@ -512,6 +515,7 @@ function App(){
       : null
   })
   const [openNavGroup,setOpenNavGroup]=useState<string|null>(null)
+  const [phoneMenuOpen,setPhoneMenuOpen]=useState(false)
   const contentRef=useRef<HTMLDivElement|null>(null)
   const roomReturnSectionRef=useRef<Section>('overview')
   const historyReadyRef=useRef(false)
@@ -1099,6 +1103,8 @@ function App(){
     }
   },[section,activeGroupId])
 
+  useEffect(()=>{setPhoneMenuOpen(false)},[section])
+
   useEffect(()=>{
     contentRef.current?.scrollTo({top:0,left:0,behavior:'auto'})
   },[section,workspace?.url])
@@ -1268,6 +1274,14 @@ function App(){
       </nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
+    <PhoneNav
+      nav={nav}
+      groups={groupedNav}
+      section={section}
+      open={phoneMenuOpen}
+      onOpenChange={setPhoneMenuOpen}
+      onPick={id=>{setSection(id as Section);setWorkspace(null);setPhoneMenuOpen(false)}}
+    />
     <main>
       <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1></div><div className="headerActions"><WorkspaceClock/><GlobalSearch sections={nav.map(([id,label])=>({id,label}))} recent={recentSections} onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
   onOpenWork={()=>{

@@ -1,0 +1,227 @@
+/*
+ * Phone shell (640px and narrower).
+ *
+ * The desktop sidebar is hidden and replaced by a bottom tab bar plus a "More"
+ * sheet (see modules/PhoneNav.tsx). Above 640px none of this shows.
+ * Loaded last, so it wins over the older rail rules that used !important.
+ */
+.phoneTabs,
+.phoneMoreLayer {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .shell.glassFrame > .sidebar {
+    display: none !important;
+  }
+
+  .shell.glassFrame {
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+
+  .shell.glassFrame > main {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .phoneTabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: rgba(7, 26, 56, 0.97);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -10px 30px rgba(2, 17, 40, 0.28);
+  }
+
+  .phoneTabs button {
+    min-width: 0;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #b7c3d4;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .phoneTabs button.active {
+    color: #fff;
+    background: rgba(255, 153, 0, 0.2);
+    box-shadow: inset 0 2px 0 #ff9900;
+  }
+
+  .phoneMoreLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: block;
+  }
+
+  .phoneMoreScrim {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(2, 12, 28, 0.55);
+  }
+
+  .phoneMoreSheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 86dvh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px 22px 0 0;
+    background: #f6f8fb;
+    color: #071a38;
+    box-shadow: 0 -20px 60px rgba(2, 17, 40, 0.4);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .phoneMoreSheet > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(7, 26, 56, 0.08);
+  }
+
+  .phoneMoreSheet > header button {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(7, 26, 56, 0.07);
+    color: inherit;
+  }
+
+  .phoneMoreBody {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 14px 18px;
+  }
+
+  .phoneMoreBody h3 {
+    margin: 14px 2px 8px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #66758a;
+  }
+
+  .phoneMoreGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .phoneMoreItem {
+    min-height: 48px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(7, 26, 56, 0.1);
+    border-radius: 14px;
+    background: #fff;
+    color: #071a38;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .phoneMoreItem svg {
+    flex: 0 0 auto;
+    color: #b66e00;
+  }
+
+  .phoneMoreItem span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .phoneMoreItem.active {
+    border-color: #ff9900;
+    background: #fff4de;
+  }
+
+  /* Header: title, then search, notifications and the profile avatar. */
+  .shell.glassFrame .topbar {
+    gap: 8px;
+    padding: 0 12px !important;
+  }
+
+  .shell.glassFrame .topbar h1 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shell.glassFrame .topbar > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .shell.glassFrame .headerActions {
+    flex: 0 0 auto;
+    width: auto !important;
+    gap: 6px;
+  }
+
+  .shell.glassFrame .headerActions .workspaceClock {
+    display: none !important;
+  }
+
+  .shell.glassFrame .headerActions .iconButton,
+  .shell.glassFrame .headerActions .notificationCenter,
+  .shell.glassFrame .headerActions .profileMenuWrap {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 40px;
+    flex: 0 0 auto;
+  }
+
+  .shell.glassFrame .headerActions .profileButton span {
+    display: none !important;
+  }
+
+  /* Notice rows (icon, text, button) wrap instead of squeezing the text. */
+  .content .companyFilesNotice,
+  .content .moduleNotice,
+  .content .mailNotice,
+  .content .callout {
+    flex-wrap: wrap;
+  }
+
+  .content .companyFilesNotice > div,
+  .content .moduleNotice > div,
+  .content .mailNotice > div,
+  .content .callout > div {
+    flex: 1 1 0;
+    min-width: 160px;
+  }
+
+  .content .companyFilesNotice > .primaryButton {
+    flex: 1 1 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+}

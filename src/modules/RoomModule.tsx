@@ -247,6 +247,7 @@ export default function RoomModule({
   joinRoomRef.current=joinRoom
   // The chat call this ROOM 7 session belongs to, if any.
   const callIdRef=useRef('')
+  const [chatCall,setChatCall]=useState(false)
   const onOpenRef=useRef(onOpen)
   onOpenRef.current=onOpen
   useEffect(()=>{
@@ -257,11 +258,14 @@ export default function RoomModule({
       // It opens as a small window over the page and can be expanded.
       if(!detail.inPlace)onOpenRef.current?.()
       callIdRef.current=detail.callId||''
+      setChatCall(Boolean(detail.callId))
       void joinRoomRef.current(detail.code,detail.audioOnly)
     }
     window.addEventListener(JOIN_ROOM_EVENT,handler)
     return()=>window.removeEventListener(JOIN_ROOM_EVENT,handler)
   },[])
+
+  useEffect(()=>{if(!session)setChatCall(false)},[session])
 
   const rejoinSession=useCallback(async()=>{
     const code=session?.room.room_code
@@ -477,6 +481,7 @@ export default function RoomModule({
         onExtend={session.event?extendSchedule:undefined}
         moderation={session.can_moderate?moderation:undefined}
         audioOnly={audioOnly}
+        chatCall={chatCall}
       />
     </Suspense>
   ):null
