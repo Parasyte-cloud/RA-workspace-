@@ -25,6 +25,7 @@ export const COMPANY_IDS = [
   'room',
   'knowledge',
   'files',
+  'archive',
   'brand',
   'letterhead',
   'crm',

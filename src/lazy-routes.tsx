@@ -8,6 +8,10 @@ export const SharedWorkspacesHub = lazy(
 
 
 
+export const ArchiveModule = lazy(
+  () => import('./modules/ArchiveModule')
+)
+
 export const RoomModule = lazy(
   () => import('./modules/RoomModule')
 )
