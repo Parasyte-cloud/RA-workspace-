@@ -278,3 +278,41 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 .cmImage img{width:100%;height:auto;max-height:340px}
 .cmFile{width:300px;max-width:100%}
 .cmVoice{width:280px;max-width:100%}
+
+/* ---- Calls inside the chat ------------------------------------------ */
+.cmChips{flex-wrap:wrap}
+.cmCallLine{
+  align-self:center;display:flex;align-items:center;gap:10px;
+  max-width:min(92%,420px);margin:6px 0;padding:8px 12px;border-radius:14px;
+  background:var(--cm-in);color:var(--cm-text);box-shadow:0 1px 1px rgba(7,26,56,.08);
+}
+.cmCallIcon{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(34,166,93,.16);color:#1f9d57;
+}
+.cmCallLine.missed .cmCallIcon{background:rgba(222,64,64,.16);color:#d93b3b}
+.cmCallLine.neutral .cmCallIcon{background:rgba(120,134,155,.18);color:var(--cm-muted)}
+.cmCallCopy{display:grid;min-width:0}
+.cmCallCopy strong{font-size:13.5px}
+.cmCallLine.missed .cmCallCopy strong{color:#d93b3b}
+.cmCallCopy small{color:var(--cm-muted);font-size:12px}
+.cmCallBack{
+  display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:6px 11px;border:0;
+  border-radius:999px;cursor:pointer;background:var(--cm-active);color:var(--cm-text);font:inherit;font-size:12.5px;
+}
+.cmCallBack:disabled{opacity:.55;cursor:default}
+
+/* Calls tab */
+.cmCallRow{display:flex;align-items:center;gap:6px;padding-right:10px}
+.cmCallRowMain{
+  display:flex;align-items:center;gap:12px;flex:1;min-width:0;border:0;background:none;
+  color:inherit;font:inherit;text-align:left;cursor:pointer;padding:0;
+}
+.cmCallRowBtn{
+  width:36px;height:36px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;
+  background:var(--cm-active);color:var(--cm-text);flex:0 0 auto;
+}
+.cmCallRowBtn:disabled{opacity:.55;cursor:default}
+.cmCallState{display:inline-flex;align-items:center;gap:5px}
+.cmCallState.missed{color:#d93b3b}
+.cmMissedText{color:#d93b3b !important;font-weight:600}

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { requestJoinRoom } from '../lib/roomApi'
+import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
+import { startTone, wireAudioUnlock } from '../lib/ringtone'
 import {
   alertPermission,
   alertsPromptDismissed,
   dismissAlertsPrompt,
   flashTitle,
-  requestAlertPermission
+  requestAlertPermission,
+  showDesktopAlert
 } from '../lib/desktopAlerts'
 import '../call-ringer.css'
 
@@ -34,6 +36,7 @@ export default function CallRinger() {
   const [outcome, setOutcome] = useState('')
   const [names, setNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [soundBlocked, setSoundBlocked] = useState(false)
   const namesRef = useRef<Record<string, string>>({})
   const timerRef = useRef<number | null>(null)
   const meRef = useRef('')
@@ -63,6 +66,15 @@ export default function CallRinger() {
     const mine = meRef.current
     const client = supabase
     if (!mine || !client) return
+
+    // Tell the call window the other side is done (declined, no answer,
+    // cancelled, hung up) so it can close by itself.
+    if (
+      (row.caller_id === mine || row.callee_id === mine) &&
+      ['declined', 'missed', 'cancelled', 'ended'].includes(row.status)
+    ) {
+      announceCallFinished({ callId: row.id, status: row.status })
+    }
 
     if (row.callee_id === mine) {
       void loadName(row.caller_id)
@@ -134,6 +146,8 @@ export default function CallRinger() {
     if (!incoming.length) return
     const timer = window.setInterval(() => {
       setIncoming(current => current.filter(item => Date.now() - new Date(item.created_at).getTime() < RING_WINDOW_MS))
+      // The database closes calls that rang out, so they show as missed in Chat.
+      void supabase?.rpc('expire_chat_calls')
     }, 5000)
     return () => window.clearInterval(timer)
   }, [incoming.length])
@@ -144,33 +158,41 @@ export default function CallRinger() {
     return () => window.clearTimeout(timer)
   }, [outcome])
 
-  // A soft repeating tone while something is ringing. Browsers may block it
-  // until the person has interacted with the page, which is fine.
+  // Sound: a phone ring for an incoming call, and the ringback tone the caller
+  // hears while the other phone rings. Browsers keep sound off until the
+  // person has touched the page once; the card says so when that is the case.
+  useEffect(() => {
+    wireAudioUnlock()
+  }, [])
+
   useEffect(() => {
     if (!incoming.length) return
-    let context: AudioContext | null = null
-    const beep = () => {
-      try {
-        context = context || new AudioContext()
-        const osc = context.createOscillator()
-        const gain = context.createGain()
-        osc.frequency.value = 440
-        gain.gain.value = 0.06
-        osc.connect(gain)
-        gain.connect(context.destination)
-        osc.start()
-        osc.stop(context.currentTime + 0.35)
-      } catch {
-        // No audio available; the banner is still shown.
-      }
-    }
-    beep()
-    const timer = window.setInterval(beep, 2500)
-    return () => {
-      window.clearInterval(timer)
-      void context?.close().catch(() => undefined)
-    }
+    return startTone('incoming', setSoundBlocked)
   }, [incoming.length])
+
+  const outgoingId = outgoing?.id || ''
+  useEffect(() => {
+    if (!outgoingId) return
+    return startTone('ringback')
+  }, [outgoingId])
+
+  // Someone calling while this tab is in the background: a system alert that
+  // stays until it is answered or rings out.
+  const notifiedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    for (const call of incoming) {
+      if (notifiedRef.current.has(call.id)) continue
+      notifiedRef.current.add(call.id)
+      showDesktopAlert({
+        title: `${names[call.caller_id] || 'A colleague'} is calling`,
+        body: call.kind === 'video' ? 'Incoming video call' : 'Incoming voice call',
+        tag: `call-${call.id}`,
+        urgent: true,
+        section: 'chat',
+        conversationId: call.conversation_id
+      })
+    }
+  }, [incoming, names])
 
   // Flash the tab title so a call is noticed from another tab.
   const firstCaller = incoming.length ? names[incoming[0].caller_id] || 'a colleague' : ''
@@ -204,7 +226,7 @@ export default function CallRinger() {
       return
     }
     if (status === 'accepted') {
-      if (data === 'accepted') requestJoinRoom({ code: call.room_code, audioOnly: call.kind === 'voice' })
+      if (data === 'accepted') requestJoinRoom({ code: call.room_code, audioOnly: call.kind === 'voice', callId: call.id, inPlace: true })
       else setOutcome('That call has already ended')
     }
   }
@@ -226,7 +248,7 @@ export default function CallRinger() {
           <span className="callPulse">{call.kind === 'video' ? <Video size={20} /> : <Phone size={20} />}</span>
           <div className="callCopy">
             <strong>{nameOf(call.caller_id)}</strong>
-            <small>Incoming {call.kind} call</small>
+            <small>{soundBlocked ? 'Incoming ' + call.kind + ' call. Click anywhere to hear the ring.' : 'Incoming ' + call.kind + ' call'}</small>
           </div>
           <button type="button" className="callBtn decline" disabled={busy} onClick={() => void respond(call, 'declined')} aria-label="Decline call">
             <PhoneOff size={18} />
