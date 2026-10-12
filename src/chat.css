@@ -190,3 +190,47 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 .cmReplyBar span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmReplyBar button{border:0;background:transparent;color:var(--cm-muted);cursor:pointer;padding:4px;border-radius:50%}
 .cmReplyBar button:hover{background:var(--cm-hover)}
+
+/* ---- attachments ---- */
+.cmThread{position:relative}
+.cmAttach{flex:0 0 auto;color:var(--cm-muted)}
+.cmDrop{
+  position:absolute;inset:8px;z-index:20;display:grid;place-items:center;text-align:center;
+  border:2px dashed var(--cm-accent);border-radius:14px;background:rgba(255,153,0,.12);
+  color:var(--cm-text);font-weight:800;font-size:15px;pointer-events:none;
+}
+.cmImage{
+  display:block;padding:0;margin:0 0 5px;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;
+  background:rgba(7,26,56,.06);max-width:min(320px,100%);
+}
+.cmImage img{display:block;width:100%;max-height:320px;object-fit:cover}
+.cmImageWait{display:grid;place-items:center;min-width:200px;height:120px;font-size:12px;color:var(--cm-muted);cursor:default}
+.cmFile{
+  display:flex;align-items:center;gap:10px;width:100%;min-width:220px;margin:0 0 5px;padding:8px 10px;
+  border:0;border-radius:8px;background:rgba(7,26,56,.07);color:var(--cm-text);text-align:left;cursor:pointer;font:inherit;
+}
+.cmFile:disabled{opacity:.7;cursor:default}
+.cmFile>span{flex:1;min-width:0;display:grid}
+.cmFile strong{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmFile small{font-size:11.5px;color:var(--cm-muted)}
+.cmStaged{display:flex;gap:8px;flex-wrap:wrap;padding:8px 14px;background:var(--cm-side);border-top:1px solid var(--cm-line)}
+.cmStagedItem{
+  display:flex;align-items:center;gap:8px;max-width:240px;padding:6px 8px;border-radius:10px;
+  background:var(--cm-hover);color:var(--cm-text);
+}
+.cmStagedItem img{width:36px;height:36px;border-radius:6px;object-fit:cover}
+.cmStagedItem>span{min-width:0;display:grid}
+.cmStagedItem strong{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmStagedItem small{font-size:11px;color:var(--cm-muted)}
+.cmStagedItem button{border:0;background:transparent;color:var(--cm-muted);cursor:pointer;padding:3px;border-radius:50%}
+.cmViewer{
+  position:fixed;inset:0;z-index:2000;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:14px;
+  background:rgba(4,12,26,.88);
+}
+.cmViewerBar{display:flex;align-items:center;gap:10px;color:#fff}
+.cmViewerBar strong{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.cmViewerBar button{
+  display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;
+  background:rgba(255,255,255,.14);color:#fff;font-weight:700;
+}
+.cmViewer>img{justify-self:center;align-self:center;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}

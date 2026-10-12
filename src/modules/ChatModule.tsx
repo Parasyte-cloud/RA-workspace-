@@ -4,7 +4,10 @@ import {
   ArrowLeft,
   Check,
   CheckCheck,
+  Download,
+  FileText,
   MessageSquareText,
+  Paperclip,
   Phone,
   Plus,
   Reply,
@@ -25,6 +28,15 @@ import {
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { createCallRoom, requestJoinRoom } from '../lib/roomApi'
+import {
+  ACCEPT_ATTRIBUTE,
+  MAX_FILES_PER_SEND,
+  attachmentPath,
+  formatBytes,
+  isImageMime,
+  messagePreview,
+  validateAttachment
+} from '../lib/chatAttachments'
 
 type Person = {
   id:string
@@ -58,6 +70,11 @@ type Message = {
   edited_at:string|null
   created_at:string
   reply_to_id?:string|null
+  attachment_path?:string|null
+  attachment_name?:string|null
+  attachment_mime?:string|null
+  attachment_size?:number|null
+  localUrl?:string
   pending?:boolean
   failed?:boolean
 }
@@ -71,8 +88,12 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size'
 const OPEN_KEY='ra.chat.open'
+const ATTACH_BUCKET='chat-attachments'
+const SIGNED_SECONDS=3600
+
+type Staged={id:string;file:File;mime:string;previewUrl:string|null}
 
 const initials=(value?:string|null)=>{
   const words=(value || '').trim().split(/\s+/).filter(Boolean)
@@ -147,6 +168,10 @@ export function ChatModule(){
   const [calling,setCalling]=useState(false)
   const [isAdmin,setIsAdmin]=useState(false)
   const [replyTo,setReplyTo]=useState<Message|null>(null)
+  const [staged,setStaged]=useState<Staged[]>([])
+  const [dragging,setDragging]=useState(false)
+  const [imageUrls,setImageUrls]=useState<Record<string,string>>({})
+  const [viewer,setViewer]=useState<{url:string;name:string;path:string|null}|null>(null)
 
   const selectedRef=useRef('')
   const directsRef=useRef<DirectRow[]>([])
@@ -158,6 +183,9 @@ export function ChatModule(){
   const forceScrollRef=useRef(true)
   const composerRef=useRef<HTMLTextAreaElement|null>(null)
   const loadedOnceRef=useRef(false)
+  const fileInputRef=useRef<HTMLInputElement|null>(null)
+  const retryFilesRef=useRef<Map<string,File>>(new Map())
+  const dragDepthRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
   useEffect(()=>{directsRef.current=directs},[directs])
@@ -381,6 +409,7 @@ export function ChatModule(){
     }
     setMessages([])
     setReplyTo(null)
+    setStaged([])
     setThreadLoading(true)
     forceScrollRef.current=true
     stickToBottomRef.current=true
@@ -438,7 +467,7 @@ export function ChatModule(){
             setMessages(current=>{
               // Replace our own optimistic copy instead of showing it twice.
               const withoutTemp=mine
-                ? current.filter(m=>!(m.pending && m.body===row.body))
+                ? current.filter(m=>!(m.pending && m.body===row.body && (m.attachment_name||null)===(row.attachment_name||null)))
                 : current
               return mergeMessages(withoutTemp,[row])
             })
@@ -506,11 +535,12 @@ export function ChatModule(){
     element.style.height=`${Math.min(element.scrollHeight,140)}px`
   }
 
-  const sendBody=async(body:string,tempId?:string,replyId?:string|null)=>{
+  const sendMessage=async(opts:{body:string;file?:File|null;mime?:string;tempId?:string;replyId?:string|null})=>{
     const client=supabase
     if(!client || !userId || !selectedId)return
     const conversationId=selectedId
-    const id=tempId || `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+    const {body,file,replyId}=opts
+    const id=opts.tempId || `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`
     const optimistic:Message={
       id,
       conversation_id:conversationId,
@@ -519,43 +549,188 @@ export function ChatModule(){
       edited_at:null,
       created_at:new Date().toISOString(),
       reply_to_id:replyId || null,
+      attachment_name:file?.name || null,
+      attachment_mime:file ? opts.mime || file.type : null,
+      attachment_size:file?.size ?? null,
+      localUrl:file && isImageMime(opts.mime || file.type) ? URL.createObjectURL(file) : undefined,
       pending:true
     }
     forceScrollRef.current=true
     setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[optimistic]))
 
+    let uploadedPath:string|null=null
+    if(file){
+      const path=attachmentPath(conversationId,userId,crypto.randomUUID(),file.name)
+      const {error:uploadError}=await client.storage.from(ATTACH_BUCKET).upload(path,file,{
+        upsert:false,
+        contentType:opts.mime || file.type,
+        cacheControl:'3600'
+      })
+      if(uploadError){
+        retryFilesRef.current.set(id,file)
+        setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
+        setNotice(uploadError.message || 'Unable to upload the file.')
+        return
+      }
+      uploadedPath=path
+    }
+
     const {data,error}=await client
       .from('social_messages')
-      .insert({conversation_id:conversationId,sender_id:userId,body,...(replyId?{reply_to_id:replyId}:{})})
+      .insert({
+        conversation_id:conversationId,
+        sender_id:userId,
+        body,
+        ...(replyId?{reply_to_id:replyId}:{}),
+        ...(file && uploadedPath?{
+          attachment_path:uploadedPath,
+          attachment_name:file.name,
+          attachment_mime:opts.mime || file.type,
+          attachment_size:file.size
+        }:{})
+      })
       .select(MESSAGE_COLUMNS)
       .single()
 
     if(error || !data){
+      if(file && uploadedPath){
+        // The file is unused now, so remove it. The retry uploads it again.
+        void client.storage.from(ATTACH_BUCKET).remove([uploadedPath])
+        retryFilesRef.current.set(id,file)
+      }
       setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
       setNotice(error?.message || 'Unable to send message.')
       return
     }
-    const saved=data as Message
+    retryFilesRef.current.delete(id)
+    const saved={...(data as Message),localUrl:optimistic.localUrl}
     setNotice('')
     setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
     setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
   }
 
+  const stageFiles=(list:FileList|File[]|null)=>{
+    if(!list)return
+    const incoming=Array.from(list)
+    if(!incoming.length)return
+    const accepted:Staged[]=[]
+    const problems:string[]=[]
+    for(const file of incoming){
+      if(staged.length+accepted.length>=MAX_FILES_PER_SEND){
+        problems.push(`You can send up to ${MAX_FILES_PER_SEND} files at once.`)
+        break
+      }
+      const verdict=validateAttachment(file)
+      if(!verdict.ok){
+        problems.push(verdict.reason)
+        continue
+      }
+      accepted.push({
+        id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        file,
+        mime:verdict.mime,
+        previewUrl:isImageMime(verdict.mime) ? URL.createObjectURL(file) : null
+      })
+    }
+    if(accepted.length)setStaged(current=>[...current,...accepted])
+    if(problems.length)setNotice(problems[0])
+    composerRef.current?.focus()
+  }
+
+  const unstage=(id:string)=>{
+    setStaged(current=>{
+      const gone=current.find(item=>item.id===id)
+      if(gone?.previewUrl)URL.revokeObjectURL(gone.previewUrl)
+      return current.filter(item=>item.id!==id)
+    })
+  }
+
   const submit=(event:FormEvent)=>{
     event.preventDefault()
     const body=messageText.trim()
-    if(!body)return
+    if(!body && !staged.length)return
     const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
+    const files=staged
     setMessageText('')
     setReplyTo(null)
+    setStaged([])
     requestAnimationFrame(resizeComposer)
-    void sendBody(body,undefined,replyId)
+    if(!files.length){
+      void sendMessage({body,replyId})
+      return
+    }
+    // The caption and the reply go with the first file; the rest follow in order.
+    void (async()=>{
+      for(let index=0;index<files.length;index+=1){
+        const item=files[index]
+        await sendMessage({
+          body:index===0 ? body : '',
+          file:item.file,
+          mime:item.mime,
+          replyId:index===0 ? replyId : null
+        })
+      }
+    })()
   }
 
   const retry=(message:Message)=>{
     setMessages(current=>current.map(m=>m.id===message.id ? {...m,failed:false,pending:true} : m))
-    void sendBody(message.body,message.id,message.reply_to_id)
+    const file=retryFilesRef.current.get(message.id) || null
+    const verdict=file ? validateAttachment(file) : null
+    void sendMessage({
+      body:message.body,
+      file,
+      mime:verdict && verdict.ok ? verdict.mime : undefined,
+      tempId:message.id,
+      replyId:message.reply_to_id
+    })
   }
+
+  // Files are opened through short-lived links made for the person asking.
+  const openFile=async(path:string,name:string)=>{
+    const client=supabase
+    if(!client)return
+    const {data,error}=await client.storage.from(ATTACH_BUCKET).createSignedUrl(path,300,{download:name})
+    if(error || !data?.signedUrl){
+      setNotice(error?.message || 'Unable to open this file.')
+      return
+    }
+    window.open(data.signedUrl,'_blank','noopener')
+  }
+
+  useEffect(()=>{
+    const client=supabase
+    if(!client)return
+    const need=Array.from(new Set(messages
+      .filter(m=>m.attachment_path && isImageMime(m.attachment_mime) && !imageUrls[m.attachment_path])
+      .map(m=>m.attachment_path as string)))
+    if(!need.length)return
+    let cancelled=false
+    void client.storage.from(ATTACH_BUCKET).createSignedUrls(need,SIGNED_SECONDS).then(({data})=>{
+      if(cancelled || !data)return
+      setImageUrls(current=>{
+        const next={...current}
+        for(const row of data){
+          if(row.path && row.signedUrl)next[row.path]=row.signedUrl
+        }
+        return next
+      })
+    })
+    return()=>{cancelled=true}
+  },[messages,imageUrls])
+
+  useEffect(()=>{
+    if(!viewer)return
+    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')setViewer(null)}
+    window.addEventListener('keydown',onKey)
+    return()=>window.removeEventListener('keydown',onKey)
+  },[viewer])
+
+  // Signed links expire. Drop them well before that so images fetch fresh ones.
+  useEffect(()=>{
+    const timer=window.setInterval(()=>setImageUrls({}),(SIGNED_SECONDS-300)*1000)
+    return()=>window.clearInterval(timer)
+  },[])
 
   const openConversation=(id:string)=>{
     setNotice('')
@@ -605,6 +780,20 @@ export function ChatModule(){
     if(!client || !isAdmin)return
     const name=displayName(row.other)
     if(!window.confirm(`Delete the chat with ${name} for both people? This removes every message and cannot be undone.`))return
+    // Deleting the chat removes its rows. Its files live in storage, so clear them first.
+    const {data:fileRows}=await client
+      .from('social_messages')
+      .select('attachment_path')
+      .eq('conversation_id',row.conversation.id)
+      .not('attachment_path','is',null)
+    const paths=(fileRows || []).map(item=>(item as {attachment_path:string|null}).attachment_path).filter((value):value is string=>!!value)
+    if(paths.length){
+      const {error:removeError}=await client.storage.from(ATTACH_BUCKET).remove(paths)
+      if(removeError){
+        setNotice(removeError.message)
+        return
+      }
+    }
     const {error}=await client.rpc('delete_social_conversation',{p_conversation_id:row.conversation.id})
     if(error){
       setNotice(error.message)
@@ -741,7 +930,7 @@ export function ChatModule(){
                           <small className={row.unread>0?'unread':''}>{formatListTime(row.latest?.created_at || row.conversation.created_at)}</small>
                         </span>
                         <span className="cmRowBottom">
-                          <small>{row.latest?`${mine?'You: ':''}${row.latest.body}`:secondary(row.other)}</small>
+                          <small>{row.latest?`${mine?'You: ':''}${messagePreview(row.latest)}`:secondary(row.other)}</small>
                           {row.unread>0&&<span className="cmBadge">{row.unread>99?'99+':row.unread}</span>}
                         </span>
                       </span>
@@ -760,7 +949,30 @@ export function ChatModule(){
           </div>
         </aside>
 
-        <div className="cmThread">
+        <div
+          className={`cmThread${dragging?' dragging':''}`}
+          onDragEnter={event=>{
+            if(!selected || !event.dataTransfer.types.includes('Files'))return
+            event.preventDefault()
+            dragDepthRef.current+=1
+            setDragging(true)
+          }}
+          onDragOver={event=>{
+            if(selected && event.dataTransfer.types.includes('Files'))event.preventDefault()
+          }}
+          onDragLeave={()=>{
+            dragDepthRef.current=Math.max(0,dragDepthRef.current-1)
+            if(dragDepthRef.current===0)setDragging(false)
+          }}
+          onDrop={event=>{
+            if(!selected)return
+            event.preventDefault()
+            dragDepthRef.current=0
+            setDragging(false)
+            stageFiles(event.dataTransfer.files)
+          }}
+        >
+          {dragging&&<div className="cmDrop">Drop files to send them to {displayName(selected?.other)}</div>}
           {selected ? (
             <>
               <header className="cmThreadHead">
@@ -845,10 +1057,40 @@ export function ChatModule(){
                             onClick={()=>quoted&&jumpToMessage(quoted.id)}
                           >
                             <strong>{quoted ? (quoted.sender_id===userId?'You':displayName(peopleMap.get(quoted.sender_id))) : 'Earlier message'}</strong>
-                            <span>{quoted ? quoted.body : 'Open the older history to see it.'}</span>
+                            <span>{quoted ? messagePreview(quoted) : 'Open the older history to see it.'}</span>
                           </button>
                         )}
-                        <p>{message.body}</p>
+                        {(message.attachment_name||message.attachment_path)&&(()=>{
+                          const imageSrc=message.localUrl || (message.attachment_path ? imageUrls[message.attachment_path] : '')
+                          if(isImageMime(message.attachment_mime)){
+                            return imageSrc ? (
+                              <button
+                                type="button"
+                                className="cmImage"
+                                aria-label={`Open ${message.attachment_name||'image'}`}
+                                onClick={()=>setViewer({url:imageSrc,name:message.attachment_name||'image',path:message.attachment_path||null})}
+                              >
+                                <img src={imageSrc} alt={message.attachment_name||'Image'} loading="lazy"/>
+                              </button>
+                            ) : <div className="cmImage cmImageWait">Loading image...</div>
+                          }
+                          return (
+                            <button
+                              type="button"
+                              className="cmFile"
+                              disabled={!message.attachment_path}
+                              onClick={()=>message.attachment_path&&void openFile(message.attachment_path,message.attachment_name||'file')}
+                            >
+                              <FileText size={22}/>
+                              <span>
+                                <strong>{message.attachment_name||'File'}</strong>
+                                <small>{formatBytes(message.attachment_size)}</small>
+                              </span>
+                              {message.attachment_path&&<Download size={16}/>}
+                            </button>
+                          )
+                        })()}
+                        {message.body&&<p>{message.body}</p>}
                         <span className="cmMeta">
                           {formatTime(message.created_at)}
                           {message.edited_at?' edited':''}
@@ -873,12 +1115,43 @@ export function ChatModule(){
                   <Reply size={15}/>
                   <div>
                     <strong>Replying to {replyTo.sender_id===userId?'yourself':displayName(peopleMap.get(replyTo.sender_id))}</strong>
-                    <span>{replyTo.body}</span>
+                    <span>{messagePreview(replyTo)}</span>
                   </div>
                   <button type="button" aria-label="Cancel reply" onClick={()=>setReplyTo(null)}><X size={14}/></button>
                 </div>
               )}
+              {staged.length>0&&(
+                <div className="cmStaged">
+                  {staged.map(item=>(
+                    <div className="cmStagedItem" key={item.id}>
+                      {item.previewUrl ? <img src={item.previewUrl} alt=""/> : <FileText size={22}/>}
+                      <span><strong>{item.file.name}</strong><small>{formatBytes(item.file.size)}</small></span>
+                      <button type="button" aria-label={`Remove ${item.file.name}`} onClick={()=>unstage(item.id)}><X size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <form className="cmComposer" onSubmit={submit}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  accept={ACCEPT_ATTRIBUTE}
+                  onChange={event=>{
+                    stageFiles(event.target.files)
+                    event.target.value=''
+                  }}
+                />
+                <button
+                  type="button"
+                  className="cmRound cmAttach"
+                  title="Attach images or files"
+                  aria-label="Attach images or files"
+                  onClick={()=>fileInputRef.current?.click()}
+                >
+                  <Paperclip size={19}/>
+                </button>
                 <textarea
                   ref={composerRef}
                   value={messageText}
@@ -886,7 +1159,14 @@ export function ChatModule(){
                     setMessageText(event.target.value.slice(0,10000))
                     resizeComposer()
                   }}
-                  placeholder="Type a message"
+                  placeholder={staged.length?'Add a caption (optional)':'Type a message'}
+                  onPaste={event=>{
+                    const pasted=Array.from(event.clipboardData?.files || [])
+                    if(pasted.length){
+                      event.preventDefault()
+                      stageFiles(pasted)
+                    }
+                  }}
                   rows={1}
                   aria-label={`Message ${displayName(selected.other)}`}
                   onKeyDown={event=>{
@@ -900,7 +1180,7 @@ export function ChatModule(){
                     }
                   }}
                 />
-                <button className="cmSend" type="submit" aria-label="Send" disabled={!messageText.trim()}>
+                <button className="cmSend" type="submit" aria-label="Send" disabled={!messageText.trim() && !staged.length}>
                   <Send size={19}/>
                 </button>
               </form>
@@ -915,6 +1195,19 @@ export function ChatModule(){
           )}
         </div>
       </div>
+
+      {viewer&&(
+        <div className="cmViewer" role="dialog" aria-label={viewer.name} onClick={()=>setViewer(null)}>
+          <div className="cmViewerBar" onClick={event=>event.stopPropagation()}>
+            <strong>{viewer.name}</strong>
+            {viewer.path&&(
+              <button type="button" onClick={()=>void openFile(viewer.path as string,viewer.name)}><Download size={16}/> Download</button>
+            )}
+            <button type="button" aria-label="Close" onClick={()=>setViewer(null)}><X size={18}/></button>
+          </div>
+          <img src={viewer.url} alt={viewer.name} onClick={event=>event.stopPropagation()}/>
+        </div>
+      )}
     </section>
   )
 }
