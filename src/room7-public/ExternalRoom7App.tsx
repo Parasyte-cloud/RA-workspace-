@@ -585,6 +585,50 @@ export default function ExternalRoom7App() {
       null,
     )
 
+  // Passcodes are case sensitive on the server, and phones love capital letters
+  // or none at all. If the typed passcode is refused, try it once in capitals,
+  // which is how generated passcodes are written.
+  const joinRequest =
+    async () => {
+      const send =
+        (code: string | undefined) =>
+          room7Request<JoinResponse>({
+            action: 'join',
+            ...locator,
+            display_name:
+              name.trim(),
+            email:
+              email.trim(),
+            passcode:
+              room?.requires_passcode
+                ? code
+                : undefined,
+            invite_token:
+              room?.requires_invitation
+                ? inviteToken
+                : undefined,
+          })
+
+      const typed = passcode.trim()
+
+      try {
+        return await send(typed)
+      } catch (cause) {
+        const upper = typed.toUpperCase()
+
+        if (
+          room?.requires_passcode &&
+          upper !== typed &&
+          cause instanceof Error &&
+          /passcode is incorrect/i.test(cause.message)
+        ) {
+          return send(upper)
+        }
+
+        throw cause
+      }
+    }
+
   // Used by the meeting after a dropped connection: same guest details,
   // fresh token. The server replaces the dead connection, so the guest does
   // not appear twice.
@@ -598,22 +642,7 @@ export default function ExternalRoom7App() {
       }
 
       const response =
-        await room7Request<JoinResponse>({
-          action: 'join',
-          ...locator,
-          display_name:
-            name.trim(),
-          email:
-            email.trim(),
-          passcode:
-            room.requires_passcode
-              ? passcode
-              : undefined,
-          invite_token:
-            room.requires_invitation
-              ? inviteToken
-              : undefined,
-        })
+        await joinRequest()
 
       if (!response.auth_token) {
         return false
@@ -664,22 +693,7 @@ export default function ExternalRoom7App() {
 
       try {
         const response =
-          await room7Request<JoinResponse>({
-            action: 'join',
-            ...locator,
-            display_name:
-              name.trim(),
-            email:
-              email.trim(),
-            passcode:
-              room.requires_passcode
-                ? passcode
-                : undefined,
-            invite_token:
-              room.requires_invitation
-                ? inviteToken
-                : undefined,
-          })
+          await joinRequest()
 
         if (
           !response.auth_token
@@ -1027,7 +1041,7 @@ export default function ExternalRoom7App() {
                           Event passcode
                         </span>
                         <input
-                          type="password"
+                          type="text"
                           value={passcode}
                           onChange={event =>
                             setPasscode(
@@ -1037,6 +1051,10 @@ export default function ExternalRoom7App() {
                           minLength={6}
                           maxLength={128}
                           autoComplete="off"
+                          autoCapitalize="characters"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          placeholder="From your invitation"
                           required
                         />
                       </label>
