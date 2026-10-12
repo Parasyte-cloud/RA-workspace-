@@ -3,6 +3,8 @@ import type { DragEvent } from 'react'
 import {
   Archive,
   Building2,
+  Check,
+  Copy,
   Download,
   Eye,
   File as FileIcon,
@@ -12,6 +14,7 @@ import {
   Film,
   Folder,
   Image as ImageIcon,
+  Link2,
   LoaderCircle,
   Lock,
   Music,
@@ -19,6 +22,7 @@ import {
   Presentation,
   RotateCcw,
   Search,
+  Settings2,
   Trash2,
   Upload,
   Users,
@@ -30,18 +34,28 @@ import {
   ARCHIVE_ACCEPT,
   BIN_DAYS,
   DEFAULT_FOLDER,
+  DEFAULT_SHARE_DAYS,
+  SHARE_DAY_OPTIONS,
   VISIBILITY_LABEL,
+  allFolderNames,
   archivePath,
   binDaysLeft,
   binExpired,
   canPreview,
   filterAndSort,
   folderCounts,
+  folderKey,
+  friendlyArchiveError,
   kindOf,
+  limitFor,
   normaliseFolder,
+  shareState,
+  shareUrl,
   validateArchiveFile,
   type ArchiveRow,
+  type FolderLimit,
   type Kind,
+  type ShareRow,
   type SortKey
 } from '../lib/archive'
 import '../archive.css'
@@ -86,17 +100,28 @@ export default function ArchiveModule(){
   const [uploading,setUploading]=useState(false)
   const [editing,setEditing]=useState<ArchiveRow|null>(null)
   const [busyId,setBusyId]=useState('')
+  const [limits,setLimits]=useState<FolderLimit[]>([])
+  const [isAdmin,setIsAdmin]=useState(false)
+  const [foldersOpen,setFoldersOpen]=useState(false)
+  const [sharing,setSharing]=useState<ArchiveRow|null>(null)
   const inputRef=useRef<HTMLInputElement|null>(null)
 
   const load=useCallback(async()=>{
     const client=supabase
     if(!client){setLoading(false);return}
-    const [{data:auth},files,trash]=await Promise.all([
+    const [{data:auth},files,trash,folderLimits]=await Promise.all([
       client.auth.getUser(),
       client.rpc('list_archive_files',{p_bin:false}),
-      client.rpc('list_archive_files',{p_bin:true})
+      client.rpc('list_archive_files',{p_bin:true}),
+      client.rpc('list_archive_folders')
     ])
-    setUserId(auth?.user?.id||'')
+    const uid=auth?.user?.id||''
+    setUserId(uid)
+    if(uid){
+      const {data:me}=await client.from('employee_profiles').select('role').eq('id',uid).maybeSingle()
+      setIsAdmin(String(me?.role||'').toLowerCase()==='admin')
+    }
+    if(!folderLimits.error)setLimits((folderLimits.data||[]) as FolderLimit[])
     if(files.error)setNotice(files.error.message)
     else setRows((files.data||[]) as ArchiveRow[])
     if(!trash.error)setBin((trash.data||[]) as ArchiveRow[])
@@ -105,7 +130,11 @@ export default function ArchiveModule(){
 
   useEffect(()=>{void load()},[load])
 
-  const folders=useMemo(()=>folderCounts(rows),[rows])
+  const counts=useMemo(()=>folderCounts(rows),[rows])
+  const folders=useMemo(()=>{
+    const byKey=new Map(counts.map(c=>[folderKey(c.folder),c.count]))
+    return allFolderNames(rows,limits).map(name=>({folder:name,count:byKey.get(folderKey(name))||0}))
+  },[rows,limits,counts])
   const shown=useMemo(
     ()=>filterAndSort(rows,{query,folder,kind,mineOnly,userId,sort}),
     [rows,query,folder,kind,mineOnly,userId,sort]
@@ -151,7 +180,7 @@ export default function ArchiveModule(){
         const id=crypto.randomUUID()
         const path=archivePath(userId,id,file.name)
         const up=await client.storage.from(BUCKET).upload(path,file,{contentType:verdict.mime,upsert:false})
-        if(up.error){patch(i,{state:'failed',note:up.error.message});continue}
+        if(up.error){patch(i,{state:'failed',note:friendlyArchiveError(up.error.message)});continue}
         const ins=await client.from('archive_files').insert({
           id,
           name:file.name.slice(0,200),
@@ -166,7 +195,7 @@ export default function ArchiveModule(){
         if(ins.error){
           // Do not leave a file nobody can see.
           await client.storage.from(BUCKET).remove([path]).catch(()=>{})
-          patch(i,{state:'failed',note:ins.error.message})
+          patch(i,{state:'failed',note:friendlyArchiveError(ins.error.message)})
           continue
         }
         patch(i,{state:'done'})
@@ -226,7 +255,7 @@ export default function ArchiveModule(){
       visibility:editing.visibility
     }).eq('id',editing.id)
     setBusyId('')
-    if(error){setNotice(error.message);return}
+    if(error){setNotice(friendlyArchiveError(error.message));return}
     setEditing(null)
     await load()
   }
@@ -384,13 +413,14 @@ export default function ArchiveModule(){
               <option value="size">Largest first</option>
             </select>
             <label className="arcMine"><input type="checkbox" checked={mineOnly} onChange={event=>setMineOnly(event.target.checked)}/> My uploads</label>
+            {isAdmin&&<button type="button" className="secondaryButton arcFolderBtn" onClick={()=>setFoldersOpen(true)}><Settings2 size={15}/>Folder access</button>}
           </div>
 
           <div className="arcFolders" role="tablist" aria-label="Folders">
             <button type="button" className={!folder?'on':''} onClick={()=>setFolder('')}><Folder size={13}/>All <b>{rows.length}</b></button>
             {folders.map(f=>(
-              <button type="button" key={f.folder} className={folder===f.folder?'on':''} onClick={()=>setFolder(f.folder)}>
-                <Folder size={13}/>{f.folder} <b>{f.count}</b>
+              <button type="button" key={f.folder} className={folder===f.folder?'on':''} title={limitFor(limits,f.folder)?`Limited to: ${limitFor(limits,f.folder)!.departments.join(', ')}`:undefined} onClick={()=>setFolder(f.folder)}>
+                {limitFor(limits,f.folder)?<Lock size={13}/>:<Folder size={13}/>}{f.folder} <b>{f.count}</b>
               </button>
             ))}
           </div>
@@ -423,6 +453,7 @@ export default function ArchiveModule(){
                   <div className="arcActions">
                     {canPreview(row.mime_type)&&<button type="button" className="iconButton" title="Preview" aria-label={`Preview ${row.name}`} disabled={busy} onClick={()=>void preview(row)}><Eye size={16}/></button>}
                     <button type="button" className="iconButton" title="Download" aria-label={`Download ${row.name}`} disabled={busy} onClick={()=>void download(row)}>{busy?<LoaderCircle size={16} className="arcSpin"/>:<Download size={16}/>}</button>
+                    {row.can_manage&&<button type="button" className="iconButton" title="Share outside the company" aria-label={`Share ${row.name} outside the company`} onClick={()=>setSharing(row)}><Link2 size={16}/></button>}
                     {row.can_manage&&<button type="button" className="iconButton" title="Edit" aria-label={`Edit ${row.name}`} onClick={()=>setEditing(row)}><Pencil size={16}/></button>}
                     {row.can_manage&&<button type="button" className="iconButton arcDanger" title="Move to bin" aria-label={`Move ${row.name} to the bin`} disabled={busy} onClick={()=>void moveToBin(row)}><Trash2 size={16}/></button>}
                   </div>
@@ -485,6 +516,189 @@ export default function ArchiveModule(){
           </div>
         </div>
       )}
+      {foldersOpen&&<FolderAccessModal names={folders.map(f=>f.folder)} limits={limits} onClose={()=>setFoldersOpen(false)} onSaved={()=>{void load()}} onError={setNotice}/>}
+      {sharing&&<ShareModal row={sharing} onClose={()=>setSharing(null)} onError={setNotice}/>}
     </section>
+  )
+}
+
+function FolderAccessModal({names,limits,onClose,onSaved,onError}:{
+  names:string[];limits:FolderLimit[];onClose:()=>void;onSaved:()=>void;onError:(message:string)=>void
+}){
+  const [departments,setDepartments]=useState<string[]|null>(null)
+  const [drafts,setDrafts]=useState<Record<string,string[]>>({})
+  const [newName,setNewName]=useState('')
+  const [saving,setSaving]=useState('')
+  const all=useMemo(()=>{
+    const base=[...names]
+    const extra=normaliseFolder(newName)
+    if(newName.trim()&&!base.some(n=>folderKey(n)===folderKey(extra)))base.push(extra)
+    return base
+  },[names,newName])
+
+  useEffect(()=>{
+    const client=supabase
+    if(!client)return
+    void client.rpc('list_archive_departments').then(({data,error})=>{
+      if(error){onError(friendlyArchiveError(error.message));setDepartments([]);return}
+      setDepartments(((data||[]) as {department:string}[]).map(d=>d.department))
+    })
+  },[onError])
+
+  const current=(name:string)=>drafts[folderKey(name)]??limitFor(limits,name)?.departments??[]
+  const toggle=(name:string,department:string)=>{
+    const list=current(name)
+    const next=list.includes(department)?list.filter(d=>d!==department):[...list,department]
+    setDrafts(d=>({...d,[folderKey(name)]:next}))
+  }
+
+  const save=async(name:string)=>{
+    const client=supabase
+    if(!client)return
+    const list=current(name)
+    if(list.length>0&&!window.confirm(`Only ${list.join(', ')} (and administrators) will see files in "${name}". Everyone else loses access to them straight away. Continue?`))return
+    setSaving(name)
+    const {error}=await client.rpc('set_archive_folder_access',{p_folder:name,p_departments:list})
+    setSaving('')
+    if(error){onError(friendlyArchiveError(error.message));return}
+    setDrafts(d=>{const copy={...d};delete copy[folderKey(name)];return copy})
+    onSaved()
+  }
+
+  return (
+    <div className="arcModalBack" onClick={onClose}>
+      <div className="arcModal arcModalWide" role="dialog" aria-modal="true" aria-label="Folder access" onClick={event=>event.stopPropagation()}>
+        <header><strong>Folder access</strong><button type="button" className="iconButton" aria-label="Close" onClick={onClose}><X size={16}/></button></header>
+        <p className="arcHint">Tick the departments that may see a folder. With nothing ticked, everyone can. Administrators and the person who uploaded a file always keep access.</p>
+        <label>
+          <span>Add or limit a folder not in the list</span>
+          <input value={newName} maxLength={60} onChange={event=>setNewName(event.target.value)} placeholder="Folder name"/>
+        </label>
+        {departments===null&&<div className="arcEmpty">Loading departments...</div>}
+        {departments&&departments.length===0&&<div className="arcEmpty">No departments are set on employee profiles yet.</div>}
+        {departments&&departments.length>0&&(
+          <ul className="arcAccessList">
+            {all.map(name=>{
+              const list=current(name)
+              const saved=limitFor(limits,name)?.departments??[]
+              const changed=list.slice().sort().join('|')!==saved.slice().sort().join('|')
+              return (
+                <li key={folderKey(name)}>
+                  <div className="arcAccessHead">
+                    <strong>{list.length?<Lock size={13}/>:<Folder size={13}/>} {name}</strong>
+                    <small>{list.length?`Limited to ${list.length} department${list.length===1?'':'s'}`:'Open to everyone'}</small>
+                  </div>
+                  <div className="arcDeps">
+                    {departments.map(dep=>(
+                      <label key={dep} className={list.includes(dep)?'on':''}>
+                        <input type="checkbox" checked={list.includes(dep)} onChange={()=>toggle(name,dep)}/>{dep}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="arcStagedActions">
+                    <button type="button" className="primaryButton" disabled={!changed||saving===name} onClick={()=>void save(name)}>
+                      {saving===name?'Saving...':'Save'}
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ShareModal({row,onClose,onError}:{row:ArchiveRow;onClose:()=>void;onError:(message:string)=>void}){
+  const [days,setDays]=useState<number>(DEFAULT_SHARE_DAYS)
+  const [shares,setShares]=useState<ShareRow[]>([])
+  const [fresh,setFresh]=useState<{url:string;expires:string}|null>(null)
+  const [copied,setCopied]=useState(false)
+  const [busy,setBusy]=useState(false)
+  const base=(import.meta.env.VITE_SUPABASE_URL as string|undefined)||''
+
+  const refresh=useCallback(async()=>{
+    const client=supabase
+    if(!client)return
+    const {data,error}=await client.rpc('list_archive_shares',{p_file:row.id})
+    if(error){onError(friendlyArchiveError(error.message));return}
+    setShares((data||[]) as ShareRow[])
+  },[row.id,onError])
+
+  useEffect(()=>{void refresh()},[refresh])
+
+  const create=async()=>{
+    const client=supabase
+    if(!client||busy)return
+    setBusy(true)
+    const {data,error}=await client.rpc('create_archive_share',{p_file:row.id,p_days:days})
+    setBusy(false)
+    if(error){onError(friendlyArchiveError(error.message));return}
+    const made=(Array.isArray(data)?data[0]:data) as {token:string;expires_at:string}|undefined
+    if(!made){onError('Could not make the link.');return}
+    setFresh({url:shareUrl(base,made.token),expires:made.expires_at})
+    setCopied(false)
+    await refresh()
+  }
+
+  const revoke=async(id:string)=>{
+    const client=supabase
+    if(!client)return
+    if(!window.confirm('Stop this link working now?'))return
+    const {error}=await client.rpc('revoke_archive_share',{p_id:id})
+    if(error){onError(friendlyArchiveError(error.message));return}
+    await refresh()
+  }
+
+  const copy=async()=>{
+    if(!fresh)return
+    try{await navigator.clipboard.writeText(fresh.url)}catch{window.prompt('Copy this link:',fresh.url)}
+    setCopied(true)
+  }
+
+  return (
+    <div className="arcModalBack" onClick={onClose}>
+      <div className="arcModal arcModalWide" role="dialog" aria-modal="true" aria-label="Share outside the company" onClick={event=>event.stopPropagation()}>
+        <header><strong>Share outside the company</strong><button type="button" className="iconButton" aria-label="Close" onClick={onClose}><X size={16}/></button></header>
+        <p className="arcHint"><b>{row.name}</b><br/>Anyone with the link can download this file, with no sign-in. It stops working on its own after the time you pick, or when you revoke it. Share it only with people who should have it.</p>
+        <div className="arcShareMake">
+          <label>
+            <span>Link works for</span>
+            <select value={days} onChange={event=>setDays(Number(event.target.value))}>
+              {SHARE_DAY_OPTIONS.map(d=><option key={d} value={d}>{d===1?'1 day':`${d} days`}</option>)}
+            </select>
+          </label>
+          <button type="button" className="primaryButton" disabled={busy} onClick={()=>void create()}>
+            {busy?<LoaderCircle size={16} className="arcSpin"/>:<Link2 size={16}/>}Make link
+          </button>
+        </div>
+        {fresh&&(
+          <div className="arcFresh">
+            <code>{fresh.url}</code>
+            <button type="button" className="secondaryButton" onClick={()=>void copy()}>{copied?<><Check size={14}/>Copied</>:<><Copy size={14}/>Copy</>}</button>
+            <small>Copy it now. For safety the full link is shown only once. Expires {new Date(fresh.expires).toLocaleString()}.</small>
+          </div>
+        )}
+        <div>
+          <strong className="arcSmallTitle">Links for this file</strong>
+          {shares.length===0&&<div className="arcHint">None yet.</div>}
+          <ul className="arcShareList">
+            {shares.map(share=>{
+              const state=shareState(share)
+              return (
+                <li key={share.id} className={state}>
+                  <span>
+                    <b>{state==='active'?'Active':state==='expired'?'Expired':'Revoked'}</b>
+                    <small>Made {when(share.created_at)} by {share.created_by_name}. {state==='active'?`Expires ${new Date(share.expires_at).toLocaleString()}.`:''} Opened {share.download_count} time{share.download_count===1?'':'s'}.</small>
+                  </span>
+                  {state==='active'&&<button type="button" className="secondaryButton" onClick={()=>void revoke(share.id)}>Revoke</button>}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
   )
 }

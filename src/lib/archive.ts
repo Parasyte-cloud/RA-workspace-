@@ -165,3 +165,58 @@ export const VISIBILITY_LABEL: Record<ArchiveRow['visibility'], string> = {
   department: 'My department',
   private: 'Only me',
 }
+
+// ---- Folder limits and outside links ---------------------------------------
+
+export type FolderLimit = { folder: string; departments: string[] }
+
+export const folderKey = (name: string) => normaliseFolder(name).toLowerCase()
+
+export function limitFor(limits: FolderLimit[], folder: string): FolderLimit | undefined {
+  const key = folderKey(folder)
+  return limits.find(l => folderKey(l.folder) === key)
+}
+
+// Every folder name that exists, from files and from limits, once each.
+export function allFolderNames(rows: ArchiveRow[], limits: FolderLimit[]): string[] {
+  const seen = new Map<string, string>()
+  for (const name of [...rows.map(r => r.folder), ...limits.map(l => l.folder)]) {
+    const key = folderKey(name)
+    if (!seen.has(key)) seen.set(key, name)
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
+
+export const SHARE_DAY_OPTIONS = [1, 7, 30] as const
+export const DEFAULT_SHARE_DAYS = 7
+
+export function shareUrl(baseUrl: string, token: string): string {
+  return `${baseUrl.replace(/\/+$/, '')}/functions/v1/archive-share?t=${encodeURIComponent(token)}`
+}
+
+export type ShareRow = {
+  id: string
+  created_at: string
+  expires_at: string
+  revoked_at: string | null
+  download_count: number
+  last_accessed_at: string | null
+  created_by_name: string
+}
+
+export type ShareState = 'active' | 'expired' | 'revoked'
+
+export function shareState(share: Pick<ShareRow, 'expires_at' | 'revoked_at'>, now = Date.now()): ShareState {
+  if (share.revoked_at) return 'revoked'
+  return Date.parse(share.expires_at) > now ? 'active' : 'expired'
+}
+
+// Database messages in words a person can act on.
+export function friendlyArchiveError(message: string): string {
+  if (/row-level security|violates row level/i.test(message)) {
+    return 'You do not have access to that folder, or the file could not be saved. Pick another folder.'
+  }
+  if (/10 active links/i.test(message)) return message
+  if (/Only an administrator/i.test(message)) return 'Only an administrator can do that.'
+  return message
+}

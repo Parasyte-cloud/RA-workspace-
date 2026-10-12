@@ -63,3 +63,26 @@
   .arcForm input,.arcForm select,.arcModal input,.arcModal select,.arcSearch input,.arcTools select{font-size:16px}
   .arcTabs{width:100%}.arcTabs button{flex:1;justify-content:center}
 }
+
+/* folder access and outside links */
+.arcModalWide{width:min(620px,100%);max-height:88vh;overflow:auto}
+.arcHint{margin:0;font-size:.82rem;color:var(--ra-muted,#667085);line-height:1.5}
+.arcFolderBtn{display:inline-flex;gap:6px;align-items:center}
+.arcAccessList,.arcShareList{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
+.arcAccessList li{display:grid;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--ra-border,rgba(7,26,56,.14))}
+.arcAccessHead{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.arcAccessHead small{color:var(--ra-muted,#667085)}
+.arcDeps{display:flex;flex-wrap:wrap;gap:6px}
+.arcDeps label{display:inline-flex!important;grid-template-columns:none!important;gap:6px;align-items:center;padding:5px 10px;border-radius:999px;border:1px solid var(--ra-border,rgba(7,26,56,.2));cursor:pointer;font-weight:600!important}
+.arcDeps label.on{background:#071a38;color:#fff;border-color:#071a38}
+.arcDeps input{width:auto!important;min-height:0!important}
+.arcShareMake{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.arcShareMake label{flex:1 1 160px}
+.arcFresh{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:rgba(25,118,71,.1);border:1px solid rgba(25,118,71,.3)}
+.arcFresh code{word-break:break-all;font-size:.78rem}
+.arcSmallTitle{display:block;margin-bottom:4px;font-size:.85rem}
+.arcShareList li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--ra-surface-muted,rgba(7,26,56,.05))}
+.arcShareList li span{display:grid;gap:2px;min-width:0}
+.arcShareList li small{color:var(--ra-muted,#667085);font-size:.75rem}
+.arcShareList li.active b{color:#197647}.arcShareList li.revoked b,.arcShareList li.expired b{color:#8a95a3}
+.arcModal input,.arcModal select,.arcForm input,.arcForm select{box-sizing:border-box;max-width:100%}
