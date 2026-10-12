@@ -1,0 +1,84 @@
+/*
+ * Sidebar additions: favourites star, section labels.
+ * Loaded after shell-stability.css, whose rules use !important, so the few
+ * properties that must change repeat it with a more specific selector.
+ */
+
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow {
+  position: relative;
+  min-width: 0;
+}
+
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavItem {
+  padding-right: 24px !important;
+}
+
+/* The star is hidden until the row is hovered or focused, like a drag handle
+   in Notion: the default sidebar shows destinations, not controls.
+   shell-stability.css forces every nav button to full width and height with
+   !important, so the size and position here repeat it. Without that the star
+   would cover the whole row and swallow clicks meant for the page link. */
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavStar {
+  position: absolute !important;
+  right: 3px !important;
+  left: auto !important;
+  top: 50% !important;
+  transform: translateY(-50%);
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow:hover .sidebarNavStar,
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow:focus-within .sidebarNavStar {
+  opacity: 0.6;
+}
+
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavStar:hover,
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavStar:focus-visible {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.25) !important;
+}
+
+.shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow.starred .sidebarNavStar svg {
+  fill: currentColor;
+}
+
+/* Touch screens have no hover, so keep the star faintly visible there. */
+@media (hover: none) {
+  .shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavStar {
+    opacity: 0.45;
+  }
+}
+
+.sidebarNavLabel {
+  display: block;
+  padding: 6px 7px 2px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell.glassFrame > .sidebar nav.sidebarNav .sidebarNavRow > button.sidebarNavStar {
+    transition: none;
+  }
+}
