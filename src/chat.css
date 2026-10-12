@@ -316,3 +316,44 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 .cmCallState{display:inline-flex;align-items:center;gap:5px}
 .cmCallState.missed{color:#d93b3b}
 .cmMissedText{color:#d93b3b !important;font-weight:600}
+/* Phone alerts row at the top of the bell menu. */
+.phoneAlerts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 12px 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(7, 26, 56, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 153, 0, 0.08);
+}
+
+.phoneAlerts > div {
+  min-width: 0;
+}
+
+.phoneAlerts strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.phoneAlerts small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+.phoneAlerts .phoneAlertsError {
+  color: #b42318;
+  opacity: 1;
+}
+
+.phoneAlerts .glassButton {
+  flex: 0 0 auto;
+  min-height: 40px;
+}

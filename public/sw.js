@@ -1,4 +1,4 @@
-const CACHE = 'ra-workspace-shell-v6'
+const CACHE = 'ra-workspace-shell-v7'
 const SHELL = [
   '/',
   '/index.html',
@@ -67,5 +67,52 @@ self.addEventListener('fetch', event => {
       if (request.mode === 'navigate') return caches.match('/index.html')
       return Response.error()
     }
+  })())
+})
+
+// Phone alerts. The server sends a small JSON message (see
+// supabase/functions/_shared/pushPayload.ts). A ring is shown as a notification
+// that stays on screen until it is tapped or its 45 seconds run out; a later
+// notification with the same tag (the missed call) replaces it.
+self.addEventListener('push', event => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch (_) { data = {} }
+
+  event.waitUntil((async () => {
+    // If the workspace is open and in front, the app already rings or shows the
+    // notification itself. Showing a second one would double up.
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // (iPhone is the exception: Safari expects every push to show something
+    // and may switch push off for a site that keeps showing nothing.)
+    const iphone = /iphone|ipad|ipod/i.test(self.navigator.userAgent || '')
+    if (!iphone && windows.some(client => client.visibilityState === 'visible')) return
+
+    await self.registration.showNotification(data.title || 'RideArrivo', {
+      body: data.body || '',
+      tag: data.tag || undefined,
+      renotify: Boolean(data.tag),
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      requireInteraction: Boolean(data.urgent),
+      vibrate: data.urgent ? [400, 200, 400, 200, 400] : undefined,
+      data: { url: data.url || '/' }
+    })
+  })())
+})
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
+
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    for (const client of windows) {
+      if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+        await client.focus()
+        if ('navigate' in client) await client.navigate(target).catch(() => {})
+        return
+      }
+    }
+    await self.clients.openWindow(target)
   })())
 })

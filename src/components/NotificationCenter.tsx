@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import PhoneAlertsToggle from './PhoneAlertsToggle'
 import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
 
 import {
@@ -240,6 +241,8 @@ export function NotificationCenter({
               }
             </div>
           </div>
+
+          <PhoneAlertsToggle/>
 
           <div className="notificationList">
             {loading&&!items.length&&
