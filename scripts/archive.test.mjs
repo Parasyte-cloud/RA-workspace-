@@ -6,7 +6,10 @@ import { transformSync } from 'esbuild'
 const js = transformSync(readFileSync('src/lib/archive.ts', 'utf8'), { loader: 'ts', format: 'esm' }).code
 const A = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
 const sql = readFileSync('supabase/migrations/20261012310000_archive.sql', 'utf8')
+  + readFileSync('supabase/migrations/20261012320000_archive_folders_and_sharing.sql', 'utf8')
 const ui = readFileSync('src/modules/ArchiveModule.tsx', 'utf8')
+const fn = readFileSync('supabase/functions/archive-share/index.ts', 'utf8')
+const config = readFileSync('supabase/config.toml', 'utf8')
 const app = readFileSync('src/App.tsx', 'utf8')
 const file = (name, size, type = '') => ({ name, size, type })
 
@@ -96,6 +99,61 @@ test('page: wired in the app, signed links only, no em dash', () => {
   assert.match(app, /\['archive','Archive',Archive\]/)
   assert.match(ui, /createSignedUrl/)
   assert.doesNotMatch(ui, /getPublicUrl/)
-  for (const f of ['src/modules/ArchiveModule.tsx', 'src/lib/archive.ts', 'src/archive.css', 'supabase/migrations/20261012310000_archive.sql'])
+  for (const f of ['src/modules/ArchiveModule.tsx', 'src/lib/archive.ts', 'src/archive.css', 'supabase/migrations/20261012310000_archive.sql', 'supabase/migrations/20261012320000_archive_folders_and_sharing.sql'])
     assert.ok(!readFileSync(f, 'utf8').includes('—'), f)
+})
+
+test('folder limits: names are matched without regard to case, and listed once', () => {
+  const limits = [{ folder: 'Finance', departments: ['Finance'] }]
+  assert.deepEqual(A.limitFor(limits, ' finance ')?.departments, ['Finance'])
+  assert.equal(A.limitFor(limits, 'Brand'), undefined)
+  const names = A.allFolderNames([row({ folder: 'finance' }), row({ id: 'b', folder: 'Brand' })], limits)
+  assert.deepEqual(names, ['Brand', 'finance'])
+})
+
+test('share links: url, states and friendly errors', () => {
+  assert.equal(A.shareUrl('https://x.supabase.co/', 'abc_-DEF'), 'https://x.supabase.co/functions/v1/archive-share?t=abc_-DEF')
+  const now = Date.parse('2026-10-12T00:00:00Z')
+  assert.equal(A.shareState({ expires_at: '2026-10-13T00:00:00Z', revoked_at: null }, now), 'active')
+  assert.equal(A.shareState({ expires_at: '2026-10-11T00:00:00Z', revoked_at: null }, now), 'expired')
+  assert.equal(A.shareState({ expires_at: '2026-10-13T00:00:00Z', revoked_at: 'x' }, now), 'revoked')
+  assert.match(A.friendlyArchiveError('new row violates row-level security policy for table "archive_files"'), /access to that folder/)
+  assert.deepEqual([...A.SHARE_DAY_OPTIONS], [1, 7, 30])
+})
+
+test('database: folder limits are enforced on read, upload and move; only admins set them', () => {
+  assert.match(sql, /archive_folder_allows\(p_folder\)/)
+  assert.match(sql, /public\.archive_folder_allows\(p_folder\)\s+and \(/)
+  assert.match(sql, /and public\.archive_folder_allows\(folder\)\s+and split_part/)
+  assert.match(sql, /with check \(public\.archive_can_manage\(uploaded_by\) and public\.archive_folder_allows\(folder\)\)/)
+  assert.match(sql, /Only an administrator can limit a folder/)
+  assert.match(sql, /revoke all on public\.archive_folder_access from public, anon, authenticated/)
+})
+
+test('database: share links store only a hash, expire within 30 days, are capped and die with the file', () => {
+  assert.match(sql, /token_hash text not null unique check \(char_length\(token_hash\) = 64\)/)
+  assert.match(sql, /encode\(digest\(raw, 'sha256'\), 'hex'\)/)
+  assert.match(sql, /least\(greatest\(coalesce\(p_days, 7\), 1\), 30\)/)
+  assert.match(sql, /already has 10 active links/)
+  assert.match(sql, /update public\.archive_shares set revoked_at = now\(\) where file_id = new\.id/)
+  assert.match(sql, /revoke all on public\.archive_shares from public, anon, authenticated/)
+  assert.doesNotMatch(sql, /grant [a-z, ]+ on public\.archive_shares to authenticated/)
+})
+
+test('archive-share function: hashes the code, checks revoke, expiry and bin, redirects to a one minute link', () => {
+  assert.match(fn, /crypto\.subtle\.digest\("SHA-256"/)
+  assert.match(fn, /!share\.revoked_at/)
+  assert.match(fn, /!file\.deleted_at/)
+  assert.match(fn, /expires_at\)\.getTime\(\) > Date\.now\(\)/)
+  assert.match(fn, /SIGNED_SECONDS = 60/)
+  assert.match(fn, /status: 302/)
+  assert.match(fn, /room7_rate_count/)
+  assert.match(fn, /NOT_VALID/)
+  assert.match(config, /\[functions\.archive-share\]\s+enabled = true\s+verify_jwt = false/)
+})
+
+test('page: folder access for admins, share dialog shows the link once', () => {
+  for (const t of ['FolderAccessModal', 'set_archive_folder_access', 'list_archive_folders', 'ShareModal', 'create_archive_share', 'revoke_archive_share', 'shown only once'])
+    assert.ok(ui.includes(t), t)
+  assert.ok(!fn.includes('\u2014') && !readFileSync('src/lib/archive.ts', 'utf8').includes('\u2014'))
 })
