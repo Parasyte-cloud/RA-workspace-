@@ -299,13 +299,25 @@ cleanup() {
 
 trap cleanup EXIT
 
+# Opt-in diagnostics for the off-site upload. With BACKUP_RCLONE_DEBUG=1
+# rclone prints the request and response headers (never the file contents, and
+# never the Authorization value, which rclone redacts unless asked). This is
+# how to see exactly what the destination rejects when it answers 501.
+rclone_debug_flags=()
+
+if [ "${BACKUP_RCLONE_DEBUG:-0}" = "1" ]; then
+  rclone_debug_flags=(-vv --dump headers)
+  printf 'NOTE: upload diagnostics are on (rclone request and response headers)\n'
+fi
+
 printf 'Uploading encrypted backup artifact...\n'
 
 if ! rclone copyto \
   "$artifact_path" \
   "$remote_artifact" \
   --immutable \
-  --check-first; then
+  --check-first \
+  ${rclone_debug_flags[@]+"${rclone_debug_flags[@]}"}; then
   printf 'ERROR: encrypted artifact upload failed\n' >&2
   exit 1
 fi
@@ -357,7 +369,8 @@ if ! rclone copyto \
   "$temporary_sidecar" \
   "$remote_sidecar" \
   --immutable \
-  --check-first; then
+  --check-first \
+  ${rclone_debug_flags[@]+"${rclone_debug_flags[@]}"}; then
   sidecar_uploaded=false
 fi
 
