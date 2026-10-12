@@ -558,8 +558,8 @@ serve(async req => {
       .maybeSingle()
 
     if (roomError || !room) return json(req, { error: "ROOM 7 not found." }, 404)
-    if (room.created_by !== employeeId) {
-      return json(req, { error: "Only the ROOM 7 host can end this meeting." }, 403)
+    if (room.created_by !== employeeId && profile.role !== "admin") {
+      return json(req, { error: "Only the ROOM 7 host or an administrator can end this meeting." }, 403)
     }
     if (room.status === "ended") return json(req, { ended: true })
 

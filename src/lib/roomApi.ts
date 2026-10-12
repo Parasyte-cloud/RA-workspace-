@@ -24,6 +24,13 @@ export async function createCallRoom(title: string): Promise<CallRoom> {
   return data as CallRoom
 }
 
+// Closes a call room that never became a call (for example the ring could not
+// be started). Best effort: the database also closes call rooms by itself.
+export async function endCallRoom(roomId: string) {
+  if (!supabase) return
+  await supabase.functions.invoke('room-session', { body: { action: 'end', room_id: roomId } }).catch(() => {})
+}
+
 export const JOIN_ROOM_EVENT = 'ra:join-room'
 
 // callId ties the room to a chat call, so ending one ends the other.

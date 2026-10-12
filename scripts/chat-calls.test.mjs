@@ -156,3 +156,15 @@ test('hanging up on either side ends the chat call and closes the other window',
 test('no em dash in the new call files', () => {
   for (const f of ['src/lib/callLog.ts', 'src/lib/ringtone.ts', 'src/modules/useChatCalls.ts']) assert.ok(!read(f).includes('—'))
 })
+
+test('call rooms close themselves and stay out of the ROOM 7 meeting list', () => {
+  const sql = read('supabase/migrations/20261012270000_call_rooms_close_themselves.sql')
+  assert.match(sql, /after update of status on public\.chat_calls/)
+  assert.match(sql, /set status = 'ended', ended_at = now\(\)\s+where room_code = new\.room_code and status = 'active'/)
+  assert.match(sql, /interval '4 hours'/)
+  const mod = read('src/modules/RoomModule.tsx')
+  assert.match(mod, /callRoomCodes\.has\(room\.room_code\)/)
+  assert.match(mod, /room\.created_by===myId/)
+  assert.match(read('src/modules/ChatModule.tsx'), /endCallRoom\(createdRoomId\)/)
+  assert.match(read('supabase/functions/room-session/index.ts'), /Only the ROOM 7 host or an administrator can end/)
+})
