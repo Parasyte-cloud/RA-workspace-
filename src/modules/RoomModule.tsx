@@ -115,6 +115,10 @@ export default function RoomModule({
   },[])
 
   const [rooms,setRooms]=useState<RoomRecord[]>([])
+  // Rooms that belong to a chat call. They live in Chat's Calls tab, not here.
+  const [callRoomCodes,setCallRoomCodes]=useState<Set<string>>(new Set())
+  const [myId,setMyId]=useState('')
+  const [endingId,setEndingId]=useState('')
   const [roomTitle,setRoomTitle]=useState('')
   const [joinCode,setJoinCode]=useState(initialCode)
   const [aiNotesEnabled,setAiNotesEnabled]=useState(true)
@@ -168,9 +172,16 @@ export default function RoomModule({
         .from('workspace_rooms')
         .select('id,room_code,title,status,ai_notes_enabled,created_by,started_at,ended_at,created_at,updated_at')
         .order('created_at',{ascending:false})
-        .limit(20)
+        .limit(60)
       if(error)throw error
       setRooms((data||[]) as RoomRecord[])
+      // Best effort: if these lookups fail the list simply shows everything.
+      const [{data:calls},{data:auth}]=await Promise.all([
+        client.from('chat_calls').select('room_code').order('created_at',{ascending:false}).limit(300),
+        client.auth.getUser()
+      ])
+      setCallRoomCodes(new Set((calls||[]).map((row:{room_code:string})=>row.room_code)))
+      setMyId(auth?.user?.id||'')
     }catch(error){
       console.error('ROOM 7 history load failed:',error)
       setNotice(error instanceof Error?error.message:'Unable to load ROOM 7 history.')
@@ -197,8 +208,10 @@ export default function RoomModule({
   },[active,loadRooms,loadConfiguration])
 
   const createRoom=async()=>{
-    const title=roomTitle.trim()
-    if(creating||title.length<2)return
+    // A title is optional: a blank one becomes "Meeting, 12 Oct 21:56", so
+    // starting a meeting is one click.
+    const title=roomTitle.trim()||`Meeting, ${new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`
+    if(creating)return
     setCreating(true)
     setNotice('')
     try{
@@ -505,8 +518,29 @@ export default function RoomModule({
 
   if(!active)return <>{callNode}{admissionNode}</>
 
-  const activeRooms=rooms.filter(room=>room.status==='active')
-  const recentRooms=rooms.filter(room=>room.status==='ended')
+  const meetingRooms=rooms.filter(room=>!callRoomCodes.has(room.room_code))
+  const activeRooms=meetingRooms.filter(room=>room.status==='active')
+  const recentRooms=meetingRooms.filter(room=>room.status==='ended')
+
+  const endFromList=async(room:{id:string;title:string})=>{
+    if(endingId)return
+    if(!window.confirm(`End "${room.title}" for everyone? People still inside will be disconnected and the code stops working.`))return
+    setEndingId(room.id)
+    setNotice('')
+    try{
+      if(session?.room.id===room.id){
+        await endCurrentRoom()
+      }else{
+        await invokeRoom({action:'end',room_id:room.id})
+        setNotice(`${room.title} ended.`)
+        await loadRooms()
+      }
+    }catch(error){
+      setNotice(error instanceof Error?error.message:'Unable to end this ROOM 7.')
+    }finally{
+      setEndingId('')
+    }
+  }
 
   return (
     <>
@@ -597,11 +631,11 @@ export default function RoomModule({
             <p>Create a meeting as its host. Join straight away, or set it up as an external event first.</p>
           </div>
           <label className="roomField">
-            <span>ROOM 7 title</span>
+            <span>ROOM 7 title (optional)</span>
             <input
               value={roomTitle}
               maxLength={120}
-              placeholder="e.g. Product stand-up"
+              placeholder="Optional, e.g. Product stand-up"
               disabled={creating||configState!=='ready'}
               onChange={event=>setRoomTitle(event.target.value)}
               onKeyDown={event=>{if(event.key==='Enter')void createRoom()}}
@@ -627,7 +661,7 @@ export default function RoomModule({
           <button
             type="button"
             className="primaryButton roomWideButton"
-            disabled={creating||roomTitle.trim().length<2||configState!=='ready'}
+            disabled={creating||configState!=='ready'}
             onClick={()=>void createRoom()}
           >
             {creating?<LoaderCircle size={17} className="roomSpin"/>:<Video size={17}/>}
@@ -731,6 +765,17 @@ export default function RoomModule({
                 <button type="button" className="iconButton" title="Copy staff link (intranet sign-in required)" aria-label="Copy staff link" onClick={()=>void copyRoom(room)}>
                   <Copy size={16}/>
                 </button>
+                {room.created_by===myId&&
+                  <button
+                    type="button"
+                    className="secondaryButton roomEndButton"
+                    disabled={!!endingId}
+                    title="End this meeting for everyone"
+                    onClick={()=>void endFromList(room)}
+                  >
+                    <X size={15}/>{endingId===room.id?'Ending...':'End'}
+                  </button>
+                }
                 <button
                   type="button"
                   className="primaryButton"

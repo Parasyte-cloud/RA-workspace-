@@ -34,7 +34,7 @@ import {
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
-import { createCallRoom, requestJoinRoom } from '../lib/roomApi'
+import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
 import {
   callPreview,
   describeCall,
@@ -1091,14 +1091,17 @@ export function ChatModule(){
     }
     setCalling(true)
     setCallNotice('')
+    let createdRoomId=''
     try{
       const room=await createCallRoom(`Call with ${displayName(selected.other)}`)
+      createdRoomId=room.room.id
       const {data:callId,error}=await client.rpc('start_chat_call',{
         p_conversation:selected.conversation.id,
         p_kind:kind==='Video'?'video':'voice',
         p_room_code:room.room.room_code
       })
       if(error)throw error
+      createdRoomId=''
       // Stay in Chat: the call opens as a small window over the conversation.
       requestJoinRoom({
         code:room.room.room_code,
@@ -1107,6 +1110,8 @@ export function ChatModule(){
         inPlace:true
       })
     }catch(error){
+      // The ring never started, so do not leave an empty room open behind it.
+      if(createdRoomId)void endCallRoom(createdRoomId)
       setCallNotice(error instanceof Error ? error.message : 'Unable to start the call.')
     }finally{
       setCalling(false)
