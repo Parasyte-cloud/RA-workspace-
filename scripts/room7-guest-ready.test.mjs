@@ -34,7 +34,7 @@ function fakeServer(initial = null) {
   return { invoke, calls, get event() { return event } }
 }
 
-test('a brand new room is configured, walked to Live, and returns link, code and passcode', async () => {
+test('a brand new room is configured, walked to Live, and the event code alone is the key', async () => {
   const server = fakeServer(null)
   const ready = await R.makeGuestReady(server.invoke, room)
   assert.equal(server.event.event_state, 'live')
@@ -42,7 +42,9 @@ test('a brand new room is configured, walked to Live, and returns link, code and
   assert.equal(server.event.public_enabled, true)
   assert.equal(ready.link, 'https://room7.ridearrivo.com/r/UFCKV8V7')
   assert.equal(ready.code, 'UFCKV8V7')
-  assert.match(ready.passcode, /^[A-HJ-NP-Z2-9]{8}$/)
+  assert.equal(ready.passcode, null)
+  assert.equal(ready.codeOnly, true)
+  assert.equal(server.calls.find(c => c.action === 'configure').passcode, 'UFCKV8V7')
   assert.deepEqual(server.calls.filter(c => c.action === 'set_state').map(c => c.event_state), ['pre_event', 'doors_open', 'live'])
 })
 
@@ -58,8 +60,30 @@ test('asking for a new passcode replaces it and keeps the room open', async () =
   const server = fakeServer({ event_state: 'live', public_enabled: true, access_mode: 'passcode', has_passcode: true, scheduled_end: null })
   const ready = await R.makeGuestReady(server.invoke, room, { newPasscode: true })
   assert.equal(ready.alreadyOpen, false)
+  assert.equal(ready.codeOnly, false)
   assert.match(ready.passcode, /^[A-HJ-NP-Z2-9]{8}$/)
+  assert.notEqual(ready.passcode, room.code)
   assert.equal(server.event.event_state, 'live')
+})
+
+test('choosing the event code only replaces an older passcode and keeps the room open', async () => {
+  const server = fakeServer({ event_state: 'live', public_enabled: true, access_mode: 'passcode', has_passcode: true, scheduled_end: null })
+  const ready = await R.makeGuestReady(server.invoke, room, { codeOnly: true })
+  assert.equal(ready.codeOnly, true)
+  assert.equal(ready.passcode, null)
+  assert.equal(server.calls.find(c => c.action === 'configure').passcode, 'UFCKV8V7')
+  assert.equal(server.event.event_state, 'live')
+})
+
+test('the event code is long enough for the server passcode rule (6 to 128)', () => {
+  assert.ok(room.code.length >= 6 && room.code.length <= 128)
+})
+
+test('an invitation for a code-only event has no passcode step, one with a separate passcode does', () => {
+  const plain = R.invitationText({ title: 'T', code: 'UFCKV8V7' })
+  assert.ok(!/passcode/i.test(plain))
+  const kept = R.invitationText({ title: 'T', code: 'UFCKV8V7', passcodeSeparate: true })
+  assert.match(kept, /and the passcode/)
 })
 
 test('a room configured earlier but still in Draft is opened, not left closed', async () => {
@@ -120,4 +144,21 @@ test('a guest who types the passcode in lowercase is retried once in capitals', 
   assert.match(guest, /typed\.toUpperCase\(\)/)
   assert.match(guest, /autoCapitalize="characters"/)
   assert.ok(!/type="password"[\s\S]{0,120}Event passcode/.test(guest))
+})
+
+test('the guest page tries the event code first, then asks for a passcode only if needed', () => {
+  assert.match(guest, /locator\?\.room_code/)
+  assert.match(guest, /Have a separate passcode\?/)
+  assert.match(guest, /This event also needs a passcode/)
+})
+
+test('an early guest waits in the lobby and is let in by themselves', () => {
+  assert.match(guest, /setInterval\(\(\) => void check\(\), 5000\)/)
+  assert.match(guest, /visibilitychange/)
+  assert.match(guest, /ended'[\s\S]{0,40}replay/)
+})
+
+test('returning guests keep their name and email on this device', () => {
+  assert.match(guest, /ridearrivo:room7:guest/)
+  assert.match(guest, /writeGuestMemory\(name\.trim\(\), email\.trim\(\)\)/)
 })

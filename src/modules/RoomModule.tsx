@@ -366,13 +366,13 @@ export default function RoomModule({
     return data as Awaited<ReturnType<Invoke>>
   },[client])
 
-  const prepareGuest=async(room:{id:string;room_code:string;title:string},newPasscode=false)=>{
+  const prepareGuest=async(room:{id:string;room_code:string;title:string},mode:'keep'|'code'|'new'='keep')=>{
     if(guestBusy)return
     setGuestBusy(room.id)
     setGuestError('')
     setNotice('')
     try{
-      const ready=await makeGuestReady(invokeEvent,{id:room.id,code:room.room_code,title:room.title},{newPasscode})
+      const ready=await makeGuestReady(invokeEvent,{id:room.id,code:room.room_code,title:room.title},{newPasscode:mode==='new',codeOnly:mode==='code'})
       setGuestInvite(ready)
       setCopied('')
     }catch(error){
@@ -683,7 +683,9 @@ export default function RoomModule({
             </header>
 
             <p className="roomGuestHint">
-              Guests open the link, type their name and email{guestInvite.passcode?', and the passcode':''}, then press Join. They can also go to room7.ridearrivo.com and type the event code.
+              {guestInvite.codeOnly
+                ?'Share the link. Guests open it, type their name and email, and press Join. There is nothing else to set up. They can also go to room7.ridearrivo.com and type the event code.'
+                :`Guests open the link, type their name and email${guestInvite.passcode?', and the passcode':', and the passcode you gave them'}, then press Join. They can also go to room7.ridearrivo.com and type the event code.`}
             </p>
 
             {([
@@ -700,23 +702,33 @@ export default function RoomModule({
               </div>
             ))}
 
-            {!guestInvite.passcode&&(
+            {!guestInvite.codeOnly&&(
               <div className="roomGuestNote">
-                This meeting was already open to guests, so its passcode was kept. It is only shown once, when it is made.
+                {guestInvite.passcode
+                  ?'This passcode is only shown now, so copy it before closing.'
+                  :'This meeting already had its own passcode, so it was kept. It cannot be shown again.'}
                 <button type="button" className="secondaryButton" disabled={!!guestBusy} onClick={()=>{
                   const room=rooms.find(item=>item.room_code===guestInvite.code)
-                  if(room&&window.confirm('Make a new passcode? The old passcode will stop working for anyone who has not joined yet.'))void prepareGuest(room,true)
+                  if(room&&window.confirm('Let the event code alone be enough? The old passcode stops being needed, and guests only type their name and email.'))void prepareGuest(room,'code')
                 }}>
-                  Make a new passcode
+                  Use the event code only
                 </button>
+                {!guestInvite.passcode&&(
+                  <button type="button" className="secondaryButton" disabled={!!guestBusy} onClick={()=>{
+                    const room=rooms.find(item=>item.room_code===guestInvite.code)
+                    if(room&&window.confirm('Make a new passcode? The old passcode will stop working for anyone who has not joined yet.'))void prepareGuest(room,'new')
+                  }}>
+                    Make a new passcode
+                  </button>
+                )}
               </div>
             )}
 
             <div className="roomGuestActions">
-              <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+              <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode,passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode}))}>
                 {copied==='Invitation'?<><Check size={15}/>Invitation copied</>:<><Copy size={15}/>Copy invitation message</>}
               </button>
-              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={whatsappLink(invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={whatsappLink(invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode,passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode}))}>
                 <Send size={15}/>Share on WhatsApp
               </a>
               <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={guestInvite.link}>

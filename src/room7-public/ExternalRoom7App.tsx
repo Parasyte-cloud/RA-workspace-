@@ -392,6 +392,32 @@ function useCountdown(
   }
 }
 
+const GUEST_MEMORY_KEY = 'ridearrivo:room7:guest'
+
+// Returning guests should not retype their name and email on every visit.
+function readGuestMemory(): { name: string; email: string } {
+  try {
+    const raw = window.localStorage.getItem(GUEST_MEMORY_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return {
+      name: typeof parsed?.name === 'string' ? parsed.name.slice(0, 180) : '',
+      email: typeof parsed?.email === 'string' ? parsed.email.slice(0, 320) : '',
+    }
+  } catch {
+    return { name: '', email: '' }
+  }
+}
+
+function writeGuestMemory(name: string, email: string) {
+  try {
+    window.localStorage.setItem(GUEST_MEMORY_KEY, JSON.stringify({ name, email }))
+  } catch {
+    /* storage blocked: the form simply starts empty next time */
+  }
+}
+
+const INCORRECT_PASSCODE = /passcode is incorrect/i
+
 export default function ExternalRoom7App() {
   const locator =
     useMemo(
@@ -425,14 +451,26 @@ export default function ExternalRoom7App() {
   const [authToken, setAuthToken] =
     useState('')
 
+  const [remembered] =
+    useState(readGuestMemory)
+
   const [name, setName] =
-    useState('')
+    useState(remembered.name)
 
   const [email, setEmail] =
-    useState('')
+    useState(remembered.email)
 
   const [passcode, setPasscode] =
     useState('')
+
+  // The passcode that actually worked, so a reconnect can reuse it.
+  const [usedPasscode, setUsedPasscode] =
+    useState('')
+
+  // The event code in the link opens the room by itself. The separate
+  // passcode box only appears when the host also set one.
+  const [showPasscode, setShowPasscode] =
+    useState(false)
 
   const [consent, setConsent] =
     useState(false)
@@ -579,6 +617,55 @@ export default function ExternalRoom7App() {
     }
   }, [locator])
 
+  // Guests who arrive early wait here and are let in by themselves: the page
+  // checks every few seconds and shows the join form the moment the host opens
+  // the room. Nobody has to refresh or ask for a new link.
+  useEffect(() => {
+    if (
+      !locator ||
+      !room ||
+      authToken ||
+      room.join_available ||
+      room.past_scheduled_end ||
+      room.event_state === 'ended' ||
+      room.event_state === 'replay'
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    const check = async () => {
+      if (document.visibilityState === 'hidden') return
+
+      try {
+        const response =
+          await room7Request<{ room: PublicRoom }>({
+            action: 'resolve',
+            ...locator,
+          })
+
+        if (!cancelled) setRoom(response.room)
+      } catch {
+        // Keep waiting; the next check tries again.
+      }
+    }
+
+    const timer = window.setInterval(() => void check(), 5000)
+    const onVisible = () => void check()
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [
+    locator,
+    room,
+    authToken,
+  ])
+
   const countdown =
     useCountdown(
       room?.scheduled_start ||
@@ -586,10 +673,11 @@ export default function ExternalRoom7App() {
     )
 
   // Passcodes are case sensitive on the server, and phones love capital letters
-  // or none at all. If the typed passcode is refused, try it once in capitals,
-  // which is how generated passcodes are written.
+  // or none at all. The event code from the link is tried as the passcode too:
+  // that is how "just the code" events work, with nothing extra to type. Only
+  // if every candidate is refused does the guest see the passcode box.
   const joinRequest =
-    async () => {
+    async (): Promise<{ response: JoinResponse; used: string }> => {
       const send =
         (code: string | undefined) =>
           room7Request<JoinResponse>({
@@ -609,24 +697,42 @@ export default function ExternalRoom7App() {
                 : undefined,
           })
 
-      const typed = passcode.trim()
-
-      try {
-        return await send(typed)
-      } catch (cause) {
-        const upper = typed.toUpperCase()
-
-        if (
-          room?.requires_passcode &&
-          upper !== typed &&
-          cause instanceof Error &&
-          /passcode is incorrect/i.test(cause.message)
-        ) {
-          return send(upper)
-        }
-
-        throw cause
+      if (!room?.requires_passcode) {
+        return { response: await send(undefined), used: '' }
       }
+
+      const typed = passcode.trim()
+      const eventCode = locator?.room_code ?? ''
+
+      const candidates = [
+        usedPasscode,
+        typed,
+        typed.toUpperCase(),
+        eventCode,
+      ].filter(
+        (value, index, all) => value && all.indexOf(value) === index,
+      )
+
+      if (!candidates.length) candidates.push('')
+
+      let last: unknown = null
+
+      for (const candidate of candidates) {
+        try {
+          return { response: await send(candidate), used: candidate }
+        } catch (cause) {
+          last = cause
+
+          if (
+            !(cause instanceof Error) ||
+            !INCORRECT_PASSCODE.test(cause.message)
+          ) {
+            throw cause
+          }
+        }
+      }
+
+      throw last
     }
 
   // Used by the meeting after a dropped connection: same guest details,
@@ -641,12 +747,14 @@ export default function ExternalRoom7App() {
         return false
       }
 
-      const response =
+      const { response, used } =
         await joinRequest()
 
       if (!response.auth_token) {
         return false
       }
+
+      setUsedPasscode(used)
 
       if (response.room) {
         setRoom(response.room)
@@ -692,7 +800,7 @@ export default function ExternalRoom7App() {
       setError('')
 
       try {
-        const response =
+        const { response, used } =
           await joinRequest()
 
         if (
@@ -703,15 +811,28 @@ export default function ExternalRoom7App() {
           )
         }
 
+        setUsedPasscode(used)
+        writeGuestMemory(name.trim(), email.trim())
         setAuthToken(
           response.auth_token,
         )
       } catch (cause) {
-        setError(
+        const message =
           cause instanceof Error
             ? cause.message
-            : 'Unable to join ROOM 7.',
-        )
+            : 'Unable to join ROOM 7.'
+
+        if (INCORRECT_PASSCODE.test(message)) {
+          // The event code alone was not enough: this host added a passcode.
+          setShowPasscode(true)
+          setError(
+            passcode.trim()
+              ? message
+              : 'This event also needs a passcode. Enter the one from your invitation.',
+          )
+        } else {
+          setError(message)
+        }
       } finally {
         setJoining(false)
       }
@@ -741,7 +862,7 @@ export default function ExternalRoom7App() {
           inviteToken={inviteToken}
           passcode={
             room.requires_passcode
-              ? passcode
+              ? usedPasscode || passcode
               : ''
           }
           email={email.trim()}
@@ -951,11 +1072,11 @@ export default function ExternalRoom7App() {
 
                 <p>
                   {room.join_available
-                    ? 'Confirm your details before entering the live room.'
+                    ? 'Type your name and email, then enter. No account needed.'
                     : room.past_scheduled_end
                       ? 'The scheduled time for this event has ended.'
-                    : room.event_state === 'pre_event'
-                      ? 'Your event link is active. The host will open the room when it is time to join.'
+                    : room.event_state === 'pre_event' || room.event_state === 'draft'
+                      ? 'You are early. Keep this page open: you will be let in as soon as the host opens the room.'
                       : room.event_state === 'ended'
                         ? 'This live event has ended.'
                         : room.event_state === 'replay'
@@ -971,7 +1092,7 @@ export default function ExternalRoom7App() {
                 inviteToken={inviteToken}
                 passcode={
                   room.requires_passcode
-                    ? passcode
+                    ? passcode || locator?.room_code || ''
                     : ''
                 }
                 email={email}
@@ -1035,7 +1156,19 @@ export default function ExternalRoom7App() {
                       />
                     </label>
 
-                    {room.requires_passcode && (
+                    {room.requires_passcode &&
+                      !(showPasscode || passcode || !locator?.room_code) && (
+                        <button
+                          type="button"
+                          className="room7PublicLinkButton"
+                          onClick={() => setShowPasscode(true)}
+                        >
+                          Have a separate passcode?
+                        </button>
+                      )}
+
+                    {room.requires_passcode &&
+                      (showPasscode || passcode || !locator?.room_code) && (
                       <label>
                         <span>
                           Event passcode
@@ -1055,7 +1188,7 @@ export default function ExternalRoom7App() {
                           autoCorrect="off"
                           spellCheck={false}
                           placeholder="From your invitation"
-                          required
+                          required={!locator?.room_code}
                         />
                       </label>
                     )}
@@ -1122,7 +1255,7 @@ export default function ExternalRoom7App() {
                 inviteToken={inviteToken}
                 passcode={
                   room.requires_passcode
-                    ? passcode
+                    ? passcode || locator?.room_code || ''
                     : ''
                 }
                 email={email}

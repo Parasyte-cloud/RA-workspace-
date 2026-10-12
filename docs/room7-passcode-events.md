@@ -12,7 +12,9 @@ Every guest gives an email, in every mode. That is how ROOM 7 knows who attended
 
 ## Quickest way: Guest link and code
 
-In the intranet, open **ROOM 7** and press **Guest link and code** (or **Guest link** on a meeting card). One click does all the setup below for you: it turns on the public page, sets passcode access, creates a passcode and opens the doors. You then get the link, the event code and the passcode, each with a Copy button, plus **Copy invitation message** and **Share on WhatsApp**.
+In the intranet, open **ROOM 7** and press **Guest link and code** (or **Guest link** on a meeting card). One click does all the setup below for you: it turns on the public page, uses the event code as the key, and opens the doors. Guests open the link, type their name and email, and join. You get the link and the event code with Copy buttons, plus **Copy invitation message** and **Share on WhatsApp**.
+
+If you want an extra lock, press **Make a new passcode**. Guests are then asked for it as well. **Use the event code only** switches back.
 
 Requirements on the server (one time):
 
@@ -20,7 +22,9 @@ Requirements on the server (one time):
 - `room7.ridearrivo.com` must be a custom domain of the `ra-workspace` Cloudflare Pages project.
 - The Cloudflare RealtimeKit secrets must be set, or guests reach the page but cannot enter the call.
 
-Pressing the button again keeps the same passcode so invitations already sent still work. Use **Make a new passcode** to replace it.
+Pressing the button again changes nothing that invitations already sent depend on.
+
+Guests who arrive before you open the room wait on the page and are let in automatically.
 
 The sections below describe the same setup done by hand.
 
