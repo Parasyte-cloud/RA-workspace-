@@ -14,6 +14,7 @@ import {
   PhoneIncoming,
   PhoneMissed,
   PhoneOutgoing,
+  Pencil,
   Plus,
   Reply,
   Search,
@@ -65,6 +66,17 @@ import {
   messagePreview,
   validateAttachment
 } from '../lib/chatAttachments'
+import {
+  OLDER_PAGE,
+  TYPING_SHOW_MS,
+  canDelete,
+  canEdit,
+  isDeleted,
+  keepOlderThan,
+  mergeOlder,
+  shouldSendTyping,
+  typingLine
+} from '../lib/chatEdit'
 
 type Person = {
   id:string
@@ -96,6 +108,7 @@ type Message = {
   sender_id:string
   body:string
   edited_at:string|null
+  deleted_at?:string|null
   created_at:string
   reply_to_id?:string|null
   attachment_path?:string|null
@@ -117,7 +130,7 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,deleted_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
 const OPEN_KEY='ra.chat.open'
 const ATTACH_BUCKET='chat-attachments'
 const SIGNED_SECONDS=3600
@@ -209,6 +222,15 @@ export function ChatModule(){
   // When each chat was last looked at in this session, so a missed call stops
   // counting as new the moment its chat is opened.
   const [callSeen,setCallSeen]=useState<Record<string,string>>({})
+  const [editingId,setEditingId]=useState('')
+  const [editText,setEditText]=useState('')
+  const [editBusy,setEditBusy]=useState(false)
+  const [otherTyping,setOtherTyping]=useState(false)
+  const [hasOlder,setHasOlder]=useState(false)
+  const [loadingOlder,setLoadingOlder]=useState(false)
+  const typingChannelRef=useRef<{send:(payload:unknown)=>unknown}|null>(null)
+  const typingSentRef=useRef(0)
+  const typingTimerRef=useRef<number|undefined>(undefined)
   const [calling,setCalling]=useState(false)
   const [isAdmin,setIsAdmin]=useState(false)
   const [replyTo,setReplyTo]=useState<Message|null>(null)
@@ -242,6 +264,38 @@ export function ChatModule(){
   const voiceMsRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
+
+  // Typing indicator: a broadcast channel per open chat. Nothing is stored.
+  useEffect(()=>{
+    const client=supabase
+    setOtherTyping(false)
+    typingChannelRef.current=null
+    if(!client || !selectedId || !userId)return
+    const channel=client.channel(`typing-${selectedId}`)
+    channel
+      .on('broadcast',{event:'typing'},payload=>{
+        const from=(payload.payload as {userId?:string}|undefined)?.userId
+        if(!from || from===userId)return
+        setOtherTyping(true)
+        window.clearTimeout(typingTimerRef.current)
+        typingTimerRef.current=window.setTimeout(()=>setOtherTyping(false),TYPING_SHOW_MS)
+      })
+      .subscribe()
+    typingChannelRef.current=channel as unknown as {send:(payload:unknown)=>unknown}
+    return()=>{
+      window.clearTimeout(typingTimerRef.current)
+      typingChannelRef.current=null
+      void client.removeChannel(channel)
+    }
+  },[selectedId,userId])
+
+  const pingTyping=()=>{
+    const channel=typingChannelRef.current
+    const now=Date.now()
+    if(!channel || !shouldSendTyping(typingSentRef.current,now))return
+    typingSentRef.current=now
+    void channel.send({type:'broadcast',event:'typing',payload:{userId}})
+  }
   useEffect(()=>{directsRef.current=directs},[directs])
   useEffect(()=>{userRef.current=userId},[userId])
   useEffect(()=>{peopleRef.current=new Map(people.map(person=>[person.id,person]))},[people])
@@ -454,11 +508,15 @@ export function ChatModule(){
       if(error)throw error
       if(sequence!==threadRequestRef.current)return
       const fresh=((data || []) as Message[]).reverse()
-      // Keep local messages that are still sending or failed.
+      // Keep local messages that are still sending or failed, and any older
+      // pages the person already loaded.
       setMessages(current=>{
-        const local=current.filter(m=>m.conversation_id===conversationId && (m.pending || m.failed))
-        return mergeMessages(fresh,local)
+        const mine=current.filter(m=>m.conversation_id===conversationId)
+        const local=mine.filter(m=>m.pending || m.failed)
+        const older=keepOlderThan(mine,fresh[0]?.created_at)
+        return mergeMessages(mergeMessages(older,fresh),local)
       })
+      setHasOlder(current=>(current && fresh.length>=300) || (data||[]).length>=300)
       void markRead(conversationId)
     }catch(error){
       if(sequence===threadRequestRef.current){
@@ -527,6 +585,76 @@ export function ChatModule(){
     stickToBottomRef.current=element.scrollHeight-element.scrollTop-element.clientHeight<80
   }
 
+  const loadOlder=async()=>{
+    const client=supabase
+    const first=messages.find(m=>!m.pending && !m.failed)
+    if(!client || !selectedId || !first || loadingOlder)return
+    setLoadingOlder(true)
+    const element=scrollRef.current
+    const before=element?element.scrollHeight:0
+    try{
+      const {data,error}=await client
+        .from('social_messages')
+        .select(MESSAGE_COLUMNS)
+        .eq('conversation_id',selectedId)
+        .lt('created_at',first.created_at)
+        .order('created_at',{ascending:false})
+        .limit(OLDER_PAGE)
+      if(error)throw error
+      const page=((data||[]) as Message[])
+      stickToBottomRef.current=false
+      setMessages(current=>mergeOlder(current,page))
+      setHasOlder(page.length>=OLDER_PAGE)
+      // Keep the message the person was reading where it was.
+      window.requestAnimationFrame(()=>{
+        const el=scrollRef.current
+        if(el)el.scrollTop=el.scrollHeight-before
+      })
+    }catch(error){
+      setNotice(error instanceof Error?error.message:'Unable to load earlier messages.')
+    }finally{
+      setLoadingOlder(false)
+    }
+  }
+
+  const saveEdit=async()=>{
+    const client=supabase
+    const text=editText.trim()
+    const target=messages.find(m=>m.id===editingId)
+    if(!client || !target || editBusy)return
+    if(!text && !target.attachment_path){
+      setNotice('A message cannot be empty. Delete it instead.')
+      return
+    }
+    if(text===target.body){
+      setEditingId('')
+      return
+    }
+    setEditBusy(true)
+    const {data,error}=await client.rpc('edit_social_message',{p_id:target.id,p_body:text})
+    setEditBusy(false)
+    if(error){
+      setNotice(error.message)
+      return
+    }
+    setMessages(current=>current.map(m=>m.id===target.id?{...m,body:text,edited_at:typeof data==='string'?data:new Date().toISOString()}:m))
+    setEditingId('')
+  }
+
+  const deleteMessage=async(message:Message)=>{
+    const client=supabase
+    if(!client)return
+    if(!window.confirm('Delete this message for both of you? This cannot be undone.'))return
+    const {data,error}=await client.rpc('delete_social_message',{p_id:message.id})
+    if(error){
+      setNotice(error.message)
+      return
+    }
+    setMessages(current=>current.map(m=>m.id===message.id?{...m,body:'This message was deleted',deleted_at:new Date().toISOString(),attachment_path:null,attachment_name:null,attachment_mime:null,attachment_size:null,attachment_duration_ms:null}:m))
+    // Remove the stored file too (best effort: the message is already gone).
+    if(typeof data==='string' && data)void client.storage.from(ATTACH_BUCKET).remove([data]).catch(()=>{})
+  }
+
   // One realtime channel for the whole session. Handlers read refs, so the
   // channel is never torn down and rebuilt as the user clicks around.
   useEffect(()=>{
@@ -565,6 +693,16 @@ export function ChatModule(){
             })
             if(!mine)void markRead(row.conversation_id)
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {event:'UPDATE',schema:'public',table:'social_messages'},
+        payload=>{
+          // The other person edited or deleted a message.
+          const row=payload.new as Message
+          setMessages(current=>current.some(m=>m.id===row.id)?current.map(m=>m.id===row.id?{...m,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at,attachment_path:row.attachment_path,attachment_name:row.attachment_name,attachment_mime:row.attachment_mime,attachment_size:row.attachment_size,attachment_duration_ms:row.attachment_duration_ms}:m):current)
+          setDirects(rows=>rows.map(item=>item.latest?.id===row.id?{...item,latest:{...item.latest,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at}}:item))
         }
       )
       .on(
@@ -1377,6 +1515,11 @@ export function ChatModule(){
 
               <div className="cmMessages" ref={scrollRef} onScroll={onScroll} aria-live="polite">
                 <div className="cmLock"><ShieldCheck size={13}/>Private. Only the two of you can see this conversation.</div>
+                {hasOlder&&(
+                  <button type="button" className="cmOlder" disabled={loadingOlder} onClick={()=>void loadOlder()}>
+                    {loadingOlder?'Loading...':'Load earlier messages'}
+                  </button>
+                )}
                 {threadLoading&&messages.length===0&&<div className="cmEmpty">Loading messages...</div>}
                 {!threadLoading&&messages.length===0&&(
                   <div className="cmEmpty cmEmptyBlock">
@@ -1414,9 +1557,13 @@ export function ChatModule(){
                   const read=mine && !message.pending && !message.failed && selected.otherReadAt &&
                     new Date(selected.otherReadAt).getTime()>=new Date(message.created_at).getTime()
                   const quoted=message.reply_to_id ? messages.find(m=>m.id===message.reply_to_id) || null : null
-                  const canReply=!message.pending && !message.failed
+                  const deleted=isDeleted(message)
+                  const canReply=!message.pending && !message.failed && !deleted
+                  const showEdit=canEdit(message,userId)
+                  const showDelete=canDelete(message,userId)
+                  const editing=editingId===message.id
                   return (
-                    <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}`}>
+                    <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}${deleted?' deleted':''}`}>
                       <div className="cmBubble" title={displayName(sender)}>
                         {canReply&&(
                           <button
@@ -1429,7 +1576,29 @@ export function ChatModule(){
                             <Reply size={14}/>
                           </button>
                         )}
-                        {message.reply_to_id&&(
+                        {showEdit&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn cmEditBtn"
+                            aria-label="Edit this message"
+                            title="Edit"
+                            onClick={()=>{setEditingId(message.id);setEditText(message.body)}}
+                          >
+                            <Pencil size={14}/>
+                          </button>
+                        )}
+                        {showDelete&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn cmDeleteBtn"
+                            aria-label="Delete this message"
+                            title="Delete"
+                            onClick={()=>void deleteMessage(message)}
+                          >
+                            <Trash2 size={14}/>
+                          </button>
+                        )}
+                        {!deleted&&message.reply_to_id&&(
                           <button
                             type="button"
                             className="cmQuote"
@@ -1440,7 +1609,7 @@ export function ChatModule(){
                             <span>{quoted ? messagePreview(quoted) : 'Open the older history to see it.'}</span>
                           </button>
                         )}
-                        {(message.attachment_name||message.attachment_path)&&(()=>{
+                        {!deleted&&(message.attachment_name||message.attachment_path)&&(()=>{
                           const mediaSrc=message.localUrl || (message.attachment_path ? imageUrls[message.attachment_path] : '')
                           const path=message.attachment_path || null
                           const name=message.attachment_name||'file'
@@ -1497,10 +1666,36 @@ export function ChatModule(){
                             </div>
                           )
                         })()}
-                        {message.body&&<p>{message.body}</p>}
+                        {deleted
+                          ? <p className="cmDeletedText">This message was deleted</p>
+                          : editing
+                            ? (
+                              <div className="cmEditBox">
+                                <textarea
+                                  value={editText}
+                                  autoFocus
+                                  rows={2}
+                                  maxLength={10000}
+                                  aria-label="Edit message"
+                                  onChange={event=>setEditText(event.target.value)}
+                                  onKeyDown={event=>{
+                                    if(event.key==='Escape'){setEditingId('');return}
+                                    if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){
+                                      event.preventDefault()
+                                      void saveEdit()
+                                    }
+                                  }}
+                                />
+                                <span className="cmEditActions">
+                                  <button type="button" onClick={()=>setEditingId('')}>Cancel</button>
+                                  <button type="button" className="primary" disabled={editBusy} onClick={()=>void saveEdit()}>{editBusy?'Saving...':'Save'}</button>
+                                </span>
+                              </div>
+                            )
+                            : message.body&&<p>{message.body}</p>}
                         <span className="cmMeta">
                           {formatTime(message.created_at)}
-                          {message.edited_at?' edited':''}
+                          {message.edited_at&&!deleted?' edited':''}
                           {mine&&(
                             message.failed ? null :
                             message.pending ? <Check size={14} className="cmTick pending"/> :
@@ -1557,6 +1752,7 @@ export function ChatModule(){
                   ))}
                 </div>
               )}
+              {otherTyping&&<div className="cmTyping" role="status">{typingLine(displayName(selected.other))}</div>}
               <form className="cmComposer" onSubmit={submit} hidden={!!voice}>
                 <input
                   ref={fileInputRef}
@@ -1593,6 +1789,7 @@ export function ChatModule(){
                   onChange={event=>{
                     setMessageText(event.target.value.slice(0,10000))
                     resizeComposer()
+                    if(event.target.value.trim())pingTyping()
                   }}
                   placeholder={staged.length?'Add a caption (optional)':'Type a message'}
                   onPaste={event=>{

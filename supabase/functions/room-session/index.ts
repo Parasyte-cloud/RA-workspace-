@@ -292,6 +292,22 @@ async function openDoorsForHost(admin: any, roomId: string) {
   }
 }
 
+// Slows down someone trying many wrong codes. Fails open: if the limiter is
+// unavailable people can still join.
+async function rateCount(admin: any, key: string, windowSeconds: number, increment: boolean) {
+  try {
+    const { data, error } = await admin.rpc("room7_rate_count", {
+      p_key: key,
+      p_window_seconds: windowSeconds,
+      p_increment: increment,
+    })
+    if (error) return 0
+    return Number(data) || 0
+  } catch {
+    return 0
+  }
+}
+
 serve(async req => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) })
   if (req.method !== "POST") return json(req, { error: "Method not allowed." }, 405)
@@ -443,13 +459,22 @@ serve(async req => {
       return json(req, { error: "Enter a valid 8-character Room code." }, 400)
     }
 
+    // Ten wrong codes in a minute is guessing, not a typo.
+    const guessKey = `staffjoin:${employeeId}`
+    if (await rateCount(admin, guessKey, 60, false) >= 10) {
+      return json(req, { error: "Too many attempts. Wait a minute and try again." }, 429)
+    }
+
     const { data: room, error: roomError } = await admin
       .from("workspace_rooms")
       .select("id,room_code,title,status,ai_notes_enabled,created_by,cloudflare_meeting_id,started_at,ended_at,created_at,updated_at")
       .eq("room_code", code)
       .maybeSingle()
 
-    if (roomError || !room) return json(req, { error: "ROOM 7 not found." }, 404)
+    if (roomError || !room) {
+      await rateCount(admin, guessKey, 60, true)
+      return json(req, { error: "ROOM 7 not found." }, 404)
+    }
     if (room.status !== "active") return json(req, { error: "This ROOM 7 meeting has ended." }, 409)
 
     const role = room.created_by === employeeId ? "host" : "member"
@@ -516,6 +541,21 @@ serve(async req => {
         event_type: "joined",
       })
       if (audit.error) console.warn("ROOM 7 audit join:", audit.error.message)
+
+      // An administrator can enter any room. Tell the host the first time, so
+      // it is never silent.
+      if (!existing && profile.role === "admin" && role !== "host") {
+        const notice = await admin.from("notifications").insert({
+          user_id: room.created_by,
+          type: "room_admin_joined",
+          title: "An administrator joined your ROOM 7",
+          body: `${cleanText(profile.full_name, 160) || "An administrator"} joined "${cleanText(room.title, 120)}".`,
+          entity_type: "workspace_room",
+          entity_id: room.id,
+          email_status: "skipped",
+        })
+        if (notice.error) console.warn("ROOM 7 admin join notice:", notice.error.message)
+      }
 
       // Only the people who control the event can open it to guests.
       if (role === "host" || profile.role === "admin" || profile.role === "manager") {

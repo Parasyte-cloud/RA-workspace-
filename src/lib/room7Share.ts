@@ -191,3 +191,125 @@ export async function makeGuestReady(
     admission: (configured.event?.admission ?? event?.admission) === 'host' ? 'host' : 'auto',
   }
 }
+
+// ---- Add to calendar ----------------------------------------------------
+
+export type CalendarEvent = {
+  title: string
+  start: Date
+  minutes: number
+  details: string
+  location: string
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// 20261012T140000Z
+export const calendarStamp = (date: Date) =>
+  `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`
+
+const endOf = (event: CalendarEvent) => new Date(event.start.getTime() + event.minutes * 60000)
+
+export function googleCalendarUrl(event: CalendarEvent): string {
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${calendarStamp(event.start)}/${calendarStamp(endOf(event))}`,
+    details: event.details,
+    location: event.location,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+export function outlookCalendarUrl(event: CalendarEvent): string {
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: event.title,
+    startdt: event.start.toISOString(),
+    enddt: endOf(event).toISOString(),
+    body: event.details,
+    location: event.location,
+  })
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`
+}
+
+const icsText = (value: string) =>
+  value.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+
+// Lines over 75 bytes must be folded; continuation lines start with one space.
+function fold(line: string): string {
+  const encoder = new TextEncoder()
+  if (encoder.encode(line).length <= 75) return line
+  const parts: string[] = []
+  let current = ''
+  for (const char of line) {
+    const limit = parts.length === 0 ? 75 : 74
+    if (encoder.encode(current + char).length > limit) {
+      parts.push(current)
+      current = char
+    } else current += char
+  }
+  parts.push(current)
+  return parts.join('\r\n ')
+}
+
+export function icsFile(event: CalendarEvent, uid: string, now: Date = new Date()): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//RideArrivo//ROOM 7//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${calendarStamp(now)}`,
+    `DTSTART:${calendarStamp(event.start)}`,
+    `DTEND:${calendarStamp(endOf(event))}`,
+    `SUMMARY:${icsText(event.title)}`,
+    `DESCRIPTION:${icsText(event.details)}`,
+    `LOCATION:${icsText(event.location)}`,
+    `URL:${event.location}`,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT10M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:ROOM 7 starts in 10 minutes',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ]
+  return lines.map(fold).join('\r\n') + '\r\n'
+}
+
+export function calendarEventFor(input: {
+  title: string
+  code: string
+  passcode?: string | null
+  passcodeSeparate?: boolean
+  start: Date
+  minutes: number
+}): CalendarEvent {
+  return {
+    title: input.title,
+    start: input.start,
+    minutes: input.minutes,
+    location: guestLink(input.code),
+    details: invitationText({
+      title: input.title,
+      code: input.code,
+      passcode: input.passcode,
+      passcodeSeparate: input.passcodeSeparate,
+    }),
+  }
+}
+
+// Next quarter hour, so the picker never starts in the past.
+export function nextQuarterHour(from: Date = new Date()): Date {
+  const ms = 15 * 60000
+  return new Date(Math.ceil((from.getTime() + 1) / ms) * ms)
+}
+
+// <input type="datetime-local"> works in local time without a zone.
+export function toLocalInput(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}

@@ -122,7 +122,8 @@ type WithAttachment = {
 }
 
 // One short line for chat lists, replies and notifications.
-export function messagePreview(message: WithAttachment): string {
+export function messagePreview(message: WithAttachment & { deleted_at?: string | null }): string {
+  if (message.deleted_at) return 'Message deleted'
   const text = (message.body || '').trim()
   if (text) return text
   if (!message.attachment_name && !message.attachment_path) return ''

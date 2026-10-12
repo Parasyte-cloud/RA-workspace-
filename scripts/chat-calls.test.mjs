@@ -178,3 +178,14 @@ test('call window: both people can end the call, a failed start retries and offe
   assert.match(read('src/room.css'), /\.roomCallMini \.roomDangerButton\.roomCallEnd\{display:inline-flex/)
   assert.match(read('src/modules/RoomModule.tsx'), /\.limit\(60\)/)
 })
+
+test('stale rooms end by themselves; staff join is rate limited; admin entry is announced', () => {
+  const sql = read('supabase/migrations/20261012280000_room7_auto_end.sql')
+  assert.match(sql, /function public\.end_stale_rooms/)
+  assert.match(sql, /not exists \([\s\S]*room7_external_rooms/)
+  assert.match(sql, /\*\/15 \* \* \* \*/)
+  const fn = read('supabase/functions/room-session/index.ts')
+  assert.match(fn, /staffjoin:\$\{employeeId\}/)
+  assert.match(fn, /Too many attempts/)
+  assert.match(fn, /room_admin_joined/)
+})

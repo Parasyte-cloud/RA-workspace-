@@ -94,6 +94,32 @@ function birthdayEmail(fullName: string) {
   return { html, text: textBody }
 }
 
+// Meeting summary: the text in `body` is already plain and short.
+function minutesEmail(title: string, summary: string, fullName: string) {
+  const first = escapeHtml(fullName.trim().split(/\s+/)[0] || "there")
+  const font = "'Helvetica Neue',Helvetica,Arial,sans-serif"
+  const paragraphs = summary
+    .split(/\n{2,}/)
+    .map((part) => `<p style="margin:0 0 12px;">${escapeHtml(part).replace(/\n/g, "<br>")}</p>`)
+    .join("")
+  const html =
+    `<!doctype html><html><body style="margin:0;padding:0;background:#f4f6f9;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:24px 12px;">` +
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;">` +
+    `<tr><td style="background:#071a38;padding:18px 24px;font-family:${font};font-size:12px;font-weight:800;letter-spacing:3px;color:#ff9900;">ROOM 7 MEETING SUMMARY</td></tr>` +
+    `<tr><td style="padding:22px 24px 6px;font-family:${font};font-size:20px;font-weight:800;color:#071a38;">${escapeHtml(title)}</td></tr>` +
+    `<tr><td style="padding:6px 24px 4px;font-family:${font};font-size:14px;line-height:1.6;color:#3a4756;">Hi ${first}, here is what was covered.</td></tr>` +
+    `<tr><td style="padding:10px 24px 8px;font-family:${font};font-size:14px;line-height:1.65;color:#1d2733;">${paragraphs}</td></tr>` +
+    `<tr><td align="center" style="padding:10px 24px 20px;"><a href="${WORKSPACE_URL}" style="display:inline-block;background:#ff9900;color:#071a38;text-decoration:none;font-family:${font};font-size:14px;font-weight:800;padding:12px 26px;border-radius:999px;">Open the workspace</a></td></tr>` +
+    `<tr><td style="padding:0 24px 22px;font-family:${font};font-size:12px;line-height:1.6;color:#8a95a3;">This summary was written by AI notes and may contain mistakes. It was sent to the host and the colleagues who joined. Do not forward it outside RideArrivo.</td></tr>` +
+    `</table></td></tr></table></body></html>`
+  const textBody =
+    `${title}\n\nHi ${fullName.trim().split(/\s+/)[0] || "there"}, here is what was covered.\n\n${summary}\n\n` +
+    `Open the workspace: ${WORKSPACE_URL}\n\n` +
+    `This summary was written by AI notes and may contain mistakes. It was sent to the host and the colleagues who joined. Do not forward it outside RideArrivo.`
+  return { html, text: textBody }
+}
+
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
@@ -202,7 +228,12 @@ Deno.serve(async (req) => {
     const title = text(row.title, 200) || "RideArrivo Workspace notification"
     const body = text(row.body, 2000)
     const isBirthday = row.type === "birthday"
-    const card = isBirthday ? birthdayEmail(employee.full_name || String(employee.email).split("@")[0]) : null
+    const displayName = employee.full_name || String(employee.email).split("@")[0]
+    const card = isBirthday
+      ? birthdayEmail(displayName)
+      : row.type === "room_minutes" && body
+        ? minutesEmail(title, body, displayName)
+        : null
 
     try {
       const response = await fetch("https://api.resend.com/emails", {

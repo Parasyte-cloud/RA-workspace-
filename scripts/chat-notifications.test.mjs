@@ -22,7 +22,9 @@ test('trigger functions are not callable by clients', () => {
 })
 
 test('chat keeps one realtime channel and never blanks the list on refresh', () => {
-  assert.equal((chat.match(/\.channel\(/g) || []).length, 1)
+  // One session channel for messages, plus one small broadcast channel for the open chat's typing line.
+  assert.equal((chat.match(/\.channel\(`native-chat-/g) || []).length, 1)
+  assert.equal((chat.match(/\.channel\(/g) || []).length, 2)
   assert.doesNotMatch(chat, /setLoading\(true\)/)
 })
 
