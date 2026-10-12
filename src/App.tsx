@@ -63,7 +63,9 @@ import {
   Star
 } from 'lucide-react'
 import { supabase,
-  supabaseConfigured } from './lib/supabase'
+  supabaseConfigured,
+  initialAuthLink } from './lib/supabase'
+import { describeSignInError, trimmedRetry } from './lib/authLink'
 import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 
@@ -471,7 +473,11 @@ function BrandLogo({className=''}:{className?:string}){
 
 function App(){
   const [session,setSession]=useState<Session|null>(null)
-  const [passwordRecovery,setPasswordRecovery]=useState(false)
+  // Arriving from an invite or reset email means a password must be chosen.
+  const [passwordRecovery,setPasswordRecovery]=useState(initialAuthLink.kind==='invite' || initialAuthLink.kind==='recovery')
+  const [passwordMode,setPasswordMode]=useState<'recovery'|'invite'>(initialAuthLink.kind==='invite' ? 'invite' : 'recovery')
+  const [confirmLink,setConfirmLink]=useState(initialAuthLink.kind==='confirm' ? initialAuthLink : null)
+  const [passwordSaved,setPasswordSaved]=useState(false)
 
 
   useIdleSignOut(
@@ -623,6 +629,7 @@ function App(){
           )
 
           if(event==='PASSWORD_RECOVERY'){
+            setPasswordMode('recovery')
             setPasswordRecovery(true)
           }
 
@@ -719,6 +726,23 @@ function App(){
 
     setAccessState('approved')
   }
+
+  // A person invited by email gets signed in by the link but is never asked
+  // for a password. Ask now, so they can sign in tomorrow without a reset.
+  useEffect(()=>{
+    const client=supabase
+    const userId=session?.user?.id
+    if(!client || !userId || passwordRecovery)return
+    let cancelled=false
+    void client.rpc('my_account_has_password').then(({data,error})=>{
+      if(cancelled || error)return
+      if(data===false){
+        setPasswordMode('invite')
+        setPasswordRecovery(true)
+      }
+    })
+    return()=>{cancelled=true}
+  },[session?.user?.id])
 
   useEffect(()=>{
     void loadProfile()
@@ -1091,8 +1115,15 @@ function App(){
 
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
-  if(!session) return <AuthGate/>
-  if(passwordRecovery) return <PasswordRecoveryGate onDone={()=>setPasswordRecovery(false)}/>
+  if(confirmLink) return <ConfirmLinkGate link={confirmLink} onDone={()=>setConfirmLink(null)}/>
+  if(!session) return <AuthGate
+    notice={passwordSaved ? 'Password saved. Sign in with your work email and the new password.' : ''}
+    linkProblem={initialAuthLink.kind==='error' ? initialAuthLink.message : ''}
+  />
+  if(passwordRecovery) return <PasswordRecoveryGate
+    mode={passwordMode}
+    onDone={()=>{setPasswordRecovery(false);setPasswordSaved(true)}}
+  />
 
   if(accessState==='loading'){
     return (
@@ -1401,11 +1432,13 @@ function SetupRequired(){
   </div>
 }
 
-function PasswordRecoveryGate({onDone}:{onDone:()=>void}){
+function PasswordRecoveryGate({onDone,mode}:{onDone:()=>void;mode:'recovery'|'invite'}){
   const [password,setPassword]=useState('')
   const [confirm,setConfirm]=useState('')
+  const [reveal,setReveal]=useState(false)
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
+  const invite=mode==='invite'
 
   const updatePassword=async(event:FormEvent)=>{
     event.preventDefault()
@@ -1431,7 +1464,7 @@ function PasswordRecoveryGate({onDone}:{onDone:()=>void}){
     try{
       const {error}=await supabase.auth.updateUser({password})
       if(error) throw error
-      setMessage('Password updated. Returning to sign in...')
+      setMessage('Password saved. Taking you to sign in...')
       await supabase.auth.signOut()
       onDone()
     }catch(error){
@@ -1448,32 +1481,86 @@ function PasswordRecoveryGate({onDone}:{onDone:()=>void}){
         <span>RideArrivo Internal Workspace</span>
       </div>
       <div className="authCopy">
-        <span className="eyebrow">PASSWORD RECOVERY</span>
-        <h1>Choose a new password.</h1>
-        <p>This recovery session can only be used to update the password for the account that opened the reset link.</p>
+        <span className="eyebrow">{invite?'WELCOME TO RIDEARRIVO':'PASSWORD RECOVERY'}</span>
+        <h1>{invite?'Create your password.':'Choose a new password.'}</h1>
+        <p>{invite
+          ? 'Your invitation signed you in, but your account has no password yet. Choose one now so you can sign in any time.'
+          : 'This recovery session can only be used to update the password for the account that opened the reset link.'}</p>
       </div>
       <form onSubmit={updatePassword}>
         <label>
           New password
-          <input type="password" value={password} onChange={event=>setPassword(event.target.value)} autoComplete="new-password" required/>
+          <input type={reveal?'text':'password'} value={password} onChange={event=>setPassword(event.target.value)} autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required/>
         </label>
         <label>
           Confirm new password
-          <input type="password" value={confirm} onChange={event=>setConfirm(event.target.value)} autoComplete="new-password" required/>
+          <input type={reveal?'text':'password'} value={confirm} onChange={event=>setConfirm(event.target.value)} autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required/>
         </label>
+        <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px'}}>
+          <input type="checkbox" checked={reveal} onChange={event=>setReveal(event.target.checked)} style={{width:'auto'}}/>
+          Show the password so I can check what I typed
+        </label>
+        <small>At least 12 characters. A few random words joined together works well.</small>
         {message&&<div className="authMessage">{message}</div>}
-        <button className="primaryButton" disabled={busy}>{busy?'Updating...':'Update password'}</button>
+        <button className="primaryButton" disabled={busy}>{busy?'Saving...':(invite?'Save password':'Update password')}</button>
       </form>
     </div>
   </div>
 }
 
+// Links opened by mail scanners use up one-time tokens. This page makes the
+// person press a button, so only a real click spends the link.
+function ConfirmLinkGate({link,onDone}:{link:{tokenHash:string;type:'recovery'|'invite'|'signup'|'email'};onDone:()=>void}){
+  const [busy,setBusy]=useState(false)
+  const [message,setMessage]=useState('')
+  const invite=link.type==='invite' || link.type==='signup'
 
-function AuthGate(){
+  const proceed=async()=>{
+    if(!supabase){
+      setMessage('Authentication service is unavailable.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    const {error}=await supabase.auth.verifyOtp({token_hash:link.tokenHash,type:link.type})
+    setBusy(false)
+    if(error){
+      setMessage('That link has expired or was already used. Go back to sign in and press Forgot / Reset Password for a fresh one.')
+      return
+    }
+    // Remove the token from the address bar so a refresh does not reuse it.
+    window.history.replaceState(null,'',window.location.pathname)
+    onDone()
+  }
+
+  return <div className="authPage">
+    <div className="authGlass glassPanel">
+      <div className="authBrand">
+        <BrandLogo className="authLogo"/>
+        <span>RideArrivo Internal Workspace</span>
+      </div>
+      <div className="authCopy">
+        <span className="eyebrow">{invite?'WELCOME TO RIDEARRIVO':'PASSWORD RECOVERY'}</span>
+        <h1>{invite?'Accept your invitation.':'Ready to reset your password?'}</h1>
+        <p>Press the button to continue. You will choose your password on the next screen.</p>
+      </div>
+      <div>
+        {message&&<div className="authMessage">{message}</div>}
+        <button className="primaryButton" disabled={busy} onClick={()=>void proceed()}>{busy?'Please wait...':'Continue'}</button>
+        <button type="button" className="authRecoveryButton" onClick={()=>{window.history.replaceState(null,'',window.location.pathname);onDone()}}>
+          <span><strong>Back to sign in</strong></span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string}){
 
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
-  const [message,setMessage]=useState('')
+  const [message,setMessage]=useState(linkProblem)
+  const [reveal,setReveal]=useState(false)
   const [busy,setBusy]=useState(false)
 
   const cleanEmail=email.trim().toLowerCase()
@@ -1545,17 +1632,20 @@ function AuthGate(){
     setBusy(true)
 
     try{
-      const {error}=await supabase.auth.signInWithPassword({
+      let {error}=await supabase.auth.signInWithPassword({
         email:cleanEmail,
         password
       })
 
+      // A pasted password often carries a trailing space or line break.
+      const retryWith=error ? trimmedRetry(password) : null
+      if(error && retryWith){
+        const second=await supabase.auth.signInWithPassword({email:cleanEmail,password:retryWith})
+        error=second.error
+      }
+
       if(error){
-        setMessage(
-          error.message === 'Invalid login credentials'
-            ? 'Invalid email or password, or this account is not authorised.'
-            : error.message
-        )
+        setMessage(describeSignInError(error))
       }
     }catch(error){
       setMessage(
@@ -1615,6 +1705,9 @@ function AuthGate(){
               onChange={e=>setEmail(e.target.value)}
               placeholder="name@ridearrivo.com"
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
           </label>
@@ -1622,14 +1715,24 @@ function AuthGate(){
           <label>
             Password
             <input
-              type="password"
+              type={reveal?'text':'password'}
               value={password}
               onChange={e=>setPassword(e.target.value)}
               placeholder="Enter your password"
               autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
           </label>
+
+          <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'12px',margin:'-4px 0 8px'}}>
+            <input type="checkbox" checked={reveal} onChange={e=>setReveal(e.target.checked)} style={{width:'auto'}}/>
+            Show password
+          </label>
+
+          {notice&&!message&&<div className="authMessage" role="status">{notice}</div>}
 
           {message&&
             <div className="authMessage">
