@@ -26,7 +26,20 @@ export async function createCallRoom(title: string): Promise<CallRoom> {
 
 export const JOIN_ROOM_EVENT = 'ra:join-room'
 
-export type JoinRoomDetail = { code: string; audioOnly: boolean }
+// callId ties the room to a chat call, so ending one ends the other.
+// inPlace keeps the person where they are (for example in Chat): the call
+// opens as a small window over the page instead of taking over the screen.
+export type JoinRoomDetail = { code: string; audioOnly: boolean; callId?: string; inPlace?: boolean }
+
+// Sent when a chat call is over from the other side (declined, no answer,
+// cancelled, or hung up), so the call window can close by itself.
+export const CALL_FINISHED_EVENT = 'ra:call-finished'
+
+export type CallFinishedDetail = { callId: string; status: string }
+
+export function announceCallFinished(detail: CallFinishedDetail) {
+  window.dispatchEvent(new CustomEvent<CallFinishedDetail>(CALL_FINISHED_EVENT, { detail }))
+}
 
 export function requestJoinRoom(detail: JoinRoomDetail) {
   window.dispatchEvent(new CustomEvent<JoinRoomDetail>(JOIN_ROOM_EVENT, { detail }))

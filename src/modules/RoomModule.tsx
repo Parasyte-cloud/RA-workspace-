@@ -25,7 +25,7 @@ import {
   X
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { JOIN_ROOM_EVENT, type JoinRoomDetail } from '../lib/roomApi'
+import { CALL_FINISHED_EVENT, JOIN_ROOM_EVENT, type CallFinishedDetail, type JoinRoomDetail } from '../lib/roomApi'
 import {
   friendlyEventError,
   invitationText,
@@ -245,13 +245,18 @@ export default function RoomModule({
   // a call, the callee after pressing Accept.
   const joinRoomRef=useRef(joinRoom)
   joinRoomRef.current=joinRoom
+  // The chat call this ROOM 7 session belongs to, if any.
+  const callIdRef=useRef('')
   const onOpenRef=useRef(onOpen)
   onOpenRef.current=onOpen
   useEffect(()=>{
     const handler=(event:Event)=>{
       const detail=(event as CustomEvent<JoinRoomDetail>).detail
       if(!detail?.code)return
-      onOpenRef.current?.()
+      // A call started from Chat stays in Chat: no jump to the ROOM 7 page.
+      // It opens as a small window over the page and can be expanded.
+      if(!detail.inPlace)onOpenRef.current?.()
+      callIdRef.current=detail.callId||''
       void joinRoomRef.current(detail.code,detail.audioOnly)
     }
     window.addEventListener(JOIN_ROOM_EVENT,handler)
@@ -268,6 +273,12 @@ export default function RoomModule({
   },[invokeRoom,session?.room.room_code])
 
   const handleLeft=useCallback((reason:RoomLeaveReason)=>{
+    // Hanging up ends the chat call for both people.
+    const callId=callIdRef.current
+    if(callId){
+      callIdRef.current=''
+      void client?.rpc('respond_chat_call',{p_call:callId,p_status:'ended'})
+    }
     setSession(null)
     setShowList(false)
     const messages:Record<RoomLeaveReason,string>={
@@ -280,7 +291,7 @@ export default function RoomModule({
     }
     setNotice(messages[reason])
     void loadRooms()
-  },[loadRooms])
+  },[loadRooms,client])
 
   const roomId=session?.room.id
   const moderation=useMemo<Room7Moderation|undefined>(()=>{
@@ -323,6 +334,11 @@ export default function RoomModule({
     setNotice('')
     try{
       await invokeRoom({action:'end',room_id:session.room.id})
+      const callId=callIdRef.current
+      if(callId){
+        callIdRef.current=''
+        void client?.rpc('respond_chat_call',{p_call:callId,p_status:'ended'})
+      }
       setSession(null)
       setNotice('ROOM 7 ended for everyone.')
       await loadRooms()
@@ -332,6 +348,30 @@ export default function RoomModule({
       throw error
     }
   }
+
+  // The other person declined, did not answer, cancelled, or hung up: close
+  // this call window by itself. The caller hosts the room, so the caller also
+  // ends it, which stops it lingering in the room list.
+  const endRef=useRef(endCurrentRoom)
+  endRef.current=endCurrentRoom
+  const sessionRef=useRef(session)
+  sessionRef.current=session
+  useEffect(()=>{
+    const handler=(event:Event)=>{
+      const detail=(event as CustomEvent<CallFinishedDetail>).detail
+      const current=sessionRef.current
+      if(!detail?.callId||!current||detail.callId!==callIdRef.current)return
+      callIdRef.current=''
+      if(current.role==='host'){
+        void endRef.current().catch(()=>setSession(null))
+      }else{
+        setSession(null)
+        setNotice('The call has ended.')
+      }
+    }
+    window.addEventListener(CALL_FINISHED_EVENT,handler)
+    return()=>window.removeEventListener(CALL_FINISHED_EVENT,handler)
+  },[])
 
   const copyRoom=async(room:RoomRecord)=>{
     const url=new URL(window.location.href)

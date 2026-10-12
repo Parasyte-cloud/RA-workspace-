@@ -11,6 +11,9 @@ import {
   Mic,
   Paperclip,
   Phone,
+  PhoneIncoming,
+  PhoneMissed,
+  PhoneOutgoing,
   Plus,
   Reply,
   Search,
@@ -32,6 +35,14 @@ import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, requestJoinRoom } from '../lib/roomApi'
+import {
+  callPreview,
+  describeCall,
+  mergeTimeline,
+  unseenMissed,
+  type CallRecord
+} from '../lib/callLog'
+import { useChatCalls } from './useChatCalls'
 import {
   buildTranscript,
   exportFileName,
@@ -186,7 +197,7 @@ export function ChatModule(){
   const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
   const [messages,setMessages]=useState<Message[]>([])
   const [query,setQuery]=useState('')
-  const [filter,setFilter]=useState<'all'|'unread'|'archived'>('all')
+  const [filter,setFilter]=useState<'all'|'unread'|'archived'|'calls'>('all')
   const [newChatOpen,setNewChatOpen]=useState(false)
   const [messageText,setMessageText]=useState('')
   const [loading,setLoading]=useState(true)
@@ -195,6 +206,9 @@ export function ChatModule(){
   const [notice,setNotice]=useState('')
   const [callNotice,setCallNotice]=useState('')
   const [hasCalling,setHasCalling]=useState(false)
+  // When each chat was last looked at in this session, so a missed call stops
+  // counting as new the moment its chat is opened.
+  const [callSeen,setCallSeen]=useState<Record<string,string>>({})
   const [calling,setCalling]=useState(false)
   const [isAdmin,setIsAdmin]=useState(false)
   const [replyTo,setReplyTo]=useState<Message|null>(null)
@@ -232,9 +246,45 @@ export function ChatModule(){
   useEffect(()=>{userRef.current=userId},[userId])
   useEffect(()=>{peopleRef.current=new Map(people.map(person=>[person.id,person]))},[people])
 
+  const calls=useChatCalls(userId)
+
+  // Per chat: the latest call that has settled, and how many missed calls are new.
+  const callInfo=useMemo(()=>{
+    const latest=new Map<string,CallRecord>()
+    for(const call of calls){
+      if(call.status==='ringing')continue
+      const known=latest.get(call.conversation_id)
+      if(!known || Date.parse(call.created_at)>Date.parse(known.created_at))latest.set(call.conversation_id,call)
+    }
+    return latest
+  },[calls])
+
+  // Newest first, one line per call, only calls that have settled.
+  const callHistory=useMemo(()=>{
+    const byId=new Map(directs.map(row=>[row.conversation.id,row]))
+    const out:Array<{call:CallRecord;row:DirectRow}>=[]
+    for(const call of calls){
+      if(call.status==='ringing')continue
+      const row=byId.get(call.conversation_id)
+      if(row)out.push({call,row})
+      if(out.length>=100)break
+    }
+    return out
+  },[calls,directs])
+
+  const missedFor=useCallback((row:DirectRow)=>{
+    if(!userId || row.conversation.id===selectedId)return 0
+    const seen=[row.membership.last_read_at,callSeen[row.conversation.id]]
+      .filter(Boolean)
+      .sort()
+      .pop()
+    return unseenMissed(calls,userId,row.conversation.id,seen)
+  },[calls,userId,selectedId,callSeen])
+
   const peopleMap=useMemo(()=>new Map(people.map(person=>[person.id,person])),[people])
   const selected=useMemo(()=>directs.find(row=>row.conversation.id===selectedId) || null,[directs,selectedId])
   const totalUnread=useMemo(()=>directs.reduce((sum,row)=>row.membership.archived_at?sum:sum+row.unread,0),[directs])
+  const totalMissed=useMemo(()=>directs.reduce((sum,row)=>row.membership.archived_at||row.conversation.id===selectedId?sum:sum+unseenMissed(calls,userId,row.conversation.id,[row.membership.last_read_at,callSeen[row.conversation.id]].filter(Boolean).sort().pop()),0),[directs,calls,userId,selectedId,callSeen])
   const archivedCount=useMemo(()=>directs.filter(row=>row.membership.archived_at).length,[directs])
 
   const matchingPeople=useMemo(()=>{
@@ -254,13 +304,13 @@ export function ChatModule(){
     const normalized=query.trim().toLowerCase()
     return directs
       .filter(row=>filter==='archived' ? !!row.membership.archived_at : !row.membership.archived_at)
-      .filter(row=>filter!=='unread' || row.unread>0)
+      .filter(row=>filter!=='unread' || row.unread>0 || missedFor(row)>0)
       .filter(row=>{
         if(!normalized || newChatOpen)return true
         return displayName(row.other).toLowerCase().includes(normalized) ||
           (row.latest?.body || '').toLowerCase().includes(normalized)
       })
-  },[directs,filter,query,newChatOpen])
+  },[directs,filter,query,newChatOpen,missedFor])
 
   // Loads the conversation list. Silent after the first load, so refreshes
   // never blank the list or flash a loading state.
@@ -382,6 +432,7 @@ export function ChatModule(){
     setDirects(rows=>rows.map(row=>row.conversation.id===conversationId && row.unread>0
       ? {...row,unread:0}
       : row))
+    setCallSeen(current=>({...current,[conversationId]:new Date().toISOString()}))
     const {error}=await client.rpc('mark_social_conversation_read',{p_conversation_id:conversationId})
     if(error)setNotice(error.message)
   },[])
@@ -1030,8 +1081,9 @@ export function ChatModule(){
     window.setTimeout(()=>element.classList.remove('flash'),1200)
   }
 
-  const startCall=async(kind:'Voice'|'Video')=>{
+  const startCall=async(kind:'Voice'|'Video',target:DirectRow|null=selected)=>{
     const client=supabase
+    const selected=target
     if(!client || !selected || calling)return
     if(!hasCalling){
       setCallNotice(`${kind} calling is not enabled on your account yet. Reach out to Admin to give you access.`)
@@ -1041,13 +1093,19 @@ export function ChatModule(){
     setCallNotice('')
     try{
       const room=await createCallRoom(`Call with ${displayName(selected.other)}`)
-      const {error}=await client.rpc('start_chat_call',{
+      const {data:callId,error}=await client.rpc('start_chat_call',{
         p_conversation:selected.conversation.id,
         p_kind:kind==='Video'?'video':'voice',
         p_room_code:room.room.room_code
       })
       if(error)throw error
-      requestJoinRoom({code:room.room.room_code,audioOnly:kind==='Voice'})
+      // Stay in Chat: the call opens as a small window over the conversation.
+      requestJoinRoom({
+        code:room.room.room_code,
+        audioOnly:kind==='Voice',
+        callId:typeof callId==='string'?callId:undefined,
+        inPlace:true
+      })
     }catch(error){
       setCallNotice(error instanceof Error ? error.message : 'Unable to start the call.')
     }finally{
@@ -1056,18 +1114,19 @@ export function ChatModule(){
   }
 
   const rows=useMemo(()=>{
-    const out:Array<{type:'day';key:string;label:string}|{type:'message';message:Message}>=[]
+    const out:Array<{type:'day';key:string;label:string}|{type:'message';message:Message}|{type:'call';call:CallRecord}>=[]
     let last=''
-    for(const message of messages){
-      const label=dayLabel(message.created_at)
+    for(const item of mergeTimeline(messages,calls,selectedId)){
+      const stamp=item.type==='message'?item.message.created_at:item.call.created_at
+      const label=dayLabel(stamp)
       if(label!==last){
-        out.push({type:'day',key:`${message.id}-day`,label})
+        out.push({type:'day',key:`${item.type==='message'?item.message.id:item.call.id}-day`,label})
         last=label
       }
-      out.push({type:'message',message})
+      out.push(item.type==='message'?{type:'message',message:item.message}:{type:'call',call:item.call})
     }
     return out
-  },[messages])
+  },[messages,calls,selectedId])
 
   return (
     <section className="cm">
@@ -1076,7 +1135,7 @@ export function ChatModule(){
       <div className={`cmShell ${mobileThreadOpen && selectedId?'threadOpen':'listOpen'}`}>
         <aside className="cmSide">
           <header className="cmSideHead">
-            <h2>Chats{totalUnread>0&&<span className="cmTotal">{totalUnread>99?'99+':totalUnread}</span>}</h2>
+            <h2>Chats{totalUnread+totalMissed>0&&<span className="cmTotal">{totalUnread+totalMissed>99?'99+':totalUnread+totalMissed}</span>}</h2>
             <button
               type="button"
               className="cmRound"
@@ -1102,7 +1161,10 @@ export function ChatModule(){
             <div className="cmChips">
               <button type="button" className={filter==='all'?'on':''} onClick={()=>setFilter('all')}>All</button>
               <button type="button" className={filter==='unread'?'on':''} onClick={()=>setFilter('unread')}>
-                Unread{totalUnread>0?` ${totalUnread}`:''}
+                Unread{totalUnread+totalMissed>0?` ${totalUnread+totalMissed}`:''}
+              </button>
+              <button type="button" className={filter==='calls'?'on':''} onClick={()=>setFilter('calls')}>
+                Calls{totalMissed>0?` ${totalMissed}`:''}
               </button>
               <button type="button" className={filter==='archived'?'on':''} onClick={()=>setFilter('archived')}>
                 Archived{archivedCount>0?` ${archivedCount}`:''}
@@ -1127,11 +1189,60 @@ export function ChatModule(){
               </div>
             )}
 
-            {!newChatOpen&&(
+            {!newChatOpen&&filter==='calls'&&(
+              <div className="cmGroup">
+                {callHistory.length===0&&(
+                  <div className="cmEmpty cmEmptyBlock">
+                    <Phone size={26}/>
+                    <strong>No calls yet</strong>
+                    <span>Voice and video calls you make or receive in chat appear here.</span>
+                  </div>
+                )}
+                {callHistory.map(({call,row})=>{
+                  const label=describeCall(call,userId)
+                  const Icon=label.tone==='missed' ? PhoneMissed : call.caller_id===userId ? PhoneOutgoing : PhoneIncoming
+                  return (
+                    <div key={call.id} className={`cmRow cmCallRow ${label.tone}`}>
+                      <button type="button" className="cmCallRowMain" onClick={()=>{setFilter('all');openConversation(row.conversation.id)}}>
+                        <span className="cmAvatar">{initials(displayName(row.other))}</span>
+                        <span className="cmRowCopy">
+                          <span className="cmRowTop">
+                            <strong>{displayName(row.other)}</strong>
+                            <small>{formatListTime(call.created_at)}</small>
+                          </span>
+                          <span className="cmRowBottom">
+                            <small className={`cmCallState ${label.tone}`}>
+                              {call.kind==='video'?<Video size={13}/>:<Icon size={13}/>}
+                              {label.title}{label.detail&&label.detail!=='Ended'?`, ${label.detail}`:''}
+                            </small>
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="cmCallRowBtn"
+                        title={call.kind==='video'?'Video call back':'Call back'}
+                        aria-label={`Call ${displayName(row.other)} back`}
+                        disabled={calling}
+                        onClick={()=>void startCall(call.kind==='video'?'Video':'Voice',row)}
+                      >
+                        {call.kind==='video'?<Video size={16}/>:<Phone size={16}/>}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {!newChatOpen&&filter!=='calls'&&(
               <>
                 {loading&&!loadedOnceRef.current&&<div className="cmEmpty">Loading chats...</div>}
                 {visibleDirects.map(row=>{
                   const mine=row.latest?.sender_id===userId
+                  const lastCall=callInfo.get(row.conversation.id) || null
+                  const callIsLatest=!!lastCall && (!row.latest || Date.parse(lastCall.created_at)>Date.parse(row.latest.created_at))
+                  const missedNew=missedFor(row)
+                  const badge=row.unread+missedNew
                   return (
                     <button
                       key={row.conversation.id}
@@ -1143,11 +1254,15 @@ export function ChatModule(){
                       <span className="cmRowCopy">
                         <span className="cmRowTop">
                           <strong>{displayName(row.other)}</strong>
-                          <small className={row.unread>0?'unread':''}>{formatListTime(row.latest?.created_at || row.conversation.created_at)}</small>
+                          <small className={badge>0?'unread':''}>{formatListTime((callIsLatest&&lastCall?lastCall.created_at:row.latest?.created_at) || row.conversation.created_at)}</small>
                         </span>
                         <span className="cmRowBottom">
-                          <small>{row.latest?`${mine?'You: ':''}${messagePreview(row.latest)}`:secondary(row.other)}</small>
-                          {row.unread>0&&<span className="cmBadge">{row.unread>99?'99+':row.unread}</span>}
+                          <small className={missedNew>0?'cmMissedText':''}>
+                            {callIsLatest&&lastCall
+                              ? callPreview(lastCall,userId)
+                              : row.latest?`${mine?'You: ':''}${messagePreview(row.latest)}`:secondary(row.other)}
+                          </small>
+                          {badge>0&&<span className="cmBadge">{badge>99?'99+':badge}</span>}
                         </span>
                       </span>
                     </button>
@@ -1267,6 +1382,27 @@ export function ChatModule(){
                 )}
                 {rows.map(item=>{
                   if(item.type==='day')return <div className="cmDay" key={item.key}><span>{item.label}</span></div>
+                  if(item.type==='call'){
+                    const call=item.call
+                    const label=describeCall(call,userId)
+                    const Icon=call.status==='missed'||call.status==='cancelled'||call.status==='declined'
+                      ? PhoneMissed
+                      : call.caller_id===userId ? PhoneOutgoing : PhoneIncoming
+                    return (
+                      <div className={`cmCallLine ${label.tone}`} key={call.id} id={`cm-call-${call.id}`}>
+                        <span className="cmCallIcon">{call.kind==='video'?<Video size={16}/>:<Icon size={16}/>}</span>
+                        <span className="cmCallCopy">
+                          <strong>{label.title}</strong>
+                          <small>{label.detail} &middot; {new Date(call.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small>
+                        </span>
+                        {label.canCallBack&&selected&&(
+                          <button type="button" className="cmCallBack" disabled={calling} onClick={()=>void startCall(call.kind==='video'?'Video':'Voice')}>
+                            {call.kind==='video'?<Video size={14}/>:<Phone size={14}/>}Call back
+                          </button>
+                        )}
+                      </div>
+                    )
+                  }
                   const message=item.message
                   const mine=message.sender_id===userId
                   const sender=mine ? null : peopleMap.get(message.sender_id)
