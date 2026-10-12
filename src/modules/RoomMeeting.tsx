@@ -86,7 +86,8 @@ export default function RoomMeeting({
   onRejoin,
   onExtend,
   moderation,
-  audioOnly=false
+  audioOnly=false,
+  chatCall=false
 }:{
   session:RoomSession
   minimized?:boolean
@@ -100,6 +101,8 @@ export default function RoomMeeting({
   onExtend?:(endIso:string)=>Promise<void>
   moderation?:Room7Moderation
   audioOnly?:boolean
+  /** A one-to-one call started from Chat: shown as a call, not as a ROOM 7 meeting. */
+  chatCall?:boolean
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   const {retire,isRetired}=useRetiredClients()
@@ -364,45 +367,45 @@ export default function RoomMeeting({
     <section
       className={`roomCallPage roomCallPortal ${minimized?'roomCallMini':'roomCallFull'}`}
       style={minimized?undefined:(frameStyle.width?frameStyle:{visibility:'hidden'})}
-      aria-label={`ROOM 7 call: ${session.room.title}`}
+      aria-label={chatCall?`${audioOnly?'Voice':'Video'} call: ${session.room.title}`:`ROOM 7 call: ${session.room.title}`}
     >
       <div className="roomCallTopbar">
         <div>
-          <span className="roomLivePill"><span/>LIVE ROOM 7</span>
+          <span className="roomLivePill"><span/>{chatCall?(audioOnly?'VOICE CALL':'VIDEO CALL'):'LIVE ROOM 7'}</span>
           <strong>{session.room.title}</strong>
-          <small>{session.room.room_code} · {session.role==='host'?'Host':'Participant'}</small>
-          <span className={`roomAiBadge ${session.room.ai_notes_enabled?'on':'off'}`}>
+          {!chatCall&&<small>{session.room.room_code} · {session.role==='host'?'Host':'Participant'}</small>}
+          {!chatCall&&<span className={`roomAiBadge ${session.room.ai_notes_enabled?'on':'off'}`}>
             <NotebookPen size={13}/>
             {session.room.ai_notes_enabled?'R7 AI Notes On':'R7 AI Notes Off'}
-          </span>
+          </span>}
         </div>
         <div className="roomCallActions">
-          <Room7ExtrasControls extras={extras} compact={minimized}/>
-          {canModerate&&!minimized&&
+          {!chatCall&&<Room7ExtrasControls extras={extras} compact={minimized}/>}
+          {canModerate&&!minimized&&!chatCall&&
             <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>setPeopleOpen(open=>!open)}/>
           }
-          <button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('staff')} title="Link for RideArrivo staff (intranet sign-in)">
+          {!chatCall&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('staff')} title="Link for RideArrivo staff (intranet sign-in)">
             <Link2 size={16}/>{copied==='staff'?'Copied':'Staff link'}
-          </button>
-          {session.event&&
+          </button>}
+          {session.event&&!chatCall&&
             <button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('guest')} title="Public link for external guests">
               <Link2 size={16}/>{copied==='guest'?'Copied':'Guest link'}
             </button>
           }
-          <button type="button" className="glassButton roomSecondaryCallAction" onClick={onShowList} title="Open the ROOM 7 list while the call continues in the corner">
+          {!chatCall&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={onShowList} title="Open the ROOM 7 list while the call continues in the corner">
             <LayoutList size={16}/>Rooms
-          </button>
+          </button>}
           {session.role==='host'&&
             <button type="button" className="roomDangerButton" disabled={ending} onClick={()=>void endRoom()}>
               {ending?<LoaderCircle size={16} className="roomSpin"/>:<DoorOpen size={16}/>}
-              {ending?'Ending ROOM 7...':'End ROOM 7'}
+              {chatCall?(ending?'Ending...':'End call'):(ending?'Ending ROOM 7...':'End ROOM 7')}
             </button>
           }
           <button
             type="button"
             className="glassButton roomMinimizeButton"
             onClick={minimized?onRestore:onMinimize}
-            aria-label={minimized?'Return to ROOM 7 call':'Minimize ROOM 7 call'}
+            aria-label={minimized?(chatCall?'Return to call':'Return to ROOM 7 call'):(chatCall?'Minimize call':'Minimize ROOM 7 call')}
           >
             {minimized?<Maximize2 size={16}/>:<Minimize2 size={16}/>}
             {minimized?'Return to call':'Minimize'}
@@ -414,15 +417,15 @@ export default function RoomMeeting({
         {initError&&
           <div className="roomMeetingState">
             <ShieldCheck size={30}/>
-            <h3>ROOM 7 could not start</h3>
+            <h3>{chatCall?'The call could not start':'ROOM 7 could not start'}</h3>
             <p>{initError}</p>
-            <button type="button" className="glassButton" onClick={()=>onLeft('left')}>Return to ROOM 7</button>
+            <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
           </div>
         }
         {!initError&&!meeting&&
           <div className="roomMeetingState">
             <LoaderCircle size={32} className="roomSpin"/>
-            <h3>Preparing ROOM 7</h3>
+            <h3>{chatCall?'Connecting call':'Preparing ROOM 7'}</h3>
             <p>Initialising secure audio and video.</p>
           </div>
         }
@@ -453,7 +456,7 @@ export default function RoomMeeting({
               ?<><RefreshCw size={18} className="roomSpin"/>
                 <span>Connection interrupted. Reconnecting{rejoinAttempt>1?` (attempt ${rejoinAttempt})`:''}...</span></>
               :<><WifiOff size={18}/>
-                <span>Could not reconnect to ROOM 7.</span>
+                <span>{chatCall?'Could not reconnect the call.':'Could not reconnect to ROOM 7.'}</span>
                 <button type="button" onClick={retryNow}>Try again</button>
                 <button type="button" onClick={()=>onLeft('lost')}>Leave</button></>
             }
