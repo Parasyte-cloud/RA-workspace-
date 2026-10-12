@@ -484,3 +484,8 @@ entrypoint = "./functions/workspace-search/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/zoho-mail-search/index.ts"
+
+# Called by the database trigger with a shared secret, not by a signed-in user.
+[functions.push-dispatch]
+enabled = true
+verify_jwt = false
