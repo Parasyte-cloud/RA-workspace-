@@ -25,7 +25,7 @@ function zones(side) {
 }
 
 test('the real navigation list was read from App.tsx', () => {
-  assert.equal(REAL.length, 32)
+  assert.equal(REAL.length, 33)
   assert.ok(ids(REAL).includes('overview') && ids(REAL).includes('admin'))
 })
 

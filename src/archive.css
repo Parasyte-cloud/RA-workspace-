@@ -1,0 +1,65 @@
+/* Archive page */
+.arcPage{display:grid;gap:14px;padding:4px 0 24px;color:inherit}
+.arcHead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.arcHead h2{margin:6px 0 4px;font-size:1.6rem}
+.arcHead p{margin:0;max-width:640px;color:var(--ra-muted,#667085);font-size:.9rem;line-height:1.5}
+.arcHead .eyebrow{display:inline-flex;align-items:center;gap:6px}
+.arcTabs{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:var(--ra-surface-muted,rgba(7,26,56,.06))}
+.arcTabs button{border:0;background:transparent;color:inherit;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:700;display:inline-flex;gap:6px;align-items:center}
+.arcTabs button.on{background:var(--ra-surface,#fff);box-shadow:0 2px 8px rgba(7,26,56,.12)}
+.arcTabs b,.arcFolders b{font-size:.72rem;opacity:.7;font-weight:700}
+.arcNotice{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35);font-size:.85rem}
+.arcNotice button{border:0;background:transparent;color:inherit;cursor:pointer}
+.arcDrop{display:grid;justify-items:center;gap:6px;padding:22px 16px;border:2px dashed var(--ra-border,rgba(7,26,56,.22));border-radius:16px;text-align:center;transition:.15s;background:var(--ra-surface-muted,rgba(255,255,255,.4))}
+.arcDrop.over{border-color:#ff9900;background:rgba(255,153,0,.1)}
+.arcDrop small{color:var(--ra-muted,#667085)}
+.arcStaged{display:grid;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--ra-border,rgba(7,26,56,.14));background:var(--ra-surface-muted,rgba(255,255,255,.5))}
+.arcStagedList{display:flex;flex-wrap:wrap;gap:6px}
+.arcChip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(7,26,56,.07);font-size:.78rem;max-width:100%}
+.arcChip small{opacity:.65}
+.arcChip button{border:0;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center;padding:0}
+.arcForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.arcForm .arcWide{grid-column:1/-1}
+.arcForm label,.arcModal label{display:grid;gap:4px;font-size:.78rem;font-weight:700}
+.arcForm input,.arcForm select,.arcModal input,.arcModal select,.arcTools select{width:100%;min-height:40px;border:1px solid var(--ra-border,rgba(7,26,56,.2));border-radius:10px;padding:8px 10px;background:var(--ra-surface,rgba(255,255,255,.8));color:inherit;font:inherit}
+.arcStagedActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.arcJobs{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.82rem}
+.arcJobs li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;background:var(--ra-surface-muted,rgba(7,26,56,.05))}
+.arcJobs li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arcJobs li.done small{color:#197647}.arcJobs li.failed small{color:#b42318}
+.arcJobsClear{justify-content:flex-end!important;background:transparent!important}
+.arcTools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.arcSearch{flex:1 1 240px;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 10px;border:1px solid var(--ra-border,rgba(7,26,56,.2));border-radius:10px;background:var(--ra-surface,rgba(255,255,255,.8))}
+.arcSearch input{flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;min-width:0}
+.arcTools select{width:auto}
+.arcMine{display:inline-flex;gap:6px;align-items:center;font-size:.85rem;white-space:nowrap}
+.arcFolders{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.arcFolders button{flex:0 0 auto;display:inline-flex;gap:5px;align-items:center;border:1px solid var(--ra-border,rgba(7,26,56,.16));background:var(--ra-surface-muted,rgba(255,255,255,.5));color:inherit;border-radius:999px;padding:6px 11px;cursor:pointer;font-size:.8rem}
+.arcFolders button.on{background:#071a38;color:#fff;border-color:#071a38}
+.arcList{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.arcRow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:14px;border:1px solid var(--ra-border,rgba(7,26,56,.1));background:var(--ra-surface-muted,rgba(255,255,255,.6))}
+.arcIcon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,153,0,.14);color:#b66e00}
+.arcMeta{min-width:0;display:grid;gap:3px}
+.arcMeta strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arcMeta span{font-size:.76rem;color:var(--ra-muted,#667085);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.arcMeta small{font-size:.78rem;color:var(--ra-muted,#667085)}
+.arcTag{font-style:normal;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:rgba(7,26,56,.07);font-size:.7rem}
+.arcTag.vis{background:rgba(47,91,145,.12)}
+.arcActions{display:flex;gap:6px;align-items:center}
+.arcDanger:hover{color:#b42318;border-color:rgba(180,35,24,.4)}
+.arcEmpty{display:grid;justify-items:center;gap:6px;padding:34px 12px;text-align:center;color:var(--ra-muted,#667085)}
+.arcBinNote{margin:0;font-size:.85rem;color:var(--ra-muted,#667085)}
+.arcSpin{animation:arcSpin .9s linear infinite}
+@keyframes arcSpin{to{transform:rotate(360deg)}}
+.arcModalBack{position:fixed;inset:0;z-index:2147483000;background:rgba(2,17,40,.5);display:grid;place-items:center;padding:16px}
+.arcModal{width:min(480px,100%);display:grid;gap:12px;padding:18px;border-radius:18px;background:var(--ra-surface,#fff);color:inherit;box-shadow:0 30px 80px rgba(2,17,40,.4)}
+.arcModal header{display:flex;justify-content:space-between;align-items:center}
+@media(max-width:640px){
+  .arcForm{grid-template-columns:1fr}
+  .arcRow{grid-template-columns:auto minmax(0,1fr);grid-template-areas:'icon meta' 'actions actions'}
+  .arcRow .arcIcon{grid-area:icon}.arcRow .arcMeta{grid-area:meta}
+  .arcRow .arcActions{grid-area:actions;justify-content:flex-end;flex-wrap:wrap}
+  .arcActions .iconButton{width:44px;height:44px}
+  .arcForm input,.arcForm select,.arcModal input,.arcModal select,.arcSearch input,.arcTools select{font-size:16px}
+  .arcTabs{width:100%}.arcTabs button{flex:1;justify-content:center}
+}
