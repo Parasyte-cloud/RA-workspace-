@@ -379,3 +379,39 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   font:inherit;font-size:12px;background:var(--cm-side);color:var(--cm-muted);box-shadow:0 1px 3px rgba(7,26,56,.18);
 }
 .cmOlder:disabled{opacity:.6;cursor:default}
+
+
+/* ---- Phones ---------------------------------------------------------
+   Chat is one pane at a time. These rules keep the composer above the
+   browser's own bars (100dvh), stop iOS zooming into the message box
+   (16px text), give every control a thumb-sized target, and keep the
+   header's call, archive and export buttons on one line. */
+@media(max-width:860px){
+  .cmShell{min-height:360px}
+  .cmComposer textarea{font-size:16px}
+  .cmComposer{padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));gap:8px}
+  .cmThreadHead{padding:8px 10px;gap:8px}
+  .cmHeadActions{gap:0;flex:0 0 auto}
+  .cmRound{width:40px;height:40px}
+  .cmCallLine{max-width:96%}
+  .cmMenu{width:min(270px,calc(100vw - 24px))}
+  .cmImage{width:min(320px,100%)}
+  .cmFile{width:min(300px,100%)}
+  .cmVoice{width:min(280px,100%)}
+  .cmStaged{padding:8px 10px}
+}
+@supports(height:100dvh){
+  @media(max-width:860px){.cmShell{height:calc(100dvh - 190px)}}
+}
+@media(max-width:520px){
+  /* The avatar adds nothing in a one-person chat header; the name needs the room. */
+  .cmThreadHead .cmAvatar{display:none}
+  .cmChips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+  .cmChips::-webkit-scrollbar{display:none}
+  .cmChips button{flex:0 0 auto;padding:8px 14px}
+  .cmRow{padding:12px 14px}
+  .cmCallLine{padding:8px 10px;gap:8px;flex-wrap:wrap;justify-content:center;text-align:center}
+  .cmCallBack{margin-left:0;padding:8px 14px}
+  .cmCallRowBtn{width:42px;height:42px}
+  .cmBubble{max-width:90%}
+}

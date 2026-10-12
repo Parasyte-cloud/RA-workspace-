@@ -162,3 +162,42 @@ html[data-ra-theme='dark'] .roomGuestRow code{background:rgba(255,255,255,.07)}
 .roomGuestCalendarRow input,.roomGuestCalendarRow select{min-height:36px;border-radius:8px;border:1px solid rgba(7,26,56,.2);padding:4px 8px;font:inherit;background:transparent;color:inherit}
 .roomGuestCalendarRow .secondaryButton{flex:1 1 auto;justify-content:center;text-align:center}
 .roomGuestCalendarRow .secondaryButton.disabled{opacity:.5;pointer-events:none}
+
+/* ---- Phones ---------------------------------------------------------
+   A call started from Chat is a window over the page. On a phone it sits
+   at the top, under the status bar, so the message box and the bottom
+   menu stay usable underneath it. */
+@media(max-width:700px){
+  .roomCallPage.roomCallMini{
+    top:calc(env(safe-area-inset-top,0px) + 8px);
+    bottom:auto;
+    left:8px;
+    right:8px;
+    width:auto;
+    height:min(38vh,280px);
+    z-index:2147483000;
+  }
+}
+
+/* Guest link window: a sheet from the bottom, with big buttons. */
+@media(max-width:520px){
+  .roomGuestOverlay{align-items:end;padding:0}
+  .roomGuestCard{
+    width:100%;max-width:none;max-height:92dvh;overflow-y:auto;
+    border-radius:20px 20px 0 0;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  }
+  .roomGuestActions{display:grid;grid-template-columns:1fr;gap:8px}
+  .roomGuestActions .primaryButton,.roomGuestActions .secondaryButton{justify-content:center;min-height:46px}
+  .roomGuestRow code{overflow-wrap:anywhere;word-break:break-all}
+  .roomGuestToggle{padding:6px 0}
+}
+
+/* Guests waiting to be admitted: full width under the status bar, large buttons. */
+@media(max-width:520px){
+  .roomAdmit{
+    top:calc(env(safe-area-inset-top,0px) + 8px);
+    right:8px;left:8px;width:auto;z-index:2147483200;
+  }
+  .roomAdmitRow button{min-height:42px;padding:8px 14px}
+}
