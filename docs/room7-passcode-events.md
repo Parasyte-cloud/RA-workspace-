@@ -24,7 +24,9 @@ Requirements on the server (one time):
 
 Pressing the button again changes nothing that invitations already sent depend on.
 
-Guests who arrive before you open the room wait on the page and are let in automatically.
+Guests who arrive before you open the room wait on the page and are let in automatically. If the guest page is already on, the room also opens by itself the moment you join the meeting.
+
+To vet each guest, tick **Approve each guest before they enter** in the same window. Guests then wait until you press Admit on the panel that appears above your call.
 
 The sections below describe the same setup done by hand.
 

@@ -36,6 +36,7 @@ import {
 } from '../lib/room7Share'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
+import GuestAdmissionPanel from './GuestAdmissionPanel'
 import '../room.css'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
@@ -384,6 +385,23 @@ export default function RoomModule({
     }
   }
 
+  const setAdmission=async(invite:GuestReady,admission:'auto'|'host')=>{
+    const room=rooms.find(item=>item.room_code===invite.code)
+    if(!room||guestBusy)return
+    setGuestBusy(room.id)
+    setGuestError('')
+    try{
+      await invokeEvent({action:'configure',room_id:room.id,admission})
+      setGuestInvite(current=>current&&current.code===invite.code?{...current,admission}:current)
+    }catch(error){
+      const message=friendlyEventError(error instanceof Error?error.message:'Unable to change guest approval.')
+      setGuestError(message)
+      setNotice(message)
+    }finally{
+      setGuestBusy('')
+    }
+  }
+
   const copyText=async(label:string,text:string)=>{
     try{
       await navigator.clipboard.writeText(text)
@@ -423,14 +441,24 @@ export default function RoomModule({
     </Suspense>
   ):null
 
+  // Guests waiting for the host's approval show up here, above the call.
+  const admissionRoomIds=Array.from(new Set(
+    [session?.room.id,...rooms.filter(room=>room.status==='active').map(room=>room.id)]
+      .filter((id):id is string=>Boolean(id))
+  ))
+  const admissionNode=client&&admissionRoomIds.length
+    ?<GuestAdmissionPanel roomIds={admissionRoomIds} invoke={invokeEvent}/>
+    :null
+
   if(fullCall){
     return <>
       {callNode}
+      {admissionNode}
       <div ref={setCallAnchor} className="roomCallAnchor" aria-hidden="true"/>
     </>
   }
 
-  if(!active)return callNode
+  if(!active)return <>{callNode}{admissionNode}</>
 
   const activeRooms=rooms.filter(room=>room.status==='active')
   const recentRooms=rooms.filter(room=>room.status==='ended')
@@ -438,6 +466,7 @@ export default function RoomModule({
   return (
     <>
     {callNode}
+    {admissionNode}
     <section className="roomPage">
       <div className="roomHero glassPanel">
         <div className="roomHeroCopy">
@@ -701,6 +730,19 @@ export default function RoomModule({
                 </button>
               </div>
             ))}
+
+            <label className="roomGuestToggle">
+              <input
+                type="checkbox"
+                checked={guestInvite.admission==='host'}
+                disabled={!!guestBusy}
+                onChange={event=>void setAdmission(guestInvite,event.target.checked?'host':'auto')}
+              />
+              <span>
+                <b>Approve each guest before they enter</b>
+                <small>Guests wait on a screen until you press Admit. You see them on top of your call.</small>
+              </span>
+            </label>
 
             {!guestInvite.codeOnly&&(
               <div className="roomGuestNote">

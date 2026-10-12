@@ -22,14 +22,16 @@ Scope: how an outside guest goes from an invitation to a live meeting, and how a
 | 7 | A host who already set their own passcode could not simplify it | Medium | Fixed. **Use the event code only** button in the guest window |
 | 8 | `room7.ridearrivo.com` was redirected to the intranet at Cloudflare, so guests never reached the guest page | High | Fixed outside the code (Cloudflare redirect removed). Confirmed working |
 
-## Open items that need a backend change or a decision
+## Second pass: server changes
 
-| # | Item | Why it matters | Suggested fix |
-|---|---|---|---|
-| A | No rate limit on `resolve` and `join` | Someone could guess codes or passcodes. The code space is 32^8 (about 1.1 trillion), so guessing is impractical, but nothing slows an attempt | Throttle by IP and room in `room-guest-session` |
-| B | No host approval queue ("admit") | With the code as the key, anyone holding the link gets in. Hosts cannot approve people one by one | Add an optional waiting room: guests join a lobby preset and the host admits them |
-| C | Rooms open only after a host action | A host who forgets the button leaves guests waiting | Let the server treat an active room as open when the host is in it, or open automatically at the scheduled start |
-| D | Access checks are copied into four functions | A rule changed in one can drift from the others | Move the check into one shared module |
-| E | Consent tick box wording | Counsel advised on recording wording, so it was left unchanged | Confirm with counsel before making consent implicit in the Join button |
-| F | Email is required for every guest | It is how attendance is recorded, so it was kept | Make it optional per event if a looser setting is wanted |
-| G | Host gets no signal when a guest joins | Hosts cannot tell who has arrived without opening the call | Show a "guest joined" notice in the host view |
+Run `supabase/migrations/20261012240000_room7_admission_and_limits.sql`, then deploy `room-guest-session`, `room-event-control` and `room-session`.
+
+| # | Item | Status |
+|---|---|---|
+| A | No rate limit on `resolve` and `join` | Fixed. Limits per address (and per address and room for wrong passcodes: 15 per 10 minutes). Generous enough for an office behind one address. If the counter is unreachable, guests are allowed in, so a limiter fault never blocks a live event |
+| B | No host approval queue | Fixed. **Approve each guest before they enter** in the Guest link window. Guests wait on a screen; the host sees them above the call and presses Admit, Deny or Admit all. An approval belongs to the guest's browser and lasts 12 hours. Invited guests skip the queue because the host already chose them |
+| C | Room did not open if the host forgot the button | Fixed. When the host (or a Manager or Administrator) joins a meeting whose guest page is already on, the doors open. It never turns the page on by itself, never reopens an ended event, and can be switched off per event with `auto_open` |
+| D | Access checks copied into four functions | Open. Not changed in this pass to avoid touching four live functions at once. Suggested next step: one shared module |
+| E | Consent tick box wording | Open, owner: you. Confirm with counsel before making consent implicit |
+| F | Email required for every guest | Kept on purpose (attendance record) |
+| G | Host gets no signal when a guest joins | Partly addressed: with approval on, the host sees each arrival. With approval off, still no signal |

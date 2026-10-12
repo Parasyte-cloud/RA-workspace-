@@ -99,6 +99,9 @@ export type EventInfo = {
   event_state?: string
   has_passcode?: boolean
   scheduled_end?: string | null
+  // 'host' means the host admits each guest. Absent on servers without the setting.
+  admission?: string
+  auto_open?: boolean
 } | null
 
 export type Invoke = (body: Record<string, unknown>) => Promise<{ event?: EventInfo } & Record<string, unknown>>
@@ -113,6 +116,8 @@ export type GuestReady = {
   // The event code is the only thing a guest needs: open the link, type a name.
   codeOnly: boolean
   alreadyOpen: boolean
+  // Whether each guest waits for the host to admit them.
+  admission: 'auto' | 'host'
 }
 
 export async function makeGuestReady(
@@ -141,7 +146,7 @@ export async function makeGuestReady(
 
   // Already working: never replace a passcode people may already hold.
   if (usable && !options.newPasscode && !options.codeOnly) {
-    return { link: guestLink(room.code), code: room.code, title: room.title, passcode: null, codeOnly: false, alreadyOpen: true }
+    return { link: guestLink(room.code), code: room.code, title: room.title, passcode: null, codeOnly: false, alreadyOpen: true, admission: event?.admission === 'host' ? 'host' : 'auto' }
   }
 
   // The default is the simplest thing that is still private: the event code
@@ -183,5 +188,6 @@ export async function makeGuestReady(
     passcode: separate ? passcode : null,
     codeOnly: !separate,
     alreadyOpen: false,
+    admission: (configured.event?.admission ?? event?.admission) === 'host' ? 'host' : 'auto',
   }
 }

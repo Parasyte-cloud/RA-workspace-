@@ -10,6 +10,11 @@ import Room7GuestDocuments from './Room7GuestDocuments'
 import Room7PublicExperienceSections, {
   Room7PublicExperienceNavigation,
 } from './Room7PublicExperienceSections'
+import {
+  admissionAction,
+  makeRequestKey,
+  POLL_WAITING_MS,
+} from '../lib/room7Admission'
 import './room7-public.css'
 
 const ExternalRoom7Meeting = lazy(
@@ -53,6 +58,8 @@ type PublicRoom = {
   requires_invitation: boolean
   requires_passcode: boolean
   requires_email: boolean
+  // 'host' means the host lets each guest in. Older servers omit it.
+  admission?: 'auto' | 'host'
 }
 
 type Locator = {
@@ -67,6 +74,8 @@ type JoinResponse = {
     role: string
   }
   auth_token: string
+  // The host has not let this guest in yet. Keep asking.
+  waiting?: boolean
 }
 
 const stateLabels: Record<RoomState, string> = {
@@ -418,6 +427,29 @@ function writeGuestMemory(name: string, email: string) {
 
 const INCORRECT_PASSCODE = /passcode is incorrect/i
 
+// One random key per browser tab and event. The server ties the host's
+// approval to it. sessionStorage keeps a refresh from losing the place in
+// the queue; if storage is blocked the key just lives for this page load.
+const memoryKeys = new Map<string, string>()
+
+function requestKeyFor(locator: Locator | null) {
+  const key = `ridearrivo:room7:reqkey:${locatorKey(locator)}`
+
+  try {
+    const stored = window.sessionStorage.getItem(key)
+    if (stored && stored.length >= 16) return stored
+    const fresh = makeRequestKey()
+    window.sessionStorage.setItem(key, fresh)
+    return fresh
+  } catch {
+    const existing = memoryKeys.get(key)
+    if (existing) return existing
+    const fresh = makeRequestKey()
+    memoryKeys.set(key, fresh)
+    return fresh
+  }
+}
+
 export default function ExternalRoom7App() {
   const locator =
     useMemo(
@@ -471,6 +503,16 @@ export default function ExternalRoom7App() {
   // passcode box only appears when the host also set one.
   const [showPasscode, setShowPasscode] =
     useState(false)
+
+  // True while the host has not yet let this guest in.
+  const [waiting, setWaiting] =
+    useState(false)
+
+  const requestKey =
+    useMemo(
+      () => requestKeyFor(locator),
+      [locator],
+    )
 
   const [consent, setConsent] =
     useState(false)
@@ -617,6 +659,71 @@ export default function ExternalRoom7App() {
     }
   }, [locator])
 
+  // Waiting for the host. Ask every few seconds; the moment the host admits
+  // this guest, join for real. A refusal ends the wait with a clear message.
+  useEffect(() => {
+    if (!waiting || !locator || authToken) return
+
+    let cancelled = false
+    let busy = false
+
+    const check = async () => {
+      if (busy || cancelled) return
+      busy = true
+
+      try {
+        const answer =
+          await room7Request<{ request_status: string }>({
+            action: 'status',
+            ...locator,
+            request_key: requestKey,
+          })
+
+        const next = admissionAction(answer.request_status)
+
+        if (cancelled) return
+
+        if (next === 'refused') {
+          setWaiting(false)
+          setError('The host did not let you in to this ROOM 7 event.')
+        } else if (next === 'enter') {
+          const { response, used } = await joinRequest()
+
+          if (cancelled) return
+
+          if (response.auth_token) {
+            setUsedPasscode(used)
+            setWaiting(false)
+            setAuthToken(response.auth_token)
+          }
+        }
+      } catch (cause) {
+        if (cancelled) return
+
+        const message =
+          cause instanceof Error ? cause.message : ''
+
+        // Real refusals (removed, event ended) stop the wait. A passing
+        // network error just tries again on the next tick.
+        if (/removed|ended|not open|did not let you/i.test(message)) {
+          setWaiting(false)
+          setError(message)
+        }
+      } finally {
+        busy = false
+      }
+    }
+
+    const timer = window.setInterval(() => void check(), POLL_WAITING_MS)
+    void check()
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+    // joinRequest is rebuilt each render; the values it reads are listed.
+  }, [waiting, locator, authToken, requestKey, name, email, passcode, usedPasscode])
+
   // Guests who arrive early wait here and are let in by themselves: the page
   // checks every few seconds and shows the join form the moment the host opens
   // the room. Nobody has to refresh or ask for a new link.
@@ -695,6 +802,8 @@ export default function ExternalRoom7App() {
               room?.requires_invitation
                 ? inviteToken
                 : undefined,
+            request_key:
+              requestKey,
           })
 
       if (!room?.requires_passcode) {
@@ -802,6 +911,14 @@ export default function ExternalRoom7App() {
       try {
         const { response, used } =
           await joinRequest()
+
+        if (response.waiting) {
+          // Not an error: the host decides. Show the waiting screen.
+          setUsedPasscode(used)
+          writeGuestMemory(name.trim(), email.trim())
+          setWaiting(true)
+          return
+        }
 
         if (
           !response.auth_token
@@ -1114,7 +1231,34 @@ export default function ExternalRoom7App() {
                   </div>
                 )}
 
+              {waiting && (
+                <div
+                  className="room7PublicWaiting"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="room7PublicSpinner" />
+                  <strong>
+                    Waiting for the host to let you in
+                  </strong>
+                  <span>
+                    {name.trim()
+                      ? `${name.trim()}, keep this page open. `
+                      : 'Keep this page open. '}
+                    You will enter automatically as soon as you are admitted.
+                  </span>
+                  <button
+                    type="button"
+                    className="room7PublicLinkButton"
+                    onClick={() => setWaiting(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {room.join_available &&
+                !waiting &&
                 !(
                   room.access_mode ===
                     'invitation' &&
