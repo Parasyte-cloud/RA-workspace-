@@ -79,3 +79,9 @@ test('the screen records, previews before sending, and can export text or a zip'
   assert.match(ui, /exportChat\(true\)/)
   assert.match(ui, /\.range\(from,from\+999\)/)
 })
+
+test('a picture bubble is as wide as the picture preview, not the original image size', () => {
+  const css = readFileSync('src/chat.css', 'utf8')
+  assert.match(css, /\.cmImage\{width:320px;max-width:100%\}/)
+  assert.match(css, /\.cmFile\{width:300px;max-width:100%\}/)
+})

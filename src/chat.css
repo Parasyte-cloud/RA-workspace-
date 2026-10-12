@@ -272,3 +272,9 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 .cmMenu button:hover{background:var(--cm-hover)}
 .cmMenu small{font-size:11.5px;color:var(--cm-muted)}
 .cmExporting{padding:7px 14px;background:var(--cm-active);color:var(--cm-text);font-size:13px;font-weight:700}
+
+/* Keep the bubble as wide as the picture, not as wide as the picture's real size. */
+.cmImage{width:320px;max-width:100%}
+.cmImage img{width:100%;height:auto;max-height:340px}
+.cmFile{width:300px;max-width:100%}
+.cmVoice{width:280px;max-width:100%}
