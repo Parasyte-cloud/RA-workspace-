@@ -156,3 +156,21 @@ test('hanging up on either side ends the chat call and closes the other window',
 test('no em dash in the new call files', () => {
   for (const f of ['src/lib/callLog.ts', 'src/lib/ringtone.ts', 'src/modules/useChatCalls.ts']) assert.ok(!read(f).includes('—'))
 })
+
+test('phone layouts: keyboard-safe chat, thumb-sized call buttons, call window clear of the composer', () => {
+  const chatCss = read('src/chat.css')
+  const ringerCss = read('src/call-ringer.css')
+  const roomCss = read('src/room.css')
+  const publicCss = read('src/room7-public/room7-public.css')
+  assert.match(chatCss, /100dvh - 190px/)
+  assert.match(chatCss, /\.cmComposer textarea\{font-size:16px\}/, 'no iOS zoom into the message box')
+  assert.match(chatCss, /safe-area-inset-bottom/)
+  assert.match(ringerCss, /\.callBtn\{width:56px;height:56px\}/)
+  assert.match(ringerCss, /safe-area-inset-top/)
+  assert.match(roomCss, /\.roomCallPage\.roomCallMini\{[^}]*bottom:auto/)
+  assert.match(roomCss, /\.roomGuestOverlay\{align-items:end/)
+  assert.match(roomCss, /\.roomAdmit\{[^}]*left:8px/)
+  assert.match(publicCss, /room7PublicJumpJoin/)
+  assert.match(publicCss, /\.room7PublicJoinCard \.room7GuestDocumentTrigger/)
+  assert.match(read('src/room7-public/ExternalRoom7App.tsx'), /href="#room7-guest-access"/)
+})
