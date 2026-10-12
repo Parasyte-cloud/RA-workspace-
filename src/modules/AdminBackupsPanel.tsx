@@ -5,6 +5,7 @@ import {
   useState,
 } from 'react'
 import {
+  AlertTriangle,
   CalendarClock,
   DatabaseBackup,
   HardDrive,
@@ -13,6 +14,7 @@ import {
   Save,
   ShieldCheck,
 } from 'lucide-react'
+import { assessBackupHealth } from '../lib/backupHealth'
 import {
   loadAdminBackupJobs,
   loadAdminBackupSchedule,
@@ -177,6 +179,11 @@ export default function AdminBackupsPanel() {
 
   const latestJob = jobs[0] || null
 
+  const health = useMemo(
+    () => assessBackupHealth(schedule, jobs),
+    [schedule, jobs],
+  )
+
   const verifiedCount = useMemo(
     () =>
       jobs.filter(
@@ -320,6 +327,31 @@ export default function AdminBackupsPanel() {
         </div>
       </div>
 
+      {!loading && health.length > 0 && (
+        <section
+          className="glassCard adminBackupHealth"
+          aria-label="Backup health"
+        >
+          <header>
+            <AlertTriangle size={18} />
+            <strong>
+              {health.some(i => i.level === 'critical')
+                ? 'Backups need attention now'
+                : 'Backups need attention'}
+            </strong>
+          </header>
+
+          <ul>
+            {health.map(issue => (
+              <li key={issue.id} className={issue.level}>
+                <b>{issue.title}</b>
+                <span>{issue.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {error && (
         <div
           className="glassCard adminBackupNotice off"
@@ -343,9 +375,11 @@ export default function AdminBackupsPanel() {
           <CalendarClock size={18} />
           <span>Schedule</span>
           <strong>
-            {schedule?.enabled
-              ? schedule.frequency
-              : 'Disabled'}
+            {!schedule
+              ? 'Not set'
+              : schedule.enabled
+                ? schedule.frequency
+                : 'Disabled'}
           </strong>
         </div>
 

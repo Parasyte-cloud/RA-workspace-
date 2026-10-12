@@ -53,6 +53,67 @@ if [ -n "${SUPABASE_SECRET_KEY:-}" ]; then
   esac
 fi
 
+if [ -n "${SUPABASE_DB_URL:-}" ]; then
+  # Only the host, port and user name are examined, and only the host is
+  # ever printed. The password never reaches the log.
+  case "$SUPABASE_DB_URL" in
+    postgres://*|postgresql://*)
+      pass "SUPABASE_DB_URL is a PostgreSQL connection string"
+      db_rest="${SUPABASE_DB_URL#*://}"
+      db_rest="${db_rest%%/*}"
+      db_rest="${db_rest%%\?*}"
+      db_user=""
+      case "$db_rest" in
+        *@*) db_user="${db_rest%@*}"; db_user="${db_user%%:*}" ;;
+      esac
+      db_hostport="${db_rest##*@}"
+      db_host="${db_hostport%%:*}"
+      db_port=""
+      case "$db_hostport" in
+        *:*) db_port="${db_hostport##*:}" ;;
+      esac
+
+      # pg_dump needs a session. Supavisor transaction mode (port 6543)
+      # cannot run it and fails with prepared-statement errors.
+      if [ "$db_port" = "6543" ]; then
+        fail "SUPABASE_DB_URL uses port 6543 (transaction pooler); use the session pooler on port 5432"
+      else
+        pass "SUPABASE_DB_URL is not the transaction pooler"
+      fi
+
+      # The pooler only accepts postgres.<project-ref> as the user name.
+      case "$db_host" in
+        *.pooler.supabase.com)
+          case "$db_user" in
+            postgres.*) pass "pooler user name carries the project reference" ;;
+            *) fail "pooler connections need the user postgres.<project-ref>, not a bare user name" ;;
+          esac
+          ;;
+      esac
+
+      # GitHub-hosted runners have no IPv6. A direct db.<ref>.supabase.co
+      # host is IPv6-only unless the IPv4 add-on is enabled, so the dump
+      # cannot connect from there.
+      case "$db_host" in
+        ''|*[!A-Za-z0-9.-]*)
+          ;;
+        *)
+          if command -v getent >/dev/null 2>&1; then
+            if [ -n "$(getent ahostsv4 "$db_host" 2>/dev/null)" ]; then
+              pass "database host $db_host has an IPv4 address"
+            else
+              fail "database host $db_host has no IPv4 address; GitHub runners are IPv4-only, use the session pooler (aws-0-<region>.pooler.supabase.com:5432) or enable the IPv4 add-on"
+            fi
+          fi
+          ;;
+      esac
+      ;;
+    *)
+      fail "SUPABASE_DB_URL must start with postgresql://"
+      ;;
+  esac
+fi
+
 if [ -n "${SUPABASE_URL:-}" ]; then
   case "$SUPABASE_URL" in
     https://*)

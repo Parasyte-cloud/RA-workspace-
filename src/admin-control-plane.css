@@ -197,6 +197,51 @@
   color:#a42b2b;
 }
 
+.adminBackupHealth{
+  padding:12px 14px;
+  background:rgba(239,68,68,.07);
+  border-color:rgba(239,68,68,.18);
+  display:grid;
+  gap:8px;
+}
+
+.adminBackupHealth header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#a42b2b;
+  font-size:12px;
+}
+
+.adminBackupHealth ul{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+
+.adminBackupHealth li{
+  display:grid;
+  gap:2px;
+  padding-left:10px;
+  border-left:3px solid #d9822b;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.adminBackupHealth li.critical{
+  border-left-color:#c53030;
+}
+
+.adminBackupHealth li b{
+  font-size:11px;
+}
+
+.adminBackupHealth li span{
+  opacity:.82;
+}
+
 .adminBackupMetrics{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
