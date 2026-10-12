@@ -1888,3 +1888,19 @@
 .room7ExperienceShell select{
   font-family:inherit;
 }
+
+/* Secondary text action, for "Have a separate passcode?" */
+.room7PublicLinkButton{
+  align-self:flex-start;
+  background:none;
+  border:0;
+  padding:2px 0;
+  color:inherit;
+  opacity:.75;
+  font:inherit;
+  font-size:13px;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.room7PublicLinkButton:hover,
+.room7PublicLinkButton:focus-visible{opacity:1}
