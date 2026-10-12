@@ -8,13 +8,17 @@ import {
   useState
 } from 'react'
 import {
+  Check,
   Copy,
+  ExternalLink,
   History,
   LoaderCircle,
   LogIn,
   NotebookPen,
   Plus,
   RefreshCw,
+  Send,
+  Share2,
   ShieldCheck,
   Users,
   Video,
@@ -22,6 +26,14 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { JOIN_ROOM_EVENT, type JoinRoomDetail } from '../lib/roomApi'
+import {
+  friendlyEventError,
+  invitationText,
+  makeGuestReady,
+  whatsappLink,
+  type GuestReady,
+  type Invoke
+} from '../lib/room7Share'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
 import '../room.css'
@@ -119,6 +131,10 @@ export default function RoomModule({
   const [callAnchor,setCallAnchor]=useState<HTMLDivElement|null>(null)
   const [created,setCreated]=useState<{code:string,title:string}|null>(null)
   const [audioOnly,setAudioOnly]=useState(false)
+  const [guestInvite,setGuestInvite]=useState<GuestReady|null>(null)
+  const [guestBusy,setGuestBusy]=useState('')
+  const [guestError,setGuestError]=useState('')
+  const [copied,setCopied]=useState('')
 
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
     if(!client)throw new Error('Workspace authentication is not configured.')
@@ -330,13 +346,51 @@ export default function RoomModule({
     }
   }
 
-  const copyGuestLink=async(code:string)=>{
-    const link=`https://room7.ridearrivo.com/r/${code}`
+  // Talks to the same server function as the Event Control Center, so every
+  // server rule (who may open a room to guests, passcode rules) still applies.
+  const invokeEvent:Invoke=useCallback(async body=>{
+    if(!client)throw new Error('Workspace authentication is not configured.')
+    const {data,error}=await client.functions.invoke('room-event-control',{body})
+    if(error){
+      let message=error.message||'Unable to set up guest access.'
+      const response=(error as {context?:unknown}).context
+      if(response instanceof Response){
+        const payload=await response.clone().json().catch(()=>null)
+        if(payload&&typeof payload.error==='string')message=payload.error
+      }
+      throw new Error(message)
+    }
+    if(data&&typeof data==='object'&&'error' in data&&typeof data.error==='string'){
+      throw new Error(data.error)
+    }
+    return data as Awaited<ReturnType<Invoke>>
+  },[client])
+
+  const prepareGuest=async(room:{id:string;room_code:string;title:string},newPasscode=false)=>{
+    if(guestBusy)return
+    setGuestBusy(room.id)
+    setGuestError('')
+    setNotice('')
     try{
-      await navigator.clipboard.writeText(link)
-      setNotice(`Guest link copied: ${link}`)
+      const ready=await makeGuestReady(invokeEvent,{id:room.id,code:room.room_code,title:room.title},{newPasscode})
+      setGuestInvite(ready)
+      setCopied('')
+    }catch(error){
+      const message=friendlyEventError(error instanceof Error?error.message:'Unable to set up guest access.')
+      setGuestError(message)
+      setNotice(message)
+    }finally{
+      setGuestBusy('')
+    }
+  }
+
+  const copyText=async(label:string,text:string)=>{
+    try{
+      await navigator.clipboard.writeText(text)
+      setCopied(label)
+      window.setTimeout(()=>setCopied(current=>current===label?'':current),2200)
     }catch{
-      window.prompt('Copy this ROOM 7 guest link:',link)
+      window.prompt(`Copy the ${label.toLowerCase()}:`,text)
     }
   }
 
@@ -430,11 +484,20 @@ export default function RoomModule({
         <div className="roomCreatedBanner">
           <div>
             <strong>{created.title} is ready</strong>
-            <span>ROOM 7 {created.code} · Use Event on its card to set up guest access, or join now.</span>
+            <span>ROOM 7 {created.code} · Get the guest link and code to share, or join now.</span>
           </div>
           <div className="roomCreatedActions">
-            <button type="button" className="secondaryButton" onClick={()=>void copyGuestLink(created.code)}>
-              <Copy size={15}/>Copy guest link
+            <button
+              type="button"
+              className="secondaryButton"
+              disabled={!!guestBusy}
+              onClick={()=>{
+                const room=rooms.find(item=>item.room_code===created.code)
+                if(room)void prepareGuest(room)
+                else setNotice('Refresh the list, then try again.')
+              }}
+            >
+              <Share2 size={15}/>{guestBusy?'Setting up...':'Guest link and code'}
             </button>
             <button
               type="button"
@@ -582,6 +645,15 @@ export default function RoomModule({
                   roomId={room.id}
                   roomTitle={room.title}
                 />
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={!!guestBusy}
+                  title="Open this meeting to guests and get the link, event code and passcode"
+                  onClick={()=>void prepareGuest(room)}
+                >
+                  <Share2 size={15}/>{guestBusy===room.id?'Setting up...':'Guest link'}
+                </button>
                 <button type="button" className="iconButton" title="Copy staff link (intranet sign-in required)" aria-label="Copy staff link" onClick={()=>void copyRoom(room)}>
                   <Copy size={16}/>
                 </button>
@@ -598,6 +670,62 @@ export default function RoomModule({
           )}
         </div>
       }
+
+      {guestInvite&&(
+        <div className="roomGuestOverlay" role="dialog" aria-label="Guest link and code" onClick={()=>setGuestInvite(null)}>
+          <div className="roomGuestCard" onClick={event=>event.stopPropagation()}>
+            <header>
+              <div>
+                <span className="eyebrow">GUEST ACCESS IS OPEN</span>
+                <h3>{guestInvite.title}</h3>
+              </div>
+              <button type="button" className="iconButton" aria-label="Close" onClick={()=>setGuestInvite(null)}><X size={16}/></button>
+            </header>
+
+            <p className="roomGuestHint">
+              Guests open the link, type their name and email{guestInvite.passcode?', and the passcode':''}, then press Join. They can also go to room7.ridearrivo.com and type the event code.
+            </p>
+
+            {([
+              ['Link',guestInvite.link],
+              ['Event code',guestInvite.code],
+              ...(guestInvite.passcode?[['Passcode',guestInvite.passcode] as [string,string]]:[])
+            ] as [string,string][]).map(([label,value])=>(
+              <div className="roomGuestRow" key={label}>
+                <span>{label}</span>
+                <code>{value}</code>
+                <button type="button" className="secondaryButton" onClick={()=>void copyText(label,value)}>
+                  {copied===label?<><Check size={14}/>Copied</>:<><Copy size={14}/>Copy</>}
+                </button>
+              </div>
+            ))}
+
+            {!guestInvite.passcode&&(
+              <div className="roomGuestNote">
+                This meeting was already open to guests, so its passcode was kept. It is only shown once, when it is made.
+                <button type="button" className="secondaryButton" disabled={!!guestBusy} onClick={()=>{
+                  const room=rooms.find(item=>item.room_code===guestInvite.code)
+                  if(room&&window.confirm('Make a new passcode? The old passcode will stop working for anyone who has not joined yet.'))void prepareGuest(room,true)
+                }}>
+                  Make a new passcode
+                </button>
+              </div>
+            )}
+
+            <div className="roomGuestActions">
+              <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+                {copied==='Invitation'?<><Check size={15}/>Invitation copied</>:<><Copy size={15}/>Copy invitation message</>}
+              </button>
+              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={whatsappLink(invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+                <Send size={15}/>Share on WhatsApp
+              </a>
+              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={guestInvite.link}>
+                <ExternalLink size={15}/>Open guest page
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="roomSectionHeading compact">
         <div>

@@ -10,6 +10,20 @@ How to run a ROOM 7 event for people outside RideArrivo, protected by a passcode
 
 Every guest gives an email, in every mode. That is how ROOM 7 knows who attended. The passcode is the extra lock on top.
 
+## Quickest way: Guest link and code
+
+In the intranet, open **ROOM 7** and press **Guest link and code** (or **Guest link** on a meeting card). One click does all the setup below for you: it turns on the public page, sets passcode access, creates a passcode and opens the doors. You then get the link, the event code and the passcode, each with a Copy button, plus **Copy invitation message** and **Share on WhatsApp**.
+
+Requirements on the server (one time):
+
+- The Supabase Edge Function secret `ROOM7_ACCESS_PEPPER` must be set. Without it passcodes cannot be saved and the button shows a clear error.
+- `room7.ridearrivo.com` must be a custom domain of the `ra-workspace` Cloudflare Pages project.
+- The Cloudflare RealtimeKit secrets must be set, or guests reach the page but cannot enter the call.
+
+Pressing the button again keeps the same passcode so invitations already sent still work. Use **Make a new passcode** to replace it.
+
+The sections below describe the same setup done by hand.
+
 ## Setting it up (host)
 
 In the Event Control Center, open the room and set:
