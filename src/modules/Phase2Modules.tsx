@@ -645,7 +645,14 @@ export function CompanyFilesModule() {
       if (error) throw error
       if (!data?.signedUrl) throw new Error('Unable to create the approved download link.')
 
-      window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+      // A download link with an attachment header saves the file without
+      // leaving the workspace, so there is no new tab to open.
+      const link = document.createElement('a')
+      link.href = data.signedUrl
+      link.rel = 'noopener'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
       return
     }
 

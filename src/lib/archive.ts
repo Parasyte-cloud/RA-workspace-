@@ -91,8 +91,18 @@ export function kindOf(mime: string): Kind {
   return 'other'
 }
 
-// Files a browser can show on its own, so Preview opens them instead of saving them.
-export const canPreview = (mime: string) => ['image', 'pdf', 'video', 'audio', 'text'].includes(kindOf(mime))
+// Files the viewer inside the workspace can show. Anything else is downloaded.
+export type ViewerMode = 'image' | 'video' | 'audio' | 'pdf' | 'text'
+
+export function viewerMode(mime: string): ViewerMode | null {
+  const k = kindOf(mime)
+  return k === 'image' || k === 'video' || k === 'audio' || k === 'pdf' || k === 'text' ? k : null
+}
+
+export const canPreview = (mime: string) => viewerMode(mime) !== null
+
+// Text previews show the start of the file only.
+export const MAX_TEXT_PREVIEW_CHARS = 200_000
 
 export type ArchiveRow = {
   id: string

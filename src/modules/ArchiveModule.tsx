@@ -35,6 +35,7 @@ import {
   BIN_DAYS,
   DEFAULT_FOLDER,
   DEFAULT_SHARE_DAYS,
+  MAX_TEXT_PREVIEW_CHARS,
   SHARE_DAY_OPTIONS,
   VISIBILITY_LABEL,
   allFolderNames,
@@ -52,6 +53,7 @@ import {
   shareState,
   shareUrl,
   validateArchiveFile,
+  viewerMode,
   type ArchiveRow,
   type FolderLimit,
   type Kind,
@@ -104,6 +106,7 @@ export default function ArchiveModule(){
   const [isAdmin,setIsAdmin]=useState(false)
   const [foldersOpen,setFoldersOpen]=useState(false)
   const [sharing,setSharing]=useState<ArchiveRow|null>(null)
+  const [viewing,setViewing]=useState<ArchiveRow|null>(null)
   const inputRef=useRef<HTMLInputElement|null>(null)
 
   const load=useCallback(async()=>{
@@ -233,16 +236,8 @@ export default function ArchiveModule(){
     link.remove()
   }
 
-  const preview=async(row:ArchiveRow)=>{
-    // Open the tab first so the browser does not treat it as a blocked popup.
-    const tab=window.open('','_blank')
-    setBusyId(row.id)
-    const url=await signed(row,false)
-    setBusyId('')
-    if(!url){tab?.close();return}
-    if(tab)tab.location.href=url
-    else window.location.href=url
-  }
+  // Preview stays inside the workspace: it opens the viewer below, never a new tab.
+  const preview=(row:ArchiveRow)=>setViewing(row)
 
   const saveEdit=async()=>{
     const client=supabase
@@ -451,7 +446,7 @@ export default function ArchiveModule(){
                     {row.description&&<small>{row.description}</small>}
                   </div>
                   <div className="arcActions">
-                    {canPreview(row.mime_type)&&<button type="button" className="iconButton" title="Preview" aria-label={`Preview ${row.name}`} disabled={busy} onClick={()=>void preview(row)}><Eye size={16}/></button>}
+                    {canPreview(row.mime_type)&&<button type="button" className="iconButton" title="Preview" aria-label={`Preview ${row.name}`} onClick={()=>preview(row)}><Eye size={16}/></button>}
                     <button type="button" className="iconButton" title="Download" aria-label={`Download ${row.name}`} disabled={busy} onClick={()=>void download(row)}>{busy?<LoaderCircle size={16} className="arcSpin"/>:<Download size={16}/>}</button>
                     {row.can_manage&&<button type="button" className="iconButton" title="Share outside the company" aria-label={`Share ${row.name} outside the company`} onClick={()=>setSharing(row)}><Link2 size={16}/></button>}
                     {row.can_manage&&<button type="button" className="iconButton" title="Edit" aria-label={`Edit ${row.name}`} onClick={()=>setEditing(row)}><Pencil size={16}/></button>}
@@ -517,6 +512,7 @@ export default function ArchiveModule(){
         </div>
       )}
       {foldersOpen&&<FolderAccessModal names={folders.map(f=>f.folder)} limits={limits} onClose={()=>setFoldersOpen(false)} onSaved={()=>{void load()}} onError={setNotice}/>}
+      {viewing&&<Viewer row={viewing} onClose={()=>setViewing(null)} onDownload={()=>void download(viewing)} onError={setNotice}/>}
       {sharing&&<ShareModal row={sharing} onClose={()=>setSharing(null)} onError={setNotice}/>}
     </section>
   )
@@ -697,6 +693,75 @@ function ShareModal({row,onClose,onError}:{row:ArchiveRow;onClose:()=>void;onErr
               )
             })}
           </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Viewer({row,onClose,onDownload,onError}:{row:ArchiveRow;onClose:()=>void;onDownload:()=>void;onError:(message:string)=>void}){
+  const mode=viewerMode(row.mime_type)
+  const [url,setUrl]=useState('')
+  const [text,setText]=useState('')
+  const [loading,setLoading]=useState(true)
+
+  useEffect(()=>{
+    const client=supabase
+    if(!client||!mode){setLoading(false);return}
+    let cancelled=false
+    let objectUrl=''
+    void (async()=>{
+      try{
+        if(mode==='image'||mode==='video'||mode==='audio'){
+          const {data,error}=await client.storage.from(BUCKET).createSignedUrl(row.storage_path,600)
+          if(error||!data?.signedUrl)throw error||new Error('Could not open this file.')
+          if(!cancelled)setUrl(data.signedUrl)
+        }else{
+          // A PDF or text file is fetched and shown from memory, so it renders
+          // right here and never needs a new tab.
+          const {data,error}=await client.storage.from(BUCKET).download(row.storage_path)
+          if(error||!data)throw error||new Error('Could not open this file.')
+          if(mode==='pdf'){
+            objectUrl=URL.createObjectURL(new Blob([data],{type:'application/pdf'}))
+            if(!cancelled)setUrl(objectUrl)
+          }else{
+            const full=await data.text()
+            if(!cancelled)setText(full.length>MAX_TEXT_PREVIEW_CHARS?`${full.slice(0,MAX_TEXT_PREVIEW_CHARS)}\n\n... (the rest is not shown. Download the file to read it all.)`:full)
+          }
+        }
+      }catch(error){
+        if(!cancelled)onError(error instanceof Error?error.message:'Could not open this file.')
+      }finally{
+        if(!cancelled)setLoading(false)
+      }
+    })()
+    return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl)}
+  },[row.storage_path,mode,onError])
+
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()}
+    window.addEventListener('keydown',onKey)
+    return()=>window.removeEventListener('keydown',onKey)
+  },[onClose])
+
+  return (
+    <div className="arcViewerBack" role="dialog" aria-modal="true" aria-label={`Preview of ${row.name}`}>
+      <div className="arcViewer">
+        <header>
+          <strong title={row.name}>{row.name}</strong>
+          <span>
+            <button type="button" className="secondaryButton" onClick={onDownload}><Download size={14}/>Download</button>
+            <button type="button" className="iconButton" aria-label="Close preview" onClick={onClose}><X size={16}/></button>
+          </span>
+        </header>
+        <div className="arcViewerBody">
+          {loading&&<div className="arcEmpty"><LoaderCircle size={22} className="arcSpin"/>Opening...</div>}
+          {!loading&&mode==='image'&&url&&<img src={url} alt={row.name}/>}
+          {!loading&&mode==='video'&&url&&<video src={url} controls autoPlay={false} playsInline/>}
+          {!loading&&mode==='audio'&&url&&<audio src={url} controls/>}
+          {!loading&&mode==='pdf'&&url&&<iframe src={url} title={row.name}/>}
+          {!loading&&mode==='text'&&<pre>{text}</pre>}
+          {!loading&&!url&&!text&&mode!=='text'&&<div className="arcEmpty">This file cannot be shown here. Use Download.</div>}
         </div>
       </div>
     </div>
