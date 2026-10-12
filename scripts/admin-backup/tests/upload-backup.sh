@@ -22,6 +22,7 @@ mkdir -p "$work/bin" "$work/remote"
 #           real command does ("is a file not a directory")
 cat > "$work/bin/rclone" <<'FAKE'
 #!/usr/bin/env bash
+[ -n "${FAKE_LOG:-}" ] && printf '%s\n' "$*" >> "$FAKE_LOG"
 sub="${1:-}"; shift || true
 remote_path() { printf '%s/%s' "$FAKE_REMOTE" "${1#dst:}"; }
 case "$sub" in
@@ -86,6 +87,7 @@ run_upload() {
   env "$@" \
     PATH="$work/bin:$PATH" \
     FAKE_REMOTE="$work/remote" \
+    FAKE_LOG="$work/args.log" \
     SUPABASE_STORAGE_S3_ENDPOINT="https://source.example.test" \
     BACKUP_S3_ENDPOINT="https://dest.example.test" \
     BACKUP_S3_REGION="auto" \
@@ -116,6 +118,31 @@ if jq -e '.offsite_uploaded == true and .offsite.remote_verified == true' "$a1.j
   pass 'local sidecar records the verified upload'
 else
   fail 'local sidecar should be marked verified'
+fi
+
+
+# 1b. Diagnostics are off unless asked for, and on when asked.
+if grep -E '^copyto ' "$work/args.log" | grep -Eq -- '--dump|-vv'; then
+  fail 'diagnostic flags must not be sent unless BACKUP_RCLONE_DEBUG=1'
+else
+  pass 'no diagnostic flags by default'
+fi
+
+rm -rf "$work/remote"; mkdir -p "$work/remote"; : > "$work/args.log"
+a1b="$(make_artifact "$work/run1b")"
+out="$(run_upload "$a1b" BACKUP_RCLONE_DEBUG=1)"; code=$?
+if [ "$code" -eq 0 ] &&
+   [ "$(grep -E '^copyto ' "$work/args.log" | grep -c -- '-vv --dump headers')" -eq 2 ] &&
+   printf '%s\n' "$out" | grep -Fq 'upload diagnostics are on'; then
+  pass 'BACKUP_RCLONE_DEBUG=1 adds header dumps to both uploads and says so'
+else
+  fail 'BACKUP_RCLONE_DEBUG=1 should add -vv --dump headers to both uploads'
+  grep -E '^copyto ' "$work/args.log" | sed 's/^/    /'
+fi
+if grep -E '^copyto ' "$work/args.log" | grep -Fq -- '--dump bodies'; then
+  fail 'file contents must never be dumped'
+else
+  pass 'bodies (file contents) are never dumped'
 fi
 
 # 2. A truncated upload must be caught.

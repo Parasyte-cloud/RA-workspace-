@@ -1,9 +1,19 @@
 name: Admin Backup Writer
 
+# The database starts this workflow itself (see
+# supabase/migrations/20261012180000_backup_dispatch.sql) the moment a backup
+# is queued or due. The hourly schedule below is only a safety net, because
+# GitHub cron is best effort. It runs only when ADMIN_BACKUP_WRITER_ENABLED
+# is "true".
 on:
   workflow_dispatch:
+    inputs:
+      debug_upload:
+        description: "Print rclone request and response headers for the off-site upload (no secrets, no file contents)"
+        type: boolean
+        default: false
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    - cron: "7 * * * *"
 
 permissions:
   contents: read
@@ -92,6 +102,8 @@ jobs:
           BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.ADMIN_BACKUP_DEST_S3_SECRET_ACCESS_KEY }}
 
           BACKUP_AGE_RECIPIENT: ${{ secrets.ADMIN_BACKUP_AGE_RECIPIENT }}
+
+          BACKUP_RCLONE_DEBUG: ${{ inputs.debug_upload && '1' || '0' }}
 
           BACKUP_RUNNER_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
           BACKUP_HEARTBEAT_INTERVAL_SECONDS: "300"
