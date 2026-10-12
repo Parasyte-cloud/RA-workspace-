@@ -357,3 +357,25 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   flex: 0 0 auto;
   min-height: 40px;
 }
+
+
+/* ---- edit, delete, typing, load earlier ---- */
+.cmEditBtn{right:32px}
+.cmDeleteBtn{right:60px}
+.cmDeleteBtn:hover{color:#c62828}
+.cmMsg.deleted .cmBubble{opacity:.75}
+.cmDeletedText{font-style:italic;color:var(--cm-muted)}
+.cmEditBox{display:grid;gap:6px;min-width:220px}
+.cmEditBox textarea{
+  width:100%;resize:vertical;border:1px solid var(--cm-line,rgba(7,26,56,.25));border-radius:8px;
+  padding:6px 8px;font:inherit;background:var(--cm-side);color:inherit;
+}
+.cmEditActions{display:flex;gap:6px;justify-content:flex-end}
+.cmEditActions button{border:0;border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px;background:var(--cm-side);color:inherit}
+.cmEditActions button.primary{background:#ff9900;color:#071a38;font-weight:700}
+.cmTyping{padding:2px 16px 4px;font-size:12px;color:var(--cm-muted);font-style:italic}
+.cmOlder{
+  display:block;margin:6px auto 10px;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;
+  font:inherit;font-size:12px;background:var(--cm-side);color:var(--cm-muted);box-shadow:0 1px 3px rgba(7,26,56,.18);
+}
+.cmOlder:disabled{opacity:.6;cursor:default}

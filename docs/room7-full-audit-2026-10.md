@@ -49,9 +49,10 @@ read line by line, so treat their section as "no red flags seen", not "clean".
 2. **Raise hand, reactions and a plain "Q and A" are in the engagement manager, but live only on the event
    path.** Ordinary meetings do not offer them.
 3. **Recording consent text** needs counsel's sign-off (open item from earlier).
-4. **No meeting summary email** after a meeting ends. Minutes exist (R7 AI Notes) but are not pushed to people.
-5. **Calendar link.** Creating a meeting does not create a calendar event with the join link. Scheduling an
-   event should add it to attendees' calendars.
+4. ~~Meeting summary email~~ **Done.** The host and employees who joined get the AI summary by email, once per
+   meeting, only when AI notes were on. Guests are not emailed.
+5. ~~Calendar link~~ **Done.** The guest invite card has Add to calendar (Google, Outlook, .ics) with the join link.
+   Rooms still have no stored start time, so the date is chosen when the invite is made.
 6. **Phone.** Join from the phone works (PWA and phone layouts); screen share from a phone is not available in
    mobile browsers, which is a browser limit.
 7. **Maintainability.** Three files are 2,900 to 3,200 lines each (`Room7EventControlCenter`,
@@ -63,6 +64,6 @@ read line by line, so treat their section as "no red flags seen", not "clean".
 
 1. Auto-end empty rooms after 12 hours (small, stops the pile-up for good).
 2. Rate limit on staff join, and an admin-joined notice.
-3. Meeting summary email and calendar link.
+3. ~~Meeting summary email and calendar link.~~ Done.
 4. Staff lobby.
 5. Split the three very large files; add staff-flow tests.

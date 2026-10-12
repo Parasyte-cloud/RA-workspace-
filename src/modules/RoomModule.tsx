@@ -9,6 +9,7 @@ import {
 } from 'react'
 import {
   Check,
+  CalendarPlus,
   Copy,
   ExternalLink,
   History,
@@ -27,7 +28,13 @@ import {
 import { supabase } from '../lib/supabase'
 import { CALL_FINISHED_EVENT, JOIN_ROOM_EVENT, type CallFinishedDetail, type JoinRoomDetail } from '../lib/roomApi'
 import {
+  calendarEventFor,
   friendlyEventError,
+  googleCalendarUrl,
+  icsFile,
+  nextQuarterHour,
+  outlookCalendarUrl,
+  toLocalInput,
   invitationText,
   makeGuestReady,
   whatsappLink,
@@ -140,6 +147,8 @@ export default function RoomModule({
   const [guestBusy,setGuestBusy]=useState('')
   const [guestError,setGuestError]=useState('')
   const [copied,setCopied]=useState('')
+  const [calStart,setCalStart]=useState(()=>toLocalInput(nextQuarterHour()))
+  const [calMinutes,setCalMinutes]=useState(60)
 
   const invokeRoom=useCallback(async(payload:FunctionPayload)=>{
     if(!client)throw new Error('Workspace authentication is not configured.')
@@ -855,6 +864,54 @@ export default function RoomModule({
                 )}
               </div>
             )}
+
+            {(()=>{
+              const start=new Date(calStart)
+              const valid=!Number.isNaN(start.getTime())
+              const event=valid?calendarEventFor({
+                title:guestInvite.title,
+                code:guestInvite.code,
+                passcode:guestInvite.passcode,
+                passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode,
+                start,
+                minutes:calMinutes
+              }):null
+              const download=()=>{
+                if(!event)return
+                const blob=new Blob([icsFile(event,`${guestInvite.code}@room7.ridearrivo.com`)],{type:'text/calendar;charset=utf-8'})
+                const url=URL.createObjectURL(blob)
+                const link=document.createElement('a')
+                link.href=url
+                link.download=`room7-${guestInvite.code}.ics`
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+              }
+              return (
+                <div className="roomGuestCalendar">
+                  <b><CalendarPlus size={15}/> Add to calendar</b>
+                  <div className="roomGuestCalendarRow">
+                    <label>
+                      <span>Starts</span>
+                      <input type="datetime-local" value={calStart} onChange={event=>setCalStart(event.target.value)}/>
+                    </label>
+                    <label>
+                      <span>Length</span>
+                      <select value={calMinutes} onChange={event=>setCalMinutes(Number(event.target.value))}>
+                        {[15,30,45,60,90,120].map(m=><option key={m} value={m}>{m<60?`${m} min`:`${m/60} h`}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="roomGuestCalendarRow">
+                    <a className={`secondaryButton${event?'':' disabled'}`} target="_blank" rel="noopener noreferrer" aria-disabled={!event} href={event?googleCalendarUrl(event):undefined}>Google</a>
+                    <a className={`secondaryButton${event?'':' disabled'}`} target="_blank" rel="noopener noreferrer" aria-disabled={!event} href={event?outlookCalendarUrl(event):undefined}>Outlook</a>
+                    <button type="button" className="secondaryButton" disabled={!event} onClick={download}>Apple / other (.ics)</button>
+                  </div>
+                  <small>The event carries the guest link and event code{guestInvite.passcode?' and the passcode, so share it only with people you invite':''}.</small>
+                </div>
+              )
+            })()}
 
             <div className="roomGuestActions">
               <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode,passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode}))}>

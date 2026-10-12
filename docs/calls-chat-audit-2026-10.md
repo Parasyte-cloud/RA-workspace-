@@ -31,11 +31,9 @@ the code and the screenshot of the ROOM 7 page showing three stale "ACTIVE" call
 
 ## Still open: chat (highest value first)
 
-1. **You cannot edit or delete your own message.** The data has `edited_at`, but there is no edit or
-   delete control. This is the most requested basic in any chat.
-2. **No typing indicator.**
-3. **Only the latest 300 messages load, and there is no "load older".** Long chats silently lose history on
-   screen. The database keeps it.
+1. ~~Edit and delete own message~~ **Done** (edit for 24 hours, delete any time, both sides see "This message was deleted").
+2. ~~Typing indicator~~ **Done** (live broadcast, nothing stored).
+3. ~~Load older messages~~ **Done** ("Load earlier messages" button, 100 at a time).
 4. **Search finds people and chat names, not message text.**
 5. **No reactions, forwarding, pinned messages or mute.**
 6. **No groups.** Same as calls: the schema is ready, the interface is not.
@@ -45,7 +43,7 @@ the code and the screenshot of the ROOM 7 page showing three stale "ACTIVE" call
 
 ## Suggested order
 
-1. Edit and delete own message, typing indicator, load older messages (chat basics, one release).
+1. ~~Chat basics~~ done.
 2. Busy handling and a "Recent calls" list.
 3. Group chats, then group calls.
 4. In-chat message search.
