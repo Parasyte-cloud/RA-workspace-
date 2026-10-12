@@ -1,13 +1,17 @@
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   Check,
   CheckCheck,
   MessageSquareText,
   Phone,
   Plus,
+  Reply,
   Search,
   Send,
   ShieldCheck,
+  Trash2,
   Video,
   X
 } from 'lucide-react'
@@ -35,6 +39,7 @@ type Membership = {
   user_id:string
   joined_at:string
   last_read_at:string
+  archived_at:string|null
 }
 
 type Conversation = {
@@ -52,6 +57,7 @@ type Message = {
   body:string
   edited_at:string|null
   created_at:string
+  reply_to_id?:string|null
   pending?:boolean
   failed?:boolean
 }
@@ -65,7 +71,7 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id'
 const OPEN_KEY='ra.chat.open'
 
 const initials=(value?:string|null)=>{
@@ -129,7 +135,7 @@ export function ChatModule(){
   const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
   const [messages,setMessages]=useState<Message[]>([])
   const [query,setQuery]=useState('')
-  const [filter,setFilter]=useState<'all'|'unread'>('all')
+  const [filter,setFilter]=useState<'all'|'unread'|'archived'>('all')
   const [newChatOpen,setNewChatOpen]=useState(false)
   const [messageText,setMessageText]=useState('')
   const [loading,setLoading]=useState(true)
@@ -139,6 +145,8 @@ export function ChatModule(){
   const [callNotice,setCallNotice]=useState('')
   const [hasCalling,setHasCalling]=useState(false)
   const [calling,setCalling]=useState(false)
+  const [isAdmin,setIsAdmin]=useState(false)
+  const [replyTo,setReplyTo]=useState<Message|null>(null)
 
   const selectedRef=useRef('')
   const directsRef=useRef<DirectRow[]>([])
@@ -158,7 +166,8 @@ export function ChatModule(){
 
   const peopleMap=useMemo(()=>new Map(people.map(person=>[person.id,person])),[people])
   const selected=useMemo(()=>directs.find(row=>row.conversation.id===selectedId) || null,[directs,selectedId])
-  const totalUnread=useMemo(()=>directs.reduce((sum,row)=>sum+row.unread,0),[directs])
+  const totalUnread=useMemo(()=>directs.reduce((sum,row)=>row.membership.archived_at?sum:sum+row.unread,0),[directs])
+  const archivedCount=useMemo(()=>directs.filter(row=>row.membership.archived_at).length,[directs])
 
   const matchingPeople=useMemo(()=>{
     const normalized=query.trim().toLowerCase()
@@ -176,7 +185,8 @@ export function ChatModule(){
   const visibleDirects=useMemo(()=>{
     const normalized=query.trim().toLowerCase()
     return directs
-      .filter(row=>filter==='all' || row.unread>0)
+      .filter(row=>filter==='archived' ? !!row.membership.archived_at : !row.membership.archived_at)
+      .filter(row=>filter!=='unread' || row.unread>0)
       .filter(row=>{
         if(!normalized || newChatOpen)return true
         return displayName(row.other).toLowerCase().includes(normalized) ||
@@ -212,7 +222,7 @@ export function ChatModule(){
 
       const {data:ownMembershipData,error:membershipError}=await client
         .from('social_conversation_members')
-        .select('conversation_id,user_id,joined_at,last_read_at')
+        .select('conversation_id,user_id,joined_at,last_read_at,archived_at')
         .eq('user_id',me)
       if(membershipError)throw membershipError
       const ownMemberships=(ownMembershipData || []) as Membership[]
@@ -240,7 +250,7 @@ export function ChatModule(){
       const [memberResult,messageResult]=await Promise.all([
         client
           .from('social_conversation_members')
-          .select('conversation_id,user_id,joined_at,last_read_at')
+          .select('conversation_id,user_id,joined_at,last_read_at,archived_at')
           .in('conversation_id',directIds),
         client
           .from('social_messages')
@@ -370,6 +380,7 @@ export function ChatModule(){
       return
     }
     setMessages([])
+    setReplyTo(null)
     setThreadLoading(true)
     forceScrollRef.current=true
     stickToBottomRef.current=true
@@ -495,7 +506,7 @@ export function ChatModule(){
     element.style.height=`${Math.min(element.scrollHeight,140)}px`
   }
 
-  const sendBody=async(body:string,tempId?:string)=>{
+  const sendBody=async(body:string,tempId?:string,replyId?:string|null)=>{
     const client=supabase
     if(!client || !userId || !selectedId)return
     const conversationId=selectedId
@@ -507,6 +518,7 @@ export function ChatModule(){
       body,
       edited_at:null,
       created_at:new Date().toISOString(),
+      reply_to_id:replyId || null,
       pending:true
     }
     forceScrollRef.current=true
@@ -514,7 +526,7 @@ export function ChatModule(){
 
     const {data,error}=await client
       .from('social_messages')
-      .insert({conversation_id:conversationId,sender_id:userId,body})
+      .insert({conversation_id:conversationId,sender_id:userId,body,...(replyId?{reply_to_id:replyId}:{})})
       .select(MESSAGE_COLUMNS)
       .single()
 
@@ -533,14 +545,16 @@ export function ChatModule(){
     event.preventDefault()
     const body=messageText.trim()
     if(!body)return
+    const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
     setMessageText('')
+    setReplyTo(null)
     requestAnimationFrame(resizeComposer)
-    void sendBody(body)
+    void sendBody(body,undefined,replyId)
   }
 
   const retry=(message:Message)=>{
     setMessages(current=>current.map(m=>m.id===message.id ? {...m,failed:false,pending:true} : m))
-    void sendBody(message.body,message.id)
+    void sendBody(message.body,message.id,message.reply_to_id)
   }
 
   const openConversation=(id:string)=>{
@@ -556,6 +570,60 @@ export function ChatModule(){
       setHasCalling(!error && data===true)
     })
   },[])
+
+  useEffect(()=>{
+    const client=supabase
+    if(!client)return
+    void client.rpc('is_workspace_admin').then(({data,error})=>{
+      setIsAdmin(!error && data===true)
+    })
+  },[])
+
+  const setArchived=async(row:DirectRow,archived:boolean)=>{
+    const client=supabase
+    if(!client)return
+    const stamp=archived ? new Date().toISOString() : null
+    setDirects(rows=>rows.map(item=>item.conversation.id===row.conversation.id
+      ? {...item,membership:{...item.membership,archived_at:stamp}}
+      : item))
+    if(archived){
+      setSelectedId('')
+      setMobileThreadOpen(false)
+    }
+    const {error}=await client.rpc('set_social_conversation_archived',{
+      p_conversation_id:row.conversation.id,
+      p_archived:archived
+    })
+    if(error){
+      setNotice(error.message)
+      void loadBase()
+    }
+  }
+
+  const deleteChat=async(row:DirectRow)=>{
+    const client=supabase
+    if(!client || !isAdmin)return
+    const name=displayName(row.other)
+    if(!window.confirm(`Delete the chat with ${name} for both people? This removes every message and cannot be undone.`))return
+    const {error}=await client.rpc('delete_social_conversation',{p_conversation_id:row.conversation.id})
+    if(error){
+      setNotice(error.message)
+      return
+    }
+    setSelectedId('')
+    setMobileThreadOpen(false)
+    setDirects(rows=>rows.filter(item=>item.conversation.id!==row.conversation.id))
+    void loadBase()
+  }
+
+  const jumpToMessage=(id:string)=>{
+    const element=document.getElementById(`cm-msg-${id}`)
+    if(!element)return
+    stickToBottomRef.current=false
+    element.scrollIntoView({block:'center',behavior:'smooth'})
+    element.classList.add('flash')
+    window.setTimeout(()=>element.classList.remove('flash'),1200)
+  }
 
   const startCall=async(kind:'Voice'|'Video')=>{
     const client=supabase
@@ -631,6 +699,9 @@ export function ChatModule(){
               <button type="button" className={filter==='unread'?'on':''} onClick={()=>setFilter('unread')}>
                 Unread{totalUnread>0?` ${totalUnread}`:''}
               </button>
+              <button type="button" className={filter==='archived'?'on':''} onClick={()=>setFilter('archived')}>
+                Archived{archivedCount>0?` ${archivedCount}`:''}
+              </button>
             </div>
           )}
 
@@ -680,8 +751,8 @@ export function ChatModule(){
                 {!loading&&visibleDirects.length===0&&(
                   <div className="cmEmpty cmEmptyBlock">
                     <MessageSquareText size={26}/>
-                    <strong>{filter==='unread'?'No unread chats':'No chats yet'}</strong>
-                    <span>{filter==='unread'?'You are all caught up.':'Tap + to message a colleague.'}</span>
+                    <strong>{filter==='unread'?'No unread chats':filter==='archived'?'No archived chats':'No chats yet'}</strong>
+                    <span>{filter==='unread'?'You are all caught up.':filter==='archived'?'Archive a chat from its top bar to tidy your list.':'Tap + to message a colleague.'}</span>
                   </div>
                 )}
               </>
@@ -702,6 +773,20 @@ export function ChatModule(){
                   <small>{secondary(selected.other)}</small>
                 </div>
                 <div className="cmHeadActions">
+                  <button
+                    type="button"
+                    className="cmRound"
+                    title={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
+                    aria-label={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
+                    onClick={()=>void setArchived(selected,!selected.membership.archived_at)}
+                  >
+                    {selected.membership.archived_at?<ArchiveRestore size={18}/>:<Archive size={18}/>}
+                  </button>
+                  {isAdmin&&(
+                    <button type="button" className="cmRound cmDanger" title="Delete chat (admin only)" aria-label="Delete chat (admin only)" onClick={()=>void deleteChat(selected)}>
+                      <Trash2 size={18}/>
+                    </button>
+                  )}
                   <button type="button" className="cmRound" title="Video call" aria-label="Video call" disabled={calling} onClick={()=>void startCall('Video')}>
                     <Video size={18}/>
                   </button>
@@ -736,9 +821,33 @@ export function ChatModule(){
                   const sender=mine ? null : peopleMap.get(message.sender_id)
                   const read=mine && !message.pending && !message.failed && selected.otherReadAt &&
                     new Date(selected.otherReadAt).getTime()>=new Date(message.created_at).getTime()
+                  const quoted=message.reply_to_id ? messages.find(m=>m.id===message.reply_to_id) || null : null
+                  const canReply=!message.pending && !message.failed
                   return (
-                    <div key={message.id} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}`}>
+                    <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}`}>
                       <div className="cmBubble" title={displayName(sender)}>
+                        {canReply&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn"
+                            aria-label="Reply to this message"
+                            title="Reply"
+                            onClick={()=>{setReplyTo(message);composerRef.current?.focus()}}
+                          >
+                            <Reply size={14}/>
+                          </button>
+                        )}
+                        {message.reply_to_id&&(
+                          <button
+                            type="button"
+                            className="cmQuote"
+                            disabled={!quoted}
+                            onClick={()=>quoted&&jumpToMessage(quoted.id)}
+                          >
+                            <strong>{quoted ? (quoted.sender_id===userId?'You':displayName(peopleMap.get(quoted.sender_id))) : 'Earlier message'}</strong>
+                            <span>{quoted ? quoted.body : 'Open the older history to see it.'}</span>
+                          </button>
+                        )}
                         <p>{message.body}</p>
                         <span className="cmMeta">
                           {formatTime(message.created_at)}
@@ -759,6 +868,16 @@ export function ChatModule(){
                 })}
               </div>
 
+              {replyTo&&replyTo.conversation_id===selectedId&&(
+                <div className="cmReplyBar">
+                  <Reply size={15}/>
+                  <div>
+                    <strong>Replying to {replyTo.sender_id===userId?'yourself':displayName(peopleMap.get(replyTo.sender_id))}</strong>
+                    <span>{replyTo.body}</span>
+                  </div>
+                  <button type="button" aria-label="Cancel reply" onClick={()=>setReplyTo(null)}><X size={14}/></button>
+                </div>
+              )}
               <form className="cmComposer" onSubmit={submit}>
                 <textarea
                   ref={composerRef}
@@ -771,6 +890,10 @@ export function ChatModule(){
                   rows={1}
                   aria-label={`Message ${displayName(selected.other)}`}
                   onKeyDown={event=>{
+                    if(event.key==='Escape'&&replyTo){
+                      setReplyTo(null)
+                      return
+                    }
                     if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){
                       event.preventDefault()
                       event.currentTarget.form?.requestSubmit()
