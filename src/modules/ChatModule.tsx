@@ -5,8 +5,10 @@ import {
   Check,
   CheckCheck,
   Download,
+  FileDown,
   FileText,
   MessageSquareText,
+  Mic,
   Paperclip,
   Phone,
   Plus,
@@ -14,6 +16,7 @@ import {
   Search,
   Send,
   ShieldCheck,
+  Square,
   Trash2,
   Video,
   X
@@ -27,12 +30,26 @@ import {
 } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, requestJoinRoom } from '../lib/roomApi'
+import {
+  buildTranscript,
+  exportFileName,
+  uniqueZipName
+} from '../lib/chatExport'
+import {
+  MAX_VOICE_MS,
+  baseMime,
+  formatDuration,
+  pickRecorderMime,
+  voiceFileName
+} from '../lib/voiceNote'
 import {
   ACCEPT_ATTRIBUTE,
   MAX_FILES_PER_SEND,
   attachmentPath,
   formatBytes,
+  isAudioMime,
   isImageMime,
   messagePreview,
   validateAttachment
@@ -74,6 +91,7 @@ type Message = {
   attachment_name?:string|null
   attachment_mime?:string|null
   attachment_size?:number|null
+  attachment_duration_ms?:number|null
   localUrl?:string
   pending?:boolean
   failed?:boolean
@@ -88,12 +106,24 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
 const OPEN_KEY='ra.chat.open'
 const ATTACH_BUCKET='chat-attachments'
 const SIGNED_SECONDS=3600
 
 type Staged={id:string;file:File;mime:string;previewUrl:string|null}
+type Voice={status:'recording'|'ready';ms:number;blob?:Blob;mime:string;url?:string}
+
+const saveBlob=(blob:Blob,name:string)=>{
+  const url=URL.createObjectURL(blob)
+  const anchor=document.createElement('a')
+  anchor.href=url
+  anchor.download=name
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(()=>URL.revokeObjectURL(url),4000)
+}
 
 const initials=(value?:string|null)=>{
   const words=(value || '').trim().split(/\s+/).filter(Boolean)
@@ -171,6 +201,9 @@ export function ChatModule(){
   const [staged,setStaged]=useState<Staged[]>([])
   const [dragging,setDragging]=useState(false)
   const [imageUrls,setImageUrls]=useState<Record<string,string>>({})
+  const [voice,setVoice]=useState<Voice|null>(null)
+  const [exportOpen,setExportOpen]=useState(false)
+  const [exporting,setExporting]=useState('')
   const [viewer,setViewer]=useState<{url:string;name:string;path:string|null}|null>(null)
 
   const selectedRef=useRef('')
@@ -186,6 +219,13 @@ export function ChatModule(){
   const fileInputRef=useRef<HTMLInputElement|null>(null)
   const retryFilesRef=useRef<Map<string,File>>(new Map())
   const dragDepthRef=useRef(0)
+  const recorderRef=useRef<MediaRecorder|null>(null)
+  const chunksRef=useRef<Blob[]>([])
+  const streamRef=useRef<MediaStream|null>(null)
+  const voiceStartRef=useRef(0)
+  const voiceTimerRef=useRef<number|undefined>(undefined)
+  const voiceDiscardRef=useRef(false)
+  const voiceMsRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
   useEffect(()=>{directsRef.current=directs},[directs])
@@ -410,6 +450,7 @@ export function ChatModule(){
     setMessages([])
     setReplyTo(null)
     setStaged([])
+    setVoice(null)
     setThreadLoading(true)
     forceScrollRef.current=true
     stickToBottomRef.current=true
@@ -535,7 +576,7 @@ export function ChatModule(){
     element.style.height=`${Math.min(element.scrollHeight,140)}px`
   }
 
-  const sendMessage=async(opts:{body:string;file?:File|null;mime?:string;tempId?:string;replyId?:string|null})=>{
+  const sendMessage=async(opts:{body:string;file?:File|null;mime?:string;durationMs?:number|null;tempId?:string;replyId?:string|null})=>{
     const client=supabase
     if(!client || !userId || !selectedId)return
     const conversationId=selectedId
@@ -552,7 +593,8 @@ export function ChatModule(){
       attachment_name:file?.name || null,
       attachment_mime:file ? opts.mime || file.type : null,
       attachment_size:file?.size ?? null,
-      localUrl:file && isImageMime(opts.mime || file.type) ? URL.createObjectURL(file) : undefined,
+      attachment_duration_ms:opts.durationMs ?? null,
+      localUrl:file && (isImageMime(opts.mime || file.type) || isAudioMime(opts.mime || file.type)) ? URL.createObjectURL(file) : undefined,
       pending:true
     }
     forceScrollRef.current=true
@@ -586,7 +628,8 @@ export function ChatModule(){
           attachment_path:uploadedPath,
           attachment_name:file.name,
           attachment_mime:opts.mime || file.type,
-          attachment_size:file.size
+          attachment_size:file.size,
+          ...(opts.durationMs!=null?{attachment_duration_ms:Math.round(opts.durationMs)}:{})
         }:{})
       })
       .select(MESSAGE_COLUMNS)
@@ -637,6 +680,172 @@ export function ChatModule(){
     composerRef.current?.focus()
   }
 
+  const stopVoiceStream=()=>{
+    window.clearInterval(voiceTimerRef.current)
+    voiceTimerRef.current=undefined
+    streamRef.current?.getTracks().forEach(track=>track.stop())
+    streamRef.current=null
+  }
+
+  const startVoice=async()=>{
+    if(voice || !selectedId)return
+    if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined'){
+      setNotice('Voice notes are not supported in this browser.')
+      return
+    }
+    const mime=pickRecorderMime(type=>MediaRecorder.isTypeSupported(type))
+    if(!mime){
+      setNotice('This browser cannot record audio in a supported format.')
+      return
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true})
+      streamRef.current=stream
+      chunksRef.current=[]
+      voiceDiscardRef.current=false
+      const recorder=new MediaRecorder(stream,{mimeType:mime})
+      recorderRef.current=recorder
+      recorder.ondataavailable=event=>{if(event.data.size)chunksRef.current.push(event.data)}
+      recorder.onstop=()=>{
+        stopVoiceStream()
+        recorderRef.current=null
+        if(voiceDiscardRef.current){
+          setVoice(null)
+          return
+        }
+        const type=baseMime(recorder.mimeType || mime)
+        const blob=new Blob(chunksRef.current,{type})
+        if(!blob.size){
+          setVoice(null)
+          setNotice('Nothing was recorded. Check that your microphone is working.')
+          return
+        }
+        setVoice({status:'ready',ms:voiceMsRef.current,blob,mime:type,url:URL.createObjectURL(blob)})
+      }
+      recorder.start()
+      voiceStartRef.current=Date.now()
+      voiceMsRef.current=0
+      setVoice({status:'recording',ms:0,mime})
+      voiceTimerRef.current=window.setInterval(()=>{
+        const elapsed=Date.now()-voiceStartRef.current
+        voiceMsRef.current=elapsed
+        setVoice(current=>current && current.status==='recording' ? {...current,ms:elapsed} : current)
+        if(elapsed>=MAX_VOICE_MS && recorderRef.current?.state==='recording')recorderRef.current.stop()
+      },250)
+    }catch(error){
+      stopVoiceStream()
+      const denied=error instanceof DOMException && (error.name==='NotAllowedError' || error.name==='SecurityError')
+      setNotice(denied
+        ? 'Microphone access is blocked. Allow the microphone for this site in your browser settings, then try again.'
+        : 'Could not start recording. Check that a microphone is connected.')
+    }
+  }
+
+  const stopVoice=()=>{
+    if(recorderRef.current?.state==='recording')recorderRef.current.stop()
+  }
+
+  const discardVoice=()=>{
+    voiceDiscardRef.current=true
+    if(recorderRef.current && recorderRef.current.state!=='inactive'){
+      recorderRef.current.stop()
+    }else{
+      stopVoiceStream()
+      setVoice(null)
+    }
+    setVoice(current=>{
+      if(current?.url)URL.revokeObjectURL(current.url)
+      return null
+    })
+  }
+
+  const sendVoice=()=>{
+    if(!voice || voice.status!=='ready' || !voice.blob)return
+    const file=new File([voice.blob],voiceFileName(new Date(),voice.mime),{type:voice.mime})
+    const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
+    const durationMs=voice.ms
+    setReplyTo(null)
+    setVoice(null)
+    void sendMessage({body:'',file,mime:voice.mime,durationMs,replyId})
+  }
+
+  // A recording belongs to one chat: leaving it, or closing the page, drops it.
+  useEffect(()=>{
+    return()=>{
+      voiceDiscardRef.current=true
+      if(recorderRef.current && recorderRef.current.state!=='inactive')recorderRef.current.stop()
+      stopVoiceStream()
+    }
+  },[selectedId])
+
+  useEffect(()=>{
+    if(!exportOpen)return
+    const close=()=>setExportOpen(false)
+    window.addEventListener('click',close)
+    return()=>window.removeEventListener('click',close)
+  },[exportOpen])
+
+  const exportChat=async(withFiles:boolean)=>{
+    const client=supabase
+    if(!client || !selected || exporting)return
+    setExportOpen(false)
+    const title=displayName(selected.other)
+    const nameOf=(id:string)=>displayName(peopleMap.get(id))
+    const now=new Date()
+    try{
+      setExporting('Collecting messages...')
+      const all:Message[]=[]
+      for(let from=0;;from+=1000){
+        const {data,error}=await client
+          .from('social_messages')
+          .select(MESSAGE_COLUMNS)
+          .eq('conversation_id',selected.conversation.id)
+          .order('created_at',{ascending:true})
+          .range(from,from+999)
+        if(error)throw error
+        const page=(data || []) as Message[]
+        all.push(...page)
+        if(page.length<1000)break
+      }
+
+      const files=withFiles ? all.filter(message=>message.attachment_path) : []
+      const total=files.reduce((sum,message)=>sum+Number(message.attachment_size || 0),0)
+      if(withFiles && total>250*1024*1024){
+        setNotice('The files in this chat add up to more than 250 MB, so only the text was exported. Download large files one by one.')
+      }
+
+      if(!withFiles || files.length===0 || total>250*1024*1024){
+        const text=buildTranscript({title,exportedBy:nameOf(userId),exportedAt:now,messages:all,nameOf})
+        saveBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),exportFileName(title,now,'txt'))
+        return
+      }
+
+      const taken=new Set<string>()
+      const entries:Record<string,[Uint8Array,{level:0}]>={}
+      const savedAs=new Map<string,string>()
+      let index=0
+      for(const message of files){
+        index+=1
+        setExporting(`Adding file ${index} of ${files.length}...`)
+        const {data,error}=await client.storage.from(ATTACH_BUCKET).download(message.attachment_path as string)
+        if(error || !data)continue
+        const unique=uniqueZipName(taken,message.attachment_name || 'file')
+        entries[`files/${unique}`]=[new Uint8Array(await data.arrayBuffer()),{level:0}]
+        savedAs.set(message.id,`files/${unique}`)
+      }
+      const text=buildTranscript({title,exportedBy:nameOf(userId),exportedAt:now,messages:all,nameOf,savedAs})
+      setExporting('Creating the zip...')
+      const zipped=zipSync({'transcript.txt':strToU8(text),...entries})
+      saveBlob(new Blob([zipped as BlobPart],{type:'application/zip'}),exportFileName(title,now,'zip'))
+      const missed=files.length-savedAs.size
+      if(missed>0)setNotice(`${missed} file${missed===1?'':'s'} could not be added to the export.`)
+    }catch(error){
+      setNotice(error instanceof Error ? error.message : 'Unable to export this chat.')
+    }finally{
+      setExporting('')
+    }
+  }
+
   const unstage=(id:string)=>{
     setStaged(current=>{
       const gone=current.find(item=>item.id===id)
@@ -681,28 +890,35 @@ export function ChatModule(){
       body:message.body,
       file,
       mime:verdict && verdict.ok ? verdict.mime : undefined,
+      durationMs:message.attachment_duration_ms ?? null,
       tempId:message.id,
       replyId:message.reply_to_id
     })
   }
 
-  // Files are opened through short-lived links made for the person asking.
-  const openFile=async(path:string,name:string)=>{
+  // Saves the file from inside the workspace. It is fetched with the person's own
+  // session and handed to the browser as a download, so no new tab opens.
+  const [downloading,setDownloading]=useState('')
+  const downloadFile=async(path:string,name:string)=>{
     const client=supabase
-    if(!client)return
-    const {data,error}=await client.storage.from(ATTACH_BUCKET).createSignedUrl(path,300,{download:name})
-    if(error || !data?.signedUrl){
-      setNotice(error?.message || 'Unable to open this file.')
-      return
+    if(!client || downloading)return
+    setDownloading(path)
+    try{
+      const {data,error}=await client.storage.from(ATTACH_BUCKET).download(path)
+      if(error || !data)throw error || new Error('Unable to download this file.')
+      saveBlob(data,name)
+    }catch(error){
+      setNotice(error instanceof Error ? error.message : 'Unable to download this file.')
+    }finally{
+      setDownloading('')
     }
-    window.open(data.signedUrl,'_blank','noopener')
   }
 
   useEffect(()=>{
     const client=supabase
     if(!client)return
     const need=Array.from(new Set(messages
-      .filter(m=>m.attachment_path && isImageMime(m.attachment_mime) && !imageUrls[m.attachment_path])
+      .filter(m=>m.attachment_path && (isImageMime(m.attachment_mime) || isAudioMime(m.attachment_mime)) && !imageUrls[m.attachment_path])
       .map(m=>m.attachment_path as string)))
     if(!need.length)return
     let cancelled=false
@@ -988,6 +1204,27 @@ export function ChatModule(){
                   <button
                     type="button"
                     className="cmRound"
+                    title="Export chat"
+                    aria-label="Export chat"
+                    aria-expanded={exportOpen}
+                    disabled={!!exporting}
+                    onClick={event=>{event.stopPropagation();setExportOpen(open=>!open)}}
+                  >
+                    <FileDown size={18}/>
+                  </button>
+                  {exportOpen&&(
+                    <div className="cmMenu" role="menu" onClick={event=>event.stopPropagation()}>
+                      <button type="button" role="menuitem" onClick={()=>void exportChat(false)}>
+                        <strong>Text only</strong><small>A .txt transcript of every message</small>
+                      </button>
+                      <button type="button" role="menuitem" onClick={()=>void exportChat(true)}>
+                        <strong>With files and images</strong><small>A .zip with the transcript and every attachment</small>
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="cmRound"
                     title={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
                     aria-label={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
                     onClick={()=>void setArchived(selected,!selected.membership.archived_at)}
@@ -1015,6 +1252,8 @@ export function ChatModule(){
                   <button type="button" aria-label="Dismiss" onClick={()=>setCallNotice('')}><X size={14}/></button>
                 </div>
               )}
+
+              {exporting&&<div className="cmExporting" role="status">{exporting}</div>}
 
               <div className="cmMessages" ref={scrollRef} onScroll={onScroll} aria-live="polite">
                 <div className="cmLock"><ShieldCheck size={13}/>Private. Only the two of you can see this conversation.</div>
@@ -1061,33 +1300,60 @@ export function ChatModule(){
                           </button>
                         )}
                         {(message.attachment_name||message.attachment_path)&&(()=>{
-                          const imageSrc=message.localUrl || (message.attachment_path ? imageUrls[message.attachment_path] : '')
+                          const mediaSrc=message.localUrl || (message.attachment_path ? imageUrls[message.attachment_path] : '')
+                          const path=message.attachment_path || null
+                          const name=message.attachment_name||'file'
+                          const busy=!!path && downloading===path
                           if(isImageMime(message.attachment_mime)){
-                            return imageSrc ? (
-                              <button
-                                type="button"
-                                className="cmImage"
-                                aria-label={`Open ${message.attachment_name||'image'}`}
-                                onClick={()=>setViewer({url:imageSrc,name:message.attachment_name||'image',path:message.attachment_path||null})}
-                              >
-                                <img src={imageSrc} alt={message.attachment_name||'Image'} loading="lazy"/>
-                              </button>
+                            return mediaSrc ? (
+                              <div className="cmImage">
+                                <button
+                                  type="button"
+                                  className="cmImageOpen"
+                                  aria-label={`Open ${name}`}
+                                  onClick={()=>setViewer({url:mediaSrc,name,path})}
+                                >
+                                  <img src={mediaSrc} alt={name} loading="lazy"/>
+                                </button>
+                                {path&&(
+                                  <button type="button" className="cmImageDl" title="Download" aria-label={`Download ${name}`} disabled={busy} onClick={()=>void downloadFile(path,name)}>
+                                    <Download size={16}/>
+                                  </button>
+                                )}
+                              </div>
                             ) : <div className="cmImage cmImageWait">Loading image...</div>
                           }
+                          if(isAudioMime(message.attachment_mime)){
+                            return (
+                              <div className="cmVoice">
+                                {mediaSrc
+                                  ? <audio controls preload="metadata" src={mediaSrc}/>
+                                  : <span className="cmVoiceWait">Loading voice note...</span>}
+                                <span className="cmVoiceMeta">
+                                  <Mic size={13}/>
+                                  {message.attachment_duration_ms!=null?formatDuration(message.attachment_duration_ms):'Voice note'}
+                                  {path&&(
+                                    <button type="button" title="Download" aria-label={`Download ${name}`} disabled={busy} onClick={()=>void downloadFile(path,name)}>
+                                      <Download size={14}/>
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+                            )
+                          }
                           return (
-                            <button
-                              type="button"
-                              className="cmFile"
-                              disabled={!message.attachment_path}
-                              onClick={()=>message.attachment_path&&void openFile(message.attachment_path,message.attachment_name||'file')}
-                            >
+                            <div className="cmFile">
                               <FileText size={22}/>
                               <span>
-                                <strong>{message.attachment_name||'File'}</strong>
+                                <strong>{name}</strong>
                                 <small>{formatBytes(message.attachment_size)}</small>
                               </span>
-                              {message.attachment_path&&<Download size={16}/>}
-                            </button>
+                              {path&&(
+                                <button type="button" className="cmFileDl" disabled={busy} onClick={()=>void downloadFile(path,name)}>
+                                  <Download size={15}/>{busy?'Saving...':'Download'}
+                                </button>
+                              )}
+                            </div>
                           )
                         })()}
                         {message.body&&<p>{message.body}</p>}
@@ -1120,6 +1386,25 @@ export function ChatModule(){
                   <button type="button" aria-label="Cancel reply" onClick={()=>setReplyTo(null)}><X size={14}/></button>
                 </div>
               )}
+              {voice&&(
+                <div className="cmVoiceBar">
+                  {voice.status==='recording' ? (
+                    <>
+                      <span className="cmRecDot" aria-hidden="true"/>
+                      <strong>{formatDuration(voice.ms)}</strong>
+                      <span className="cmVoiceHint">Recording... up to 10 minutes</span>
+                      <button type="button" className="cmRound cmDanger" title="Cancel recording" aria-label="Cancel recording" onClick={discardVoice}><Trash2 size={18}/></button>
+                      <button type="button" className="cmSend" title="Stop recording" aria-label="Stop recording" onClick={stopVoice}><Square size={16}/></button>
+                    </>
+                  ) : (
+                    <>
+                      <audio controls preload="metadata" src={voice.url}/>
+                      <button type="button" className="cmRound cmDanger" title="Discard voice note" aria-label="Discard voice note" onClick={discardVoice}><Trash2 size={18}/></button>
+                      <button type="button" className="cmSend" title="Send voice note" aria-label="Send voice note" onClick={sendVoice}><Send size={19}/></button>
+                    </>
+                  )}
+                </div>
+              )}
               {staged.length>0&&(
                 <div className="cmStaged">
                   {staged.map(item=>(
@@ -1131,7 +1416,7 @@ export function ChatModule(){
                   ))}
                 </div>
               )}
-              <form className="cmComposer" onSubmit={submit}>
+              <form className="cmComposer" onSubmit={submit} hidden={!!voice}>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1151,6 +1436,15 @@ export function ChatModule(){
                   onClick={()=>fileInputRef.current?.click()}
                 >
                   <Paperclip size={19}/>
+                </button>
+                <button
+                  type="button"
+                  className="cmRound cmAttach"
+                  title="Record a voice note"
+                  aria-label="Record a voice note"
+                  onClick={()=>void startVoice()}
+                >
+                  <Mic size={19}/>
                 </button>
                 <textarea
                   ref={composerRef}
@@ -1201,7 +1495,7 @@ export function ChatModule(){
           <div className="cmViewerBar" onClick={event=>event.stopPropagation()}>
             <strong>{viewer.name}</strong>
             {viewer.path&&(
-              <button type="button" onClick={()=>void openFile(viewer.path as string,viewer.name)}><Download size={16}/> Download</button>
+              <button type="button" onClick={()=>void downloadFile(viewer.path as string,viewer.name)}><Download size={16}/> Download</button>
             )}
             <button type="button" aria-label="Close" onClick={()=>setViewer(null)}><X size={18}/></button>
           </div>

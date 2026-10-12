@@ -192,6 +192,7 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 .cmReplyBar button:hover{background:var(--cm-hover)}
 
 /* ---- attachments ---- */
+.cmComposer[hidden]{display:none}
 .cmThread{position:relative}
 .cmAttach{flex:0 0 auto;color:var(--cm-muted)}
 .cmDrop{
@@ -234,3 +235,46 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   background:rgba(255,255,255,.14);color:#fff;font-weight:700;
 }
 .cmViewer>img{justify-self:center;align-self:center;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+
+.cmImage{position:relative}
+.cmImageOpen{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.cmImageDl{
+  position:absolute;right:6px;bottom:6px;width:30px;height:30px;border:0;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;background:rgba(7,26,56,.72);color:#fff;
+}
+.cmImageDl:hover{background:rgba(7,26,56,.9)}
+.cmFile{cursor:default}
+.cmFileDl{
+  display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:0;border-radius:999px;padding:6px 11px;
+  background:var(--cm-accent);color:var(--cm-accent-ink);font-weight:800;font-size:12.5px;cursor:pointer;
+}
+.cmFileDl:disabled{opacity:.6;cursor:default}
+.cmVoice{display:grid;gap:2px;min-width:240px;margin:0 0 4px}
+.cmVoice audio{width:100%;height:36px}
+.cmVoiceWait{font-size:12px;color:var(--cm-muted);padding:8px 0}
+.cmVoiceMeta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--cm-muted)}
+.cmVoiceMeta button{margin-left:auto;border:0;background:transparent;color:var(--cm-muted);cursor:pointer;padding:3px;border-radius:50%}
+.cmVoiceBar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cm-side);
+  border-top:1px solid var(--cm-line);color:var(--cm-text);
+}
+.cmVoiceBar audio{flex:1;min-width:0;height:36px}
+.cmVoiceHint{flex:1;font-size:13px;color:var(--cm-muted)}
+.cmRecDot{width:10px;height:10px;border-radius:50%;background:#d32f2f;animation:cmPulse 1s ease-in-out infinite}
+@keyframes cmPulse{50%{opacity:.25}}
+.cmHeadActions{position:relative}
+.cmMenu{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:270px;padding:6px;border-radius:12px;
+  background:var(--cm-side);border:1px solid var(--cm-line);box-shadow:0 10px 30px rgba(7,26,56,.22);
+  display:grid;gap:2px;
+}
+.cmMenu button{display:grid;gap:2px;text-align:left;border:0;border-radius:8px;padding:9px 10px;cursor:pointer;background:transparent;color:var(--cm-text);font:inherit}
+.cmMenu button:hover{background:var(--cm-hover)}
+.cmMenu small{font-size:11.5px;color:var(--cm-muted)}
+.cmExporting{padding:7px 14px;background:var(--cm-active);color:var(--cm-text);font-size:13px;font-weight:700}
+
+/* Keep the bubble as wide as the picture, not as wide as the picture's real size. */
+.cmImage{width:320px;max-width:100%}
+.cmImage img{width:100%;height:auto;max-height:340px}
+.cmFile{width:300px;max-width:100%}
+.cmVoice{width:280px;max-width:100%}

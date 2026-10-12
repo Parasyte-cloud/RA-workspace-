@@ -24,6 +24,7 @@
     "docx": "^9.7.1",
     "dompurify": "^3.4.14",
     "exceljs": "^4.4.0",
+    "fflate": "^0.8.2",
     "lucide-react": "^0.468.0",
     "pdf-lib": "^1.17.1",
     "qrcode.react": "^4.2.0",
