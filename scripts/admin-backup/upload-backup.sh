@@ -49,6 +49,45 @@ sha256_file() {
   return 1
 }
 
+# Compares a local file with a remote object byte for byte.
+#
+# `rclone check` takes two directories. Given two single files it stops with
+# "is a file not a directory", so the upload was stored but never proven. This
+# streams the remote object back and compares its SHA-256 with the local file,
+# which is the same guarantee as `check --download` and works on single files.
+sha256_stream() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return
+  fi
+
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | awk '{print $1}'
+    return
+  fi
+
+  printf 'ERROR: no SHA-256 utility is available\n' >&2
+  return 1
+}
+
+verify_remote_file() {
+  local_file="$1"
+  remote_file="$2"
+
+  local_sum="$(sha256_file "$local_file")" || return 1
+
+  remote_sum="$(
+    set -o pipefail
+    rclone cat "$remote_file" | sha256_stream
+  )" || return 1
+
+  if ! printf '%s\n' "$local_sum" | grep -Eq '^[0-9a-f]{64}$'; then
+    return 1
+  fi
+
+  [ "$local_sum" = "$remote_sum" ]
+}
+
 mode="${1:-}"
 artifact_path="${2:-}"
 
@@ -70,7 +109,7 @@ if [ "$mode" = "plan" ]; then
 2. Validate its local sidecar, byte size and SHA-256.
 3. Require the destination to be separate from Supabase Storage.
 4. Upload only the encrypted artifact.
-5. Verify remote bytes with rclone check --download.
+5. Verify remote bytes by streaming the object back and comparing SHA-256.
 6. Create an upload-state sidecar with offsite_uploaded=true.
 7. Upload and verify that sidecar.
 8. Replace the local sidecar only after remote verification.
@@ -273,11 +312,9 @@ fi
 
 printf 'Verifying encrypted backup artifact remotely...\n'
 
-if ! rclone check \
+if ! verify_remote_file \
   "$artifact_path" \
-  "$remote_artifact" \
-  --download \
-  --one-way; then
+  "$remote_artifact"; then
   printf 'ERROR: encrypted remote artifact verification failed\n' >&2
   exit 1
 fi
@@ -366,11 +403,9 @@ if [ "$sidecar_uploaded" = false ]; then
       ' \
       "$existing_remote_sidecar" >/dev/null; then
 
-      if rclone check \
+      if verify_remote_file \
         "$existing_remote_sidecar" \
-        "$remote_sidecar" \
-        --download \
-        --one-way; then
+        "$remote_sidecar"; then
 
         mv \
           "$existing_remote_sidecar" \
@@ -387,11 +422,9 @@ if [ "$sidecar_uploaded" = false ]; then
   exit 1
 fi
 
-if ! rclone check \
+if ! verify_remote_file \
   "$temporary_sidecar" \
-  "$remote_sidecar" \
-  --download \
-  --one-way; then
+  "$remote_sidecar"; then
   printf 'ERROR: remote backup sidecar verification failed\n' >&2
   exit 1
 fi
