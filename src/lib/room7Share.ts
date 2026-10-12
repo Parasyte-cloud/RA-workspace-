@@ -56,6 +56,8 @@ export function invitationText(input: {
   title: string
   code: string
   passcode?: string | null
+  // A separate passcode exists but is not known here (set earlier).
+  passcodeSeparate?: boolean
 }): string {
   const lines = [
     `You are invited to join: ${input.title}`,
@@ -63,12 +65,13 @@ export function invitationText(input: {
     `Join link: ${guestLink(input.code)}`,
     `Event code: ${input.code}`,
   ]
+  const needsPasscode = !!input.passcode || !!input.passcodeSeparate
   if (input.passcode) lines.push(`Passcode: ${input.passcode}`)
   lines.push(
     '',
     'How to join:',
     '1. Open the link (or go to room7.ridearrivo.com and type the event code).',
-    `2. Enter your name and email${input.passcode ? ', and the passcode' : ''}.`,
+    `2. Enter your name and email${needsPasscode ? ', and the passcode' : ''}.`,
     '3. Press Join.',
   )
   return lines.join('\n')
@@ -96,6 +99,9 @@ export type EventInfo = {
   event_state?: string
   has_passcode?: boolean
   scheduled_end?: string | null
+  // 'host' means the host admits each guest. Absent on servers without the setting.
+  admission?: string
+  auto_open?: boolean
 } | null
 
 export type Invoke = (body: Record<string, unknown>) => Promise<{ event?: EventInfo } & Record<string, unknown>>
@@ -104,14 +110,27 @@ export type GuestReady = {
   link: string
   code: string
   title: string
-  passcode: string | null // null when the room was already open and the old passcode is kept
+  // Only set when a separate passcode was just made. Null means either the
+  // event code alone is the key (codeOnly) or an older passcode is kept.
+  passcode: string | null
+  // The event code is the only thing a guest needs: open the link, type a name.
+  codeOnly: boolean
   alreadyOpen: boolean
+  // Whether each guest waits for the host to admit them.
+  admission: 'auto' | 'host'
 }
 
 export async function makeGuestReady(
   invoke: Invoke,
   room: { id: string; code: string; title: string },
-  options: { newPasscode?: boolean; random?: (size: number) => Uint8Array; now?: () => number } = {},
+  options: {
+    // Replace whatever is set with a fresh separate passcode.
+    newPasscode?: boolean
+    // Replace whatever is set so the event code alone lets guests in.
+    codeOnly?: boolean
+    random?: (size: number) => Uint8Array
+    now?: () => number
+  } = {},
 ): Promise<GuestReady> {
   const now = options.now ?? Date.now
   const current = await invoke({ action: 'get', room_id: room.id })
@@ -126,11 +145,16 @@ export async function makeGuestReady(
     !(event.scheduled_end && Date.parse(event.scheduled_end) <= now())
 
   // Already working: never replace a passcode people may already hold.
-  if (usable && !options.newPasscode) {
-    return { link: guestLink(room.code), code: room.code, title: room.title, passcode: null, alreadyOpen: true }
+  if (usable && !options.newPasscode && !options.codeOnly) {
+    return { link: guestLink(room.code), code: room.code, title: room.title, passcode: null, codeOnly: false, alreadyOpen: true, admission: event?.admission === 'host' ? 'host' : 'auto' }
   }
 
-  const passcode = generatePasscode(8, options.random)
+  // The default is the simplest thing that is still private: the event code
+  // is the key, and it only travels in the link the host chooses to share.
+  // The server stores it as the passcode, hashed like any other, so every
+  // existing check (join, documents, questions) keeps working unchanged.
+  const separate = !!options.newPasscode
+  const passcode = separate ? generatePasscode(8, options.random) : room.code
   const configure: Record<string, unknown> = {
     action: 'configure',
     room_id: room.id,
@@ -157,5 +181,13 @@ export async function makeGuestReady(
     )
   }
 
-  return { link: guestLink(room.code), code: room.code, title: room.title, passcode, alreadyOpen: false }
+  return {
+    link: guestLink(room.code),
+    code: room.code,
+    title: room.title,
+    passcode: separate ? passcode : null,
+    codeOnly: !separate,
+    alreadyOpen: false,
+    admission: (configured.event?.admission ?? event?.admission) === 'host' ? 'host' : 'auto',
+  }
 }

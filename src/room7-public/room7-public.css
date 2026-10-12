@@ -1888,3 +1888,33 @@
 .room7ExperienceShell select{
   font-family:inherit;
 }
+
+/* Secondary text action, for "Have a separate passcode?" */
+.room7PublicLinkButton{
+  align-self:flex-start;
+  background:none;
+  border:0;
+  padding:2px 0;
+  color:inherit;
+  opacity:.75;
+  font:inherit;
+  font-size:13px;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.room7PublicLinkButton:hover,
+.room7PublicLinkButton:focus-visible{opacity:1}
+
+/* Guest is in the host's approval queue. */
+.room7PublicWaiting{
+  display:grid;
+  justify-items:center;
+  gap:10px;
+  padding:22px 16px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:rgba(255,255,255,.04);
+}
+.room7PublicWaiting strong{font-size:17px}
+.room7PublicWaiting span{opacity:.8;font-size:14px;line-height:1.45}

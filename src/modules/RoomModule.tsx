@@ -36,6 +36,7 @@ import {
 } from '../lib/room7Share'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
+import GuestAdmissionPanel from './GuestAdmissionPanel'
 import '../room.css'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
@@ -366,17 +367,34 @@ export default function RoomModule({
     return data as Awaited<ReturnType<Invoke>>
   },[client])
 
-  const prepareGuest=async(room:{id:string;room_code:string;title:string},newPasscode=false)=>{
+  const prepareGuest=async(room:{id:string;room_code:string;title:string},mode:'keep'|'code'|'new'='keep')=>{
     if(guestBusy)return
     setGuestBusy(room.id)
     setGuestError('')
     setNotice('')
     try{
-      const ready=await makeGuestReady(invokeEvent,{id:room.id,code:room.room_code,title:room.title},{newPasscode})
+      const ready=await makeGuestReady(invokeEvent,{id:room.id,code:room.room_code,title:room.title},{newPasscode:mode==='new',codeOnly:mode==='code'})
       setGuestInvite(ready)
       setCopied('')
     }catch(error){
       const message=friendlyEventError(error instanceof Error?error.message:'Unable to set up guest access.')
+      setGuestError(message)
+      setNotice(message)
+    }finally{
+      setGuestBusy('')
+    }
+  }
+
+  const setAdmission=async(invite:GuestReady,admission:'auto'|'host')=>{
+    const room=rooms.find(item=>item.room_code===invite.code)
+    if(!room||guestBusy)return
+    setGuestBusy(room.id)
+    setGuestError('')
+    try{
+      await invokeEvent({action:'configure',room_id:room.id,admission})
+      setGuestInvite(current=>current&&current.code===invite.code?{...current,admission}:current)
+    }catch(error){
+      const message=friendlyEventError(error instanceof Error?error.message:'Unable to change guest approval.')
       setGuestError(message)
       setNotice(message)
     }finally{
@@ -423,14 +441,24 @@ export default function RoomModule({
     </Suspense>
   ):null
 
+  // Guests waiting for the host's approval show up here, above the call.
+  const admissionRoomIds=Array.from(new Set(
+    [session?.room.id,...rooms.filter(room=>room.status==='active').map(room=>room.id)]
+      .filter((id):id is string=>Boolean(id))
+  ))
+  const admissionNode=client&&admissionRoomIds.length
+    ?<GuestAdmissionPanel roomIds={admissionRoomIds} invoke={invokeEvent}/>
+    :null
+
   if(fullCall){
     return <>
       {callNode}
+      {admissionNode}
       <div ref={setCallAnchor} className="roomCallAnchor" aria-hidden="true"/>
     </>
   }
 
-  if(!active)return callNode
+  if(!active)return <>{callNode}{admissionNode}</>
 
   const activeRooms=rooms.filter(room=>room.status==='active')
   const recentRooms=rooms.filter(room=>room.status==='ended')
@@ -438,6 +466,7 @@ export default function RoomModule({
   return (
     <>
     {callNode}
+    {admissionNode}
     <section className="roomPage">
       <div className="roomHero glassPanel">
         <div className="roomHeroCopy">
@@ -683,7 +712,9 @@ export default function RoomModule({
             </header>
 
             <p className="roomGuestHint">
-              Guests open the link, type their name and email{guestInvite.passcode?', and the passcode':''}, then press Join. They can also go to room7.ridearrivo.com and type the event code.
+              {guestInvite.codeOnly
+                ?'Share the link. Guests open it, type their name and email, and press Join. There is nothing else to set up. They can also go to room7.ridearrivo.com and type the event code.'
+                :`Guests open the link, type their name and email${guestInvite.passcode?', and the passcode':', and the passcode you gave them'}, then press Join. They can also go to room7.ridearrivo.com and type the event code.`}
             </p>
 
             {([
@@ -700,23 +731,46 @@ export default function RoomModule({
               </div>
             ))}
 
-            {!guestInvite.passcode&&(
+            <label className="roomGuestToggle">
+              <input
+                type="checkbox"
+                checked={guestInvite.admission==='host'}
+                disabled={!!guestBusy}
+                onChange={event=>void setAdmission(guestInvite,event.target.checked?'host':'auto')}
+              />
+              <span>
+                <b>Approve each guest before they enter</b>
+                <small>Guests wait on a screen until you press Admit. You see them on top of your call.</small>
+              </span>
+            </label>
+
+            {!guestInvite.codeOnly&&(
               <div className="roomGuestNote">
-                This meeting was already open to guests, so its passcode was kept. It is only shown once, when it is made.
+                {guestInvite.passcode
+                  ?'This passcode is only shown now, so copy it before closing.'
+                  :'This meeting already had its own passcode, so it was kept. It cannot be shown again.'}
                 <button type="button" className="secondaryButton" disabled={!!guestBusy} onClick={()=>{
                   const room=rooms.find(item=>item.room_code===guestInvite.code)
-                  if(room&&window.confirm('Make a new passcode? The old passcode will stop working for anyone who has not joined yet.'))void prepareGuest(room,true)
+                  if(room&&window.confirm('Let the event code alone be enough? The old passcode stops being needed, and guests only type their name and email.'))void prepareGuest(room,'code')
                 }}>
-                  Make a new passcode
+                  Use the event code only
                 </button>
+                {!guestInvite.passcode&&(
+                  <button type="button" className="secondaryButton" disabled={!!guestBusy} onClick={()=>{
+                    const room=rooms.find(item=>item.room_code===guestInvite.code)
+                    if(room&&window.confirm('Make a new passcode? The old passcode will stop working for anyone who has not joined yet.'))void prepareGuest(room,'new')
+                  }}>
+                    Make a new passcode
+                  </button>
+                )}
               </div>
             )}
 
             <div className="roomGuestActions">
-              <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+              <button type="button" className="primaryButton" onClick={()=>void copyText('Invitation',invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode,passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode}))}>
                 {copied==='Invitation'?<><Check size={15}/>Invitation copied</>:<><Copy size={15}/>Copy invitation message</>}
               </button>
-              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={whatsappLink(invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode}))}>
+              <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={whatsappLink(invitationText({title:guestInvite.title,code:guestInvite.code,passcode:guestInvite.passcode,passcodeSeparate:!guestInvite.codeOnly&&!guestInvite.passcode}))}>
                 <Send size={15}/>Share on WhatsApp
               </a>
               <a className="secondaryButton" target="_blank" rel="noopener noreferrer" href={guestInvite.link}>

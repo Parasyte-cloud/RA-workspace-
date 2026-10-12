@@ -259,6 +259,39 @@ async function loadEventSchedule(admin: any, roomId: string) {
   }
 }
 
+// When the host walks into a meeting that already has its guest page switched
+// on, open the doors for them. This is what removes the "I forgot to press the
+// button" failure: guests waiting in the lobby are let in the moment the host
+// arrives. It never turns the public page on by itself, never reopens an
+// ended event, and respects an event the host set to open manually.
+async function openDoorsForHost(admin: any, roomId: string) {
+  try {
+    const { data, error } = await admin
+      .from("room7_external_rooms")
+      .select("event_state,public_enabled,scheduled_end,auto_open")
+      .eq("room_id", roomId)
+      .maybeSingle()
+
+    if (error || !data) return
+    if (data.public_enabled !== true) return
+    if (data.auto_open === false) return
+    if (!["draft", "pre_event", "doors_open"].includes(data.event_state)) return
+
+    const endMs = data.scheduled_end ? Date.parse(data.scheduled_end) : NaN
+    if (Number.isFinite(endMs) && Date.now() >= endMs) return
+
+    const { error: updateError } = await admin
+      .from("room7_external_rooms")
+      .update({ event_state: "live" })
+      .eq("room_id", roomId)
+      .eq("event_state", data.event_state)
+
+    if (updateError) console.warn("ROOM 7 auto-open failed:", updateError.message)
+  } catch (error) {
+    console.warn("ROOM 7 auto-open skipped:", error)
+  }
+}
+
 serve(async req => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) })
   if (req.method !== "POST") return json(req, { error: "Method not allowed." }, 405)
@@ -483,6 +516,11 @@ serve(async req => {
         event_type: "joined",
       })
       if (audit.error) console.warn("ROOM 7 audit join:", audit.error.message)
+
+      // Only the people who control the event can open it to guests.
+      if (role === "host" || profile.role === "admin" || profile.role === "manager") {
+        await openDoorsForHost(admin, room.id)
+      }
 
       return json(req, {
         room: {

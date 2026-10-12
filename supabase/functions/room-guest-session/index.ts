@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 
-type RoomAction = "resolve" | "join"
+type RoomAction = "resolve" | "join" | "status"
 
 type MediaConfig = {
   accountId: string
@@ -103,6 +103,159 @@ function cleanEmail(value: unknown) {
 function cleanName(value: unknown) {
   const name = cleanText(value, 180)
   return name.length >= 2 ? name : ""
+}
+
+// ---- Abuse limits -------------------------------------------------
+// Counters live in room7_rate_limits (see the 20261012240000 migration).
+// If the counter cannot be read the request is allowed: a limiter outage
+// must never lock real guests out of a live event.
+
+function clientIp(req: Request) {
+  return (
+    req.headers.get("cf-connecting-ip") ||
+    (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+    "unknown"
+  )
+}
+
+async function rateCount(
+  admin: ReturnType<typeof createClient>,
+  key: string,
+  windowSeconds: number,
+  increment: boolean,
+) {
+  try {
+    const { data, error } = await admin.rpc("room7_rate_count", {
+      p_key: key,
+      p_window_seconds: windowSeconds,
+      p_increment: increment,
+    })
+
+    if (error) {
+      console.warn("ROOM 7 rate limiter unavailable:", error.message)
+      return 0
+    }
+
+    return Number(data) || 0
+  } catch (error) {
+    console.warn("ROOM 7 rate limiter failed:", error)
+    return 0
+  }
+}
+
+async function enforceLimit(
+  admin: ReturnType<typeof createClient>,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+) {
+  const hits = await rateCount(admin, key, windowSeconds, true)
+
+  if (hits > limit) {
+    throw new HttpError(
+      429,
+      "Too many attempts. Please wait a few minutes and try again.",
+    )
+  }
+}
+
+// ---- Per event guest settings --------------------------------------
+// Read separately from the main query so an event keeps working even
+// before the migration that adds these columns has been run.
+
+async function loadGuestSettings(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+) {
+  try {
+    const { data, error } = await admin
+      .from("room7_external_rooms")
+      .select("admission")
+      .eq("room_id", roomId)
+      .maybeSingle()
+
+    if (error || !data) return { admission: "auto" as "auto" | "host" }
+
+    return {
+      admission: (data.admission === "host" ? "host" : "auto") as "auto" | "host",
+    }
+  } catch {
+    return { admission: "auto" as "auto" | "host" }
+  }
+}
+
+const ADMISSION_VALID_MS = 12 * 60 * 60 * 1000
+
+// The host decides who comes in. Each guest browser has a random key; the
+// request row remembers it, so an approval belongs to that browser only.
+async function admissionDecision(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+  body: any,
+  person?: { name: string; email: string },
+): Promise<"pending" | "approved" | "denied" | "none"> {
+  const key = cleanText(body?.request_key, 100)
+
+  if (key.length < 16) {
+    throw new HttpError(
+      400,
+      "Your browser did not send a valid request key. Refresh the page and try again.",
+    )
+  }
+
+  const keyHash = await sha256Hex(key)
+
+  const { data: row, error } = await admin
+    .from("room7_join_requests")
+    .select("id,status,decided_at")
+    .eq("room_id", roomId)
+    .eq("key_hash", keyHash)
+    .maybeSingle()
+
+  if (error) throw error
+
+  if (!row) {
+    if (!person) return "none"
+
+    const { error: insertError } = await admin
+      .from("room7_join_requests")
+      .insert({
+        room_id: roomId,
+        key_hash: keyHash,
+        email: person.email,
+        display_name: person.name,
+      })
+
+    // A second tab can race the insert. The unique key means it is already there.
+    if (insertError && insertError.code !== "23505") throw insertError
+
+    return "pending"
+  }
+
+  if (row.status === "denied") return "denied"
+
+  if (row.status === "approved") {
+    const decidedMs = row.decided_at ? Date.parse(row.decided_at) : 0
+
+    if (Date.now() - decidedMs <= ADMISSION_VALID_MS) return "approved"
+
+    // Old approval: ask the host again.
+    await admin
+      .from("room7_join_requests")
+      .update({ status: "pending", decided_at: null, decided_by: null })
+      .eq("id", row.id)
+
+    return "pending"
+  }
+
+  if (person) {
+    await admin
+      .from("room7_join_requests")
+      .update({ display_name: person.name, email: person.email })
+      .eq("id", row.id)
+  }
+
+  return "pending"
 }
 
 function getMediaConfig(): MediaConfig | null {
@@ -906,7 +1059,8 @@ serve(async req => {
 
   if (
     action !== "resolve" &&
-    action !== "join"
+    action !== "join" &&
+    action !== "status"
   ) {
     return json(
       req,
@@ -948,6 +1102,17 @@ serve(async req => {
   )
 
   try {
+    const ipKey =
+      (await sha256Hex(clientIp(req))).slice(0, 32)
+
+    // Generous on purpose: an office can share one address and a lobby
+    // checks every few seconds. These stop scripts, not people.
+    if (action === "join") {
+      await enforceLimit(admin, `jn:${ipKey}`, 200, 300)
+    } else {
+      await enforceLimit(admin, `rs:${ipKey}`, 600, 60)
+    }
+
     const resolved =
       await resolveManagedRoom(
         admin,
@@ -964,17 +1129,46 @@ serve(async req => {
       )
     }
 
-    const metadata =
-      publicRoomMetadata(
+    const guestSettings =
+      await loadGuestSettings(
+        admin,
+        resolved.room.id,
+      )
+
+    const metadata = {
+      ...publicRoomMetadata(
         resolved.room,
         resolved.external,
-      )
+      ),
+      // "host" means the host lets each guest in. The page shows a waiting
+      // screen instead of entering straight away.
+      admission: guestSettings.admission,
+    }
 
     if (action === "resolve") {
       return json(
         req,
         {
           room: metadata,
+        },
+      )
+    }
+
+    if (action === "status") {
+      const status =
+        guestSettings.admission === "host"
+          ? await admissionDecision(
+              admin,
+              resolved.room.id,
+              body,
+            )
+          : "approved"
+
+      return json(
+        req,
+        {
+          room: metadata,
+          request_status: status,
         },
       )
     }
@@ -996,12 +1190,74 @@ serve(async req => {
       )
     }
 
-    const access =
-      await authorizeGuest(
-        admin,
-        resolved,
-        body,
+    // Wrong passcodes are counted per address and room. Past the limit the
+    // guest is told to wait, which makes guessing impractical.
+    const failKey =
+      `fl:${ipKey}:${resolved.room.id}`
+
+    if (
+      (await rateCount(admin, failKey, 600, false)) >= 15
+    ) {
+      throw new HttpError(
+        429,
+        "Too many wrong attempts. Please wait ten minutes and try again.",
       )
+    }
+
+    let access: GuestAccess
+
+    try {
+      access =
+        await authorizeGuest(
+          admin,
+          resolved,
+          body,
+        )
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        error.status === 403
+      ) {
+        await rateCount(admin, failKey, 600, true)
+      }
+
+      throw error
+    }
+
+    // Approval queue. Invited guests were chosen by the host already.
+    if (
+      guestSettings.admission === "host" &&
+      access.source !== "invitation"
+    ) {
+      const decision =
+        await admissionDecision(
+          admin,
+          resolved.room.id,
+          body,
+          {
+            name: access.displayName,
+            email: access.email || "guest@invalid.local",
+          },
+        )
+
+      if (decision === "denied") {
+        throw new HttpError(
+          403,
+          "The host did not let you in to this ROOM 7 event.",
+        )
+      }
+
+      if (decision !== "approved") {
+        return json(
+          req,
+          {
+            room: metadata,
+            waiting: true,
+            request_status: decision,
+          },
+        )
+      }
+    }
 
     const media =
       getMediaConfig()

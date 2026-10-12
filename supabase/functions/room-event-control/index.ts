@@ -641,6 +641,144 @@ function externalForResponse(
   }
 }
 
+// Guest admission and auto-open live in their own columns, read apart from
+// the main event so this function still works before the migration is run.
+async function loadEventSettings(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+) {
+  try {
+    const { data, error } = await admin
+      .from("room7_external_rooms")
+      .select("admission,auto_open")
+      .eq("room_id", roomId)
+      .maybeSingle()
+
+    if (error || !data) {
+      return { admission: "auto", auto_open: true, settings_ready: false }
+    }
+
+    return {
+      admission: data.admission === "host" ? "host" : "auto",
+      auto_open: data.auto_open !== false,
+      settings_ready: true,
+    }
+  } catch {
+    return { admission: "auto", auto_open: true, settings_ready: false }
+  }
+}
+
+async function withSettings(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+  response: any,
+) {
+  if (!response?.event) return response
+
+  return {
+    ...response,
+    event: {
+      ...response.event,
+      ...(await loadEventSettings(admin, roomId)),
+    },
+  }
+}
+
+async function saveEventSettings(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+  body: any,
+) {
+  const update: Record<string, unknown> = {}
+
+  if (hasOwn(body, "admission")) {
+    const admission = cleanText(body.admission, 10).toLowerCase()
+
+    if (admission !== "auto" && admission !== "host") {
+      throw new HttpError(400, "Invalid ROOM 7 admission setting.")
+    }
+
+    update.admission = admission
+  }
+
+  if (hasOwn(body, "auto_open")) {
+    update.auto_open = body.auto_open === true
+  }
+
+  if (!Object.keys(update).length) return
+
+  const { error } = await admin
+    .from("room7_external_rooms")
+    .update(update)
+    .eq("room_id", roomId)
+
+  if (error) {
+    throw new HttpError(
+      503,
+      "Guest approval is not ready yet. Run the ROOM 7 admission SQL migration, then try again.",
+    )
+  }
+}
+
+async function listJoinRequests(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+) {
+  const { data, error } = await admin
+    .from("room7_join_requests")
+    .select("id,display_name,email,status,created_at")
+    .eq("room_id", roomId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(50)
+
+  if (error) {
+    console.warn("ROOM 7 join request list failed:", error.message)
+    return []
+  }
+
+  return data || []
+}
+
+async function decideJoinRequests(
+  admin: ReturnType<typeof createClient>,
+  roomId: string,
+  profile: EmployeeProfile,
+  body: any,
+) {
+  const decision = cleanText(body?.decision, 10).toLowerCase()
+
+  if (decision !== "admit" && decision !== "deny") {
+    throw new HttpError(400, "Choose admit or deny.")
+  }
+
+  let query = admin
+    .from("room7_join_requests")
+    .update({
+      status: decision === "admit" ? "approved" : "denied",
+      decided_at: new Date().toISOString(),
+      decided_by: profile.id,
+    })
+    .eq("room_id", roomId)
+    .eq("status", "pending")
+
+  if (body?.all === true) {
+    // Everyone waiting right now.
+  } else {
+    const requestId = uuid(body?.request_id)
+
+    if (!requestId) {
+      throw new HttpError(400, "A valid request is required.")
+    }
+
+    query = query.eq("id", requestId)
+  }
+
+  const { error } = await query
+
+  if (error) throw error
+}
+
 function eventResponse(
   room: any,
   external: any,
@@ -2498,6 +2636,8 @@ serve(async req => {
       | "engagement_save_content"
       | "engagement_moderate_question"
       | "engagement_update_interest"
+      | "join_requests"
+      | "decide_request"
 
 
   if (
@@ -2510,7 +2650,9 @@ serve(async req => {
     action !== "engagement_get" &&
     action !== "engagement_save_content" &&
     action !== "engagement_moderate_question" &&
-    action !== "engagement_update_interest"
+    action !== "engagement_update_interest" &&
+    action !== "join_requests" &&
+    action !== "decide_request"
   ) {
     return json(
       req,
@@ -2590,11 +2732,48 @@ serve(async req => {
     ) {
       return json(
         req,
-        eventResponse(
-          room,
-          external,
-          authority,
+        await withSettings(
+          admin,
+          room.id,
+          eventResponse(
+            room,
+            external,
+            authority,
+          ),
         ),
+      )
+    }
+
+    if (action === "join_requests") {
+      const settings =
+        await loadEventSettings(admin, room.id)
+
+      return json(
+        req,
+        {
+          requests:
+            settings.admission === "host"
+              ? await listJoinRequests(admin, room.id)
+              : [],
+          admission: settings.admission,
+        },
+      )
+    }
+
+    if (action === "decide_request") {
+      await decideJoinRequests(
+        admin,
+        room.id,
+        profile,
+        body,
+      )
+
+      return json(
+        req,
+        {
+          requests:
+            await listJoinRequests(admin, room.id),
+        },
       )
     }
 
@@ -2608,6 +2787,12 @@ serve(async req => {
           external,
           body,
         )
+
+      await saveEventSettings(
+        admin,
+        room.id,
+        body,
+      )
 
       console.info(
         "ROOM 7 external event configured",
@@ -2631,10 +2816,14 @@ serve(async req => {
 
       return json(
         req,
-        eventResponse(
-          room,
-          external,
-          authority,
+        await withSettings(
+          admin,
+          room.id,
+          eventResponse(
+            room,
+            external,
+            authority,
+          ),
         ),
       )
     }
