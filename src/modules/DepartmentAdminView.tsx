@@ -56,7 +56,10 @@ const DEPARTMENTS: Record<string, string> = {
   marketing: 'Marketing',
   partnerships: 'Partnerships',
   legal: 'Legal & Compliance',
+  unassigned: 'No department yet',
 }
+
+const EVERYONE = '__everyone__'
 
 const when = (value: string | null | undefined) => {
   if (!value) return 'Never'
@@ -109,9 +112,11 @@ export default function DepartmentAdminView({
     }))
     setRows(next)
     setDepartment(current =>
-      current && next.some(row => row.workstation === current)
+      current && (current === EVERYONE || next.some(row => row.workstation === current))
         ? current
-        : next[0]?.workstation || ''
+        : new Set(next.map(row => row.workstation)).size > 1
+          ? EVERYONE
+          : next[0]?.workstation || ''
     )
     setLoading(false)
   }, [])
@@ -125,10 +130,16 @@ export default function DepartmentAdminView({
     [rows]
   )
 
+  // "Everyone" lists each person once, even if they belong to several departments.
+  const inScope = useMemo(() => {
+    if (department !== EVERYONE) return rows.filter(row => row.workstation === department)
+    const seen = new Set<string>()
+    return rows.filter(row => (seen.has(row.employee_id) ? false : (seen.add(row.employee_id), true)))
+  }, [rows, department])
+
   const team = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return rows
-      .filter(row => row.workstation === department)
+    return inScope
       .filter(
         row =>
           !q ||
@@ -136,12 +147,13 @@ export default function DepartmentAdminView({
             String(value || '').toLowerCase().includes(q)
           )
       )
-  }, [rows, department, search])
+      // People who are online come first, then by name as the server ordered them.
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => Number(isOnline(b.row.last_seen_at)) - Number(isOnline(a.row.last_seen_at)) || a.index - b.index)
+      .map(entry => entry.row)
+  }, [inScope, search])
 
-  const everyone = useMemo(
-    () => rows.filter(row => row.workstation === department),
-    [rows, department]
-  )
+  const everyone = inScope
 
   const selected = everyone.find(row => row.employee_id === selectedId) || null
 
@@ -164,7 +176,7 @@ export default function DepartmentAdminView({
   const onlineCount = everyone.filter(row => isOnline(row.last_seen_at)).length
   const openCount = everyone.reduce((sum, row) => sum + row.open_work, 0)
   const overdueCount = everyone.reduce((sum, row) => sum + row.overdue_work, 0)
-  const title = DEPARTMENTS[department] || department
+  const title = department === EVERYONE ? 'Everyone' : DEPARTMENTS[department] || department
 
   if (!loading && !rows.length && !message) {
     return (
@@ -203,7 +215,7 @@ export default function DepartmentAdminView({
 
       {departments.length > 1 && (
         <div className="dahTabs">
-          {departments.map(key => (
+          {[EVERYONE, ...departments].map(key => (
             <button
               key={key}
               type="button"
@@ -214,7 +226,7 @@ export default function DepartmentAdminView({
                 setDetail(null)
               }}
             >
-              {DEPARTMENTS[key] || key}
+              {key === EVERYONE ? 'Everyone' : DEPARTMENTS[key] || key}
             </button>
           ))}
         </div>

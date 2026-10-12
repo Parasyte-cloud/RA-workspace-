@@ -277,8 +277,8 @@ const sectionAccess:Record<Section,Role[]>={
 
   letterhead:[...LETTERHEAD_ROLES],
 
-  // Reached through a head-of-department grant, never by role alone.
-  deptadmin:[],
+  // Department heads reach it through a grant; People & HR see everyone.
+  deptadmin:['hr'],
 
   vendors:[
     'operations',
