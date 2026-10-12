@@ -157,3 +157,18 @@ test('page: folder access for admins, share dialog shows the link once', () => {
     assert.ok(ui.includes(t), t)
   assert.ok(!fn.includes('\u2014') && !readFileSync('src/lib/archive.ts', 'utf8').includes('\u2014'))
 })
+
+test('preview stays inside the workspace: no new tabs, PDFs and text shown from memory', () => {
+  assert.doesNotMatch(ui, /window\.open/)
+  assert.doesNotMatch(ui, /_blank/)
+  assert.match(ui, /function Viewer/)
+  assert.match(ui, /URL\.createObjectURL/)
+  assert.match(ui, /URL\.revokeObjectURL/)
+  assert.equal(A.viewerMode('application/pdf'), 'pdf')
+  assert.equal(A.viewerMode('image/png'), 'image')
+  assert.equal(A.viewerMode('text/plain'), 'text')
+  assert.equal(A.viewerMode('application/zip'), null)
+  assert.equal(A.canPreview('application/vnd.ms-excel'), false)
+  const company = readFileSync('src/modules/Phase2Modules.tsx', 'utf8')
+  assert.doesNotMatch(company, /window\.open\(data\.signedUrl/)
+})
