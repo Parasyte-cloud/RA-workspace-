@@ -1144,6 +1144,17 @@ export default function ExternalRoom7App() {
                 </strong>
               </div>
 
+              {room.join_available &&
+                !waiting &&
+                !authToken && (
+                  <a
+                    className="room7PublicJumpJoin"
+                    href="#room7-guest-access"
+                  >
+                    Enter ROOM 7
+                  </a>
+                )}
+
               {countdown &&
                 room.event_state ===
                   'pre_event' && (
@@ -1187,13 +1198,17 @@ export default function ExternalRoom7App() {
                 </span>
 
                 <h2>
-                  {room.join_available
-                    ? 'Enter ROOM 7'
-                    : 'Event lobby'}
+                  {waiting
+                    ? 'You are in the queue'
+                    : room.join_available
+                      ? 'Enter ROOM 7'
+                      : 'Event lobby'}
                 </h2>
 
                 <p>
-                  {room.join_available
+                  {waiting
+                    ? 'The host has been told you are here.'
+                    : room.join_available
                     ? 'Type your name and email, then enter. No account needed.'
                     : room.past_scheduled_end
                       ? 'The scheduled time for this event has ended.'
