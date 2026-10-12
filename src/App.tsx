@@ -59,7 +59,8 @@ import {
   Wrench,
   Images,
   FileSignature,
-  Globe2
+  Globe2,
+  Star
 } from 'lucide-react'
 import { supabase,
   supabaseConfigured } from './lib/supabase'
@@ -76,6 +77,19 @@ import EventReminders from './modules/EventReminders'
 import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
 import { GlobalSearch } from './components/GlobalSearch'
+import {
+  buildSidebar,
+  DEFAULT_FAVOURITES,
+  favouritesKey,
+  MAX_FAVOURITES,
+  MAX_RECENT,
+  pushRecent,
+  readList,
+  recentKey,
+  sanitizeIds,
+  toggleFavourite,
+  writeList,
+} from './lib/workspaceNav'
 import { useIdleSignOut } from './lib/useIdleSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
@@ -1007,28 +1021,59 @@ function App(){
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
 
-  const groupedNav=useMemo(()=>{
-    const byId=new Map<Section,typeof nav[number]>()
-    nav.forEach(item=>byId.set(item[0] as Section,item))
-    const pick=(ids:readonly Section[])=>ids.map(id=>byId.get(id)).filter(Boolean) as (typeof nav[number])[]
+  const validNavIds=useMemo(()=>new Set<string>(nav.map(item=>item[0])),[nav])
 
-    return {
-      primary:pick(['overview','tasks','projects']),
-      groups:[
-        {id:'communication',label:'Communication',items:pick(['chat','room','social','mail','calendar','announcements'])},
-        {id:'resources',label:'Company',items:pick(['profile','gallery','files','brand','letterhead','knowledge','crm','parasyte','apps'])},
-        {id:'workstations',label:'Workstations',items:pick(['executive','support','operations','people','engineering','linux','finance','vendors','marketing','partnerships','legal','deptadmin'])}
-      ].filter(group=>group.items.length>0),
-      system:pick(['settings','admin'])
-    }
-  },[nav])
+  const primarySection=useMemo(()=>{
+    const primary=workstationAssignments.find(item=>item.active&&item.is_primary)
+    if(!primary) return null
+    const entry=Object.entries(workstationForSection).find(([,workstation])=>workstation===primary.workstation)
+    return entry?entry[0]:null
+  },[workstationAssignments])
+
+  const userId=session?.user?.id||''
+  const [favouriteIds,setFavouriteIds]=useState<string[]>([...DEFAULT_FAVOURITES])
+  const [recentIds,setRecentIds]=useState<string[]>([])
 
   useEffect(()=>{
-    const activeGroup=groupedNav.groups.find(group=>group.items.some(([id])=>id===section))
-    if(activeGroup){
-      setOpenNavGroup(activeGroup.id)
+    if(!userId) return
+    const stored=readList(favouritesKey(userId))
+    setFavouriteIds(stored===null?[...DEFAULT_FAVOURITES]:stored)
+    setRecentIds(readList(recentKey(userId))||[])
+  },[userId])
+
+  const favourites=useMemo(()=>sanitizeIds(favouriteIds,validNavIds,MAX_FAVOURITES),[favouriteIds,validNavIds])
+  const recentSections=useMemo(()=>sanitizeIds(recentIds,validNavIds,MAX_RECENT),[recentIds,validNavIds])
+
+  const toggleNavFavourite=(id:string)=>{
+    const next=toggleFavourite(favourites,id,validNavIds)
+    setFavouriteIds(next)
+    if(userId) writeList(favouritesKey(userId),next)
+  }
+
+  useEffect(()=>{
+    if(!userId||section==='workspace'||!validNavIds.has(section)) return
+    setRecentIds(current=>{
+      const next=pushRecent(current,section)
+      writeList(recentKey(userId),next)
+      return next
+    })
+  },[section,userId,validNavIds])
+
+  const groupedNav=useMemo(
+    ()=>buildSidebar(nav,{primarySection,favourites}),
+    [nav,primarySection,favourites]
+  )
+
+  const activeGroupId=useMemo(
+    ()=>groupedNav.groups.find(group=>group.items.some(([id])=>id===section))?.id||null,
+    [section,groupedNav]
+  )
+
+  useEffect(()=>{
+    if(activeGroupId){
+      setOpenNavGroup(activeGroupId)
     }
-  },[section,groupedNav])
+  },[section,activeGroupId])
 
   useEffect(()=>{
     contentRef.current?.scrollTo({top:0,left:0,behavior:'auto'})
@@ -1143,13 +1188,36 @@ function App(){
     return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   }
 
+  const renderNavRow=([id,label,Icon]:typeof nav[number])=>{
+    const starred=favourites.includes(id)
+    return <div key={id} className={`sidebarNavRow${starred?' starred':''}`}>
+      <button type="button" className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>
+      <button
+        type="button"
+        className="sidebarNavStar"
+        aria-pressed={starred}
+        aria-label={starred?`Remove ${label} from favourites`:`Add ${label} to favourites`}
+        title={starred?'Remove from favourites':'Add to favourites'}
+        onClick={()=>toggleNavFavourite(id)}
+      ><Star size={12}/></button>
+    </div>
+  }
+
   return <NotificationsProvider><div className="appBackground"><div className="shell glassFrame">
     <aside className="sidebar glassPanel">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
         <div className="sidebarNavPrimary">
-          {groupedNav.primary.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+          {groupedNav.pinned.map(renderNavRow)}
         </div>
+        {groupedNav.favourites.length>0&&<div className="sidebarNavPrimary sidebarNavSection" aria-label="Favourites">
+          <span className="sidebarNavLabel">Favourites</span>
+          {groupedNav.favourites.map(renderNavRow)}
+        </div>}
+        {groupedNav.mine.length>0&&<div className="sidebarNavPrimary sidebarNavSection" aria-label="My workstation">
+          <span className="sidebarNavLabel">My workstation</span>
+          {groupedNav.mine.map(renderNavRow)}
+        </div>}
         <div className="sidebarNavGroups">
           {groupedNav.groups.map(group=>{
             const isOpen=openNavGroup===group.id
@@ -1158,19 +1226,19 @@ function App(){
                 <span>{group.label}</span><ChevronRight size={14}/>
               </button>
               <div className="sidebarNavGroupItems">
-                {group.items.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+                {group.items.map(renderNavRow)}
               </div>
             </div>
           })}
         </div>
         <div className="sidebarNavSystem">
-          {groupedNav.system.map(([id,label,Icon])=><button type="button" key={id} className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>)}
+          {groupedNav.system.map(renderNavRow)}
         </div>
       </nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
     <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1><p>One secure workplace for RideArrivo teams.</p></div><div className="headerActions"><WorkspaceClock/><GlobalSearch onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
+      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1></div><div className="headerActions"><WorkspaceClock/><GlobalSearch sections={nav.map(([id,label])=>({id,label}))} recent={recentSections} onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
   }}
@@ -1201,17 +1269,18 @@ function App(){
       className="profileMenu"
       role="menu"
     >
-      <button
+      {groupedNav.menu.map(([id,label])=><button
+        key={id}
         type="button"
         role="menuitem"
         onClick={()=>{
           setProfileMenuOpen(false)
           setWorkspace(null)
-          setSection('profile')
+          setSection(id)
         }}
       >
-        My Profile
-      </button>
+        {label}
+      </button>)}
 
       <div className="profileMenuDivider"/>
 
@@ -1651,19 +1720,6 @@ function SectionTitle({eyebrow,title,subtitle,actions}:{eyebrow:string;title:str
 }
 
 function Overview({setSection,role,profile,assignments}:{setSection:(s:Section)=>void;role:Role;profile:Profile;assignments:WorkstationAssignment[]}){
-  const launchers=[
-    ['executive','CEO / Management','Company-wide decisions, approvals, performance, risk and cross-functional control.',Crown],
-    ['support','Support','Bookings, riders, live-trip support, safety and service recovery.',Headphones],
-    ['operations','Operations','Dispatch, drivers, fleet readiness, airport execution and incidents.',BriefcaseBusiness],
-    ['people','People & HR','Recruitment, onboarding, leave, performance and employee operations.',Users],
-    ['engineering','Engineering','Source control, releases, environments, observability and secure development.',Code2],
-    ['finance','Finance','Accounting, banking, Paystack, Flutterwave, budgets and close.',CircleDollarSign],
-    ['marketing','Marketing','Campaigns, content, growth analytics, brand and acquisition.',BarChart3],
-    ['partnerships','Partnerships','Partner CRM, pipeline, agreements, referrals and performance.',Building2],
-    ['legal','Legal','Contracts, privacy, compliance, regulation and evidence.',Scale],
-    ['admin','Administration','Identity, workstation assignment, KPI oversight, files and security controls.',Settings],
-  ] as const
-
   return <>
     <PersonalDashboard
       profile={profile}
@@ -1671,18 +1727,11 @@ function Overview({setSection,role,profile,assignments}:{setSection:(s:Section)=
       onNavigate={target=>setSection(target as Section)}
     />
     <OverviewMetrics role={role}/>
-    <section>
-      <SectionTitle eyebrow="WORKSPACE OVERVIEW" title="Your authorised command centres" subtitle="Open the departments and control surfaces assigned to your role or primary workstation."/>
-      <div className="grid3">
-        {launchers.filter(([id])=>canAccess(role,id,assignments)).map(([id,title,text,Icon])=><Launch key={id} title={title} text={text} icon={<Icon/>} onClick={()=>setSection(id)}/>)}
-      </div>
-    </section>
   </>
 }
 
 function Metric({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}
 function Feature({icon,title,text}:{icon:ReactNode;title:string;text:string}){return <div className="glassCard feature"><div className="iconBox">{icon}</div><h3>{title}</h3><p>{text}</p></div>}
-function Launch({title,text,icon,onClick}:{title:string;text:string;icon:ReactNode;onClick:()=>void}){return <button className="launch glassCard" onClick={onClick}><div className="iconBox">{icon}</div><div><strong>{title}</strong><p>{text}</p></div><ChevronRight/></button>}
 function StatusPill({value}:{value:string}){return <span className={`statusPill ${value.toLowerCase().replace(/\s+/g,'-')}`}>{value}</span>}
 function initials(name:string){return name.split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]?.toUpperCase()).join('') || 'RA'}
 

@@ -25,11 +25,13 @@ import {
   Scale,
   Video,
   FolderKanban,
+  ArrowRight,
   type LucideIcon,
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
 import { setSearchFocus } from '../lib/searchFocus'
+import { matchSections, type GoToSection } from '../lib/workspaceNav'
 import '../global-search.css'
 
 /*
@@ -104,7 +106,17 @@ function buildGroups(results: SearchResults | null, mail: MailRow[] | null): Res
   return groups.filter(group => group.items.length > 0)
 }
 
-export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => void }) {
+export function GlobalSearch({
+  onNavigate,
+  sections = [],
+  recent = [],
+}: {
+  onNavigate: (section: string) => void
+  // Pages the person may open, so a few letters can jump straight to one.
+  sections?: GoToSection[]
+  // Section ids, newest first, shown before anything is typed.
+  recent?: string[]
+}) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -219,8 +231,35 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
     onNavigate(item.section)
   }
 
-  const groups = buildGroups(results, mail)
+  const typed = query.trim()
+  const sectionLabel = new Map(sections.map(section => [section.id, section.label]))
+  const toPageItem = (section: GoToSection): ResultItem => ({
+    key: `go-${section.id}`,
+    icon: ArrowRight,
+    title: section.label,
+    sub: 'Open this page',
+    section: section.id,
+  })
+
+  // Pages come first and need no network, so they appear instantly.
+  const localGroups: ResultGroup[] = []
+  if (typed === '') {
+    const items = recent
+      .filter(id => sectionLabel.has(id))
+      .map(id => toPageItem({ id, label: sectionLabel.get(id) as string }))
+    if (items.length) localGroups.push({ label: 'Recent', items })
+  } else {
+    const items = matchSections(typed, sections).map(toPageItem)
+    if (items.length) localGroups.push({ label: 'Go to', items })
+  }
+
+  const remoteGroups = !loading && !error && results ? buildGroups(results, mail) : []
+  const groups = [...localGroups, ...remoteGroups]
   const flat = groups.flatMap(group => group.items)
+
+  useEffect(() => {
+    setActive(0)
+  }, [query])
 
   function onInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') {
@@ -276,7 +315,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
         <div className="searchModalBody" id="searchResultsList" role="listbox" aria-live="polite">
           {trimmed.length > 0 && trimmed.length < 2 && (
-            <p className="searchHint">Keep typing. Search needs at least 2 characters.</p>
+            <p className="searchHint">Type at least 2 characters to search records. Matching pages are listed first.</p>
           )}
 
           {loading && (
@@ -285,7 +324,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
 
           {!loading && error && <p className="searchHint searchError">{error}</p>}
 
-          {!loading && !error && results && (
+          {!error && (groups.length > 0 || (!loading && results)) && (
             <>
               {groups.map(group => (
                 <div className="searchGroup" key={group.label}>
@@ -317,11 +356,11 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (section: string) => 
                 </div>
               ))}
 
-              {partial && (
+              {!loading && partial && (
                 <p className="searchHint">Some areas could not be searched just now. Results may be incomplete.</p>
               )}
 
-              {trimmed.length >= 2 && flat.length === 0 && (
+              {!loading && results && trimmed.length >= 2 && flat.length === 0 && (
                 <p className="searchEmpty">No results for "{trimmed}".</p>
               )}
             </>

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Award, BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, ClipboardList, Clock3, FolderKanban, Gauge, Laptop, Smartphone, Sparkles, Target, Trophy } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, Clock3, Gauge, Laptop, Smartphone, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
@@ -115,7 +115,7 @@ function greeting(){
 }
 
 function pct(value:number|null){
-  return value===null ? '—' : `${Math.round(value)}%`
+  return value===null ? 'n/a' : `${Math.round(value)}%`
 }
 
 function monthLabel(value:string){
@@ -130,6 +130,15 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
   const [devices,setDevices]=useState<CompanyDevice[]>([])
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
+
+  // The workstation guide opens by itself until it has been closed once.
+  const guideKey=`ridearrivo-guide-seen:${profile.id}`
+  const [guideSeenAtLoad]=useState(()=>{
+    try{ return window.localStorage.getItem(guideKey)==='1' }catch{ return false }
+  })
+  const markGuideSeen=()=>{
+    try{ window.localStorage.setItem(guideKey,'1') }catch{ /* storage blocked: it simply opens again next time */ }
+  }
 
   const load=useCallback(async()=>{
     const client=supabase
@@ -175,74 +184,99 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
     return `${name}, your current delivery score is ${value}%. Use your open work and overdue items to choose the next best improvement.`
   },[name,snapshot])
 
-  return (
-    <section className="personalDashboard">
-      <WorkstationGuideCard />
-      <div className="personalHero glassHero">
-        <div className="personalHeroCopy">
-          <span className="eyebrow">YOUR RIDEARRIVO DASHBOARD</span>
-          <h2>{greeting()}, {name}.</h2>
-          <p>{profile.job_title || profile.department || 'RideArrivo team member'} · Your priorities, KPI, recognition and primary workstation in one place.</p>
-          <div className="personalHeroActions">
-            {primaryTarget&&<button className="primaryButton" onClick={()=>onNavigate(primaryTarget)}>Open {primaryLabel}</button>}
-            <button type="button" className="glassButton personalHeroSecondaryAction" onClick={()=>onNavigate('tasks')}><ClipboardList size={16}/>My Tasks</button>
-            <button type="button" className="glassButton personalHeroSecondaryAction" onClick={()=>onNavigate('projects')}><FolderKanban size={16}/>Projects</button>
-          </div>
-        </div>
+  const overdue=snapshot?.overdue_open ?? null
 
-        <div className="dailyNoteCard">
-          <div className="dailyNoteIcon"><Sparkles size={19}/></div>
-          <span>DAILY NOTE</span>
-          <strong>{name}, make today count.</strong>
-          <p>{morningNote}</p>
+  return (
+    <section className="personalDashboard todayView">
+      <div className="personalHero todayHero glassHero">
+        <div className="personalHeroCopy">
+          <span className="eyebrow">TODAY</span>
+          <h2>{greeting()}, {name}.</h2>
+          <p>{profile.job_title || profile.department || 'RideArrivo team member'}</p>
+        </div>
+        <div className="personalHeroActions todayHeroActions">
+          {primaryTarget&&<button className="primaryButton" onClick={()=>onNavigate(primaryTarget)}>Open {primaryLabel}</button>}
+          {recognition&&<span className="recognitionChip" title="Current company recognition"><Trophy size={14}/>{recognition.badge_label} · {monthLabel(recognition.performance_month)}</span>}
         </div>
       </div>
 
       <DashboardNotificationsTeaser onOpenWork={()=>onNavigate('tasks')}/>
 
-      {recognition&&(
-        <div className="recognitionBanner">
-          <div className="recognitionBadge"><Trophy size={22}/></div>
-          <div>
-            <span className="eyebrow">CURRENT RECOGNITION</span>
-            <strong>{recognition.badge_label} · {monthLabel(recognition.performance_month)}</strong>
-            <p>Congratulations, {name}. Your recorded delivery KPI of {Math.round(Number(recognition.score))}% earned the current company recognition badge. It remains active until the next monthly winner is generated.</p>
+      <div className="todayRow">
+        <article className="glassCard todayAttention">
+          <span className="eyebrow">NEEDS YOUR ATTENTION</span>
+          {loading
+            ? <p>Checking your work...</p>
+            : overdue!==null&&overdue>0
+              ? <button type="button" className="todayAttentionItem" onClick={()=>onNavigate('tasks')}><Clock3 size={16}/><span><strong>{overdue} overdue {overdue===1?'item':'items'}</strong><small>Open Tasks to clear or update them</small></span></button>
+              : <p>Nothing is overdue. Open Tasks to plan what comes next.</p>}
+        </article>
+        <article className="glassCard personalKpiCard emphasis todayKpi"><Gauge/><span>30-day delivery KPI</span><strong>{snapshot?.score===null || !snapshot ? 'n/a' : `${Math.round(snapshot.score)}%`}</strong><small>{snapshot?.status==='insufficient_data'?'Waiting for enough assigned work':String(snapshot?.status || 'Loading').replace('_',' ')}</small></article>
+      </div>
+
+      <Disclosure
+        title="Workstation guide"
+        hint="Daily workflow, key tools and security"
+        defaultOpen={!guideSeenAtLoad}
+        onToggleOpen={open=>{ if(!open) markGuideSeen() }}
+      >
+        <WorkstationGuideCard />
+      </Disclosure>
+
+      <div className="todayMore" aria-label="More about you">
+        <Disclosure title="Performance details" hint="Score breakdown and how it is measured">
+          <div className={`performanceBanner ${snapshot?.status || 'insufficient_data'}`}>
+            <BadgeCheck size={19}/><div><strong>Performance update</strong><span>{loading?'Calculating your latest KPI...':performanceMessage}</span></div>
           </div>
-          <Award size={28}/>
-        </div>
-      )}
+          {message&&<div className="moduleNotice">KPI data: {message}</div>}
+          <div className="personalKpiGrid todayKpiGrid">
+            <article className="glassCard personalKpiCard annual"><CalendarRange/><span>{new Date().getFullYear()} overall KPI</span><strong>{annual?.score===null || !annual ? 'n/a' : `${Math.round(annual.score)}%`}</strong><small>{annual ? `Year-to-date · ${String(annual.status).replace('_',' ')}` : 'Waiting for annual KPI snapshot'}</small></article>
+            <article className="glassCard personalKpiCard"><CheckCircle2/><span>Completion rate</span><strong>{pct(snapshot?.completion_rate ?? null)}</strong><small>{snapshot ? `${snapshot.total_completed} of ${snapshot.total_assigned} assigned items completed` : 'Loading'}</small></article>
+            <article className="glassCard personalKpiCard"><CalendarCheck2/><span>On-time completion</span><strong>{pct(snapshot?.on_time_rate ?? null)}</strong><small>{snapshot ? `${snapshot.completed_on_time} of ${snapshot.completed_with_due_date} completed items with deadlines` : 'Loading'}</small></article>
+            <article className="glassCard personalKpiCard"><Clock3/><span>Open overdue</span><strong>{snapshot?.overdue_open ?? 'n/a'}</strong><small>Assigned items currently past their due date</small></article>
+          </div>
+          <article className="glassCard dashboardContextCard"><Target size={20}/><div><strong>How your KPI is measured</strong><p>Transparent delivery evidence: 60% completion, 30% on-time completion when deadlines exist, and 10% acknowledgement. The annual evaluation uses the same method across the current year. If there is no assigned work, RideArrivo shows insufficient data instead of a zero.</p></div></article>
+        </Disclosure>
 
-      <div className={`performanceBanner ${snapshot?.status || 'insufficient_data'}`}>
-        <BadgeCheck size={19}/><div><strong>Performance update</strong><span>{loading?'Calculating your latest KPI...':performanceMessage}</span></div>
-      </div>
+        <Disclosure title="Company equipment" hint={devices.length?`${devices.length} assigned`:'None assigned'}>
+          <p className="todayNote">Your registered RideArrivo laptops, phones and gadgets. Serial and IMEI values come from the controlled asset registry; a normal browser cannot discover them automatically.</p>
+          <div className="myEquipmentGrid">
+            {devices.map(device=><article key={device.id} className="myEquipmentItem">
+              <div className="myEquipmentIcon">{device.device_type==='phone'?<Smartphone size={18}/>:<Laptop size={18}/>}</div>
+              <div><span>{device.asset_tag}</span><strong>{[device.manufacturer,device.model].filter(Boolean).join(' ') || device.device_type}</strong><small>{[device.color,device.memory_label,device.storage_label,device.operating_system].filter(Boolean).join(' · ') || 'Registered company device'}</small><small>{device.serial_number?`Serial: ${device.serial_number}`:'Serial not recorded'}{device.imei?` · IMEI: ${device.imei}`:''}</small>{device.location_label&&<small>Issued location: {device.location_label}</small>}</div>
+            </article>)}
+            {!devices.length&&<div className="myEquipmentEmpty">No company equipment is assigned to your account yet.</div>}
+          </div>
+        </Disclosure>
 
-      {message&&<div className="moduleNotice">KPI data: {message}</div>}
+        <Disclosure title="Sign-in sessions" hint="Where you are signed in">
+          <MyWorkspaceSessionsPanel/>
+        </Disclosure>
 
-      <div className="personalKpiGrid">
-        <article className="glassCard personalKpiCard emphasis"><Gauge/><span>30-day delivery KPI</span><strong>{snapshot?.score===null || !snapshot ? '—' : `${Math.round(snapshot.score)}%`}</strong><small>{snapshot?.status==='insufficient_data'?'Waiting for enough assigned work':String(snapshot?.status || 'Loading').replace('_',' ')}</small></article>
-        <article className="glassCard personalKpiCard annual"><CalendarRange/><span>{new Date().getFullYear()} overall KPI</span><strong>{annual?.score===null || !annual ? '—' : `${Math.round(annual.score)}%`}</strong><small>{annual ? `Year-to-date · ${String(annual.status).replace('_',' ')}` : 'Waiting for annual KPI snapshot'}</small></article>
-        <article className="glassCard personalKpiCard"><CheckCircle2/><span>Completion rate</span><strong>{pct(snapshot?.completion_rate ?? null)}</strong><small>{snapshot ? `${snapshot.total_completed} of ${snapshot.total_assigned} assigned items completed` : 'Loading'}</small></article>
-        <article className="glassCard personalKpiCard"><CalendarCheck2/><span>On-time completion</span><strong>{pct(snapshot?.on_time_rate ?? null)}</strong><small>{snapshot ? `${snapshot.completed_on_time} of ${snapshot.completed_with_due_date} completed items with deadlines` : 'Loading'}</small></article>
-        <article className="glassCard personalKpiCard"><Clock3/><span>Open overdue</span><strong>{snapshot?.overdue_open ?? '—'}</strong><small>Assigned items currently past their due date</small></article>
-      </div>
+        <Disclosure title="Your workstation" hint={primaryLabel || 'Not assigned yet'}>
+          <p className="todayNote">{primaryLabel ? `${primaryLabel} is your primary secured workstation. Administration can reassign it when your responsibilities change.` : 'Administration can assign your primary workstation without changing your name, title or employee identity.'}</p>
+        </Disclosure>
 
-      <div className="myEquipment glassCard">
-        <div className="myEquipmentHeader"><div><span className="eyebrow">MY COMPANY EQUIPMENT</span><strong>Assigned devices</strong><p>Your registered RideArrivo laptops, phones and gadgets. Hardware serial/IMEI values come from the controlled asset registry; a normal browser cannot discover them automatically.</p></div></div>
-        <div className="myEquipmentGrid">
-          {devices.map(device=><article key={device.id} className="myEquipmentItem">
-            <div className="myEquipmentIcon">{device.device_type==='phone'?<Smartphone size={18}/>:<Laptop size={18}/>}</div>
-            <div><span>{device.asset_tag}</span><strong>{[device.manufacturer,device.model].filter(Boolean).join(' ') || device.device_type}</strong><small>{[device.color,device.memory_label,device.storage_label,device.operating_system].filter(Boolean).join(' · ') || 'Registered company device'}</small><small>{device.serial_number?`Serial: ${device.serial_number}`:'Serial not recorded'}{device.imei?` · IMEI: ${device.imei}`:''}</small>{device.location_label&&<small>Issued location: {device.location_label}</small>}</div>
-          </article>)}
-          {!devices.length&&<div className="myEquipmentEmpty">No company equipment is assigned to your account yet.</div>}
-        </div>
-      </div>
-
-      <MyWorkspaceSessionsPanel/>
-
-      <div className="dashboardContextGrid">
-        <article className="glassCard dashboardContextCard"><Target size={20}/><div><strong>How your KPI is measured</strong><p>Transparent delivery evidence: 60% completion, 30% on-time completion when deadlines exist, and 10% acknowledgement. The annual evaluation uses the same method across the current year. If there is no assigned work, RideArrivo shows insufficient data instead of a zero.</p></div></article>
-        <article className="glassCard dashboardContextCard"><ClipboardList size={20}/><div><strong>{primaryLabel || 'Workstation not assigned yet'}</strong><p>{primaryLabel ? 'This is your primary secured workstation. Administration can reassign it when your responsibilities change.' : 'Administration can assign your primary workstation without changing your name, title or employee identity.'}</p></div></article>
+        <Disclosure title="Daily note">
+          <p className="todayNote">{morningNote}</p>
+        </Disclosure>
       </div>
     </section>
+  )
+}
+
+// A native <details> whose body is only built once it is opened, so closed
+// sections cost no queries and no layout.
+function Disclosure({title,hint,children,defaultOpen=false,onToggleOpen}:{title:string;hint?:string;children:ReactNode;defaultOpen?:boolean;onToggleOpen?:(open:boolean)=>void}){
+  const [open,setOpen]=useState(defaultOpen)
+  return (
+    <details className="todayDisclosure" open={defaultOpen} onToggle={event=>{
+      const next=(event.currentTarget as HTMLDetailsElement).open
+      setOpen(next)
+      onToggleOpen?.(next)
+    }}>
+      <summary><span>{title}</span>{hint&&<small>{hint}</small>}</summary>
+      {open&&<div className="todayDisclosureBody">{children}</div>}
+    </details>
   )
 }

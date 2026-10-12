@@ -26,3 +26,31 @@
 .personalHeroActions .personalHeroSecondaryAction svg{
   flex:0 0 auto;
 }
+
+/* Today view: a short page first, detail on demand. */
+.todayHero{min-height:0;padding:22px 28px;grid-template-columns:minmax(0,1fr) auto;gap:16px}
+.todayHero .personalHeroCopy h2{font-size:30px;margin:6px 0}
+.todayHero .personalHeroCopy p{margin:0}
+.todayHeroActions{margin-top:0;align-items:center;justify-content:flex-end}
+.recognitionChip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(255,153,0,.18);color:#ffcf80;border:1px solid rgba(255,177,59,.35)}
+.todayRow{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,.8fr);gap:12px}
+.todayAttention{padding:16px 18px;display:grid;gap:10px;align-content:start}
+.todayAttention p{margin:0;font-size:12px;color:var(--muted,#6f7f91)}
+.todayAttentionItem{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid rgba(255,153,0,.3);background:rgba(255,153,0,.1);border-radius:12px;padding:10px 12px;cursor:pointer;color:inherit;font:inherit}
+.todayAttentionItem strong,.todayAttentionItem small{display:block}
+.todayAttentionItem small{font-size:10px;color:var(--muted,#6f7f91)}
+.todayMore{display:grid;gap:8px}
+.todayDisclosure{border-radius:14px;border:1px solid rgba(127,127,127,.22);background:rgba(127,127,127,.06)}
+.todayDisclosure>summary{display:flex;align-items:baseline;gap:10px;padding:11px 14px;cursor:pointer;list-style:none;font-weight:700;font-size:13px;border-radius:14px}
+.todayDisclosure>summary::-webkit-details-marker{display:none}
+.todayDisclosure>summary small{font-size:11px;font-weight:500;opacity:.65}
+.todayDisclosure>summary::after{content:"\203A";margin-left:auto;font-size:16px;line-height:1;opacity:.6;transition:transform .15s ease}
+.todayDisclosure[open]>summary::after{transform:rotate(90deg)}
+.todayDisclosure>summary:focus-visible{outline:3px solid rgba(255,177,59,.55);outline-offset:2px}
+.todayDisclosureBody{display:grid;gap:12px;padding:0 14px 14px}
+.todayNote{margin:0;font-size:12px;line-height:1.55;color:var(--muted,#6f7f91)}
+.todayKpiGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1000px){.todayKpiGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.todayRow,.todayHero{grid-template-columns:1fr}.todayHeroActions{justify-content:flex-start}}
+@media(max-width:650px){.todayKpiGrid{grid-template-columns:1fr}.todayHero{padding:18px 20px}}
+@media(prefers-reduced-motion:reduce){.todayDisclosure>summary::after{transition:none}}

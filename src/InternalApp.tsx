@@ -12,5 +12,6 @@ import './workflow.css'
 import './theme-audit.css'
 import './shell-stability.css'
 import './runtime-stability.css'
+import './workspace-nav.css'
 
 export default App
