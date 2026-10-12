@@ -168,3 +168,13 @@ test('call rooms close themselves and stay out of the ROOM 7 meeting list', () =
   assert.match(read('src/modules/ChatModule.tsx'), /endCallRoom\(createdRoomId\)/)
   assert.match(read('supabase/functions/room-session/index.ts'), /Only the ROOM 7 host or an administrator can end/)
 })
+
+test('call window: both people can end the call, a failed start retries and offers Try again', () => {
+  const m = read('src/modules/RoomMeeting.tsx')
+  assert.match(m, /chatCall&&session\.role!=='host'/)
+  assert.match(m, /End call/)
+  assert.match(m, /attempt<=3/)
+  assert.match(m, /Try again<\/button>/)
+  assert.match(read('src/room.css'), /\.roomCallMini \.roomDangerButton\.roomCallEnd\{display:inline-flex/)
+  assert.match(read('src/modules/RoomModule.tsx'), /\.limit\(60\)/)
+})

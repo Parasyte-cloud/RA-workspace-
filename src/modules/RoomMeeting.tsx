@@ -115,6 +115,7 @@ export default function RoomMeeting({
   const [rejoinAttempt,setRejoinAttempt]=useState(0)
   const [frameStyle,setFrameStyle]=useState<CSSProperties>({})
   const [peopleOpen,setPeopleOpen]=useState(false)
+  const [initTry,setInitTry]=useState(0)
 
   // After a reconnect we skip RealtimeKit's setup screen and restore the
   // microphone/camera state the person had before the drop.
@@ -140,25 +141,44 @@ export default function RoomMeeting({
     let active=true
     let client:{leave:()=>Promise<void>}|undefined
     setInitError('')
-    Promise.resolve(initMeeting({
-      authToken:session.auth_token,
-      defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:!audioOnly}
-    })).then(created=>{
-      if(!created)return
-      if(active)client=created
-      else retire(created)
-    }).catch(error=>{
-      if(active){
-        setInitError(error instanceof Error?error.message:'Unable to initialise ROOM 7 media.')
+
+    // One failed start used to leave a dead black screen. A start can fail for
+    // a moment (network blip, media service busy), so try up to three times
+    // before giving up, and only then show the error with a Try again button.
+    const start=async()=>{
+      let lastError:unknown=null
+      for(let attempt=1;attempt<=3&&active;attempt++){
+        try{
+          const created=await initMeeting({
+            authToken:session.auth_token,
+            defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:!audioOnly}
+          })
+          if(!created)return
+          if(active)client=created
+          else retire(created)
+          return
+        }catch(error){
+          lastError=error
+          if(attempt<3)await wait(1200*attempt)
+        }
       }
-    })
+      if(active){
+        const message=lastError instanceof Error?lastError.message:''
+        setInitError(
+          /ERR0001|failed to initiali[sz]e/i.test(message)||!message
+            ?'Could not connect the call. Check your internet connection and try again.'
+            :message
+        )
+      }
+    }
+    void start()
     // A new token (rejoin) or leaving the page: shut the old client down so
     // it cannot come back as a ghost copy of this person.
     return()=>{
       active=false
       retire(client)
     }
-  },[session.auth_token])
+  },[session.auth_token,initTry])
 
   const reconnect=useCallback(async()=>{
     if(rejoinInFlightRef.current)return
@@ -395,8 +415,13 @@ export default function RoomMeeting({
           {!chatCall&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={onShowList} title="Open the ROOM 7 list while the call continues in the corner">
             <LayoutList size={16}/>Rooms
           </button>}
+          {chatCall&&session.role!=='host'&&
+            <button type="button" className="roomDangerButton roomCallEnd" onClick={()=>{void meeting?.leave().catch(()=>{});onLeft('left')}}>
+              <DoorOpen size={16}/>End call
+            </button>
+          }
           {session.role==='host'&&
-            <button type="button" className="roomDangerButton" disabled={ending} onClick={()=>void endRoom()}>
+            <button type="button" className={`roomDangerButton${chatCall?' roomCallEnd':''}`} disabled={ending} onClick={()=>void endRoom()}>
               {ending?<LoaderCircle size={16} className="roomSpin"/>:<DoorOpen size={16}/>}
               {chatCall?(ending?'Ending...':'End call'):(ending?'Ending ROOM 7...':'End ROOM 7')}
             </button>
@@ -419,7 +444,10 @@ export default function RoomMeeting({
             <ShieldCheck size={30}/>
             <h3>{chatCall?'The call could not start':'ROOM 7 could not start'}</h3>
             <p>{initError}</p>
-            <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
+            <div className="roomMeetingStateActions">
+              <button type="button" className="primaryButton" onClick={()=>setInitTry(n=>n+1)}>Try again</button>
+              <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
+            </div>
           </div>
         }
         {!initError&&!meeting&&

@@ -172,7 +172,7 @@ export default function RoomModule({
         .from('workspace_rooms')
         .select('id,room_code,title,status,ai_notes_enabled,created_by,started_at,ended_at,created_at,updated_at')
         .order('created_at',{ascending:false})
-        .limit(20)
+        .limit(60)
       if(error)throw error
       setRooms((data||[]) as RoomRecord[])
       // Best effort: if these lookups fail the list simply shows everything.
@@ -208,8 +208,10 @@ export default function RoomModule({
   },[active,loadRooms,loadConfiguration])
 
   const createRoom=async()=>{
-    const title=roomTitle.trim()
-    if(creating||title.length<2)return
+    // A title is optional: a blank one becomes "Meeting, 12 Oct 21:56", so
+    // starting a meeting is one click.
+    const title=roomTitle.trim()||`Meeting, ${new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`
+    if(creating)return
     setCreating(true)
     setNotice('')
     try{
@@ -629,11 +631,11 @@ export default function RoomModule({
             <p>Create a meeting as its host. Join straight away, or set it up as an external event first.</p>
           </div>
           <label className="roomField">
-            <span>ROOM 7 title</span>
+            <span>ROOM 7 title (optional)</span>
             <input
               value={roomTitle}
               maxLength={120}
-              placeholder="e.g. Product stand-up"
+              placeholder="Optional, e.g. Product stand-up"
               disabled={creating||configState!=='ready'}
               onChange={event=>setRoomTitle(event.target.value)}
               onKeyDown={event=>{if(event.key==='Enter')void createRoom()}}
@@ -659,7 +661,7 @@ export default function RoomModule({
           <button
             type="button"
             className="primaryButton roomWideButton"
-            disabled={creating||roomTitle.trim().length<2||configState!=='ready'}
+            disabled={creating||configState!=='ready'}
             onClick={()=>void createRoom()}
           >
             {creating?<LoaderCircle size={17} className="roomSpin"/>:<Video size={17}/>}

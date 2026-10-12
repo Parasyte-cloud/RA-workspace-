@@ -147,3 +147,8 @@ html[data-ra-theme='dark'] .roomGuestRow code{background:rgba(255,255,255,.07)}
 /* End button on an active meeting row: a quiet danger colour so it is not hit by accident. */
 .roomEndButton{color:#b42318;border-color:rgba(180,35,24,.35)}
 .roomEndButton:hover:not(:disabled){background:rgba(180,35,24,.08)}
+
+.roomMeetingStateActions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
+
+/* A call started from Chat keeps its End button in the small window too. */
+.roomCallMini .roomDangerButton.roomCallEnd{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;font-size:.75rem}
