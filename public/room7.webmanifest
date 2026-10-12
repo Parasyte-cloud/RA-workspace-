@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "RideArrivo ROOM 7",
+  "short_name": "ROOM 7",
+  "description": "Join RideArrivo ROOM 7 events and meetings with your event code.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071A38",
+  "theme_color": "#071A38",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icons/room7-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/room7-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/room7-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import Room7GuestDocuments from './Room7GuestDocuments'
+import Room7Install, { registerRoom7Worker } from './Room7Install'
 import Room7PublicExperienceSections, {
   Room7PublicExperienceNavigation,
 } from './Room7PublicExperienceSections'
@@ -451,6 +452,10 @@ function requestKeyFor(locator: Locator | null) {
 }
 
 export default function ExternalRoom7App() {
+  useEffect(() => {
+    registerRoom7Worker()
+  }, [])
+
   const locator =
     useMemo(
       () => parseLocator(),
@@ -1406,6 +1411,8 @@ export default function ExternalRoom7App() {
                 onEmailChange={setEmail}
               />
           )}
+
+          <Room7Install />
 
           <footer className="room7PublicFooter">
             <span>
