@@ -22,6 +22,12 @@ export const ALLOWED_ATTACHMENT_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'audio/webm',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/x-wav',
 ] as const
 
 // Some browsers report no type, or a generic one, for these. Fall back to the
@@ -42,6 +48,11 @@ const EXTENSION_TYPES: Record<string, string> = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   ppt: 'application/vnd.ms-powerpoint',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  webm: 'audio/webm',
+  m4a: 'audio/mp4',
+  ogg: 'audio/ogg',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
 }
 
 export const ACCEPT_ATTRIBUTE = Object.keys(EXTENSION_TYPES)
@@ -68,13 +79,14 @@ export function validateAttachment(file: FileLike): Verdict {
   if (!(ALLOWED_ATTACHMENT_TYPES as readonly string[]).includes(mime)) {
     return {
       ok: false,
-      reason: `${file.name} cannot be sent here. Send images, PDF, Word, Excel, PowerPoint, text, CSV or ZIP files.`,
+      reason: `${file.name} cannot be sent here. Send images, audio, PDF, Word, Excel, PowerPoint, text, CSV or ZIP files.`,
     }
   }
   return { ok: true, mime }
 }
 
 export const isImageMime = (mime?: string | null) => !!mime && mime.startsWith('image/')
+export const isAudioMime = (mime?: string | null) => !!mime && mime.startsWith('audio/')
 
 // Storage keys should stay boring: letters, digits, dot, dash, underscore.
 export function safeFileName(name: string): string {
@@ -114,5 +126,6 @@ export function messagePreview(message: WithAttachment): string {
   const text = (message.body || '').trim()
   if (text) return text
   if (!message.attachment_name && !message.attachment_path) return ''
+  if (isAudioMime(message.attachment_mime)) return 'Voice note'
   return isImageMime(message.attachment_mime) ? 'Photo' : `File: ${message.attachment_name || 'attachment'}`
 }

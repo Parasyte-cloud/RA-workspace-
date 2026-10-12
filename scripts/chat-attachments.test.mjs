@@ -6,6 +6,7 @@ import { transformSync } from 'esbuild'
 const js = transformSync(readFileSync('src/lib/chatAttachments.ts', 'utf8'), { loader: 'ts', format: 'esm' }).code
 const A = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
 const sql = readFileSync('supabase/migrations/20261012210000_chat_attachments.sql', 'utf8')
+  + readFileSync('supabase/migrations/20261012230000_chat_voice_notes.sql', 'utf8')
 const ui = readFileSync('src/modules/ChatModule.tsx', 'utf8')
 
 const file = (name, size, type) => ({ name, size, type })
@@ -76,7 +77,7 @@ test('the screen offers picker, drag and drop and paste, previews, and signed li
   assert.match(ui, /onDrop=/)
   assert.match(ui, /onPaste=/)
   assert.match(ui, /createSignedUrls/)
-  assert.match(ui, /createSignedUrl\(path,300,\{download:name\}\)/)
+  assert.match(ui, /\.download\(path\)/)
   assert.ok(!/getPublicUrl/.test(ui))
   assert.match(ui, /storage\.from\(ATTACH_BUCKET\)\.remove\(paths\)/)
 })
