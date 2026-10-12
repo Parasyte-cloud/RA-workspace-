@@ -69,9 +69,9 @@ test('every view of a person is audited and both functions are closed to anon', 
   assert.ok(!ov.includes('—'))
 })
 
-test('Department Admin is only reachable through a head grant and tolerates a missing column', () => {
+test('Department Admin is reachable through a head grant or the HR role, and tolerates a missing column', () => {
   const app = read('../src/App.tsx')
-  assert.match(app, /deptadmin:\[\]/)
+  assert.match(app, /deptadmin:\['hr'\]/)
   assert.match(app, /workstation:'deptadmin'/)
   assert.match(app, /\.select\('is_head'\)/)
   assert.ok(!app.includes(".select('workstation,is_primary,active,is_head')"))

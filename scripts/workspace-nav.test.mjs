@@ -40,8 +40,8 @@ test('an admin sees every section exactly once, nothing lost, nothing doubled', 
 test('first glance is short: pinned, own workstation, collapsed group headings, one system item', () => {
   const side = N.buildSidebar(REAL, { primarySection: 'support' })
   const firstGlance = side.pinned.length + side.mine.length + side.groups.length + side.system.length
-  assert.ok(firstGlance <= 11, `first glance is ${firstGlance} lines`)
-  assert.deepEqual(ids(side.pinned), ['overview', 'tasks', 'chat', 'mail', 'calendar'])
+  assert.ok(firstGlance <= 12, `first glance is ${firstGlance} lines`)
+  assert.deepEqual(ids(side.pinned), ['overview', 'tasks', 'chat', 'mail', 'calendar', 'profile'])
 })
 
 test('an ordinary employee has no workstation block and keeps all shared sections', () => {
@@ -71,9 +71,10 @@ test('a section nobody planned for still lands in Company, so it cannot become u
   assert.ok(ids(company.items).includes('brand-new'))
 })
 
-test('Settings, My Profile and Headshots leave the sidebar for the avatar menu', () => {
+test('My Profile stands alone in the sidebar; Settings and Headshots live in the avatar menu', () => {
   const side = N.buildSidebar(REAL, {})
-  assert.deepEqual(ids(side.menu).sort(), ['gallery', 'profile', 'settings'])
+  assert.ok(ids(side.pinned).includes('profile'))
+  assert.deepEqual(ids(side.menu).sort(), ['gallery', 'settings'])
   assert.ok(!ids(side.system).includes('settings'))
   assert.deepEqual(ids(side.system), ['admin'])
 })
