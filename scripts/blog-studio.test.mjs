@@ -14,4 +14,71 @@ test('Blog Studio is lazy-loaded and present in navigation',()=>{const app=read(
 test('RPC grants are server-checked and direct writes are revoked',()=>{const sql=read('supabase/migrations/20261013130000_blog_studio_access.sql');assert.match(sql,/workspace_blog_set_access/);assert.match(sql,/auth\.uid\(\)/);assert.match(sql,/pg_advisory_xact_lock/);assert.match(sql,/revoke all on public\.workspace_blog_access from public, anon, authenticated, service_role/i);assert.match(sql,/set search_path = ''/);assert.match(sql,/p\.active = true/);});
 test('access migration does not move blog content into Supabase',()=>{const sql=read('supabase/migrations/20261013130000_blog_studio_access.sql');assert.doesNotMatch(sql,/create table[^;]*(?:ra_blog_posts|blog_articles|blog_media)/i);assert.match(sql,/workspace_blog_access_audit/);});
 test('client sends bearer credentials in headers, never URL or localStorage',()=>{const s=read('src/lib/blogStudio.ts');assert.match(s,/Authorization: `Bearer \$\{session\.access_token\}`/);assert.doesNotMatch(s,/localStorage|access_token=.*\+|searchParams\.set\(['"]token/);assert.match(s,/credentials: 'omit'/);});
-test('native navigation fixture includes the additional Blog Studio section',()=>{const t=read('scripts/workspace-nav.test.mjs');assert.match(t,/assert\.equal\(REAL\.length, 33\)/);});
+test('native navigation fixture includes the additional Blog Studio section',()=>{const t=read('scripts/workspace-nav.test.mjs');assert.match(t,/assert\.equal\(REAL\.length, 34\)/);});
+test('Blog import library supports simple text and JSON drafts without lifecycle trust',async()=>{
+  const s=read('src/lib/blogImport.ts');assert.ok(s,'blogImport.ts must exist');
+  const mod=await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(s)).toString('base64'));
+  assert.deepEqual(mod.parseSimpleBlogImport('note.txt','Hello\n\nWorld'),{title:'',excerpt:'',body:'Hello\n\nWorld'});
+  assert.deepEqual(mod.parseSimpleBlogImport('note.md','# Hello\n\n**World**'),{title:'Hello',excerpt:'',body:'# Hello\n\n**World**'});
+  const parsed=mod.parseSimpleBlogImport('article.json',JSON.stringify({title:'Imported',excerpt:'Review this',body:'Body',category:'Mobility',status:'published',fact_checked:true,published_at:'tomorrow'}));
+  assert.deepEqual(parsed,{title:'Imported',excerpt:'Review this',body:'Body',category:'Mobility'});
+  assert.throws(()=>mod.parseSimpleBlogImport('bad.json','{"arbitrary":true}'),/Blog article JSON/i);
+  assert.throws(()=>mod.parseSimpleBlogImport('bad.html','<h1>x</h1>'),/supported import/i);
+});
+test('Blog import source uses mammoth turndown and pdfjs only for DOCX/PDF paths',()=>{
+  const s=read('src/lib/blogImport.ts');assert.match(s,/import\(['"]mammoth['"]\)/);assert.match(s,/import\(['"]turndown['"]\)/);assert.match(s,/pdfjs-dist/);assert.match(s,/parseBlogImport\(file: File\)/);
+  const pkg=JSON.parse(read('package.json'));for(const name of ['mammoth','turndown','pdfjs-dist'])assert.ok(pkg.dependencies?.[name],`${name} dependency missing`);
+});
+test('Blog API client exposes generic asset and import contracts without leaking tokens',()=>{
+  const s=read('src/lib/blogStudio.ts');for(const name of ['uploadBlogAsset','importBlogDraft','linkBlogAsset','unlinkBlogAsset'])assert.match(s,new RegExp(`export async function ${name}`));
+  assert.match(s,/X-Asset-Kind/);assert.doesNotMatch(s,/access_token=.*URL|searchParams\.set\(['"]token/);
+  assert.match(s,/BlogContentType/);assert.match(s,/BlogAssetRelationship/);
+});
+test('Add Content exposes exactly the four approved entry actions',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  for(const label of ['Quick writeup','New article','Import file','Upload attachment/media'])assert.match(s,new RegExp(label));
+  assert.match(s,/ADD_CONTENT_ACTIONS/);
+});
+test('quick composer is body-first and publication remains permission-gated',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  assert.match(s,/content_type==='quick_post'/);assert.match(s,/Quick writeup body/);assert.match(s,/character count/i);assert.match(s,/me\.permissions\.publish/);
+  assert.match(s,/Optional image/);assert.match(s,/category/i);
+});
+test('import flow preserves uploaded source across extraction failure and creates drafts only',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  for(const phrase of ['Extraction preview','Create draft','Retry extraction','Create blank draft'])assert.match(s,new RegExp(phrase));
+  assert.match(s,/sourceAsset/);assert.match(s,/parseBlogImport/);assert.match(s,/importBlogDraft/);
+});
+test('generic assets can be listed linked and unlinked from saved drafts',()=>{
+  const s=read('src/modules/BlogStudio.tsx');assert.match(s,/listBlogAssets/);assert.match(s,/linkBlogAsset/);assert.match(s,/unlinkBlogAsset/);assert.match(s,/Files & media/);
+  const client=read('src/lib/blogStudio.ts');assert.match(client,/listPostAssets/);
+});
+test('mobile Add Content uses bottom sheet hooks and 44px interaction targets',()=>{
+  const s=read('src/modules/BlogStudio.tsx'),css=read('src/blog-studio.css');assert.match(s,/bs-add-sheet/);assert.match(css,/bs-add-sheet/);assert.match(css,/min-height:\s*44px/);assert.match(css,/@media\s*\(max-width:\s*640px\)/);
+});
+test('asset uploads infer approved MIME types when browser File.type is empty',()=>{
+  const client=read('src/lib/blogStudio.ts');
+  for(const pair of [
+    [".pdf",'application/pdf'],
+    [".docx",'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    [".md",'text/markdown'],
+    [".txt",'text/plain'],
+    [".json",'application/json'],
+  ]){
+    assert.match(client,new RegExp(pair[0].replace('.','\\.')+'.*'+pair[1]));
+  }
+  assert.match(client,/inferBlogAssetMime/);
+});
+test('cancelling the import picker is a no-op instead of passing undefined as File',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  assert.doesNotMatch(s,/files\?\.\[0\]\s+as File/);
+  assert.match(s,/const file=e\.target\.files\?\.\[0\];if\(file\)/);
+});
+test('generic uploads classify images from inferred MIME and article uploads attach immediately',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  assert.match(s,/inferBlogAssetMime/);
+  assert.match(s,/const image=inferBlogAssetMime\(file\)\.startsWith\('image\/'\)/);
+  assert.match(s,/uploadGeneric\(file,true\)/);
+  assert.match(s,/linkBlogAsset\(draft\.id,asset\.id,'attachment'\)/);
+  assert.match(s,/const relationship:BlogAssetRelationship='attachment'/);
+});
