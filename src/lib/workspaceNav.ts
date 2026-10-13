@@ -28,6 +28,7 @@ export const COMPANY_IDS = [
   'archive',
   'brand',
   'letterhead',
+  'blog',
   'crm',
   'parasyte',
   'apps',
