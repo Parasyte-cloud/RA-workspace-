@@ -153,12 +153,13 @@ import {
   HeadshotGallery,
   AppearanceSettings,
   SharedWorkspacesHub,
-  DepartmentAdminView
+  DepartmentAdminView,
+  BlogStudio
 } from './lazy-routes'
 
 applyStoredAppearance()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'|'blog'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -284,6 +285,7 @@ const sectionAccess:Record<Section,Role[]>={
   ],
 
   letterhead:[...LETTERHEAD_ROLES],
+  blog:['admin'],
 
   // Department heads reach it through a grant; People & HR see everyone.
   deptadmin:['hr'],
@@ -364,6 +366,7 @@ const workstationForSection:Partial<Record<Section,string>>={
   executive:'executive',
   admin:'administration',
   letterhead:'letterhead',
+  blog:'blog',
   deptadmin:'deptadmin',
 }
 
@@ -791,14 +794,18 @@ function App(){
         .eq('employee_id',profile.id)
         .eq('active',true)
         .eq('is_head',true),
-    ]).then(([{data,error},grant,heads])=>{
+      // Individual blog permissions, never inferred from a department role.
+      client.rpc('workspace_blog_identity'),
+    ]).then(([{data,error},grant,heads,blogIdentity])=>{
         if(cancelled) return
+        const blogGrant:WorkstationAssignment[]=!blogIdentity.error && blogIdentity.data?.active===true && (['writer','editor','blog_admin'].includes(blogIdentity.data?.role) || blogIdentity.data?.can_manage_access===true)
+          ? [{workstation:'blog',is_primary:false,active:true}] : []
         const letterheadGrant:WorkstationAssignment[]=grant.data
           ? [{workstation:'letterhead',is_primary:false,active:true}]
           : []
         if(error){
           console.error('[RideArrivo Workstation] assignment load failed',error)
-          setWorkstationAssignments(letterheadGrant)
+          setWorkstationAssignments([...letterheadGrant,...blogGrant])
           setAssignmentsReady(true)
           return
         }
@@ -807,7 +814,7 @@ function App(){
         const headGrant:WorkstationAssignment[]=!heads.error && (heads.data || []).length>0
           ? [{workstation:'deptadmin',is_primary:false,active:true}]
           : []
-        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant,...headGrant])
+        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant,...headGrant,...blogGrant])
         setAssignmentsReady(true)
       })
 
@@ -1047,7 +1054,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -1404,6 +1411,7 @@ function App(){
         {section==='archive'&&<ArchiveModule/>}
         {section==='brand'&&<BrandLibrary/>}
         {section==='letterhead'&&<LetterheadStudio role={profile.role} fullName={profile.full_name} jobTitle={profile.job_title} email={profile.email} granted={workstationAssignments.some(item=>item.active && item.workstation==='letterhead')}/>}
+        {section==='blog'&&<BlogStudio/>}
         {section==='knowledge'&&<KnowledgeBaseModule/>}
         {section==='social'&&<SocialModule/>}
         {section==='crm'&&<CRMModule/>}
