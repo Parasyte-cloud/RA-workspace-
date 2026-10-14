@@ -33,3 +33,13 @@ test('normal npm test excludes every local Supabase integration suite', () => {
     )
   }
 })
+
+test('local Supabase integration suites run serially', () => {
+  const command = pkg.scripts?.['test:supabase'] || ''
+
+  assert.match(
+    command,
+    /--test-concurrency=1/,
+    'test:supabase must serialize suites that share one local Supabase stack',
+  )
+})
