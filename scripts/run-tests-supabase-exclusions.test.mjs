@@ -43,3 +43,24 @@ test('local Supabase integration suites run serially', () => {
     'test:supabase must serialize suites that share one local Supabase stack',
   )
 })
+
+
+test('Chat admin management integration suite is routed through test:supabase', () => {
+  const command = pkg.scripts?.['test:supabase'] || ''
+  const runner = readFileSync(
+    new URL('./run-tests.mjs', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(
+    command,
+    /chat-admin-management\.test\.mjs/,
+    'test:supabase must include Chat admin management integration tests',
+  )
+
+  assert.match(
+    runner,
+    /chat-admin-management\.test\.mjs/,
+    'normal npm test must exclude the local Chat admin management integration suite',
+  )
+})
