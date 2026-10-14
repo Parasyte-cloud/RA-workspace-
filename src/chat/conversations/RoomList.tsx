@@ -8,6 +8,23 @@ type RoomListProps = {
   onSelect?: (conversationId: string) => void
 }
 
+function roomKindLabel(
+  room: ConversationSummary,
+) {
+  switch (room.conversation_kind) {
+    case 'department':
+      return 'Department room'
+    case 'project':
+      return 'Project room'
+    case 'committee':
+      return 'Committee room'
+    case 'restricted':
+      return 'Restricted room'
+    default:
+      return 'Room'
+  }
+}
+
 export function RoomList({
   rooms,
   selectedId,
@@ -22,21 +39,49 @@ export function RoomList({
   }
 
   return (
-    <div>
-      {rooms.map(room => (
-        <button
-          key={room.id}
-          type="button"
-          aria-current={
-            room.id === selectedId
-              ? 'page'
-              : undefined
-          }
-          onClick={() => onSelect?.(room.id)}
-        >
-          {room.title || 'Room'}
-        </button>
-      ))}
+    <div className="cmRoomList">
+      {rooms.map(room => {
+        const active =
+          room.id === selectedId
+
+        return (
+          <button
+            key={room.id}
+            type="button"
+            className={`cmRoomRow${active ? ' active' : ''}`}
+            aria-current={
+              active
+                ? 'page'
+                : undefined
+            }
+            onClick={() => onSelect?.(room.id)}
+          >
+            <span
+              className="cmRoomMark"
+              aria-hidden="true"
+            >
+              #
+            </span>
+
+            <span className="cmRoomRowCopy">
+              <strong>
+                {room.title || 'Room'}
+              </strong>
+
+              <small>
+                {roomKindLabel(room)}
+              </small>
+            </span>
+
+            <span
+              className="cmRoomChevron"
+              aria-hidden="true"
+            >
+              ›
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
