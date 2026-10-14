@@ -223,3 +223,30 @@ test('ChatShell actually mounts room creation and shared conversation search', (
     'ChatShell must render the shared conversation search',
   )
 })
+test('modern chat presentation keeps pill and floating composer styling', () => {
+  const css = source('src/chat.css')
+
+  assert.match(
+    css,
+    /--cm-pill-radius:\s*999px/,
+    'chat UI should define a shared pill radius',
+  )
+
+  assert.match(
+    css,
+    /\.cmSearch[\s\S]*border-radius:\s*var\(--cm-pill-radius\)/,
+    'conversation search should use pill styling',
+  )
+
+  assert.match(
+    css,
+    /\.cmComposer[\s\S]*position:\s*absolute/,
+    'chat composer should use the floating presentation',
+  )
+
+  assert.match(
+    css,
+    /\.cmRoomCreator[\s\S]*border-radius:\s*18px/,
+    'room creator should use the modern card treatment',
+  )
+})
