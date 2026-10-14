@@ -616,3 +616,253 @@
   .rideDeskBar .btn{grid-column:1/-1}
   .rideDeskFrameWrap{min-height:560px}
 }
+
+/* ==========================================================
+   Chat Administration
+   ========================================================== */
+
+.adminAccessStack{
+  display:grid;
+  gap:18px;
+}
+
+.chatAdminManager{
+  display:grid;
+  gap:18px;
+  padding:20px;
+}
+
+.chatAdminManagerHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.chatAdminManagerHead h3{
+  margin:4px 0 6px;
+}
+
+.chatAdminManagerHead p{
+  max-width:720px;
+  margin:0;
+  opacity:.78;
+  line-height:1.55;
+}
+
+.chatAdminGrantPanel{
+  display:grid;
+  grid-template-columns:auto minmax(180px,1fr) minmax(220px,320px) auto;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;
+  background:rgba(255,255,255,.045);
+  backdrop-filter:blur(18px);
+}
+
+.chatAdminGrantIcon{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:rgba(255,255,255,.07);
+}
+
+.chatAdminGrantCopy{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+
+.chatAdminGrantCopy span{
+  font-size:13px;
+  opacity:.7;
+}
+
+.chatAdminGrantPanel select{
+  width:100%;
+  min-width:0;
+}
+
+.chatAdminDirectory{
+  display:grid;
+  gap:10px;
+}
+
+.chatAdminDirectoryHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.chatAdminDirectoryHead>div{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.chatAdminDirectoryHead>div>div{
+  display:grid;
+  gap:2px;
+}
+
+.chatAdminDirectoryHead span{
+  font-size:12px;
+  opacity:.65;
+}
+
+.chatAdminRow{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) minmax(150px,auto) auto;
+  align-items:center;
+  gap:14px;
+  padding:13px 14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  background:rgba(255,255,255,.035);
+}
+
+.chatAdminAvatar{
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-weight:700;
+  font-size:13px;
+  background:rgba(255,255,255,.08);
+}
+
+.chatAdminPerson{
+  display:grid;
+  min-width:0;
+  gap:2px;
+}
+
+.chatAdminPerson strong,
+.chatAdminPerson span,
+.chatAdminPerson small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.chatAdminPerson span{
+  font-size:13px;
+  opacity:.72;
+}
+
+.chatAdminPerson small{
+  font-size:12px;
+  opacity:.55;
+}
+
+.chatAdminAuthority{
+  display:grid;
+  justify-items:start;
+  gap:4px;
+}
+
+.chatAdminAuthority small{
+  font-size:11px;
+  opacity:.58;
+}
+
+.chatAdminAuthorityPill,
+.chatAdminBuiltIn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  width:max-content;
+  padding:6px 9px;
+  border-radius:999px;
+  font-size:12px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.055);
+}
+
+.chatAdminAuthorityPill.delegated{
+  font-weight:600;
+}
+
+.chatAdminBuiltIn{
+  opacity:.68;
+}
+
+.chatAdminEmpty{
+  padding:20px;
+  text-align:center;
+  opacity:.65;
+  border:1px dashed rgba(255,255,255,.12);
+  border-radius:16px;
+}
+
+@media (max-width:900px){
+  .chatAdminGrantPanel{
+    grid-template-columns:auto 1fr;
+  }
+
+  .chatAdminGrantPanel select,
+  .chatAdminGrantPanel .primaryButton{
+    grid-column:1 / -1;
+  }
+
+  .chatAdminRow{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .chatAdminAuthority,
+  .chatAdminRow>.glassButton,
+  .chatAdminBuiltIn{
+    grid-column:2;
+  }
+}
+
+@media (max-width:640px){
+  .chatAdminManager{
+    padding:15px;
+  }
+
+  .chatAdminManagerHead{
+    flex-direction:column;
+  }
+
+  .chatAdminManagerHead .glassButton{
+    width:100%;
+    justify-content:center;
+  }
+
+  .chatAdminGrantPanel{
+    grid-template-columns:1fr;
+  }
+
+  .chatAdminGrantIcon{
+    display:none;
+  }
+
+  .chatAdminGrantPanel select,
+  .chatAdminGrantPanel .primaryButton{
+    grid-column:auto;
+    width:100%;
+  }
+
+  .chatAdminRow{
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:start;
+  }
+
+  .chatAdminAuthority,
+  .chatAdminRow>.glassButton,
+  .chatAdminBuiltIn{
+    grid-column:1 / -1;
+    width:100%;
+  }
+
+  .chatAdminRow>.glassButton{
+    justify-content:center;
+  }
+}
