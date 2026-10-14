@@ -256,3 +256,52 @@ test('modern chat presentation uses the production ChatShell selectors', () => {
     'send action should use the circular pill treatment',
   )
 })
+
+
+test('room header exposes room membership context', () => {
+  const shell = source('src/chat/ChatShell.tsx')
+  const details = source('src/chat/rooms/RoomDetails.tsx')
+  const css = source('src/chat.css')
+
+  assert.match(
+    shell,
+    /cmRoomHeadIdentity/,
+    'room header should expose a clickable room identity',
+  )
+
+  assert.match(
+    shell,
+    /roomMembers\.length/,
+    'room header should expose the active member count',
+  )
+
+  assert.match(
+    shell,
+    /cmRoomHeadMembers/,
+    'room header should expose member preview avatars',
+  )
+
+  assert.match(
+    details,
+    /cmRoomDetailsSummary/,
+    'room details should expose a room summary surface',
+  )
+
+  assert.match(
+    details,
+    /members\.length/,
+    'room details should expose the active member count',
+  )
+
+  assert.match(
+    css,
+    /\.cmRoomHeadIdentity/,
+    'room header identity should have dedicated styling',
+  )
+
+  assert.match(
+    css,
+    /\.cmRoomDetailsSummary/,
+    'room summary should have dedicated styling',
+  )
+})

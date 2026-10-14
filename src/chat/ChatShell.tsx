@@ -1795,11 +1795,67 @@ export function ChatShell(){
                 <button type="button" className="cmBack" aria-label="Back to chats" onClick={()=>setMobileThreadOpen(false)}>
                   <ArrowLeft size={20}/>
                 </button>
-                <span className="cmAvatar">{initials(displayName(selected.other))}</span>
-                <div className="cmHeadCopy">
-                  <strong>{displayName(selected.other)}</strong>
-                  <small>{secondary(selected.other)}</small>
-                </div>
+                {selectedRoom ? (
+                  <button
+                    type="button"
+                    className="cmRoomHeadIdentity"
+                    onClick={()=>setMobileDetailsOpen(true)}
+                    aria-label={`Open ${selectedRoom.title || 'room'} details`}
+                  >
+                    <span className="cmAvatar cmRoomHeadAvatar">
+                      {initials(displayName(selected.other))}
+                    </span>
+
+                    <span className="cmHeadCopy">
+                      <strong>
+                        {selectedRoom.title || displayName(selected.other)}
+                      </strong>
+
+                      <small>
+                        {selectedRoom.conversation_kind.charAt(0).toUpperCase()
+                          + selectedRoom.conversation_kind.slice(1)}
+                        {' room · '}
+                        {roomMembers.length}
+                        {' '}
+                        {roomMembers.length === 1 ? 'member' : 'members'}
+                      </small>
+                    </span>
+
+                    {roomMembers.length > 0 && (
+                      <span
+                        className="cmRoomHeadMembers"
+                        aria-label={`${roomMembers.length} active room members`}
+                      >
+                        {roomMembers.slice(0, 3).map(member => (
+                          <span
+                            key={member.userId}
+                            className="cmRoomHeadMemberAvatar"
+                            title={member.name}
+                          >
+                            {initials(member.name)}
+                          </span>
+                        ))}
+
+                        {roomMembers.length > 3 && (
+                          <span className="cmRoomHeadMemberMore">
+                            +{roomMembers.length - 3}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <>
+                    <span className="cmAvatar">
+                      {initials(displayName(selected.other))}
+                    </span>
+
+                    <div className="cmHeadCopy">
+                      <strong>{displayName(selected.other)}</strong>
+                      <small>{secondary(selected.other)}</small>
+                    </div>
+                  </>
+                )}
                 <div className="cmHeadActions">
                   <button
                     type="button"
