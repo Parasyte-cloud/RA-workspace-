@@ -10,6 +10,7 @@ const NEEDS_SUPABASE = new Set([
   'intake-service-e2e.test.mjs',
   'chat-department-sync.test.mjs',
   'chat-message-security.test.mjs',
+  'chat-room-administration.test.mjs',
 ])
 
 const files = readdirSync(new URL('.', import.meta.url))
