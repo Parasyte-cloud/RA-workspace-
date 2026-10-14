@@ -780,1185 +780,634 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   }
 }
 
-
 /* =========================================================
-   RideArrivo Chat — Modern Pill UI
-   Presentation-only overrides
+   RideArrivo Chat — Modern Pill UI v2
+   Uses the actual ChatShell class names
    ========================================================= */
 
-:root {
-  --cm-navy-950: #071426;
-  --cm-navy-900: #0b1f38;
-  --cm-navy-800: #102c4d;
-
-  --cm-amber: #ff9900;
-  --cm-amber-soft: rgba(255, 153, 0, 0.12);
-  --cm-amber-border: rgba(255, 153, 0, 0.28);
-
-  --cm-surface: rgba(255, 255, 255, 0.92);
-  --cm-surface-soft: rgba(248, 250, 253, 0.9);
-  --cm-surface-warm: #fbf8f2;
-
-  --cm-text: #0d1d33;
-  --cm-text-soft: #607087;
-  --cm-text-muted: #8794a5;
-
-  --cm-border: rgba(15, 38, 67, 0.09);
-  --cm-border-strong: rgba(15, 38, 67, 0.14);
-
-  --cm-pill-radius: 999px;
-  --cm-card-radius: 22px;
-
-  --cm-shadow-soft:
-    0 12px 36px rgba(9, 29, 53, 0.07),
-    0 2px 8px rgba(9, 29, 53, 0.04);
-
-  --cm-shadow-float:
-    0 14px 40px rgba(9, 29, 53, 0.13),
-    0 4px 12px rgba(9, 29, 53, 0.06);
+.cm {
+  --cm-modern-bg: #f4f7fb;
+  --cm-modern-panel: rgba(255, 255, 255, 0.94);
+  --cm-modern-navy: #0b2444;
+  --cm-modern-navy-soft: #173b64;
+  --cm-modern-amber: #ff9900;
+  --cm-modern-amber-soft: rgba(255, 153, 0, 0.12);
+  --cm-modern-text: #10223b;
+  --cm-modern-muted: #748298;
+  --cm-modern-line: rgba(14, 42, 76, 0.08);
+  --cm-modern-shadow: 0 18px 50px rgba(7, 26, 56, 0.08);
 }
 
+/* Main shell */
 
-/* ---------- Main chat shell ---------- */
-
-.cmShell,
-.cmChatShell {
-  background:
-    radial-gradient(
-      circle at 85% 10%,
-      rgba(255, 153, 0, 0.055),
-      transparent 30%
-    ),
-    linear-gradient(
-      180deg,
-      #f7f9fc 0%,
-      #f3f6fa 100%
-    );
-
-  border: 1px solid var(--cm-border);
+.cmShell {
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: var(--cm-shadow-soft);
+  border: 1px solid rgba(12, 39, 72, 0.08);
+  background: var(--cm-modern-bg);
+  box-shadow: var(--cm-modern-shadow);
 }
 
+/* Left conversation panel */
 
-/* ---------- Sidebar ---------- */
-
-.cmSidebar,
-.cmConversationSidebar {
+.cmSide {
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(248, 250, 253, 0.97)
+      rgba(255,255,255,.98) 0%,
+      rgba(248,250,253,.97) 100%
     );
-
-  border-right: 1px solid var(--cm-border);
+  border-right: 1px solid var(--cm-modern-line);
 }
 
-.cmSidebarHeader,
-.cmConversationSidebarHeader {
-  padding: 22px 18px 12px;
+.cmSideHead {
+  padding: 18px 16px 10px;
 }
 
-.cmSidebarHeader h2,
-.cmConversationSidebarHeader h2 {
-  margin: 0;
-  color: var(--cm-text);
+.cmSideHead h2 {
   font-size: 22px;
   font-weight: 850;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.035em;
+  color: var(--cm-modern-text);
 }
 
+/* Round icon buttons */
 
-/* ---------- Create-room plus button ---------- */
-
-.cmSidebarHeader button,
-.cmConversationSidebarHeader button,
-.cmNewChatButton {
+.cmRound {
   width: 36px;
   height: 36px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
   padding: 0;
 
-  border: 1px solid var(--cm-amber-border);
-  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 174, 51, 0.2),
-      rgba(255, 153, 0, 0.09)
-    );
-
-  color: #c97800;
+  border-radius: 999px;
+  border: 1px solid transparent;
 
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+    transform .16s ease,
+    background .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease;
 }
 
-.cmSidebarHeader button:hover,
-.cmConversationSidebarHeader button:hover,
-.cmNewChatButton:hover {
+.cmRound:hover {
   transform: translateY(-1px);
-
-  background: var(--cm-amber);
-
-  color: var(--cm-navy-950);
-
-  box-shadow:
-    0 8px 22px rgba(255, 153, 0, 0.24);
+  background: rgba(14, 42, 76, 0.055);
+  border-color: rgba(14, 42, 76, 0.07);
 }
 
+.cmSideHead .cmRound {
+  background: var(--cm-modern-amber-soft);
+  border-color: rgba(255, 153, 0, 0.2);
+  color: #b66d00;
+}
 
-/* ---------- Search pill ---------- */
+.cmSideHead .cmRound:hover {
+  background: var(--cm-modern-amber);
+  color: #0b2444;
+  box-shadow: 0 8px 20px rgba(255,153,0,.22);
+}
+
+/* Search */
 
 .cmSearch {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  min-height: 42px;
-
   margin: 8px 12px 10px;
   padding: 0 14px;
 
+  min-height: 42px;
+
+  border-radius: 999px;
   border: 1px solid transparent;
-  border-radius: var(--cm-pill-radius);
 
-  background:
-    rgba(238, 242, 247, 0.95);
-
-  color: var(--cm-text-soft);
-
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  background: #eef2f7;
 
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+    background .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease;
 }
 
 .cmSearch:focus-within {
   background: #fff;
-
-  border-color: var(--cm-amber-border);
-
+  border-color: rgba(255,153,0,.28);
   box-shadow:
-    0 0 0 3px rgba(255, 153, 0, 0.08),
-    0 8px 24px rgba(8, 29, 52, 0.06);
+    0 0 0 3px rgba(255,153,0,.07),
+    0 8px 22px rgba(7,26,56,.055);
 }
 
 .cmSearch input {
-  width: 100%;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: var(--cm-text);
-
-  font-size: 14px;
   font-weight: 560;
+  color: var(--cm-modern-text);
 }
 
-.cmSearch input::placeholder {
-  color: #8b98a8;
-}
+/* Filter pills */
 
-
-/* ---------- Filter pills ---------- */
-
-.cmFilters,
-.cmChatFilters,
-.cmConversationFilters {
-  display: flex;
-  align-items: center;
+.cmChips {
   gap: 7px;
-
   padding: 0 12px 12px;
 }
 
-.cmFilters button,
-.cmChatFilters button,
-.cmConversationFilters button {
+.cmChips button {
   min-height: 30px;
-
   padding: 5px 13px;
 
   border: 1px solid transparent;
-  border-radius: var(--cm-pill-radius);
+  border-radius: 999px;
 
-  background:
-    rgba(239, 242, 246, 0.95);
-
-  color: #667489;
+  background: #eef1f5;
+  color: #68768a;
 
   font-size: 12px;
   font-weight: 750;
 
   transition:
-    background 150ms ease,
-    color 150ms ease,
-    transform 150ms ease,
-    box-shadow 150ms ease;
+    transform .15s ease,
+    background .15s ease,
+    color .15s ease,
+    box-shadow .15s ease;
 }
 
-.cmFilters button:hover,
-.cmChatFilters button:hover,
-.cmConversationFilters button:hover {
+.cmChips button:hover {
   transform: translateY(-1px);
-
-  background: #e8edf3;
-
-  color: var(--cm-text);
+  background: #e7ebf1;
+  color: var(--cm-modern-text);
 }
 
-.cmFilters button.active,
-.cmChatFilters button.active,
-.cmConversationFilters button.active,
-.cmFilters button[aria-pressed="true"],
-.cmChatFilters button[aria-pressed="true"],
-.cmConversationFilters button[aria-pressed="true"] {
-  background:
-    linear-gradient(
-      145deg,
-      #fff1dc,
-      #ffe4bc
-    );
-
-  border-color:
-    rgba(255, 153, 0, 0.17);
-
-  color: #724600;
-
-  box-shadow:
-    0 5px 16px rgba(255, 153, 0, 0.1);
+.cmChips button.on {
+  background: linear-gradient(135deg, #fff1dc, #ffe5bf);
+  color: #704400;
+  border-color: rgba(255,153,0,.16);
+  box-shadow: 0 5px 14px rgba(255,153,0,.09);
 }
 
+/* Section headings */
 
-/* ---------- Rooms label ---------- */
-
-.cmRoomSectionLabel,
-.cmSectionLabel,
-.cmRoomsLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  padding: 4px 14px 8px;
-
-  color: #718096;
+.cmGroupLabel {
+  padding: 8px 14px 6px;
 
   font-size: 10px;
   font-weight: 850;
+  letter-spacing: .14em;
 
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: #718096;
 }
 
+/* Conversation / room rows */
 
-/* ---------- Rooms ---------- */
+.cmRow {
+  margin: 3px 8px;
+  padding: 8px 10px;
 
-.cmRoomList {
-  display: grid;
-  gap: 6px;
-
-  padding: 0 9px 8px;
-}
-
-.cmRoomList button,
-.cmRoomItem {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  min-height: 40px;
-
-  padding: 8px 12px;
-
-  border: 1px solid transparent;
-  border-radius: 14px;
-
-  background:
-    rgba(248, 250, 252, 0.86);
-
-  color: var(--cm-text);
-
-  text-align: left;
-
-  transition:
-    background 150ms ease,
-    border-color 150ms ease,
-    transform 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.cmRoomList button:hover,
-.cmRoomItem:hover {
-  transform: translateY(-1px);
-
-  background: #fff;
-
-  border-color: var(--cm-border);
-
-  box-shadow:
-    0 7px 20px rgba(10, 31, 55, 0.06);
-}
-
-.cmRoomList button.active,
-.cmRoomItem.active,
-.cmRoomList button[aria-current="true"] {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 153, 0, 0.14),
-      rgba(255, 179, 71, 0.08)
-    );
-
-  border-color:
-    rgba(255, 153, 0, 0.22);
-
-  box-shadow:
-    inset 3px 0 0 var(--cm-amber),
-    0 8px 22px rgba(255, 153, 0, 0.08);
-}
-
-
-/* ---------- Conversation rows ---------- */
-
-.cmConversationList {
-  display: grid;
-  gap: 3px;
-
-  padding: 0 8px 14px;
-}
-
-.cmConversationRow,
-.cmConversationItem {
-  position: relative;
-
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 11px;
-
-  min-height: 64px;
-
-  padding: 9px 11px;
-
-  border: 1px solid transparent;
   border-radius: 16px;
-
-  background: transparent;
+  border: 1px solid transparent;
 
   transition:
-    transform 150ms ease,
-    background 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    transform .15s ease,
+    background .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease;
 }
 
-.cmConversationRow:hover,
-.cmConversationItem:hover {
+.cmRow:hover {
   transform: translateY(-1px);
-
-  background:
-    rgba(255, 255, 255, 0.92);
-
-  border-color: var(--cm-border);
-
-  box-shadow:
-    0 7px 20px rgba(9, 29, 53, 0.055);
+  background: rgba(255,255,255,.96);
+  border-color: var(--cm-modern-line);
+  box-shadow: 0 7px 20px rgba(8,30,57,.055);
 }
 
-.cmConversationRow.active,
-.cmConversationItem.active,
-.cmConversationRow[aria-current="true"],
-.cmConversationItem[aria-current="true"] {
+.cmRow.active {
   background:
     linear-gradient(
       135deg,
-      rgba(255, 153, 0, 0.13),
-      rgba(255, 153, 0, 0.045)
+      rgba(255,153,0,.13),
+      rgba(255,153,0,.045)
     );
 
-  border-color:
-    rgba(255, 153, 0, 0.2);
+  border-color: rgba(255,153,0,.18);
+
+  box-shadow:
+    inset 3px 0 0 var(--cm-modern-amber),
+    0 7px 20px rgba(255,153,0,.075);
 }
 
+/* Remove old separator-heavy look */
 
-/* ---------- Avatars ---------- */
+.cmRowCopy {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.cmRowTop strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cm-modern-text);
+  letter-spacing: -.015em;
+}
+
+.cmRowTop small {
+  font-size: 10px;
+}
+
+.cmRowBottom small {
+  font-size: 12px;
+}
+
+/* Avatar */
 
 .cmAvatar {
   width: 42px;
   height: 42px;
-
   flex: 0 0 42px;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
+  border-radius: 999px;
 
   background:
     linear-gradient(
       145deg,
-      #183e68,
-      #0b2648
+      var(--cm-modern-navy-soft),
+      var(--cm-modern-navy)
     );
 
   color: #fff;
 
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
 
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 6px 16px rgba(7, 24, 45, 0.11);
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 6px 16px rgba(8,30,57,.11);
 }
 
+/* Thread */
 
-/* ---------- Conversation row typography ---------- */
-
-.cmConversationName,
-.cmConversationRow strong,
-.cmConversationItem strong {
-  color: var(--cm-text);
-
-  font-size: 14px;
-  font-weight: 800;
-
-  letter-spacing: -0.015em;
-}
-
-.cmConversationPreview,
-.cmConversationRow p,
-.cmConversationItem p {
-  margin: 2px 0 0;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  color: var(--cm-text-soft);
-
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.cmConversationTime {
-  align-self: start;
-
-  padding-top: 3px;
-
-  color: var(--cm-text-muted);
-
-  font-size: 10px;
-  font-weight: 650;
-}
-
-
-/* ---------- Thread panel ---------- */
-
-.cmThread,
-.cmChatThread {
-  position: relative;
-
+.cmThread {
   background:
     radial-gradient(
-      circle at 20% 12%,
-      rgba(255, 255, 255, 0.9),
-      transparent 33%
+      circle at 16% 7%,
+      rgba(255,255,255,.8),
+      transparent 29%
     ),
     linear-gradient(
       180deg,
-      #faf7f1 0%,
-      #f8f4ec 100%
+      #faf8f4 0%,
+      #f7f3eb 100%
     );
 }
 
+/* Conversation header */
 
-/* ---------- Thread top header ---------- */
-
-.cmThreadHeader,
-.cmChatHeader {
-  min-height: 64px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-
+.cmThreadHead {
+  min-height: 66px;
   padding: 10px 16px;
 
-  background:
-    rgba(255, 255, 255, 0.93);
-
-  border-bottom:
-    1px solid var(--cm-border);
+  background: rgba(255,255,255,.94);
+  border-bottom: 1px solid var(--cm-modern-line);
 
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 
-  box-shadow:
-    0 4px 18px rgba(11, 31, 55, 0.035);
+  box-shadow: 0 4px 18px rgba(8,30,57,.03);
 }
 
-.cmThreadIdentity {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  min-width: 0;
+.cmThreadHead .cmAvatar {
+  width: 42px;
+  height: 42px;
 }
 
-.cmThreadIdentity strong {
-  display: block;
-
-  color: var(--cm-text);
-
+.cmHeadCopy strong {
   font-size: 14px;
   font-weight: 850;
+  color: var(--cm-modern-text);
 }
 
-.cmThreadIdentity small {
-  display: block;
-
-  margin-top: 2px;
-
-  color: var(--cm-text-soft);
-
+.cmHeadCopy small {
   font-size: 11px;
+  color: var(--cm-modern-muted);
 }
 
+/* Header actions grouped as pill */
 
-/* ---------- Header action pill group ---------- */
+.cmHeadActions {
+  gap: 4px;
 
-.cmThreadActions,
-.cmChatActions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding: 4px;
 
-  padding: 5px;
+  border: 1px solid var(--cm-modern-line);
+  border-radius: 999px;
 
-  border: 1px solid var(--cm-border);
-
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    rgba(247, 249, 252, 0.92);
-
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: #f5f7fa;
 }
 
-.cmThreadActions button,
-.cmChatActions button {
+.cmHeadActions .cmRound {
   width: 34px;
   height: 34px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-
-  color: #53647a;
-
-  transition:
-    background 150ms ease,
-    color 150ms ease,
-    transform 150ms ease;
 }
 
-.cmThreadActions button:hover,
-.cmChatActions button:hover {
-  transform: translateY(-1px);
-
+.cmHeadActions .cmRound:hover {
   background: #fff;
-
-  color: var(--cm-navy-900);
-
-  box-shadow:
-    0 5px 14px rgba(9, 29, 53, 0.09);
+  box-shadow: 0 4px 12px rgba(8,30,57,.08);
 }
 
-.cmThreadActions button.danger,
-.cmChatActions button.danger {
-  color: #d84f4f;
-}
+/* Message canvas */
 
-.cmThreadActions button.danger:hover,
-.cmChatActions button.danger:hover {
-  background:
-    rgba(220, 59, 59, 0.08);
-}
-
-
-/* ---------- Message area ---------- */
-
-.cmMessages,
-.cmMessageList {
+.cmMessages {
   padding:
-    22px
-    clamp(16px, 3vw, 42px)
-    120px;
+    24px
+    clamp(16px, 3vw, 44px)
+    108px;
 
-  scroll-behavior: smooth;
+  gap: 5px;
 }
 
+/* Date separator */
 
-/* ---------- Message bubbles ---------- */
+.cmDay {
+  margin: 18px 0 10px;
+}
 
-.cmMessage,
-.cmMessageBubble {
-  width: fit-content;
-  max-width: min(72%, 640px);
+.cmDay span {
+  padding: 5px 12px;
 
-  margin-bottom: 8px;
+  border: 1px solid var(--cm-modern-line);
+  border-radius: 999px;
+
+  background: rgba(255,255,255,.84);
+
+  color: #718096;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  box-shadow: 0 4px 12px rgba(8,30,57,.035);
+}
+
+/* Messages */
+
+.cmBubble {
+  max-width: min(640px, 76vw);
+
   padding: 10px 14px;
 
-  border: 1px solid rgba(17, 39, 67, 0.055);
+  border: 1px solid rgba(14,42,76,.055);
+
+  border-radius: 18px;
+
+  box-shadow: 0 5px 16px rgba(8,30,57,.04);
+}
+
+.cmMsg.theirs .cmBubble {
+  background: rgba(255,255,255,.96);
 
   border-radius:
     18px
     18px
     18px
     7px;
-
-  background:
-    rgba(255, 255, 255, 0.96);
-
-  color: var(--cm-text);
-
-  box-shadow:
-    0 6px 18px rgba(12, 33, 57, 0.05);
-
-  font-size: 13px;
-  line-height: 1.5;
 }
 
-.cmMessage.mine,
-.cmMessageBubble.mine,
-.cmMessage[data-mine="true"],
-.cmMessageBubble[data-mine="true"] {
-  margin-left: auto;
+.cmMsg.mine .cmBubble {
+  background:
+    linear-gradient(
+      145deg,
+      #fff1dc,
+      #ffe6c1
+    );
 
-  border-color:
-    rgba(255, 153, 0, 0.12);
+  border-color: rgba(255,153,0,.11);
 
   border-radius:
     18px
     18px
     7px
     18px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #fff2df,
-      #ffe7c3
-    );
-
-  box-shadow:
-    0 6px 18px rgba(255, 153, 0, 0.09);
 }
 
-.cmMessageTime,
-.cmMessage time {
-  display: block;
+.cmBubble p {
+  font-size: 13.5px;
+  line-height: 1.48;
+}
 
+.cmMeta {
   margin-top: 4px;
-
-  color: #7e8b9b;
-
-  font-size: 9px;
-  font-weight: 600;
-
-  text-align: right;
+  font-size: 9.5px;
 }
 
+/* Call history pills */
 
-/* ---------- Date separator pill ---------- */
-
-.cmDateSeparator,
-.cmMessageDate {
+.cmCallLine {
   width: max-content;
+  max-width: min(92%, 420px);
 
-  margin: 18px auto;
+  margin: 4px auto;
+  padding: 7px 9px 7px 11px;
+
+  border-radius: 999px;
+  border: 1px solid var(--cm-modern-line);
+
+  background: rgba(255,255,255,.94);
+
+  box-shadow: 0 4px 14px rgba(8,30,57,.045);
+}
+
+.cmCallBack {
+  border-radius: 999px;
   padding: 5px 12px;
 
-  border: 1px solid
-    rgba(15, 38, 67, 0.07);
-
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    rgba(255, 255, 255, 0.84);
-
-  color: #718096;
-
-  font-size: 10px;
-  font-weight: 750;
-
-  box-shadow:
-    0 4px 12px rgba(9, 29, 53, 0.04);
+  background: #fff1dc;
 }
 
+/* Floating composer */
 
-/* ---------- Call message pill ---------- */
-
-.cmCallMessage,
-.cmCallEvent {
-  width: max-content;
-  max-width: 90%;
-
-  margin: 7px auto;
-  padding: 7px 9px 7px 12px;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  border: 1px solid var(--cm-border);
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    rgba(255, 255, 255, 0.94);
-
-  box-shadow:
-    0 5px 16px rgba(10, 30, 52, 0.05);
-}
-
-.cmCallMessage button,
-.cmCallEvent button {
-  min-height: 30px;
-
-  padding: 5px 12px;
-
-  border: 0;
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    #fff1dc;
-
-  color: #4f3814;
-
-  font-size: 11px;
-  font-weight: 750;
-}
-
-
-/* ---------- Floating composer ---------- */
-
-.cmComposer,
-.cmMessageComposer {
+.cmComposer {
   position: absolute;
 
   left: 14px;
   right: 14px;
   bottom: 12px;
 
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  align-items: center;
-  gap: 8px;
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
 
-  min-height: 58px;
+  padding: 7px 8px;
 
-  padding: 7px 8px 7px 10px;
+  border: 1px solid rgba(14,42,76,.10);
+  border-radius: 999px;
 
-  border:
-    1px solid rgba(16, 42, 73, 0.1);
-
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    rgba(255, 255, 255, 0.93);
+  background: rgba(255,255,255,.94);
 
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
 
-  box-shadow: var(--cm-shadow-float);
+  box-shadow:
+    0 14px 36px rgba(8,30,57,.12),
+    0 3px 10px rgba(8,30,57,.05);
 }
 
-.cmComposer input,
-.cmComposer textarea,
-.cmMessageComposer input,
-.cmMessageComposer textarea {
-  width: 100%;
-
+.cmComposer textarea {
   min-height: 40px;
+  max-height: 126px;
 
-  padding: 8px 10px;
+  padding: 9px 12px;
 
   border: 0;
-  outline: 0;
+  border-radius: 20px;
 
-  background: transparent;
+  background: #f7f9fb;
 
-  color: var(--cm-text);
+  color: var(--cm-modern-text);
 
-  font: inherit;
-
-  resize: none;
+  box-shadow: none;
 }
 
-.cmComposer input::placeholder,
-.cmComposer textarea::placeholder,
-.cmMessageComposer input::placeholder,
-.cmMessageComposer textarea::placeholder {
-  color: #8d99a9;
+.cmComposer textarea:focus {
+  background: #fff;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,153,0,.25);
 }
 
-
-/* ---------- Composer utility buttons ---------- */
-
-.cmComposer > button:not(:last-child),
-.cmMessageComposer > button:not(:last-child) {
+.cmComposer .cmAttach {
   width: 36px;
   height: 36px;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-
-  color: #64758a;
-
-  transition:
-    background 150ms ease,
-    color 150ms ease;
+  flex: 0 0 36px;
 }
 
-.cmComposer > button:not(:last-child):hover,
-.cmMessageComposer > button:not(:last-child):hover {
-  background:
-    rgba(15, 38, 67, 0.06);
-
-  color: var(--cm-navy-900);
-}
-
-
-/* ---------- Send button ---------- */
-
-.cmComposer > button:last-child,
-.cmMessageComposer > button:last-child,
-.cmSendButton {
+.cmSend {
   width: 42px;
   height: 42px;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 42px;
 
-  padding: 0;
-
+  border-radius: 999px;
   border: 0;
-  border-radius: 50%;
 
   background:
     linear-gradient(
       145deg,
-      #ffad33,
+      #ffae36,
       #ff9900
     );
 
-  color: var(--cm-navy-950);
+  color: #0b2444;
 
-  box-shadow:
-    0 9px 22px rgba(255, 153, 0, 0.24);
+  box-shadow: 0 9px 22px rgba(255,153,0,.23);
 
   transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
+    transform .15s ease,
+    box-shadow .15s ease;
 }
 
-.cmComposer > button:last-child:hover,
-.cmMessageComposer > button:last-child:hover,
-.cmSendButton:hover {
+.cmSend:not(:disabled):hover {
   transform: translateY(-2px);
 
   box-shadow:
-    0 12px 28px rgba(255, 153, 0, 0.31);
+    0 12px 27px rgba(255,153,0,.3);
 }
 
-
-/* ---------- Room creator ---------- */
+/* Room creator */
 
 .cmRoomCreator {
-  margin: 8px 10px 14px;
-
+  margin: 10px 12px 14px;
   padding: 14px;
-
-  border:
-    1px solid rgba(255, 153, 0, 0.16);
 
   border-radius: 18px;
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.96),
-      rgba(248, 250, 253, 0.94)
-    );
+  background: rgba(255,255,255,.96);
 
-  box-shadow:
-    0 12px 30px rgba(10, 30, 52, 0.07);
+  border: 1px solid rgba(255,153,0,.15);
 
-  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 30px rgba(8,30,57,.07);
 }
 
 .cmRoomCreator input,
-.cmRoomCreator textarea,
-.cmRoomCreator select {
-  min-height: 40px;
-
-  border:
-    1px solid rgba(13, 39, 68, 0.1);
-
-  border-radius: 13px;
-
-  background:
-    #f6f8fb;
-
-  color: var(--cm-text);
-
-  outline: none;
-
-  transition:
-    background 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.cmRoomCreator input:focus,
-.cmRoomCreator textarea:focus,
-.cmRoomCreator select:focus {
-  background: #fff;
-
-  border-color:
-    rgba(255, 153, 0, 0.32);
-
-  box-shadow:
-    0 0 0 3px rgba(255, 153, 0, 0.08);
+.cmRoomCreator select,
+.cmRoomCreator textarea {
+  border-radius: 12px;
+  background: #f6f8fb;
 }
 
 .cmRoomCreator > button {
-  min-height: 40px;
-
-  border-radius: var(--cm-pill-radius);
-
-  background:
-    linear-gradient(
-      145deg,
-      #ffad33,
-      #ff9900
-    );
-
-  box-shadow:
-    0 8px 20px rgba(255, 153, 0, 0.18);
-}
-
-
-/* ---------- Details / administration ---------- */
-
-.cmDetails,
-.cmRoomDetails,
-.cmRoomAdminPanel {
-  background:
-    rgba(255, 255, 255, 0.96);
-
-  border-left:
-    1px solid var(--cm-border);
-
-  box-shadow:
-    -12px 0 34px rgba(8, 28, 52, 0.06);
-
-  backdrop-filter: blur(24px);
-}
-
-.cmDetails button,
-.cmRoomDetails button,
-.cmRoomAdminPanel button {
-  border-radius: var(--cm-pill-radius);
-}
-
-
-/* ---------- Scrollbars ---------- */
-
-.cmSidebar *,
-.cmConversationSidebar *,
-.cmMessages,
-.cmMessageList {
-  scrollbar-width: thin;
-  scrollbar-color:
-    rgba(15, 38, 67, 0.14)
-    transparent;
-}
-
-.cmSidebar *::-webkit-scrollbar,
-.cmConversationSidebar *::-webkit-scrollbar,
-.cmMessages::-webkit-scrollbar,
-.cmMessageList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.cmSidebar *::-webkit-scrollbar-thumb,
-.cmConversationSidebar *::-webkit-scrollbar-thumb,
-.cmMessages::-webkit-scrollbar-thumb,
-.cmMessageList::-webkit-scrollbar-thumb {
-  background:
-    rgba(15, 38, 67, 0.13);
-
   border-radius: 999px;
 }
 
+/* Room details */
 
-/* ---------- Responsive ---------- */
+.cmDetails {
+  background: rgba(255,255,255,.97);
+
+  border-left: 1px solid var(--cm-modern-line);
+
+  box-shadow: -12px 0 36px rgba(8,30,57,.06);
+}
+
+/* Mobile */
 
 @media (max-width: 860px) {
-  .cmShell,
-  .cmChatShell {
+  .cmShell {
     border-radius: 18px;
   }
 
-  .cmSidebar,
-  .cmConversationSidebar {
-    border-right: 0;
-  }
-
-  .cmThreadHeader,
-  .cmChatHeader {
+  .cmThreadHead {
     padding: 8px 10px;
   }
 
-  .cmThreadActions,
-  .cmChatActions {
-    gap: 3px;
-
+  .cmHeadActions {
+    gap: 2px;
     padding: 3px;
   }
 
-  .cmThreadActions button,
-  .cmChatActions button {
+  .cmHeadActions .cmRound {
     width: 32px;
     height: 32px;
   }
 
-  .cmMessages,
-  .cmMessageList {
+  .cmMessages {
     padding:
       16px
       12px
-      100px;
+      96px;
   }
 
-  .cmMessage,
-  .cmMessageBubble {
-    max-width: 84%;
+  .cmBubble {
+    max-width: 86vw;
   }
 
-  .cmComposer,
-  .cmMessageComposer {
+  .cmComposer {
     left: 8px;
     right: 8px;
     bottom: 8px;
-
-    min-height: 54px;
   }
 }
 
 @media (max-width: 430px) {
-  .cmFilters,
-  .cmChatFilters,
-  .cmConversationFilters {
-    gap: 5px;
-
+  .cmChips {
+    flex-wrap: nowrap;
     overflow-x: auto;
-
-    padding-bottom: 10px;
+    scrollbar-width: none;
   }
 
-  .cmFilters button,
-  .cmChatFilters button,
-  .cmConversationFilters button {
+  .cmChips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cmChips button {
     flex: 0 0 auto;
   }
 
-  .cmThreadIdentity small {
-    max-width: 150px;
-
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .cmHeadActions {
+    border: 0;
+    background: transparent;
   }
 
-  .cmThreadActions button:nth-child(-n + 2),
-  .cmChatActions button:nth-child(-n + 2) {
-    display: none;
+  .cmBubble {
+    max-width: 90vw;
   }
 
-  .cmMessage,
-  .cmMessageBubble {
-    max-width: 90%;
+  .cmComposer {
+    padding: 6px;
   }
-
-  .cmComposer,
-  .cmMessageComposer {
-    grid-template-columns:
-      auto
-      1fr
-      auto;
-  }
-
-  .cmComposer > button:nth-child(2),
-  .cmMessageComposer > button:nth-child(2) {
-    display: none;
-  }
-}
-
-
-/* ---------- Accessibility ---------- */
-
-.cmSidebar button:focus-visible,
-.cmConversationSidebar button:focus-visible,
-.cmThreadHeader button:focus-visible,
-.cmChatHeader button:focus-visible,
-.cmComposer button:focus-visible,
-.cmMessageComposer button:focus-visible,
-.cmRoomCreator button:focus-visible,
-.cmRoomCreator input:focus-visible,
-.cmRoomCreator textarea:focus-visible,
-.cmRoomCreator select:focus-visible {
-  outline:
-    2px solid
-    rgba(255, 153, 0, 0.68);
-
-  outline-offset: 2px;
 }
 
