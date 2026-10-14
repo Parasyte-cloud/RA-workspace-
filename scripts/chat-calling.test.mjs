@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const sql = readFileSync('supabase/migrations/20261012120000_chat_calling.sql', 'utf8')
-const chat = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const chat = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 const ringer = readFileSync('src/modules/CallRinger.tsx', 'utf8')
 const room = readFileSync('src/modules/RoomModule.tsx', 'utf8')
 const app = readFileSync('src/App.tsx', 'utf8')

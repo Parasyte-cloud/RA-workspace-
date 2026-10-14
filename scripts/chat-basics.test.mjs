@@ -6,7 +6,7 @@ import { transformSync } from 'esbuild'
 const js = transformSync(readFileSync('src/lib/chatEdit.ts', 'utf8'), { loader: 'ts', format: 'esm' }).code
 const E = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
 const sql = readFileSync('supabase/migrations/20261012290000_chat_edit_delete.sql', 'utf8')
-const ui = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const ui = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 const now = Date.parse('2026-10-12T12:00:00Z')
 const msg = (over = {}) => ({ sender_id: 'me', created_at: '2026-10-12T10:00:00Z', body: 'hi', ...over })
 

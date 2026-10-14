@@ -9,7 +9,7 @@ const load = async path => {
 }
 const V = await load('src/lib/voiceNote.ts')
 const X = await load('src/lib/chatExport.ts')
-const ui = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const ui = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 const sql = readFileSync('supabase/migrations/20261012230000_chat_voice_notes.sql', 'utf8')
 
 test('the recorder picks the best format the browser supports, or none', () => {
