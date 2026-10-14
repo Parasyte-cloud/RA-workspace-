@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const sql = readFileSync('supabase/migrations/20261012190000_chat_reply_archive_delete.sql', 'utf8')
-const ui = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const ui = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 const security = readFileSync('supabase/migrations/20260901230000_native_chat_security.sql', 'utf8')
 
 test('deleting a chat is admin-only in the database, not just hidden in the UI', () => {

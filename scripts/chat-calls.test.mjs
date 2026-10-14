@@ -110,7 +110,7 @@ test('ring patterns fit inside their cycle and use audible tones', () => {
 })
 
 const sql = read('supabase/migrations/20261012250000_chat_call_history.sql')
-const chat = read('src/modules/ChatModule.tsx')
+const chat = read('src/chat/ChatShell.tsx')
 const ringer = read('src/modules/CallRinger.tsx')
 const roomModule = read('src/modules/RoomModule.tsx')
 
@@ -165,7 +165,7 @@ test('call rooms close themselves and stay out of the ROOM 7 meeting list', () =
   const mod = read('src/modules/RoomModule.tsx')
   assert.match(mod, /callRoomCodes\.has\(room\.room_code\)/)
   assert.match(mod, /room\.created_by===myId/)
-  assert.match(read('src/modules/ChatModule.tsx'), /endCallRoom\(createdRoomId\)/)
+  assert.match(read('src/chat/ChatShell.tsx'), /endCallRoom\(createdRoomId\)/)
   assert.match(read('supabase/functions/room-session/index.ts'), /Only the ROOM 7 host or an administrator can end/)
 })
 

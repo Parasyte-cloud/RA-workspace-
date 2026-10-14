@@ -7,7 +7,7 @@ const js = transformSync(readFileSync('src/lib/chatAttachments.ts', 'utf8'), { l
 const A = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
 const sql = readFileSync('supabase/migrations/20261012210000_chat_attachments.sql', 'utf8')
   + readFileSync('supabase/migrations/20261012230000_chat_voice_notes.sql', 'utf8')
-const ui = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const ui = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 
 const file = (name, size, type) => ({ name, size, type })
 

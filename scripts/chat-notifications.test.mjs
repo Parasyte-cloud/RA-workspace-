@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const sql = readFileSync('supabase/migrations/20261012110000_chat_announcement_notifications.sql', 'utf8')
-const chat = readFileSync('src/modules/ChatModule.tsx', 'utf8')
+const chat = readFileSync('src/chat/ChatShell.tsx', 'utf8')
 const center = readFileSync('src/components/NotificationCenter.tsx', 'utf8')
 
 test('chat messages, announcements and announcement posts all create notifications', () => {

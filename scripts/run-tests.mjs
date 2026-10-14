@@ -8,6 +8,9 @@ import { spawnSync } from 'node:child_process'
 const NEEDS_SUPABASE = new Set([
   'intake-platform-security.test.mjs',
   'intake-service-e2e.test.mjs',
+  'chat-department-sync.test.mjs',
+  'chat-message-security.test.mjs',
+  'chat-room-administration.test.mjs',
 ])
 
 const files = readdirSync(new URL('.', import.meta.url))
