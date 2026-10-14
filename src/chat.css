@@ -1615,3 +1615,268 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
     flex-basis: 38px;
   }
 }
+
+/* =========================================================
+   Governed room header + details identity
+   ========================================================= */
+
+.cmRoomHeadIdentity {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 3px 6px 3px 3px;
+
+  border: 0;
+  border-radius: 14px;
+
+  background: transparent;
+  color: inherit;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background .15s ease,
+    box-shadow .15s ease;
+}
+
+.cmRoomHeadIdentity:hover {
+  background: rgba(14, 42, 76, .045);
+}
+
+.cmRoomHeadIdentity:focus-visible {
+  outline: 2px solid rgba(255, 153, 0, .5);
+  outline-offset: 2px;
+}
+
+.cmRoomHeadAvatar {
+  flex: 0 0 42px;
+}
+
+.cmRoomHeadMembers {
+  display: flex;
+  align-items: center;
+
+  padding-left: 6px;
+  margin-left: auto;
+}
+
+.cmRoomHeadMemberAvatar,
+.cmRoomHeadMemberMore {
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  margin-left: -7px;
+
+  border: 2px solid #fff;
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #173b64,
+      #0b2444
+    );
+
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 850;
+
+  box-shadow:
+    0 3px 8px rgba(7, 26, 56, .12);
+}
+
+.cmRoomHeadMemberMore {
+  background: #fff1dc;
+  color: #825000;
+}
+
+/* Room details summary */
+
+.cmRoomDetailsSummary {
+  display: grid;
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+
+  margin: 14px;
+  padding: 14px;
+
+  border:
+    1px solid rgba(14, 42, 76, .08);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, .98),
+      rgba(248, 250, 253, .96)
+    );
+
+  box-shadow:
+    0 10px 26px rgba(7, 26, 56, .055);
+}
+
+.cmRoomDetailsMark {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #173b64,
+      #0b2444
+    );
+
+  color: #ff9900;
+
+  font-size: 23px;
+  font-weight: 900;
+
+  box-shadow:
+    0 7px 18px rgba(7, 26, 56, .14);
+}
+
+.cmRoomDetailsSummaryCopy {
+  min-width: 0;
+
+  display: grid;
+  gap: 2px;
+}
+
+.cmRoomDetailsSummaryCopy strong {
+  overflow: hidden;
+
+  color:
+    var(--cm-modern-text, var(--cm-text));
+
+  font-size: 15px;
+  font-weight: 850;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmRoomDetailsSummaryCopy span {
+  color:
+    var(--cm-modern-muted, var(--cm-muted));
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cmRoomDetailsSummaryCopy small {
+  color: #956000;
+
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+.cmRoomDetailsAvatars {
+  display: flex;
+  align-items: center;
+}
+
+.cmRoomDetailsAvatar {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  margin-left: -7px;
+
+  border: 2px solid #fff;
+  border-radius: 999px;
+
+  background: #0b2444;
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 850;
+
+  box-shadow:
+    0 3px 9px rgba(7, 26, 56, .13);
+}
+
+.cmRoomDetailsAvatar:first-child {
+  margin-left: 0;
+}
+
+.cmRoomDetailsMore {
+  background: #fff0d8;
+  color: #875100;
+}
+
+.cmRoomManagedBadge {
+  margin:
+    0 14px
+    14px;
+
+  padding:
+    8px 11px;
+
+  border:
+    1px solid rgba(255, 153, 0, .16);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255, 153, 0, .08);
+
+  color: #79500d;
+
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+  .cmRoomHeadMembers {
+    display: none;
+  }
+
+  .cmRoomDetailsSummary {
+    grid-template-columns:
+      auto minmax(0, 1fr);
+
+    margin: 10px;
+  }
+
+  .cmRoomDetailsAvatars {
+    grid-column: 1 / -1;
+
+    padding-left: 5px;
+  }
+}
+
+@media (max-width: 430px) {
+  .cmRoomHeadIdentity {
+    gap: 7px;
+  }
+
+  .cmRoomHeadIdentity .cmHeadCopy small {
+    max-width: 190px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
