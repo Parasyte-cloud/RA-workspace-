@@ -17,7 +17,6 @@ import {
   Pencil,
   Plus,
   Reply,
-  Search,
   Send,
   ShieldCheck,
   Square,
@@ -47,6 +46,18 @@ import { useChatCalls } from '../modules/useChatCalls'
 import { useConversations } from './hooks/useConversations'
 import { useMessages } from './hooks/useMessages'
 import { ConversationSidebar } from './conversations/ConversationSidebar'
+import { ConversationSearch } from './conversations/ConversationSearch'
+import { RoomList } from './conversations/RoomList'
+import { RoomCreator } from './rooms/RoomCreator'
+import { RoomDetails } from './rooms/RoomDetails'
+import type {
+  RoomCandidate,
+  RoomMember,
+} from './rooms/RoomMembers'
+import type {
+  ConversationKind,
+  ConversationSummary,
+} from './types'
 import { MessageTimeline } from './messages/MessageTimeline'
 import {
   MessageComposer,
@@ -109,6 +120,7 @@ type Conversation = {
   title:string|null
   created_by:string
   created_at:string
+  conversation_kind:ConversationKind
 }
 
 type Message = {
@@ -219,9 +231,15 @@ export function ChatShell(){
   const {
     conversations:directs,
     setConversations:setDirects,
-    selected
+    selected:selectedDirect
   }=useConversations<DirectRow>(selectedId)
+  const [rooms,setRooms]=useState<ConversationSummary[]>([])
+  const [roomMembers,setRoomMembers]=useState<RoomMember[]>([])
+  const [canAdministerRoom,setCanAdministerRoom]=useState(false)
+  const [isGlobalChatAdmin,setIsGlobalChatAdmin]=useState(false)
+  const [roomDetailsLoading,setRoomDetailsLoading]=useState(false)
   const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
+  const [mobileDetailsOpen,setMobileDetailsOpen]=useState(false)
   const {
     messages,
     setMessages
@@ -316,6 +334,186 @@ export function ChatShell(){
   useEffect(()=>{directsRef.current=directs},[directs])
   useEffect(()=>{userRef.current=userId},[userId])
   useEffect(()=>{peopleRef.current=new Map(people.map(person=>[person.id,person]))},[people])
+
+  const selectedRoom=useMemo(
+    ()=>rooms.find(room=>room.id===selectedId) || null,
+    [rooms,selectedId]
+  )
+
+  const selected=useMemo<DirectRow|null>(()=> {
+    if(selectedDirect)return selectedDirect
+    if(!selectedRoom)return null
+
+    return {
+      conversation:{
+        id:selectedRoom.id,
+        is_group:selectedRoom.is_group,
+        title:selectedRoom.title,
+        created_by:selectedRoom.created_by,
+        created_at:selectedRoom.created_at,
+        conversation_kind:selectedRoom.conversation_kind
+      },
+      other:{
+        id:selectedRoom.id,
+        full_name:selectedRoom.title || 'Room',
+        email:'',
+        department:selectedRoom.conversation_kind,
+        job_title:'Room'
+      },
+      membership:{
+        conversation_id:selectedRoom.id,
+        user_id:userId,
+        joined_at:selectedRoom.created_at,
+        last_read_at:selectedRoom.created_at,
+        archived_at:null
+      },
+      otherReadAt:null,
+      latest:null,
+      unread:0
+    }
+  },[selectedDirect,selectedRoom,userId])
+
+  useEffect(()=>{
+    const client=supabase
+
+    if(!client || !userId){
+      setIsGlobalChatAdmin(false)
+      return
+    }
+
+    let cancelled=false
+
+    void client
+      .rpc('is_workspace_chat_admin')
+      .then(({data,error})=>{
+        if(cancelled)return
+
+        if(error){
+          setIsGlobalChatAdmin(false)
+          return
+        }
+
+        setIsGlobalChatAdmin(data === true)
+      })
+
+    return ()=>{
+      cancelled=true
+    }
+  },[userId])
+
+  const loadRoomDetails=useCallback(async()=>{
+    const client=supabase
+
+    if(!client || !selectedRoom){
+      setRoomMembers([])
+      setCanAdministerRoom(false)
+      return
+    }
+
+    setRoomDetailsLoading(true)
+
+    try{
+      const [
+        memberResult,
+        roomAdminResult,
+        globalAdminResult
+      ]=await Promise.all([
+        client
+          .from('social_conversation_members')
+          .select('user_id,room_role,removed_at')
+          .eq('conversation_id',selectedRoom.id)
+          .is('removed_at',null),
+        client.rpc(
+          'is_room_admin',
+          {
+            p_conversation_id:selectedRoom.id
+          }
+        ),
+        client.rpc(
+          'is_workspace_chat_admin'
+        )
+      ])
+
+      if(memberResult.error)throw memberResult.error
+      if(roomAdminResult.error)throw roomAdminResult.error
+      if(globalAdminResult.error)throw globalAdminResult.error
+
+      const mapped=((memberResult.data || []) as Array<{
+        user_id:string
+        room_role:'member'|'admin'|'owner'
+        removed_at:string|null
+      }>).map(member=>{
+        const person=peopleRef.current.get(
+          member.user_id
+        )
+
+        return {
+          userId:member.user_id,
+          name:
+            person?.full_name?.trim() ||
+            person?.email ||
+            'RideArrivo employee',
+          email:person?.email || undefined,
+          roomRole:member.room_role
+        } satisfies RoomMember
+      })
+
+      mapped.sort((a,b)=>{
+        const weight={
+          owner:0,
+          admin:1,
+          member:2
+        } as const
+
+        const roleDifference=
+          weight[a.roomRole]-
+          weight[b.roomRole]
+
+        if(roleDifference)return roleDifference
+
+        return a.name.localeCompare(b.name)
+      })
+
+      setRoomMembers(mapped)
+      setCanAdministerRoom(
+        roomAdminResult.data === true
+      )
+      setIsGlobalChatAdmin(
+        globalAdminResult.data === true
+      )
+    }catch(error){
+      setRoomMembers([])
+      setCanAdministerRoom(false)
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load room administration.'
+      )
+    }finally{
+      setRoomDetailsLoading(false)
+    }
+  },[selectedRoom])
+
+  useEffect(()=>{
+    if(!selectedRoom){
+      setRoomMembers([])
+      setCanAdministerRoom(false)
+      return
+    }
+
+    void loadRoomDetails()
+  },[selectedRoom,loadRoomDetails])
+
+  const roomCandidates=useMemo<RoomCandidate[]>(
+    ()=>people.map(person=>({
+      userId:person.id,
+      name:
+        person.full_name?.trim() ||
+        person.email,
+      email:person.email || undefined
+    })),
+    [people]
+  )
 
   const calls=useChatCalls(userId)
 
@@ -418,18 +616,36 @@ export function ChatShell(){
 
       if(!ids.length){
         setDirects([])
+        setRooms([])
         return
       }
 
       const {data:conversationData,error:conversationError}=await client
         .from('social_conversations')
-        .select('id,is_group,title,created_by,created_at')
+        .select('id,is_group,title,created_by,created_at,conversation_kind')
         .in('id',ids)
-        .eq('is_group',false)
       if(conversationError)throw conversationError
 
       const conversations=(conversationData || []) as Conversation[]
-      const directIds=conversations.map(conversation=>conversation.id)
+
+      const roomConversations=conversations
+        .filter(conversation=>conversation.conversation_kind!=='direct')
+        .map(conversation=>({
+          id:conversation.id,
+          is_group:conversation.is_group,
+          title:conversation.title,
+          created_by:conversation.created_by,
+          created_at:conversation.created_at,
+          conversation_kind:conversation.conversation_kind
+        } satisfies ConversationSummary))
+
+      setRooms(roomConversations)
+
+      const directConversations=conversations
+        .filter(conversation=>conversation.conversation_kind==='direct')
+
+      const directIds=directConversations.map(conversation=>conversation.id)
+
       if(!directIds.length){
         setDirects([])
         return
@@ -468,7 +684,7 @@ export function ChatShell(){
         }
       }
 
-      const rows:DirectRow[]=conversations.map(conversation=>{
+      const rows:DirectRow[]=directConversations.map(conversation=>{
         const membership=ownMap.get(conversation.id)!
         const otherMember=members.find(member=>member.conversation_id===conversation.id && member.user_id!==me)
         const isOpenNow=conversation.id===selectedRef.current && canMarkReadNow()
@@ -1326,7 +1542,15 @@ export function ChatShell(){
       {notice&&<div className="cmNotice" role="status">{notice}<button type="button" aria-label="Dismiss" onClick={()=>setNotice('')}><X size={14}/></button></div>}
 
       <div className={`cmShell ${mobileThreadOpen && selectedId?'threadOpen':'listOpen'}`}>
-        <ConversationSidebar>
+        <ConversationSidebar
+          rooms={rooms}
+          directMessages={directs.map(row=>row.conversation)}
+          selectedId={selectedId}
+          onSelect={conversationId=>{
+            setSelectedId(conversationId)
+            setMobileThreadOpen(true)
+          }}
+        >
           <header className="cmSideHead">
             <h2>Chats{totalUnread+totalMissed>0&&<span className="cmTotal">{totalUnread+totalMissed>99?'99+':totalUnread+totalMissed}</span>}</h2>
             <button
@@ -1340,15 +1564,15 @@ export function ChatShell(){
             </button>
           </header>
 
-          <label className="cmSearch">
-            <Search size={16}/>
-            <input
-              value={query}
-              onChange={event=>setQuery(event.target.value)}
-              placeholder={newChatOpen?'Search employees':'Search or start a new chat'}
-              aria-label="Search chats or employees"
-            />
-          </label>
+          <ConversationSearch
+            value={query}
+            onChange={setQuery}
+            placeholder={
+              newChatOpen
+                ? 'Search employees'
+                : 'Search or start a new chat'
+            }
+          />
 
           {!newChatOpen&&(
             <div className="cmChips">
@@ -1366,6 +1590,21 @@ export function ChatShell(){
           )}
 
           <div className="cmList">
+            {newChatOpen && isGlobalChatAdmin && (
+              <RoomCreator
+                canCreateRoom={isGlobalChatAdmin}
+                onCreated={conversationId=>{
+                  setNewChatOpen(false)
+                  setQuery('')
+                  setSelectedId(conversationId)
+                  setMobileDetailsOpen(false)
+                  setMobileThreadOpen(true)
+
+                  void loadBase()
+                }}
+              />
+            )}
+
             {(newChatOpen || query.trim())&&(
               <div className="cmGroup">
                 <div className="cmGroupLabel">{newChatOpen?'Start a conversation':'People'}</div>
@@ -1379,6 +1618,21 @@ export function ChatShell(){
                   </button>
                 ))}
                 {matchingPeople.length===0&&<div className="cmEmpty">No active employee matches.</div>}
+              </div>
+            )}
+
+            {!newChatOpen&&filter!=='calls'&&rooms.length>0&&(
+              <div className="cmGroup">
+                <div className="cmGroupLabel">Rooms</div>
+                <RoomList
+                  rooms={rooms}
+                  selectedId={selectedId}
+                  onSelect={conversationId=>{
+                    setSelectedId(conversationId)
+                    setMobileThreadOpen(true)
+                    setMobileDetailsOpen(false)
+                  }}
+                />
               </div>
             )}
 
@@ -1473,6 +1727,34 @@ export function ChatShell(){
           </div>
         </ConversationSidebar>
 
+        {selectedRoom&&mobileDetailsOpen&&(
+          <div className="cmRoomDetailsLayer">
+            {roomDetailsLoading && (
+              <div
+                className="cmRoomDetailsLoading"
+                role="status"
+              >
+                Loading room details...
+              </div>
+            )}
+
+            <RoomDetails
+              room={selectedRoom}
+              members={roomMembers}
+              candidates={roomCandidates}
+              canAdministerRoom={canAdministerRoom}
+              isGlobalChatAdmin={isGlobalChatAdmin}
+              onClose={()=>setMobileDetailsOpen(false)}
+              onChanged={()=>void loadRoomDetails()}
+              onArchived={()=>{
+                setMobileDetailsOpen(false)
+                setSelectedId('')
+                void loadBase()
+              }}
+            />
+          </div>
+        )}
+
         <div
           className={`cmThread${dragging?' dragging':''}`}
           onDragEnter={event=>{
@@ -1496,6 +1778,16 @@ export function ChatShell(){
             stageFiles(event.dataTransfer.files)
           }}
         >
+
+          {selectedRoom&&(
+            <button
+              type="button"
+              className="cmMobileDetailsButton"
+              onClick={()=>setMobileDetailsOpen(open=>!open)}
+            >
+              Room details
+            </button>
+          )}
           {dragging&&<div className="cmDrop">Drop files to send them to {displayName(selected?.other)}</div>}
           {selected ? (
             <>
@@ -1530,26 +1822,53 @@ export function ChatShell(){
                       </button>
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="cmRound"
-                    title={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
-                    aria-label={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
-                    onClick={()=>void setArchived(selected,!selected.membership.archived_at)}
-                  >
-                    {selected.membership.archived_at?<ArchiveRestore size={18}/>:<Archive size={18}/>}
-                  </button>
-                  {isAdmin&&(
-                    <button type="button" className="cmRound cmDanger" title="Delete chat (admin only)" aria-label="Delete chat (admin only)" onClick={()=>void deleteChat(selected)}>
-                      <Trash2 size={18}/>
-                    </button>
+                  {!selectedRoom&&(
+                    <>
+                      <button
+                        type="button"
+                        className="cmRound"
+                        title={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
+                        aria-label={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
+                        onClick={()=>void setArchived(selected,!selected.membership.archived_at)}
+                      >
+                        {selected.membership.archived_at?<ArchiveRestore size={18}/>:<Archive size={18}/>}
+                      </button>
+
+                      {isAdmin&&(
+                        <button
+                          type="button"
+                          className="cmRound cmDanger"
+                          title="Delete chat (admin only)"
+                          aria-label="Delete chat (admin only)"
+                          onClick={()=>void deleteChat(selected)}
+                        >
+                          <Trash2 size={18}/>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="cmRound"
+                        title="Video call"
+                        aria-label="Video call"
+                        disabled={calling}
+                        onClick={()=>void startCall('Video')}
+                      >
+                        <Video size={18}/>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="cmRound"
+                        title="Voice call"
+                        aria-label="Voice call"
+                        disabled={calling}
+                        onClick={()=>void startCall('Voice')}
+                      >
+                        <Phone size={18}/>
+                      </button>
+                    </>
                   )}
-                  <button type="button" className="cmRound" title="Video call" aria-label="Video call" disabled={calling} onClick={()=>void startCall('Video')}>
-                    <Video size={18}/>
-                  </button>
-                  <button type="button" className="cmRound" title="Voice call" aria-label="Voice call" disabled={calling} onClick={()=>void startCall('Voice')}>
-                    <Phone size={18}/>
-                  </button>
                 </div>
               </header>
 
@@ -1567,7 +1886,12 @@ export function ChatShell(){
                 scrollRef={scrollRef}
                 onScroll={onScroll}
               >
-                <div className="cmLock"><ShieldCheck size={13}/>Private. Only the two of you can see this conversation.</div>
+                <div className="cmLock">
+                  <ShieldCheck size={13}/>
+                  {selectedRoom
+                    ? 'Private workspace room. Only active room members can see this conversation.'
+                    : 'Private. Only the two of you can see this conversation.'}
+                </div>
                 {hasOlder&&(
                   <button type="button" className="cmOlder" disabled={loadingOlder} onClick={()=>void loadOlder()}>
                     {loadingOlder?'Loading...':'Load earlier messages'}

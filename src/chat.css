@@ -415,3 +415,367 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   .cmCallRowBtn{width:42px;height:42px}
   .cmBubble{max-width:90%}
 }
+
+/* ---- governed room details ---- */
+
+.cmShell{
+  position:relative;
+}
+
+.cmDetails{
+  position:absolute;
+  top:0;
+  right:0;
+  bottom:0;
+  z-index:30;
+  width:min(380px,100%);
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  background:var(--cm-side);
+  color:var(--cm-text);
+  border-left:1px solid var(--cm-line);
+  box-shadow:-18px 0 50px rgba(5,25,58,.16);
+}
+
+.cmDetailsHead{
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px;
+  background:var(--cm-side);
+  border-bottom:1px solid var(--cm-line);
+}
+
+.cmDetailsHead>div{
+  min-width:0;
+}
+
+.cmDetailsHead small{
+  display:block;
+  margin-bottom:4px;
+  color:var(--cm-muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.cmDetailsHead h2{
+  margin:0;
+  font-size:18px;
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+
+.cmDetailsHead button,
+.cmRoomMember button,
+.cmRoomSettings button{
+  border:1px solid var(--cm-line);
+  border-radius:10px;
+  background:var(--cm-hover);
+  color:var(--cm-text);
+  padding:8px 11px;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.cmRoomAdminPanel{
+  display:grid;
+  gap:18px;
+  padding:18px;
+}
+
+.cmRoomAdminNote{
+  margin:0;
+  padding:12px;
+  border:1px solid rgba(255,153,0,.25);
+  border-radius:12px;
+  background:var(--cm-active);
+  color:var(--cm-text);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.cmRoomMembers,
+.cmRoomSettings{
+  display:grid;
+  gap:10px;
+}
+
+.cmRoomMembers h3,
+.cmRoomSettings h3{
+  margin:0;
+  font-size:14px;
+}
+
+.cmRoomMember{
+  display:grid;
+  gap:8px;
+  padding:12px 0;
+  border-bottom:1px solid var(--cm-line);
+}
+
+.cmRoomMember>div:first-child{
+  display:grid;
+  gap:2px;
+}
+
+.cmRoomMember small{
+  color:var(--cm-muted);
+}
+
+.cmRoomMember>span{
+  width:max-content;
+  border-radius:999px;
+  padding:3px 8px;
+  background:var(--cm-active);
+  font-size:11px;
+  font-weight:800;
+  text-transform:capitalize;
+}
+
+.cmRoomMember>div:last-child{
+  display:flex;
+  gap:8px;
+}
+
+.cmRoomMember select{
+  min-width:110px;
+  border:1px solid var(--cm-line);
+  border-radius:10px;
+  background:var(--cm-input);
+  color:var(--cm-text);
+  padding:8px;
+}
+
+.cmMobileDetailsButton{
+  align-self:flex-end;
+  margin:8px 12px 0;
+  border:1px solid var(--cm-line);
+  border-radius:999px;
+  background:var(--cm-side);
+  color:var(--cm-text);
+  padding:7px 12px;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+@media(max-width:860px){
+  .cmDetails{
+    position:absolute;
+    inset:0;
+    width:100%;
+    border-left:0;
+    box-shadow:none;
+  }
+
+  .cmDetailsHead{
+    padding:14px;
+  }
+
+  .cmRoomAdminPanel{
+    padding:14px;
+  }
+
+  .cmMobileDetailsButton{
+    margin-top:6px;
+  }
+}
+
+.cmRoomSectionHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.cmRoomSectionHead>div{
+  display:grid;
+  gap:2px;
+}
+
+.cmRoomSectionHead small{
+  color:var(--cm-muted);
+  font-size:12px;
+}
+
+.cmRoomAddMember{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+}
+
+.cmRoomAddMember select{
+  min-width:0;
+  width:100%;
+  border:1px solid var(--cm-line);
+  border-radius:11px;
+  background:var(--cm-input);
+  color:var(--cm-text);
+  padding:10px 11px;
+  font:inherit;
+  font-size:13px;
+}
+
+.cmRoomAddMember button{
+  white-space:nowrap;
+}
+
+.cmRoomError{
+  margin:0;
+  padding:9px 11px;
+  border-radius:10px;
+  background:rgba(198,40,40,.1);
+  color:#c62828;
+  font-size:12px;
+  line-height:1.45;
+}
+
+@media(max-width:560px){
+  .cmRoomAddMember{
+    grid-template-columns:1fr;
+  }
+
+  .cmRoomAddMember button{
+    width:100%;
+  }
+}
+
+.cmRoomDetailsLayer{
+  position:absolute;
+  inset:0 0 0 auto;
+  z-index:30;
+  width:min(380px,100%);
+  pointer-events:none;
+}
+
+.cmRoomDetailsLayer .cmDetails{
+  width:100%;
+  pointer-events:auto;
+}
+
+.cmRoomDetailsLoading{
+  position:absolute;
+  top:10px;
+  left:50%;
+  z-index:40;
+  transform:translateX(-50%);
+  padding:7px 12px;
+  border:1px solid var(--cm-line);
+  border-radius:999px;
+  background:var(--cm-side);
+  color:var(--cm-muted);
+  box-shadow:0 8px 24px rgba(5,25,58,.12);
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+  pointer-events:none;
+}
+
+@media(max-width:860px){
+  .cmRoomDetailsLayer{
+    inset:0;
+    width:100%;
+  }
+}
+
+.cmRoomCreator{
+  display:grid;
+  gap:10px;
+  margin:10px 8px 14px;
+  padding:14px;
+  border:1px solid var(--cm-line);
+  border-radius:16px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.08),
+      rgba(255,255,255,.025)
+    );
+  box-shadow:
+    0 14px 34px rgba(4,18,40,.12),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px);
+}
+
+.cmRoomCreator h3{
+  margin:0 0 2px;
+  font-size:14px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+
+.cmRoomCreator label{
+  display:grid;
+  gap:5px;
+}
+
+.cmRoomCreator label>span{
+  color:var(--cm-muted);
+  font-size:11px;
+  font-weight:750;
+}
+
+.cmRoomCreator input,
+.cmRoomCreator select,
+.cmRoomCreator textarea{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  border:1px solid var(--cm-line);
+  border-radius:11px;
+  outline:none;
+  background:var(--cm-input);
+  color:var(--cm-text);
+  padding:9px 10px;
+  font:inherit;
+  font-size:12px;
+}
+
+.cmRoomCreator textarea{
+  min-height:68px;
+  resize:vertical;
+}
+
+.cmRoomCreator input:focus,
+.cmRoomCreator select:focus,
+.cmRoomCreator textarea:focus{
+  border-color:rgba(255,153,0,.7);
+  box-shadow:0 0 0 3px rgba(255,153,0,.12);
+}
+
+.cmRoomCreator>button{
+  min-height:38px;
+  border:0;
+  border-radius:11px;
+  background:#ff9900;
+  color:#071426;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.cmRoomCreator>button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.cmRoomCreator p[role="alert"]{
+  margin:0;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:860px){
+  .cmRoomCreator{
+    margin-inline:6px;
+  }
+}
