@@ -82,3 +82,50 @@ test('generic uploads classify images from inferred MIME and article uploads att
   assert.match(s,/linkBlogAsset\(draft\.id,asset\.id,'attachment'\)/);
   assert.match(s,/const relationship:BlogAssetRelationship='attachment'/);
 });
+
+test(
+  'Blog publishers get explicit lifecycle actions and archive stays separate',
+  () => {
+    const s = read(
+      'src/modules/BlogStudio.tsx',
+    )
+
+    for (const label of [
+      'Save draft',
+      'Submit for review',
+      'Publish now',
+      'Schedule publication',
+      'Archive content',
+    ]) {
+      assert.match(
+        s,
+        new RegExp(label),
+        `${label} action must be explicit`,
+      )
+    }
+
+    assert.doesNotMatch(
+      s,
+      /<label>Status<select/,
+      'publishing must not depend on a lifecycle dropdown',
+    )
+
+    assert.doesNotMatch(
+      s,
+      /<option value="published">Published<\/option>/,
+      'Published must not be a dropdown option',
+    )
+
+    assert.doesNotMatch(
+      s,
+      /<option value="archived">Archived<\/option>/,
+      'Archived must not be a dropdown option',
+    )
+
+    assert.match(
+      s,
+      /window\.confirm\(['"]Archive this content\?/,
+      'archiving must require explicit confirmation',
+    )
+  },
+)
