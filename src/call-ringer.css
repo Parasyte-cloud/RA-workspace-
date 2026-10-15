@@ -31,3 +31,16 @@
   .callCard.alerts .callBtn{width:auto;min-width:64px;height:44px}
   .callCopy small{white-space:normal}
 }
+
+/* Landscape-safe inset handling for notched phones and tablets. */
+@media(max-width:599px){
+  .callRinger.responsiveModule{
+    top:calc(env(safe-area-inset-top,0px) + 8px);
+    right:max(8px,env(safe-area-inset-right,0px));
+    left:max(8px,env(safe-area-inset-left,0px));
+    width:auto;
+    transform:none;
+  }
+  .callCard{min-width:0}
+  .callCopy{overflow-wrap:anywhere}
+}

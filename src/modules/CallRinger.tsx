@@ -242,7 +242,7 @@ export default function CallRinger() {
   if (!me || (!incoming.length && !outgoing && !outcome && !showPrompt)) return null
 
   return (
-    <div className="callRinger" role="alert" aria-live="assertive">
+    <div className="callRinger responsiveModule" role="alert" aria-live="assertive">
       {incoming.map(call => (
         <div className="callCard incoming" key={call.id}>
           <span className="callPulse">{call.kind === 'video' ? <Video size={20} /> : <Phone size={20} />}</span>
