@@ -2154,3 +2154,82 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 }
 
 /* CHAT_ROOM_SENDER_NAMES_END */
+
+/* CHAT_MOBILE_WIDTH_CONTAINMENT_START */
+
+/*
+ * Keep Chat constrained to the workspace track.
+ *
+ * Several Chat children have useful intrinsic widths for desktop media/file
+ * rendering. On narrow screens those intrinsic minimums must not enlarge the
+ * application shell itself.
+ */
+.cm,
+.cmShell,
+.cmSide,
+.cmThread,
+.cmMessages,
+.cmComposer,
+.cmStaged,
+.cmVoiceBar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cmShell {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cmComposer textarea {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .cmShell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmThreadHead,
+  .cmHeadCopy,
+  .cmMessages,
+  .cmComposer,
+  .cmStaged,
+  .cmVoiceBar {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /*
+   * Size message bubbles against the actual Chat pane rather than the browser
+   * viewport. The pane can be narrower than 100vw because of workspace gutters.
+   */
+  .cmBubble {
+    max-width: 86%;
+  }
+
+  /*
+   * Desktop media controls may have intrinsic minimum widths, but must be
+   * allowed to shrink on phones.
+   */
+  .cmImageWait,
+  .cmFile,
+  .cmVoice,
+  .cmEditBox {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .cmBubble {
+    max-width: 90%;
+  }
+}
+
+/* CHAT_MOBILE_WIDTH_CONTAINMENT_END */
