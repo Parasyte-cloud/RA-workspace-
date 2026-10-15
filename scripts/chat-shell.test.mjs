@@ -225,8 +225,14 @@ test(
 
     assert.match(
       shell,
-      /import\s*\{\s*sendMessage\s+as\s+sendChatMessage\s*\}\s*from\s*['"]\.\/api\/chatApi['"]/,
-      'ChatShell must import the secured Task 4 sender',
+      /from\s*['"]\.\/api\/chatApi['"]/,
+      'ChatShell must import the secured Chat API module',
+    )
+
+    assert.match(
+      shell,
+      /\bsendMessage\s+as\s+sendChatMessage\b/,
+      'ChatShell must use the secured Task 4 sender',
     )
 
     assert.match(

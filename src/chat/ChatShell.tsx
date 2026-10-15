@@ -63,7 +63,14 @@ import {
   MessageComposer,
   type MessageSendState
 } from './messages/MessageComposer'
-import { sendMessage as sendChatMessage } from './api/chatApi'
+import {
+  MentionSuggestions,
+  type MentionSuggestionPerson
+} from './messages/MentionSuggestions'
+import {
+  registerMessageMentions as registerChatMessageMentions,
+  sendMessage as sendChatMessage
+} from './api/chatApi'
 import {
   buildTranscript,
   exportFileName,
@@ -133,6 +140,7 @@ type Message = {
   created_at:string
   reply_to_id?:string|null
   client_message_id?:string|null
+  mentionedUserIds?:string[]
   attachment_path?:string|null
   attachment_name?:string|null
   attachment_mime?:string|null
@@ -248,6 +256,12 @@ export function ChatShell(){
   const [filter,setFilter]=useState<'all'|'unread'|'archived'|'calls'>('all')
   const [newChatOpen,setNewChatOpen]=useState(false)
   const [messageText,setMessageText]=useState('')
+  const [mentionQuery,setMentionQuery]=useState<string|null>(null)
+  const [mentionStart,setMentionStart]=useState(-1)
+  const [mentionIndex,setMentionIndex]=useState(0)
+  const [selectedMentions,setSelectedMentions]=useState<
+    Array<{userId:string;token:string}>
+  >([])
   const [loading,setLoading]=useState(true)
   const [threadLoading,setThreadLoading]=useState(false)
   const [starting,setStarting]=useState(false)
@@ -339,6 +353,85 @@ export function ChatShell(){
     ()=>rooms.find(room=>room.id===selectedId) || null,
     [rooms,selectedId]
   )
+
+  const mentionSuggestions=useMemo<MentionSuggestionPerson[]>(()=>{
+    if(mentionQuery===null || !selectedRoom)return []
+
+    const normalized=mentionQuery.trim().toLowerCase()
+
+    return roomMembers
+      .filter(member=>member.userId!==userId)
+      .filter(member=>{
+        if(!normalized)return true
+        return member.name.toLowerCase().includes(normalized) ||
+          (member.email || '').toLowerCase().includes(normalized)
+      })
+      .slice(0,8)
+      .map(member=>({
+        userId:member.userId,
+        name:member.name,
+        email:member.email
+      }))
+  },[mentionQuery,roomMembers,selectedRoom,userId])
+
+  const closeMentionSuggestions=()=>{
+    setMentionQuery(null)
+    setMentionStart(-1)
+    setMentionIndex(0)
+  }
+
+  const updateMentionQuery=(value:string,caret:number)=>{
+    if(!selectedRoom){
+      closeMentionSuggestions()
+      return
+    }
+
+    const prefix=value.slice(0,caret)
+    const match=prefix.match(/(?:^|\s)@([^\s@]*)$/)
+
+    if(!match){
+      closeMentionSuggestions()
+      return
+    }
+
+    setMentionStart(prefix.lastIndexOf('@'))
+    setMentionQuery(match[1] || '')
+    setMentionIndex(0)
+  }
+
+  const selectMention=(person:MentionSuggestionPerson)=>{
+    if(mentionStart<0)return
+
+    const input=composerRef.current
+    const caret=input?.selectionStart ?? messageText.length
+    const token=`@${person.name}`
+    const before=messageText.slice(0,mentionStart)
+    const after=messageText.slice(caret)
+    const next=`${before}${token} ${after}`.slice(0,10000)
+    const nextCaret=Math.min(
+      mentionStart+token.length+1,
+      next.length
+    )
+
+    setMessageText(next)
+    setSelectedMentions(current=>[
+      ...current.filter(item=>item.userId!==person.userId),
+      {
+        userId:person.userId,
+        token
+      }
+    ])
+    closeMentionSuggestions()
+
+    requestAnimationFrame(()=>{
+      composerRef.current?.focus()
+      composerRef.current?.setSelectionRange(
+        nextCaret,
+        nextCaret
+      )
+      resizeComposer()
+    })
+  }
 
   const selected=useMemo<DirectRow|null>(()=> {
     if(selectedDirect)return selectedDirect
@@ -551,7 +644,16 @@ export function ChatShell(){
   },[calls,userId,selectedId,callSeen])
 
   const peopleMap=useMemo(()=>new Map(people.map(person=>[person.id,person])),[people])
-  const totalUnread=useMemo(()=>directs.reduce((sum,row)=>row.membership.archived_at?sum:sum+row.unread,0),[directs])
+  const totalUnread=useMemo(
+    ()=>directs.reduce(
+      (sum,row)=>row.membership.archived_at?sum:sum+row.unread,
+      0
+    ) + rooms.reduce(
+      (sum,room)=>sum+(room.unread || 0),
+      0
+    ),
+    [directs,rooms]
+  )
   const totalMissed=useMemo(()=>directs.reduce((sum,row)=>row.membership.archived_at||row.conversation.id===selectedId?sum:sum+unseenMissed(calls,userId,row.conversation.id,[row.membership.last_read_at,callSeen[row.conversation.id]].filter(Boolean).sort().pop()),0),[directs,calls,userId,selectedId,callSeen])
   const archivedCount=useMemo(()=>directs.filter(row=>row.membership.archived_at).length,[directs])
 
@@ -628,16 +730,49 @@ export function ChatShell(){
 
       const conversations=(conversationData || []) as Conversation[]
 
+      const {
+        data:unreadSummaryData,
+        error:unreadSummaryError
+      }=await client.rpc('list_chat_unread_summary')
+
+      if(unreadSummaryError)throw unreadSummaryError
+
+      const unreadSummaryRows=(unreadSummaryData || []) as Array<{
+        conversation_id:string
+        unread_count:number|string
+        mentioned:boolean
+      }>
+
+      const unreadSummary=new Map(
+        unreadSummaryRows.map(row=>[
+          row.conversation_id,
+          row
+        ])
+      )
+
       const roomConversations=conversations
         .filter(conversation=>conversation.conversation_kind!=='direct')
-        .map(conversation=>({
-          id:conversation.id,
-          is_group:conversation.is_group,
-          title:conversation.title,
-          created_by:conversation.created_by,
-          created_at:conversation.created_at,
-          conversation_kind:conversation.conversation_kind
-        } satisfies ConversationSummary))
+        .map(conversation=>{
+          const summary=unreadSummary.get(conversation.id)
+          const isOpenNow=
+            conversation.id===selectedRef.current &&
+            canMarkReadNow()
+
+          return {
+            id:conversation.id,
+            is_group:conversation.is_group,
+            title:conversation.title,
+            created_by:conversation.created_by,
+            created_at:conversation.created_at,
+            conversation_kind:conversation.conversation_kind,
+            unread:isOpenNow
+              ? 0
+              : Number(summary?.unread_count || 0),
+            mentioned:isOpenNow
+              ? false
+              : Boolean(summary?.mentioned)
+          } satisfies ConversationSummary
+        })
 
       setRooms(roomConversations)
 
@@ -718,6 +853,9 @@ export function ChatShell(){
     setDirects(rows=>rows.map(row=>row.conversation.id===conversationId && row.unread>0
       ? {...row,unread:0}
       : row))
+    setRooms(rows=>rows.map(room=>room.id===conversationId
+      ? {...room,unread:0,mentioned:false}
+      : room))
     setCallSeen(current=>({...current,[conversationId]:new Date().toISOString()}))
     const {error}=await client.rpc('mark_social_conversation_read',{p_conversation_id:conversationId})
     if(error)setNotice(error.message)
@@ -791,6 +929,10 @@ export function ChatShell(){
     setMessages([])
     setReplyTo(null)
     setStaged([])
+    setSelectedMentions([])
+    setMentionQuery(null)
+    setMentionStart(-1)
+    setMentionIndex(0)
     setVoice(null)
     setThreadLoading(true)
     forceScrollRef.current=true
@@ -997,11 +1139,12 @@ export function ChatShell(){
     element.style.height=`${Math.min(element.scrollHeight,140)}px`
   }
 
-  const sendMessage=async(opts:{body:string;file?:File|null;mime?:string;durationMs?:number|null;tempId?:string;replyId?:string|null;clientMessageId?:string})=>{
+  const sendMessage=async(opts:{body:string;file?:File|null;mime?:string;durationMs?:number|null;tempId?:string;replyId?:string|null;clientMessageId?:string;mentionedUserIds?:string[]})=>{
     const client=supabase
     if(!client || !userId || !selectedId)return
     const conversationId=selectedId
     const {body,file,replyId}=opts
+    const mentionedUserIds=opts.mentionedUserIds || []
     const id=opts.tempId || `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`
     const clientMessageId=opts.clientMessageId || crypto.randomUUID()
     const optimistic:Message={
@@ -1013,6 +1156,7 @@ export function ChatShell(){
       created_at:new Date().toISOString(),
       reply_to_id:replyId || null,
       client_message_id:clientMessageId,
+      mentionedUserIds,
       attachment_name:file?.name || null,
       attachment_mime:file ? opts.mime || file.type : null,
       attachment_size:file?.size ?? null,
@@ -1029,7 +1173,8 @@ export function ChatShell(){
           conversationId,
           body,
           replyToId:replyId || null,
-          clientMessageId
+          clientMessageId,
+          mentionedUserIds
         })
         const saved={...(data as Message),localUrl:optimistic.localUrl}
         setNotice('')
@@ -1087,6 +1232,21 @@ export function ChatShell(){
       setNotice(error?.message || 'Unable to send message.')
       return
     }
+    if(mentionedUserIds.length){
+      try{
+        await registerChatMessageMentions(
+          (data as Message).id,
+          mentionedUserIds
+        )
+      }catch(error){
+        setNotice(
+          error instanceof Error
+            ? `Message sent, but mention notification failed: ${error.message}`
+            : 'Message sent, but the mention notification failed.'
+        )
+      }
+    }
+
     retryFilesRef.current.delete(id)
     const saved={...(data as Message),localUrl:optimistic.localUrl}
     setNotice('')
@@ -1302,12 +1462,22 @@ export function ChatShell(){
     if(!body && !staged.length)return
     const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
     const files=staged
+    const mentionedUserIds=selectedMentions
+      .filter(item=>body.includes(item.token))
+      .map(item=>item.userId)
+
     setMessageText('')
+    setSelectedMentions([])
+    closeMentionSuggestions()
     setReplyTo(null)
     setStaged([])
     requestAnimationFrame(resizeComposer)
     if(!files.length){
-      void sendMessage({body,replyId})
+      void sendMessage({
+        body,
+        replyId,
+        mentionedUserIds
+      })
       return
     }
     // The caption and the reply go with the first file; the rest follow in order.
@@ -1318,7 +1488,10 @@ export function ChatShell(){
           body:index===0 ? body : '',
           file:item.file,
           mime:item.mime,
-          replyId:index===0 ? replyId : null
+          replyId:index===0 ? replyId : null,
+          mentionedUserIds:index===0
+            ? mentionedUserIds
+            : []
         })
       }
     })()
@@ -1335,7 +1508,8 @@ export function ChatShell(){
       durationMs:message.attachment_duration_ms ?? null,
       tempId:message.id,
       replyId:message.reply_to_id,
-      clientMessageId:message.client_message_id||undefined
+      clientMessageId:message.client_message_id||undefined,
+      mentionedUserIds:message.mentionedUserIds || []
     })
   }
 
@@ -2196,6 +2370,12 @@ export function ChatShell(){
                 onSubmit={submit}
                 hidden={!!voice}
               >
+                <MentionSuggestions
+                  members={mentionSuggestions}
+                  activeIndex={mentionIndex}
+                  onSelect={selectMention}
+                />
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -2229,9 +2409,21 @@ export function ChatShell(){
                   ref={composerRef}
                   value={messageText}
                   onChange={event=>{
-                    setMessageText(event.target.value.slice(0,10000))
+                    const next=event.target.value.slice(0,10000)
+                    const caret=Math.min(
+                      event.target.selectionStart ?? next.length,
+                      next.length
+                    )
+
+                    setMessageText(next)
+                    setSelectedMentions(current=>
+                      current.filter(item=>
+                        next.includes(item.token)
+                      )
+                    )
+                    updateMentionQuery(next,caret)
                     resizeComposer()
-                    if(event.target.value.trim())pingTyping()
+                    if(next.trim())pingTyping()
                   }}
                   placeholder={staged.length?'Add a caption (optional)':'Type a message'}
                   onPaste={event=>{
@@ -2244,10 +2436,50 @@ export function ChatShell(){
                   rows={1}
                   aria-label={`Message ${displayName(selected.other)}`}
                   onKeyDown={event=>{
+                    if(mentionQuery!==null && mentionSuggestions.length){
+                      if(event.key==='ArrowDown'){
+                        event.preventDefault()
+                        setMentionIndex(index=>
+                          (index+1)%mentionSuggestions.length
+                        )
+                        return
+                      }
+
+                      if(event.key==='ArrowUp'){
+                        event.preventDefault()
+                        setMentionIndex(index=>
+                          (
+                            index-1+
+                            mentionSuggestions.length
+                          )%mentionSuggestions.length
+                        )
+                        return
+                      }
+
+                      if(
+                        (event.key==='Enter' || event.key==='Tab') &&
+                        !event.nativeEvent.isComposing
+                      ){
+                        event.preventDefault()
+                        selectMention(
+                          mentionSuggestions[mentionIndex] ||
+                          mentionSuggestions[0]
+                        )
+                        return
+                      }
+
+                      if(event.key==='Escape'){
+                        event.preventDefault()
+                        closeMentionSuggestions()
+                        return
+                      }
+                    }
+
                     if(event.key==='Escape'&&replyTo){
                       setReplyTo(null)
                       return
                     }
+
                     if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){
                       event.preventDefault()
                       event.currentTarget.form?.requestSubmit()

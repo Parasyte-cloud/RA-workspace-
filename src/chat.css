@@ -1880,3 +1880,129 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
     white-space: nowrap;
   }
 }
+
+/* Chat mentions and WhatsApp-style room activity */
+
+.cmComposer{
+  position:relative;
+}
+
+.cmMentionSuggestions{
+  position:absolute;
+  left:50px;
+  right:50px;
+  bottom:calc(100% + 8px);
+  z-index:30;
+  display:grid;
+  gap:4px;
+  max-height:280px;
+  overflow:auto;
+  padding:7px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:color-mix(
+    in srgb,
+    var(--panel,#10161d) 94%,
+    transparent
+  );
+  box-shadow:0 18px 50px rgba(0,0,0,.28);
+  backdrop-filter:blur(24px);
+}
+
+.cmMentionSuggestions button{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+.cmMentionSuggestions button:hover,
+.cmMentionSuggestions button.active,
+.cmMentionSuggestions button[aria-selected="true"]{
+  background:rgba(255,153,0,.11);
+}
+
+.cmMentionAvatar{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(255,153,0,.14);
+  font-size:11px;
+  font-weight:800;
+}
+
+.cmMentionPerson{
+  display:grid;
+  min-width:0;
+  gap:2px;
+}
+
+.cmMentionPerson strong,
+.cmMentionPerson small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.cmMentionPerson small{
+  opacity:.62;
+  font-size:11px;
+}
+
+.cmMentionAt{
+  font-size:18px;
+  font-weight:850;
+  color:#ff9900;
+}
+
+.cmRoomRowSignals{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex:0 0 auto;
+}
+
+.cmRoomUnread,
+.cmRoomMention{
+  min-width:21px;
+  height:21px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 6px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:850;
+  line-height:1;
+}
+
+.cmRoomUnread{
+  background:rgba(255,153,0,.16);
+  border:1px solid rgba(255,153,0,.28);
+}
+
+.cmRoomMention{
+  background:#ff9900;
+  color:#071a38;
+  border:1px solid rgba(255,153,0,.7);
+}
+
+@media (max-width:640px){
+  .cmMentionSuggestions{
+    left:8px;
+    right:8px;
+    max-height:230px;
+  }
+}

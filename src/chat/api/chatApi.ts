@@ -4,26 +4,55 @@ import type {
   SendMessageInput,
 } from '../types'
 
-export async function sendMessage(
-  input: SendMessageInput,
-): Promise<ChatMessage> {
+function client() {
   if (!supabase) {
     throw new Error('Supabase is not configured')
   }
 
-  const { data, error } = await supabase.rpc(
-    'send_chat_message',
-    {
-      p_conversation_id: input.conversationId,
-      p_body: input.body,
-      p_reply_to_id: input.replyToId ?? null,
-      p_client_message_id: input.clientMessageId,
-    },
-  )
+  return supabase
+}
+
+export async function sendMessage(
+  input: SendMessageInput,
+): Promise<ChatMessage> {
+  const mentionedUserIds =
+    input.mentionedUserIds ?? []
+
+  const request =
+    mentionedUserIds.length > 0
+      ? client().rpc(
+          'send_chat_message_with_mentions',
+          {
+            p_conversation_id:
+              input.conversationId,
+            p_body: input.body,
+            p_reply_to_id:
+              input.replyToId ?? null,
+            p_client_message_id:
+              input.clientMessageId,
+            p_mentioned_user_ids:
+              mentionedUserIds,
+          },
+        )
+      : client().rpc(
+          'send_chat_message',
+          {
+            p_conversation_id:
+              input.conversationId,
+            p_body: input.body,
+            p_reply_to_id:
+              input.replyToId ?? null,
+            p_client_message_id:
+              input.clientMessageId,
+          },
+        )
+
+  const { data, error } = await request
 
   if (error) {
     throw new Error(
-      error.message || 'Unable to send message',
+      error.message ||
+        'Unable to send message',
     )
   }
 
@@ -34,4 +63,29 @@ export async function sendMessage(
   }
 
   return data as ChatMessage
+}
+
+export async function registerMessageMentions(
+  messageId: string,
+  mentionedUserIds: string[],
+): Promise<void> {
+  if (!mentionedUserIds.length) {
+    return
+  }
+
+  const { error } = await client().rpc(
+    'register_chat_message_mentions',
+    {
+      p_message_id: messageId,
+      p_mentioned_user_ids:
+        mentionedUserIds,
+    },
+  )
+
+  if (error) {
+    throw new Error(
+      error.message ||
+        'Unable to register message mentions',
+    )
+  }
 }
