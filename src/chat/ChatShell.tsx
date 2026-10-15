@@ -17,7 +17,9 @@ import {
   Pencil,
   Plus,
   Reply,
+  Search,
   Send,
+  Smile,
   ShieldCheck,
   Square,
   Trash2,
@@ -32,6 +34,14 @@ import {
   useState
 } from 'react'
 import type { FormEvent } from 'react'
+import { useChatExtras } from './hooks/useChatExtras'
+import { ChatAvatar } from './ui/ChatAvatar'
+import { EmojiPicker } from './ui/EmojiPicker'
+import { MessageToolbar, ReactionChips } from './ui/ReactionBar'
+import { PinnedBar } from './ui/PinnedBar'
+import { InChatSearch } from './ui/InChatSearch'
+import { MyChatProfile, PersonCard } from './ui/ProfileDialogs'
+import '../chat-extras.css'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
@@ -655,6 +665,31 @@ export function ChatShell(){
   },[calls,userId,selectedId,callSeen])
 
   const peopleMap=useMemo(()=>new Map(people.map(person=>[person.id,person])),[people])
+
+  // Photos, status, reactions, pins. Nothing here changes how messages load.
+  const [findOpen,setFindOpen]=useState(false)
+  const [emojiOpen,setEmojiOpen]=useState(false)
+  const [myProfileOpen,setMyProfileOpen]=useState(false)
+  const [cardId,setCardId]=useState('')
+  const extras=useChatExtras({
+    client:supabase,
+    userId,
+    conversationId:selectedId,
+    messageIds:useMemo(()=>messages.filter(m=>!m.pending&&!m.failed).map(m=>m.id),[messages]),
+    onError:setNotice
+  })
+  const nameOfId=(id:string)=>displayName(peopleMap.get(id))
+  const avatarFor=(person?:Person|null,size?:number,clickable=false)=>(
+    <ChatAvatar
+      name={displayName(person)}
+      initialsText={initials(displayName(person))}
+      url={extras.avatarUrl(person?.id)}
+      statusEmoji={extras.statusOf(person?.id)?.emoji||null}
+      size={size}
+      onClick={clickable&&person?()=>setCardId(person.id):undefined}
+    />
+  )
+  useEffect(()=>{setFindOpen(false);setEmojiOpen(false)},[selectedId])
   const totalUnread=useMemo(
     ()=>directs.reduce(
       (sum,row)=>row.membership.archived_at?sum:sum+row.unread,
@@ -1767,7 +1802,10 @@ export function ChatShell(){
 
   const jumpToMessage=(id:string)=>{
     const element=document.getElementById(`cm-msg-${id}`)
-    if(!element)return
+    if(!element){
+      setNotice('That message is further back. Scroll up to load earlier messages, then try again.')
+      return
+    }
     stickToBottomRef.current=false
     element.scrollIntoView({block:'center',behavior:'smooth'})
     element.classList.add('flash')
@@ -1856,6 +1894,21 @@ export function ChatShell(){
             <h2>Chats{totalUnread+totalMissed>0&&<span className="cmTotal">{totalUnread+totalMissed>99?'99+':totalUnread+totalMissed}</span>}</h2>
             <button
               type="button"
+              className="cmMine"
+              title="My chat profile: photo and status"
+              aria-label="My chat profile"
+              onClick={()=>setMyProfileOpen(true)}
+            >
+              <ChatAvatar
+                name={displayName(peopleMap.get(userId))}
+                initialsText={initials(displayName(peopleMap.get(userId)))}
+                url={extras.avatarUrl(userId)}
+                statusEmoji={extras.statusOf(userId)?.emoji||null}
+                size={36}
+              />
+            </button>
+            <button
+              type="button"
               className="cmRound"
               title="New chat"
               aria-label="New chat"
@@ -1911,7 +1964,7 @@ export function ChatShell(){
                 <div className="cmGroupLabel">{newChatOpen?'Start a conversation':'People'}</div>
                 {matchingPeople.map(person=>(
                   <button key={person.id} type="button" className="cmRow" onClick={()=>void startDirect(person)} disabled={starting}>
-                    <span className="cmAvatar">{initials(displayName(person))}</span>
+                    {avatarFor(person)}
                     <span className="cmRowCopy">
                       <span className="cmRowTop"><strong>{displayName(person)}</strong></span>
                       <span className="cmRowBottom"><small>{secondary(person)}</small></span>
@@ -1952,7 +2005,7 @@ export function ChatShell(){
                   return (
                     <div key={call.id} className={`cmRow cmCallRow ${label.tone}`}>
                       <button type="button" className="cmCallRowMain" onClick={()=>{setFilter('all');openConversation(row.conversation.id)}}>
-                        <span className="cmAvatar">{initials(displayName(row.other))}</span>
+                        {avatarFor(row.other)}
                         <span className="cmRowCopy">
                           <span className="cmRowTop">
                             <strong>{displayName(row.other)}</strong>
@@ -1998,7 +2051,7 @@ export function ChatShell(){
                       className={`cmRow ${selectedId===row.conversation.id?'active':''}`}
                       onClick={()=>openConversation(row.conversation.id)}
                     >
-                      <span className="cmAvatar">{initials(displayName(row.other))}</span>
+                      {avatarFor(row.other)}
                       <span className="cmRowCopy">
                         <span className="cmRowTop">
                           <strong>{displayName(row.other)}</strong>
@@ -2147,17 +2200,29 @@ export function ChatShell(){
                   </button>
                 ) : (
                   <>
-                    <span className="cmAvatar">
-                      {initials(displayName(selected.other))}
-                    </span>
+                    {avatarFor(selected.other,undefined,true)}
 
                     <div className="cmHeadCopy">
                       <strong>{displayName(selected.other)}</strong>
-                      <small>{secondary(selected.other)}</small>
+                      <small>
+                        {extras.statusOf(selected.other?.id)
+                          ? `${extras.statusOf(selected.other?.id)?.emoji||''} ${extras.statusOf(selected.other?.id)?.text||''}`.trim()
+                          : secondary(selected.other)}
+                      </small>
                     </div>
                   </>
                 )}
                 <div className="cmHeadActions">
+                  <button
+                    type="button"
+                    className="cmRound"
+                    title="Search this conversation"
+                    aria-label="Search this conversation"
+                    aria-expanded={findOpen}
+                    onClick={()=>setFindOpen(open=>!open)}
+                  >
+                    <Search size={18}/>
+                  </button>
                   <button
                     type="button"
                     className="cmRound"
@@ -2238,6 +2303,30 @@ export function ChatShell(){
               )}
 
               {exporting&&<div className="cmExporting" role="status">{exporting}</div>}
+
+              {findOpen&&(
+                <InChatSearch
+                  client={supabase}
+                  conversationId={selectedId}
+                  nameOf={id=>id===userId?'You':nameOfId(id)}
+                  formatWhen={iso=>new Date(iso).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+                  onJump={jumpToMessage}
+                  onClose={()=>setFindOpen(false)}
+                />
+              )}
+              <PinnedBar
+                items={extras.pins.map(pin=>{
+                  const found=messages.find(m=>m.id===pin.message_id)
+                  return {
+                    found,
+                    id:pin.message_id,
+                    who:found?(found.sender_id===userId?'You':nameOfId(found.sender_id)):'Pinned message',
+                    preview:found?messagePreview(found):'Open the older history to see it.'
+                  }
+                }).filter(item=>!item.found || !isDeleted(item.found)).map(({id,who,preview})=>({id,who,preview}))}
+                onJump={jumpToMessage}
+                onUnpin={id=>void extras.setPinned(id,false)}
+              />
 
               <MessageTimeline
                 scrollRef={scrollRef}
@@ -2340,8 +2429,18 @@ export function ChatShell(){
                   return (
                     <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}${deleted?' deleted':''}`}>
                       <div className="cmBubble" title={displayName(sender)}>
+                        {!deleted&&!message.pending&&!message.failed&&!editing&&(
+                          <MessageToolbar
+                            canReact
+                            canPin
+                            pinned={extras.isPinned(message.id)}
+                            onReact={emoji=>void extras.react(message.id,emoji)}
+                            onTogglePin={()=>void extras.setPinned(message.id,!extras.isPinned(message.id))}
+                          />
+                        )}
                         {showRoomSenderName&&(
                           <span className="cmSenderName">
+                            {avatarFor(sender,20,true)}
                             {displayName(sender)}
                           </span>
                         )}
@@ -2537,6 +2636,14 @@ export function ChatShell(){
                           )}
                         </span>
                       </div>
+                      {!deleted&&!message.pending&&!message.failed&&(
+                        <ReactionChips
+                          groups={extras.groupsFor(message.id)}
+                          nameOf={nameOfId}
+                          me={userId||null}
+                          onToggle={emoji=>void extras.react(message.id,emoji)}
+                        />
+                      )}
                       {message.failed&&(
                         <button type="button" className="cmRetry" onClick={()=>retry(message)}>Not sent. Tap to retry</button>
                       )}
@@ -2631,6 +2738,38 @@ export function ChatShell(){
                 >
                   <Mic size={19}/>
                 </button>
+                <span className="cmEmojiWrap">
+                  <button
+                    type="button"
+                    className="cmRound cmAttach"
+                    title="Emoji"
+                    aria-label="Insert an emoji"
+                    aria-expanded={emojiOpen}
+                    onClick={()=>setEmojiOpen(open=>!open)}
+                  >
+                    <Smile size={19}/>
+                  </button>
+                  {emojiOpen&&(
+                    <EmojiPicker
+                      className="cmEmojiUp"
+                      onClose={()=>setEmojiOpen(false)}
+                      onPick={emoji=>{
+                        const input=composerRef.current
+                        const start=input?.selectionStart ?? messageText.length
+                        const end=input?.selectionEnd ?? start
+                        const next=(messageText.slice(0,start)+emoji+messageText.slice(end)).slice(0,10000)
+                        setMessageText(next)
+                        const caret=start+emoji.length
+                        window.requestAnimationFrame(()=>{
+                          composerRef.current?.focus()
+                          composerRef.current?.setSelectionRange(caret,caret)
+                          resizeComposer()
+                        })
+                        pingTyping()
+                      }}
+                    />
+                  )}
+                </span>
                 <textarea
                   ref={composerRef}
                   value={messageText}
@@ -2736,6 +2875,29 @@ export function ChatShell(){
           </div>
           <img src={viewer.url} alt={viewer.name} onClick={event=>event.stopPropagation()}/>
         </div>
+      )}
+      {myProfileOpen&&(
+        <MyChatProfile
+          name={displayName(peopleMap.get(userId))}
+          initialsText={initials(displayName(peopleMap.get(userId)))}
+          avatarUrl={extras.avatarUrl(userId)}
+          status={extras.statusOf(userId)}
+          busy={extras.busy}
+          onUpload={file=>void extras.uploadAvatar(file)}
+          onRemovePhoto={()=>void extras.removeAvatar()}
+          onSaveStatus={status=>void extras.saveStatus(status)}
+          onClose={()=>setMyProfileOpen(false)}
+        />
+      )}
+      {cardId&&peopleMap.get(cardId)&&(
+        <PersonCard
+          name={displayName(peopleMap.get(cardId))}
+          initialsText={initials(displayName(peopleMap.get(cardId)))}
+          avatarUrl={extras.avatarUrl(cardId)}
+          title={secondary(peopleMap.get(cardId))}
+          status={extras.statusOf(cardId)}
+          onClose={()=>setCardId('')}
+        />
       )}
     </section>
   )
