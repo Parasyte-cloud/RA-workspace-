@@ -16,3 +16,4 @@ dist/
 *.before-audit
 *.backup
 *.bak
+*.bundle
