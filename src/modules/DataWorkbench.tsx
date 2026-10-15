@@ -302,7 +302,7 @@ export function DataWorkbench({
   const initialLoading=loading && !hasLoadedRef.current
 
   return (
-    <div className="glassCard workbench" aria-busy={initialLoading||refreshing}>
+    <div className="glassCard workbench responsiveModule responsiveDataSurface" aria-busy={initialLoading||refreshing}>
       <div className="workbenchHead">
         <div>
           <h3>{title}</h3>
@@ -351,7 +351,7 @@ export function DataWorkbench({
 
       {open&&(
         <form className="quickForm" onSubmit={submit}>
-          <div className="quickFormGrid">
+          <div className="quickFormGrid responsiveFormGrid">
             {fields.map(field=>(
               <label key={field.key}>
                 {field.label}
@@ -419,7 +419,7 @@ export function DataWorkbench({
         </form>
       )}
 
-      <div className="moduleTableWrap">
+      <div className="moduleTableWrap responsiveTableScroller">
         <table className="moduleTable">
           <thead>
             <tr>

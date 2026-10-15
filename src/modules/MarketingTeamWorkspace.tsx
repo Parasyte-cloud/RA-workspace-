@@ -1724,7 +1724,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
   if(loading){
 
     return (
-      <section className="marketingWorkspace">
+      <section className="marketingWorkspace responsiveModule responsiveWorkbench">
         <div className="glassCard marketingLoading">
           Loading Marketing Team Workspace...
         </div>
@@ -1735,7 +1735,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
 
   return (
-    <section className="marketingWorkspace">
+    <section className="marketingWorkspace responsiveModule responsiveWorkbench">
 
       <div className="marketingWorkspaceHero">
 

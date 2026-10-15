@@ -555,7 +555,7 @@ export default function RoomModule({
     <>
     {callNode}
     {admissionNode}
-    <section className="roomPage">
+    <section className="roomPage responsiveModule">
       <div className="roomHero glassPanel">
         <div className="roomHeroCopy">
           <span className="eyebrow">RIDEARRIVO ROOM 7</span>

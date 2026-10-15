@@ -385,7 +385,7 @@ export default function RoomMeeting({
 
   const call=(
     <section
-      className={`roomCallPage roomCallPortal ${minimized?'roomCallMini':'roomCallFull'}`}
+      className={`roomCallPage roomCallPortal responsiveModule ${minimized?'roomCallMini':'roomCallFull'}`}
       style={minimized?undefined:(frameStyle.width?frameStyle:{visibility:'hidden'})}
       aria-label={chatCall?`${audioOnly?'Voice':'Video'} call: ${session.room.title}`:`ROOM 7 call: ${session.room.title}`}
     >
@@ -399,7 +399,7 @@ export default function RoomMeeting({
             {session.room.ai_notes_enabled?'R7 AI Notes On':'R7 AI Notes Off'}
           </span>}
         </div>
-        <div className="roomCallActions">
+        <div className="roomCallActions responsiveActionBar">
           {!chatCall&&<Room7ExtrasControls extras={extras} compact={minimized}/>}
           {canModerate&&!minimized&&!chatCall&&
             <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>setPeopleOpen(open=>!open)}/>

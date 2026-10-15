@@ -210,7 +210,7 @@ export function EmployeeVirtualCard({
   return (
     <div className="virtualCardOverlay">
 
-      <div className="virtualCardModal">
+      <div className="virtualCardModal glassSheet responsiveModalSheet">
 
         <div className="virtualCardTop">
 

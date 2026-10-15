@@ -392,7 +392,7 @@ export default function AdminAccessManager(){
     ).length
 
   return (
-    <div className="adminAccessStack">
+    <div className="adminAccessStack responsiveModule responsiveFormSurface">
       <ChatAdminManager employees={users}/>
 
       <section

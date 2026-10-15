@@ -973,7 +973,7 @@ export default function SharedWorkspacesHub({
 
   if(loading && !hasLoadedBaseRef.current){
     return (
-      <section className={`sharedHub ${embedded?'embedded':''}`}>
+      <section className={`sharedHub responsiveModule responsiveWorkbench ${embedded?'embedded':''}`}>
         <div className="glassCard sharedLoading">
           Loading shared workspaces...
         </div>
@@ -983,7 +983,7 @@ export default function SharedWorkspacesHub({
 
 
   return (
-    <section className={`sharedHub ${embedded?'embedded':''}`}>
+    <section className={`sharedHub responsiveModule responsiveWorkbench ${embedded?'embedded':''}`}>
 
       {!embedded &&
         <div className="sharedHero">

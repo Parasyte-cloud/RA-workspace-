@@ -2126,3 +2126,28 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 }
 
 /* CHAT_MESSAGE_RECEIPTS_END */
+
+/* CHAT_ROOM_SENDER_NAMES_START */
+
+.cmSenderName{
+  display:block;
+  max-width:calc(100% - 76px);
+  margin:0 0 4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--cm-accent);
+  font-size:11px;
+  font-weight:800;
+  line-height:1.2;
+  letter-spacing:.01em;
+}
+
+@media(max-width:520px){
+  .cmSenderName{
+    max-width:calc(100% - 68px);
+    font-size:10.5px;
+  }
+}
+
+/* CHAT_ROOM_SENDER_NAMES_END */

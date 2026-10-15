@@ -438,7 +438,7 @@ export function FinanceBanking() {
     downloadBlob(await Packer.toBlob(doc), `RideArrivo_Providus_Report_${new Date().toISOString().slice(0, 10)}.docx`)
   }
 
-  return <div className="bankingModule">
+  return <div className="bankingModule responsiveModule responsiveDataSurface">
     <div className="bankingHero glassCard">
       <div>
         <span className="eyebrow">PROVIDUS BANKING</span>
@@ -461,7 +461,7 @@ export function FinanceBanking() {
     {error && <div className="moduleError">{error}</div>}
     {notice && <div className="mailNotice">{notice}</div>}
 
-    <div className="bankingToolbar glassCard">
+    <div className="bankingToolbar glassCard responsiveToolbar">
       <div className="bankingFilters">
         {(['all', 'expense', 'income', 'unreconciled'] as const).map(v => <button key={v} className={filter === v ? 'active' : ''} onClick={() => setFilter(v)}>{v === 'all' ? 'All' : v === 'expense' ? 'Expenses' : v === 'income' ? 'Income' : 'Unreconciled'}</button>)}
       </div>
@@ -475,7 +475,7 @@ export function FinanceBanking() {
       </div>
     </div>
 
-    <div className="glassCard moduleTableWrap bankingTableWrap">
+    <div className="glassCard moduleTableWrap bankingTableWrap responsiveTableScroller">
       <table className="moduleTable bankingTable">
         <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Category</th><th>Department</th><th>Status</th></tr></thead>
         <tbody>

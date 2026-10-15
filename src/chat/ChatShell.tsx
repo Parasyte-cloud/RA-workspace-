@@ -59,6 +59,7 @@ import type {
   ConversationSummary,
 } from './types'
 import { MessageTimeline } from './messages/MessageTimeline'
+import { shouldShowRoomSenderLabel } from './messages/senderGrouping'
 import {
   MessageComposer,
   type MessageSendState
@@ -2261,7 +2262,7 @@ export function ChatShell(){
                     <span>Send the first message to {displayName(selected.other)}.</span>
                   </div>
                 )}
-                {rows.map(item=>{
+                {rows.map((item,index)=>{
                   if(item.type==='day')return <div className="cmDay" key={item.key}><span>{item.label}</span></div>
                   if(item.type==='call'){
                     const call=item.call
@@ -2287,6 +2288,18 @@ export function ChatShell(){
                   const message=item.message
                   const mine=message.sender_id===userId
                   const sender=mine ? null : peopleMap.get(message.sender_id)
+                  const previousRow=rows[index-1]
+                  const showRoomSenderName=
+                    shouldShowRoomSenderLabel({
+                      isRoom:selectedRoom!==null,
+                      isOwn:mine,
+                      senderId:message.sender_id,
+                      previousKind:previousRow?.type ?? null,
+                      previousSenderId:
+                        previousRow?.type==='message'
+                          ? previousRow.message.sender_id
+                          : null
+                    })
                   const legacyRead=
                     mine &&
                     !message.pending &&
@@ -2327,6 +2340,11 @@ export function ChatShell(){
                   return (
                     <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}${deleted?' deleted':''}`}>
                       <div className="cmBubble" title={displayName(sender)}>
+                        {showRoomSenderName&&(
+                          <span className="cmSenderName">
+                            {displayName(sender)}
+                          </span>
+                        )}
                         {canReply&&(
                           <button
                             type="button"

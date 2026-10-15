@@ -856,7 +856,7 @@ export default function BrandLibrary(){
 
 
   return (
-    <section className="brandLibrary">
+    <section className="brandLibrary responsiveModule">
 
       <div className="brandLibraryHero">
 
@@ -899,7 +899,7 @@ export default function BrandLibrary(){
       </div>
 
 
-      <div className="brandLibraryToolbar">
+      <div className="brandLibraryToolbar responsiveToolbar">
 
         <label className="brandLibrarySearch">
 
@@ -1088,7 +1088,7 @@ export default function BrandLibrary(){
 
       ) : (
 
-        <div className="brandLibraryGrid">
+        <div className="brandLibraryGrid responsiveRecordList">
 
           {filtered.map(
             asset=>

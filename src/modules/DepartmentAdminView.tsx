@@ -188,7 +188,7 @@ export default function DepartmentAdminView({
   }
 
   return (
-    <section className="dah">
+    <section className="dah responsiveModule responsiveDataSurface">
       <div className="glassCard dahHeader">
         <div>
           <span className="eyebrow">DEPARTMENT ADMIN</span>
@@ -242,7 +242,7 @@ export default function DepartmentAdminView({
       </div>
 
       <div className="dahSplit">
-        <div className="glassCard dahTableWrap">
+        <div className="glassCard dahTableWrap responsiveTableScroller">
           <div className="dahToolbar">
             <input
               className="dahSearch"

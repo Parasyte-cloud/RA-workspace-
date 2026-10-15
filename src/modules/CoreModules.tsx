@@ -14,11 +14,11 @@ import OperationsExportsCard from '../components/OperationsExportsCard'
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 
-export function CRMModule(){return <section><Title eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="Live commercial pipeline and account management backed by Supabase."/><div className="grid2"><DataWorkbench table="crm_leads" title="Lead pipeline" description="Create and manage qualified demand." createLabel="New lead" fields={[{key:'name',label:'Name',required:true},{key:'company',label:'Company'},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'source',label:'Source'},{key:'stage',label:'Stage',type:'select',options:['new','qualified','proposal','negotiation','won','lost'],required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'}]} columns={[{key:'name',label:'Lead'},{key:'company',label:'Company'},{key:'source',label:'Source'},{key:'stage',label:'Stage'},{key:'estimated_value',label:'Value'}]}/><DataWorkbench table="crm_accounts" title="Accounts" description="Riders, corporate, hotel and travel relationships." createLabel="New account" fields={[{key:'name',label:'Account name',required:true},{key:'account_type',label:'Type',type:'select',options:['individual','corporate','hotel','travel_partner','other'],required:true},{key:'lifecycle_stage',label:'Lifecycle',required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'},{key:'status',label:'Status',required:true}]} columns={[{key:'name',label:'Account'},{key:'account_type',label:'Type'},{key:'lifecycle_stage',label:'Lifecycle'},{key:'estimated_value',label:'Value'},{key:'status',label:'Status'}]}/></div></section>}
+export function CRMModule(){return <section className="responsiveModule"><Title eyebrow="CUSTOMER RELATIONSHIPS" title="CRM" subtitle="Live commercial pipeline and account management backed by Supabase."/><div className="grid2"><DataWorkbench table="crm_leads" title="Lead pipeline" description="Create and manage qualified demand." createLabel="New lead" fields={[{key:'name',label:'Name',required:true},{key:'company',label:'Company'},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'source',label:'Source'},{key:'stage',label:'Stage',type:'select',options:['new','qualified','proposal','negotiation','won','lost'],required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'}]} columns={[{key:'name',label:'Lead'},{key:'company',label:'Company'},{key:'source',label:'Source'},{key:'stage',label:'Stage'},{key:'estimated_value',label:'Value'}]}/><DataWorkbench table="crm_accounts" title="Accounts" description="Riders, corporate, hotel and travel relationships." createLabel="New account" fields={[{key:'name',label:'Account name',required:true},{key:'account_type',label:'Type',type:'select',options:['individual','corporate','hotel','travel_partner','other'],required:true},{key:'lifecycle_stage',label:'Lifecycle',required:true},{key:'estimated_value',label:'Estimated value (NGN)',type:'number'},{key:'status',label:'Status',required:true}]} columns={[{key:'name',label:'Account'},{key:'account_type',label:'Type'},{key:'lifecycle_stage',label:'Lifecycle'},{key:'estimated_value',label:'Value'},{key:'status',label:'Status'}]}/></div></section>}
 
 export function SupportModule(){
   const callSupport=()=>{window.location.href='tel:+2348162706078'}
-  return <section>
+  return <section className="responsiveModule">
     <Title eyebrow="SUPPORT CONTROL" title="Support Station" subtitle="Omnichannel service, SLA control, booking context, handovers, reusable responses and quality review."/>
     <SupportOperationsPanel/>
     <div className="supportActions glassCard"><div><h3>RideArrivo Support Communications</h3><p>Customer WhatsApp is handled inside the secured Support workstation. Voice calls remain a direct device action.</p></div><div className="buttonRow"><button className="glassButton" onClick={callSupport}><Phone size={17}/>Call</button></div></div>
@@ -33,7 +33,7 @@ export function SupportModule(){
 }
 
 export function OperationsModule(){
-  return <section>
+  return <section className="responsiveModule">
     <Title
       eyebrow="OPERATIONS"
       title="ArrivoOps"
@@ -47,7 +47,7 @@ export function OperationsModule(){
 export function LegalModule(){
   const [tab,setTab]=useState<'law-reports'|'operations'>('law-reports')
 
-  return <section>
+  return <section className="responsiveModule">
     <Title
       eyebrow="LEGAL & COMPLIANCE"
       title="Legal & Compliance"
@@ -274,7 +274,7 @@ export function PeopleModule({
   useEffect(()=>{if(!supabase)return;let cancelled=false;(async()=>{const {data:{user}}=await supabase!.auth.getUser();if(!user)return;const {data}=await supabase!.from('employee_profiles').select('role').eq('id',user.id).maybeSingle();if(!cancelled)setViewerId(user.id);if(!cancelled)setViewerRole(String(data?.role||'employee').toLowerCase())})();return ()=>{cancelled=true}},[])
   const canApproveLeave=['hr','manager','admin'].includes(viewerRole)
   const submit=async(e:FormEvent)=>{e.preventDefault();if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user){setMessage('Session expired.');return}const {error}=await supabase.from('leave_requests').insert({employee_id:user.id,...leave});setMessage(error?error.message:'Leave request submitted.');if(!error)setLeave({leave_type:'Annual',start_date:'',end_date:'',reason:''})}
-  return <section>
+  return <section className="responsiveModule">
     <Title eyebrow="PEOPLE & HR" title="People Operations" subtitle="Employee records, recruitment, onboarding, leave, performance and learning under role-based controls."/>
     {operationsView&&<div className="moduleNotice">Operations access is limited to the active employee directory and personal leave self-service. Recruitment, performance, training administration and HR profile changes remain restricted to People & HR and authorised management.</div>}
     <div className="grid2">

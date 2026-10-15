@@ -282,7 +282,7 @@ export default function SupportOperationsPanel() {
   const hasData = filtered.length > 0
 
   return (
-    <div className="supportOps" aria-busy={initialLoading || refreshing}>
+    <div className="supportOps responsiveModule responsiveDataSurface" aria-busy={initialLoading || refreshing}>
       <div className="supportOpsHeader glassCard">
         <div>
           <span className="eyebrow">LIVE OPERATIONS</span>
@@ -337,7 +337,7 @@ export default function SupportOperationsPanel() {
         </div>
       </div>
 
-      <div className="supportOpsToolbar glassCard">
+      <div className="supportOpsToolbar glassCard responsiveToolbar">
         <div className="supportTabs" role="tablist" aria-label="Support views">
           {tabs.map((tab) => (
             <button

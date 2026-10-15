@@ -201,3 +201,148 @@ html[data-ra-theme='dark'] .roomGuestRow code{background:rgba(255,255,255,.07)}
   }
   .roomAdmitRow button{min-height:42px;padding:8px 14px}
 }
+
+/* --- Responsive ROOM 7 workspace contract --- */
+.roomPage.responsiveModule {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 100vh remains the fallback; dynamic viewport tracks mobile browser chrome. */
+.roomCallPage {
+  grid-template-rows: auto minmax(640px, calc(100dvh - 210px));
+  min-height: calc(100dvh - 145px);
+}
+
+.roomCallAnchor {
+  min-height: calc(100dvh - 145px);
+}
+
+.roomCallPage.roomCallMini {
+  height: min(330px, calc(100dvh - 48px));
+}
+
+.roomCallPortal.roomCallFull {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.roomCallPortal .roomCallTopbar {
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
+
+.roomCallActions.responsiveActionBar {
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .roomPage .roomActionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .roomPage .roomHero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .roomPage .roomHeroMark {
+    display: none;
+  }
+
+  .roomCallPortal .roomCallTopbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .roomCallPortal .roomCallActions {
+    max-width: min(62vw, 620px);
+  }
+}
+
+@media (max-width: 599px) {
+  .roomPage {
+    gap: 14px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .roomPage .roomHero,
+  .roomPage .roomActionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .roomPage .roomHero {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .roomPage .roomHeroCopy h2 {
+    font-size: clamp(1.8rem, 9vw, 2.6rem);
+  }
+
+  .roomPage .roomListCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .roomPage .roomListIcon {
+    display: none;
+  }
+
+  .roomPage .roomListActions {
+    grid-column: 1;
+    justify-content: stretch;
+  }
+
+  .roomPage .roomListActions > button,
+  .roomPage .roomListActions > a {
+    min-height: var(--ra-touch-target, 44px);
+  }
+
+  .roomCallPage {
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  }
+
+  .roomCallPortal.roomCallFull {
+    padding:
+      env(safe-area-inset-top, 0px)
+      env(safe-area-inset-right, 0px)
+      env(safe-area-inset-bottom, 0px)
+      env(safe-area-inset-left, 0px);
+  }
+
+  .roomCallPortal .roomCallTopbar {
+    padding-top: 10px;
+    gap: 10px;
+  }
+
+  .roomCallActions.responsiveActionBar {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .roomCallActions.responsiveActionBar > button {
+    flex: 0 0 auto;
+    min-height: var(--ra-touch-target, 44px);
+  }
+
+  .roomMeetingFrame {
+    min-height: 0;
+    border-radius: 16px;
+  }
+
+  .roomCallPage.roomCallMini {
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    height: min(38vh, 280px);
+    height: min(38dvh, 280px);
+  }
+}
