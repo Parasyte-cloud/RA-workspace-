@@ -10,7 +10,7 @@ This release changes the RA Workspace presentation system across the application
 
 ## Automated source-level verification
 
-- Branch-wide responsive + Chat contract matrix: **PASS, 88/88**.
+- Branch-wide responsive + Chat contract matrix: **PASS, 89/89**.
 - All discovered Room7 suites: **PASS, 44/44**.
 - Focused Chat regression after sender labels: **PASS, 51/51**.
 - Sender-label contract: **PASS, 6/6**.
@@ -18,6 +18,7 @@ This release changes the RA Workspace presentation system across the application
 - Changed Chat TypeScript syntax checks: **PASS**.
 - Core responsive module TypeScript syntax checks: **PASS**.
 - Branch `git diff --check`: **PASS**.
+- Dark-appearance glass fallback regression: **PASS (RED -> GREEN during final review)**.
 - Unexpected backend mutation check for `supabase/migrations` and `supabase/functions`: **PASS, none changed**.
 
 ## Full repository gate in this sandbox
