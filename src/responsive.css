@@ -797,9 +797,7 @@ main {
     max-width: 100%;
   }
 
-  .headerActions .iconButton:first-child {
-    display: none;
-  }
+  /* Search and the notification bell must remain reachable on touch screens. */
 
   .appCategories,
   .phase2Filters {
