@@ -17,7 +17,7 @@ export type BlogArticle = {
 export type BlogDraft = Pick<BlogArticle, 'content_type'|'title'|'slug'|'excerpt'|'body'|'category'|'status'|'published_at'|'cover_media_id'|'cover_alt'|'editorial_note'|'fact_checked'> & { id?:string; version?:number; ever_published?:boolean; author_id?:string; can_edit?:boolean }
 export type BlogList = { posts: BlogArticle[]; total: number; page: number; page_size: number; counts: Record<string,number> }
 export type BlogMedia = { id: string; filename: string; mime: string; bytes: number; uploaded_by: string; uploaded_at: string }
-export type BlogAsset = { id:string; object_key:string; original_filename:string; mime_type:string; byte_size:number; asset_kind:BlogAssetKind; uploaded_by:string; alt_text:string; sha256:string|null; created_at:string }
+export type BlogAsset = { id:string; object_key:string; original_filename:string; mime_type:string; byte_size:number; asset_kind:BlogAssetKind; uploaded_by:string; alt_text:string; sha256:string|null; created_at:string; published_at:string|null; published_by:string|null }
 export type BlogPostAssetLink = { asset:BlogAsset; relationship:BlogAssetRelationship; sort_order:number; linked_at:string }
 export type BlogPerson = { employee_id: string; full_name: string; email: string; department: string; active: boolean; workspace_role: string; blog_role: BlogRole | null; granted_at: string | null }
 export type BlogEvent = { id: string; post_id: string; title: string; event: string; version: number; actor_id: string; created_at: string }
@@ -82,6 +82,27 @@ export async function uploadBlogAsset(file:File,kind:BlogAssetKind,signal?:Abort
   const payload=await blogRequest<{asset:BlogAsset}>('assets',{method:'POST',file,assetKind:kind,signal});return payload.asset
 }
 export async function listBlogAssets(page=1):Promise<{assets:BlogAsset[];page:number;has_more:boolean}>{return blogRequest(`assets?page=${page}`)}
+export async function setBlogAssetPublished(
+  assetId:string,
+  published:boolean,
+):Promise<BlogAsset>{
+  const value=await blogRequest<{asset:BlogAsset}>(
+    `assets/${assetId}`,
+    {
+      method:'PATCH',
+      data:{published},
+    },
+  )
+  return value.asset
+}
+export async function deleteBlogAsset(
+  assetId:string,
+):Promise<void>{
+  await blogRequest(
+    `assets/${assetId}`,
+    {method:'DELETE'},
+  )
+}
 export async function importBlogDraft(assetId:string,draft:Pick<BlogDraft,'title'|'slug'|'excerpt'|'body'|'category'|'editorial_note'>):Promise<{post:BlogArticle;source_asset:BlogAsset}>{
   return blogRequest('import',{method:'POST',data:{asset_id:assetId,content_type:'article',draft}})
 }

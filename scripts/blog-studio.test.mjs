@@ -129,3 +129,107 @@ test(
     )
   },
 )
+
+// BLOG_FILES_MEDIA_ACTIONS_TEST_START
+
+test(
+  'Files & media standalone assets expose publish and delete API contracts',
+  () => {
+    const client = read('src/lib/blogStudio.ts')
+
+    assert.match(
+      client,
+      /published_at:string\|null/,
+      'BlogAsset must expose publication state',
+    )
+
+    assert.match(
+      client,
+      /published_by:string\|null/,
+      'BlogAsset must expose publisher state',
+    )
+
+    assert.match(
+      client,
+      /export async function setBlogAssetPublished/,
+      'asset publish client is missing',
+    )
+
+    assert.match(
+      client,
+      /export async function deleteBlogAsset/,
+      'asset delete client is missing',
+    )
+
+    assert.match(
+      client,
+      /assets\/\$\{assetId\}/,
+      'asset lifecycle operations must target the asset resource',
+    )
+
+    assert.match(
+      client,
+      /method:'PATCH'/,
+      'publishing must use PATCH',
+    )
+
+    assert.match(
+      client,
+      /method:'DELETE'/,
+      'deletion must use DELETE',
+    )
+  },
+)
+
+test(
+  'Files & media standalone assets render role-aware lifecycle controls',
+  () => {
+    const ui = read('src/modules/BlogStudio.tsx')
+
+    for (const label of [
+      'Publish',
+      'Unpublish',
+      'Open public link',
+      'Copy link',
+      'Delete',
+    ]) {
+      assert.match(
+        ui,
+        new RegExp(label),
+        `${label} control is missing from Files & media`,
+      )
+    }
+
+    assert.match(
+      ui,
+      /setBlogAssetPublished/,
+      'publish handler must call the Blog asset API',
+    )
+
+    assert.match(
+      ui,
+      /deleteBlogAsset/,
+      'delete handler must call the Blog asset API',
+    )
+
+    assert.match(
+      ui,
+      /me\.permissions\.publish&&asset\.asset_kind!=='source'/,
+      'source imports must never expose Publish',
+    )
+
+    assert.match(
+      ui,
+      /me\.permissions\.remove/,
+      'Delete must remain Blog Administrator gated',
+    )
+
+    assert.match(
+      ui,
+      /\/files\/\$\{asset\.id\}/,
+      'published assets must expose their public file URL',
+    )
+  },
+)
+
+// BLOG_FILES_MEDIA_ACTIONS_TEST_END

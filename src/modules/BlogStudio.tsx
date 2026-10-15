@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import {
   blogRequest, blogImage, blogOrigin, blankBlogDraft, uploadBlogAsset, listBlogAssets, inferBlogAssetMime,
   importBlogDraft, linkBlogAsset, unlinkBlogAsset, listPostAssets,
+  setBlogAssetPublished, deleteBlogAsset,
 } from '../lib/blogStudio'
 import type {
   BlogMe, BlogList, BlogDraft, BlogArticle, BlogMedia, BlogPerson, BlogEvent,
@@ -111,6 +112,83 @@ export default function BlogStudio(){
       setAddOpen(false)
     }catch(e){setError(errorText(e))}finally{setBusy(false)}
   }
+  const publishAsset=async(
+    asset:BlogAsset,
+    published:boolean,
+  )=>{
+    if(busy)return
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+
+    try{
+      await setBlogAssetPublished(
+        asset.id,
+        published,
+      )
+
+      await refreshAssets()
+
+      setNotice(
+        published
+          ? `${asset.original_filename} is published and its public link is ready.`
+          : `${asset.original_filename} is private again.`,
+      )
+    }catch(e){
+      setError(errorText(e))
+    }finally{
+      setBusy(false)
+    }
+  }
+
+  const copyAssetLink=async(
+    asset:BlogAsset,
+  )=>{
+    const url=`${origin}/files/${asset.id}`
+
+    try{
+      await navigator.clipboard.writeText(url)
+      setNotice('Public file link copied.')
+    }catch{
+      setError(
+        'Clipboard access is unavailable. Use Open public link and copy the address instead.',
+      )
+    }
+  }
+
+  const removeAsset=async(
+    asset:BlogAsset,
+  )=>{
+    if(busy)return
+
+    const confirmed=window.confirm(
+      `Delete "${asset.original_filename}" permanently? This cannot be undone.`,
+    )
+
+    if(!confirmed)return
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+
+    try{
+      await deleteBlogAsset(asset.id)
+
+      setAssets(value=>
+        value.filter(item=>item.id!==asset.id)
+      )
+
+      setNotice(
+        `${asset.original_filename} was permanently deleted.`,
+      )
+    }catch(e){
+      setError(errorText(e))
+    }finally{
+      setBusy(false)
+    }
+  }
+
   const extractImport=async(file:File,existing?:BlogAsset)=>{
     const allowed=/\.(docx|pdf|md|txt|json)$/i.test(file.name);if(!allowed){setError('Choose a DOCX, PDF, Markdown, TXT or Blog article JSON file.');return}
     if(file.size>15*1024*1024){setError('Import files must be 15 MiB or smaller.');return}
@@ -160,7 +238,7 @@ export default function BlogStudio(){
             </aside></form>
         </>}
       </>}
-      {tab==='media'&&me?.permissions.write&&<><div className="bs-toolbar"><div><h2>Files & media</h2><p className="bs-muted">Reusable images, source documents and downloadable attachments stored privately in Blog R2.</p></div><label className="bs-btn">Upload attachment/media<input className="bs-file-input" type="file" accept="image/jpeg,image/png,image/webp,.pdf,.docx,.md,.txt,.json" disabled={busy} onChange={e=>{void uploadGeneric(e.target.files?.[0]);e.target.value=''}}/></label></div><div className="bs-asset-library">{assets.map(asset=><article key={asset.id}><div className="bs-asset-icon">{asset.asset_kind==='image'?'IMG':'FILE'}</div><div><strong>{asset.original_filename}</strong><small>{asset.asset_kind} &middot; {asset.mime_type} &middot; {Math.ceil(asset.byte_size/1024)} KiB</small><small>{stamp(asset.created_at)}</small></div></article>)}</div>{!assets.length&&!loading&&<div className="bs-empty"><h2>Your file library is ready.</h2><p>Upload media or a document to reuse it in Blog Studio.</p></div>}<details className="bs-legacy-media"><summary>Legacy cover image library</summary><div className="bs-media-grid">{media.map(m=><article key={m.id}><PrivateImage id={m.id} alt={m.filename}/><div><strong>{m.filename}</strong><small>{Math.ceil(m.bytes/1024)} KiB</small><button className="bs-inline-button" onClick={()=>{if(abandon()){setDraft({...blankBlogDraft(),cover_media_id:m.id});setDirty(true);setSchedule('');setTab('articles');setPreview(false)}}}>Use in a new article</button></div></article>)}</div><div className="bs-pagination"><button disabled={mediaPage<=1||loading} onClick={()=>setMediaPage(v=>v-1)}>Previous</button><span>Page {mediaPage}</span><button disabled={!mediaMore||loading} onClick={()=>setMediaPage(v=>v+1)}>Next</button></div></details></>}
+      {tab==='media'&&me?.permissions.write&&<><div className="bs-toolbar"><div><h2>Files & media</h2><p className="bs-muted">Reusable images, source documents and downloadable attachments stored privately in Blog R2.</p></div><label className="bs-btn">Upload attachment/media<input className="bs-file-input" type="file" accept="image/jpeg,image/png,image/webp,.pdf,.docx,.md,.txt,.json" disabled={busy} onChange={e=>{void uploadGeneric(e.target.files?.[0]);e.target.value=''}}/></label></div><div className="bs-asset-library">{assets.map(asset=><article key={asset.id} className="bs-asset-card"><div className="bs-asset-icon">{asset.asset_kind==='image'?'IMG':'FILE'}</div><div className="bs-asset-copy"><strong>{asset.original_filename}</strong><small>{asset.asset_kind} &middot; {asset.mime_type} &middot; {Math.ceil(asset.byte_size/1024)} KiB</small><small>{stamp(asset.created_at)}</small><span className={'bs-asset-state '+(asset.published_at?'published':'private')}>{asset.asset_kind==='source'?'Private source':asset.published_at?'Published':'Private'}</span></div><div className="bs-asset-actions">{me.permissions.publish&&asset.asset_kind!=='source'&&<button type="button" className={asset.published_at?'bs-btn bs-outline':'bs-btn'} disabled={busy} onClick={()=>void publishAsset(asset,!asset.published_at)}>{asset.published_at?'Unpublish':'Publish'}</button>}{asset.published_at&&asset.asset_kind!=='source'&&<><a className="bs-btn bs-outline" href={`${origin}/files/${asset.id}`} target="_blank" rel="noopener noreferrer">Open public link</a><button type="button" className="bs-btn bs-outline" onClick={()=>void copyAssetLink(asset)}>Copy link</button></>}{me.permissions.remove&&<button type="button" className="bs-btn bs-danger bs-asset-delete" disabled={busy} onClick={()=>void removeAsset(asset)}>Delete</button>}</div></article>)}</div>{!assets.length&&!loading&&<div className="bs-empty"><h2>Your file library is ready.</h2><p>Upload media or a document to reuse it in Blog Studio.</p></div>}<details className="bs-legacy-media"><summary>Legacy cover image library</summary><div className="bs-media-grid">{media.map(m=><article key={m.id}><PrivateImage id={m.id} alt={m.filename}/><div><strong>{m.filename}</strong><small>{Math.ceil(m.bytes/1024)} KiB</small><button className="bs-inline-button" onClick={()=>{if(abandon()){setDraft({...blankBlogDraft(),cover_media_id:m.id});setDirty(true);setSchedule('');setTab('articles');setPreview(false)}}}>Use in a new article</button></div></article>)}</div><div className="bs-pagination"><button disabled={mediaPage<=1||loading} onClick={()=>setMediaPage(v=>v-1)}>Previous</button><span>Page {mediaPage}</span><button disabled={!mediaMore||loading} onClick={()=>setMediaPage(v=>v+1)}>Next</button></div></details></>}
       {tab==='access'&&me?.permissions.manage_access&&<><div className="bs-access-intro"><h2>The right access. The right people.</h2><p>Blog roles are separate from department roles. Only existing, approved staff can receive access.</p></div><div className="bs-role-guide"><div><h3>Writer</h3><p>Own drafts, quick writeups, imports and uploads.</p></div><div><h3>Editor</h3><p>All content, publishing, scheduling and archiving.</p></div><div><h3>Blog administrator</h3><p>Full editorial control, permanent deletion and access management.</p></div></div>{!me.permissions.write&&<div className="bs-alert">You can manage access because you are a workspace administrator. Assign yourself an explicit blog role to create or publish content.</div>}<label className="bs-search"><span className="bs-sr-only">Search existing employees</span><input value={peopleQuery} maxLength={100} onChange={e=>setPeopleQuery(e.target.value)} placeholder="Find a staff member by name or email"/></label><div className="bs-people">{people.map(p=><div key={p.employee_id} className="bs-person"><div className="bs-avatar" aria-hidden="true">{p.full_name.slice(0,1)}</div><div><strong>{p.full_name}</strong><small>{p.email}</small><small>{p.department} &middot; {p.active?'Active employee':'Inactive employee'}</small></div><label><span className="bs-sr-only">Blog access for {p.full_name}</span><select value={p.blog_role||''} disabled={busy} onChange={e=>void grant(p,e.target.value)}><option value="">No blog access</option>{Object.entries(BLOG_ROLE_LABELS).map(([id,label])=><option key={id} value={id} disabled={!p.active}>{label}</option>)}</select></label></div>)}</div></>}
       {tab==='activity'&&<><h2>Editorial activity</h2><p className="bs-muted">Latest article and access changes. Times are shown in Lagos.</p><div className="bs-activity">{events.map(e=><div key={e.id}><span className="bs-status">{e.event}</span><span><strong>{e.title}</strong><small>Version {e.version} &middot; {stamp(e.created_at)}</small></span></div>)}{accessEvents.map(e=><div key={e.id}><span className="bs-status">Access</span><span><strong>{e.target_name}: {e.new_role?BLOG_ROLE_LABELS[e.new_role]:'Access revoked'}</strong><small>By {e.actor_name} &middot; {stamp(e.happened_at)}</small></span></div>)}</div></>}
     </>}
