@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 /*
  * Backs the workspace's global header search (the Search icon in App.tsx's
  * topbar, previously wired to nothing at all). Searches, in parallel:
- *   - people      employee_profiles (directory — any active employee)
+ *   - people      employee_profiles (directory - any active employee)
  *   - cases       support_cases     (support/manager/admin)
  *   - incidents   incidents         (manager/admin)
  *   - hr          hr_requests       (own + hr/admin)
@@ -19,7 +19,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
  * manual re-implementation of that table's real RLS policy (see
  * supabase/migrations/20260827000000_schema_baseline.sql,
  * 20260828123000_strict_department_rls.sql and
- * 20260901230000_native_chat_security.sql) — nothing here should return a
+ * 20260901230000_native_chat_security.sql) - nothing here should return a
  * row the actor could not already see through the app itself.
  *
  * "Match any of several text columns" is done as one .ilike() query per
@@ -27,7 +27,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
  * string. postgrest-js's .or() filter is a small string DSL where commas
  * and parentheses are syntactically significant, so a search term
  * containing them would either break the query or need careful DSL
- * quoting on top of the ILIKE wildcard-escaping already needed — two
+ * quoting on top of the ILIKE wildcard-escaping already needed - two
  * layers of escaping neither this file nor CI can exercise against a
  * real PostgREST parser. Per-column .ilike() calls take the pattern as a
  * plain, library-encoded argument, so there's nothing to get wrong here.
@@ -461,11 +461,11 @@ serve(async (req) => {
 
     // Note: intakeWorkstations values come from our own DB (workstation
     // names in workspace_workstation_assignments), never from the
-    // request, so building that .or(...) string directly is safe — this
+    // request, so building that .or(...) string directly is safe - this
     // is the one .or() left in the file, deliberately, for that reason.
 
     // Chat results need sender names resolved separately (social_messages
-    // only has sender_id) — one extra lookup, only for the senders that
+    // only has sender_id) - one extra lookup, only for the senders that
     // actually showed up in results.
     const senderIds = [...new Set((chat as Row[]).map((row) => String(row.sender_id)))]
     const senders = senderIds.length

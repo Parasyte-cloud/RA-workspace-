@@ -482,9 +482,9 @@ export function FinanceBanking() {
           {loading ? <tr><td colSpan={8}>Loading Providus transactions...</td></tr> : visible.length === 0 ? <tr><td colSpan={8}>No Providus transactions yet. Upload a CSV or XLSX statement to begin.</td></tr> : visible.map(row => <tr key={row.id || row.source_hash}>
             <td>{row.transaction_date}</td>
             <td><strong>{row.description}</strong>{row.vendor && <small className="bankingSub">{row.vendor}</small>}</td>
-            <td>{row.reference || '—'}</td>
-            <td>{row.debit ? money(row.debit) : '—'}</td>
-            <td>{row.credit ? money(row.credit) : '—'}</td>
+            <td>{row.reference || '-'}</td>
+            <td>{row.debit ? money(row.debit) : '-'}</td>
+            <td>{row.credit ? money(row.credit) : '-'}</td>
             <td><input className="bankingCellInput" value={row.category} onChange={e => setRows(current => current.map(r => r.id === row.id ? { ...r, category: e.target.value } : r))} onBlur={e => void updateRow(row.id, { category: e.target.value })}/></td>
             <td><input className="bankingCellInput" value={row.department || ''} placeholder="Assign" onChange={e => setRows(current => current.map(r => r.id === row.id ? { ...r, department: e.target.value } : r))} onBlur={e => void updateRow(row.id, { department: e.target.value || null })}/></td>
             <td><select className="bankingCellInput" value={row.reconciliation_status} onChange={e => void updateRow(row.id, { reconciliation_status: e.target.value as BankTransaction['reconciliation_status'] })}><option value="unreconciled">Unreconciled</option><option value="review">Review</option><option value="reconciled">Reconciled</option></select></td>

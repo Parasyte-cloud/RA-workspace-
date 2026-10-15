@@ -19,7 +19,7 @@ type Row={
 }
 
 function score(value:number|null){
-  return value===null || value===undefined ? '—' : `${Math.round(Number(value))}%`
+  return value===null || value===undefined ? '-' : `${Math.round(Number(value))}%`
 }
 
 export default function KpiManagementPanel(){
@@ -83,7 +83,7 @@ export default function KpiManagementPanel(){
                   <td>{row.workstation || 'Unassigned'}</td>
                   <td><span className="kpiScore"><Target size={14}/>{score(row.rolling_score)}</span><small>{row.rolling_status || 'insufficient data'}</small></td>
                   <td><span className="kpiScore"><Target size={14}/>{score(row.annual_score)}</span><small>{row.annual_status || 'insufficient data'}</small></td>
-                  <td>{row.current_badge ? <span className="kpiBadge"><Award size={14}/>{row.current_badge}</span> : '—'}</td>
+                  <td>{row.current_badge ? <span className="kpiBadge"><Award size={14}/>{row.current_badge}</span> : '-'}</td>
                 </tr>
               ))}
             </tbody>

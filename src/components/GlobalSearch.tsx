@@ -35,7 +35,7 @@ import { matchSections, type GoToSection } from '../lib/workspaceNav'
 import '../global-search.css'
 
 /*
- * The header search icon in App.tsx used to do nothing at all — no
+ * The header search icon in App.tsx used to do nothing at all - no
  * onClick, no modal. This is that feature, built out: Cmd/Ctrl+K (or the
  * icon) opens a command-palette-style search across people, support
  * cases, incidents, HR/leave requests, intake submissions, chat and mail.
@@ -45,7 +45,7 @@ import '../global-search.css'
  *                        leave/intake/chat), one round trip
  *   - zoho-mail-search   live Zoho Mail API search, one call per mailbox
  *                        the actor can read
- * Mail is separate so a slow/failing Zoho call never blocks the rest —
+ * Mail is separate so a slow/failing Zoho call never blocks the rest -
  * see the comments in both edge functions for why.
  *
  * Clicking a result navigates to its section. Tasks, knowledge articles and

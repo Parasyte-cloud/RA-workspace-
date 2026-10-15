@@ -40,7 +40,7 @@ type NotificationsContextValue = {
  * Single source of truth for notifications: one query, one realtime
  * subscription, shared by the bell (NotificationCenter) and any thin
  * dashboard teaser. Do not give either consumer its own fetch/subscribe
- * logic — that's what caused the dashboard and the bell to drift out of
+ * logic - that's what caused the dashboard and the bell to drift out of
  * sync before (DashboardNotificationsPanel, removed).
  */
 const NotificationsContext=createContext<NotificationsContextValue|null>(null)

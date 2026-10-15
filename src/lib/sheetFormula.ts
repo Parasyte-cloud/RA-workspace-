@@ -1138,7 +1138,14 @@ export class Calc {
         // A very long chain of formulas can exhaust the call stack. Filling the
         // cache from the top of the sheet down keeps every later step shallow.
         this.warm(si)
-        v = this.value(si, row, col)
+        try {
+          v = this.value(si, row, col)
+        } catch (again) {
+          // Still too deep after warming: this one formula is nested too far
+          // by itself. Show an error in that cell instead of crashing the sheet.
+          if (!(again instanceof RangeError)) throw again
+          v = E.parse
+        }
       } else throw e
     }
     return this.format(v, this.cellAt(si, row, col))

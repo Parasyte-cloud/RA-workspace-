@@ -3741,7 +3741,7 @@ html[data-ra-theme='dark'] .authCopy p {
 
 
 /* =========================================================
-   LARGE DESKTOP — FULL SIDEBAR
+   LARGE DESKTOP - FULL SIDEBAR
    ========================================================= */
 
 @media (min-width: 1280px) {
@@ -4051,7 +4051,7 @@ html[data-ra-theme='dark'] .authCopy p {
 
 
 /* =========================================================
-   MINIMISED / COMPACT DESKTOP — ICON RAIL
+   MINIMISED / COMPACT DESKTOP - ICON RAIL
    ========================================================= */
 
 @media
@@ -4545,7 +4545,7 @@ html[data-ra-theme='dark'] .authCopy p {
 
 
 /* =========================================================
-   COMPACT SIDEBAR — MINI RIDEARRIVO WORDMARK
+   COMPACT SIDEBAR - MINI RIDEARRIVO WORDMARK
    =========================================================
    Full desktop:
      normal RideArrivo branding.
@@ -4850,7 +4850,7 @@ html[data-ra-glow="high"] {
 
 
 /* =========================================================
-   WORKSTATION SIZE — DESKTOP/LAPTOP
+   WORKSTATION SIZE - DESKTOP/LAPTOP
    ========================================================= */
 
 @media (min-width: 761px) {

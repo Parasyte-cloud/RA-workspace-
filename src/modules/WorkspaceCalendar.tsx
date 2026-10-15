@@ -35,6 +35,7 @@ import type { Recurrence } from '../lib/calendarLogic'
 import CalendarEventEditor from './CalendarEventEditor'
 import type { EventForm, Person, Visibility } from './CalendarEventEditor'
 import '../calendar.css'
+import { safeHttpUrl } from '../lib/safeUrl'
 
 type Kind = 'event' | 'birthday' | 'anniversary' | 'holiday' | 'festival' | 'leave'
 type View = 'month' | 'week' | 'day' | 'agenda'
@@ -754,7 +755,7 @@ export default function WorkspaceCalendar() {
             <p className="wcalMeta"><Repeat size={13} />{RECURRENCE_LABEL[pickedEvent.recurrence]}{pickedEvent.recurrence_until ? ` until ${dayLabel(pickedEvent.recurrence_until)}` : ''}</p>
           )}
           {pickedEvent.location && <p className="wcalMeta"><MapPin size={13} />{pickedEvent.location}</p>}
-          {pickedEvent.meeting_url && <a className="wcalMeta" href={pickedEvent.meeting_url} target="_blank" rel="noreferrer">Join meeting <ExternalLink size={12} /></a>}
+          {safeHttpUrl(pickedEvent.meeting_url) && <a className="wcalMeta" href={safeHttpUrl(pickedEvent.meeting_url)} target="_blank" rel="noreferrer">Join meeting <ExternalLink size={12} /></a>}
           {pickedEvent.description && <p className="wcalNotes">{pickedEvent.description}</p>}
           <p className="wcalMeta">
             {pickedEvent.visibility === 'everyone' ? 'Visible to everyone' : pickedEvent.visibility === 'invited' ? 'Only invited people' : 'Only you'}

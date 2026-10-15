@@ -405,7 +405,7 @@ export function EmployeeVirtualCard({
                     <span>
                       <small>Work Email</small>
                       <strong>
-                        {workEmail || '—'}
+                        {workEmail || '-'}
                       </strong>
                     </span>
                   </div>

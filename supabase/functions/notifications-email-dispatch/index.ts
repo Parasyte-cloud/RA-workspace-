@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
   }
 
   if (!resendApiKey) {
-    // Nothing we can do — leave rows pending so a future run
+    // Nothing we can do - leave rows pending so a future run
     // (once the secret is set) can still deliver them.
     console.error(
       "notifications-email-dispatch: RESEND_API_KEY is not configured; skipping this run.",

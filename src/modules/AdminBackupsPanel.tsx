@@ -85,7 +85,7 @@ function scheduleToForm(
 }
 
 function when(value: string | null) {
-  if (!value) return '—'
+  if (!value) return '-'
 
   const date = new Date(value)
 
@@ -97,7 +97,7 @@ function when(value: string | null) {
 }
 
 function bytes(value: number | null) {
-  if (value === null) return '—'
+  if (value === null) return '-'
 
   if (value < 1024) {
     return `${value} B`

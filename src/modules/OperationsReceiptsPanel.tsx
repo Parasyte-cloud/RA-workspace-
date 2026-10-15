@@ -988,7 +988,7 @@ export default function OperationsReceiptsPanel() {
                     {receipt.booking_reference ||
                       receipt.trip_reference ||
                       receipt.vehicle_reference ||
-                      '—'}
+                      '-'}
                   </td>
 
                   <td>
@@ -1394,7 +1394,7 @@ export default function OperationsReceiptsPanel() {
                     <td>
                       {String(
                         event.new_data?.status ||
-                        '—',
+                        '-',
                       )}
                     </td>
                   </tr>

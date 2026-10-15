@@ -183,7 +183,7 @@ function when(value:string|null|undefined){
 }
 
 function score(value:number|null|undefined){
-  return value===null || value===undefined ? '—' : `${Number(value).toFixed(1)}%`
+  return value===null || value===undefined ? '-' : `${Number(value).toFixed(1)}%`
 }
 
 function online(lastSeen:string|null|undefined){

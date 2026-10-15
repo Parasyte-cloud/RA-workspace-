@@ -542,7 +542,7 @@ export default function AdminAccessManager(){
                   .map(candidate=>(
                     <option key={candidate.id} value={candidate.id}>
                       {candidate.full_name || candidate.email}
-                      {' — '}
+                      {' - '}
                       {candidate.department || 'Unassigned'}
                       {' · '}
                       {candidate.job_title || candidate.role}
@@ -794,7 +794,7 @@ export default function AdminAccessManager(){
                           disabled={!candidate.active}
                         >
                           {candidate.full_name || candidate.email}
-                          {' — '}
+                          {' - '}
                           {candidate.department || 'Unassigned'}
                           {' · '}
                           {candidate.job_title || candidate.role}

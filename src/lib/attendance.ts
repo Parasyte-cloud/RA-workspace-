@@ -301,7 +301,8 @@ export function lagosDateKey(date = new Date()) {
 export function formatAttendanceTime(
   value: string | null | undefined,
 ) {
-  if (!value) return '—'
+  if (!value) return '-'
+  if (Number.isNaN(new Date(value).getTime())) return '-'
 
   return new Intl.DateTimeFormat('en-NG', {
     timeZone: 'Africa/Lagos',

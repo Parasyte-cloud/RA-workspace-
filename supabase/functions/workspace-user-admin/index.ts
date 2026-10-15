@@ -243,14 +243,31 @@ serve(async(req)=>{
      * LIST
      */
     if(action==="list"){
-      const {
-        data:authResult,
-        error:authError,
-      } =
-        await admin.auth.admin.listUsers({
-          page:1,
-          perPage:200,
-        })
+      // Read every page. A single page of 200 would silently hide people once
+      // the company has more accounts than that.
+      const pagedUsers:any[] = []
+      let authError:any = null
+      for(let page=1;page<=25;page++){
+        const {
+          data:pageResult,
+          error:pageError,
+        } =
+          await admin.auth.admin.listUsers({
+            page,
+            perPage:200,
+          })
+
+        if(pageError){
+          authError = pageError
+          break
+        }
+
+        const batch = pageResult?.users || []
+        pagedUsers.push(...batch)
+
+        if(batch.length < 200) break
+      }
+      const authResult = {users:pagedUsers}
 
       if(authError){
         console.error(

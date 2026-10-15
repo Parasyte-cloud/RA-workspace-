@@ -11,9 +11,9 @@ import {
 /*
  * Global search's mail results. Unlike workspace-search (one Postgres
  * round trip across several tables), RideArrivo mail lives in Zoho, not
- * Postgres — zoho_mail_persistence/zoho_multi_mailbox_governance only
+ * Postgres - zoho_mail_persistence/zoho_multi_mailbox_governance only
  * store OAuth connections and mailbox access grants, never message
- * content — so this has to call Zoho's own search API live, once per
+ * content - so this has to call Zoho's own search API live, once per
  * mailbox the actor can read.
  *
  * Kept as its own function (rather than folded into workspace-search) so

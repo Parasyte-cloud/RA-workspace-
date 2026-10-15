@@ -140,7 +140,7 @@ function rideSummary(row: Record<string, unknown>): string {
   const pickup = firstValue(row, ["pickup_address", "pickup", "origin"])
   const dest = firstValue(row, ["dropoff_address", "destination", "dropoff"])
   const parts = [rider, pickup && dest ? `${pickup} → ${dest}` : pickup || dest].filter(Boolean)
-  return parts.length ? String(parts.join(" — ")) : `Ride ${ref ?? ""}`.trim()
+  return parts.length ? String(parts.join(" - ")) : `Ride ${ref ?? ""}`.trim()
 }
 
 serve(async (req) => {

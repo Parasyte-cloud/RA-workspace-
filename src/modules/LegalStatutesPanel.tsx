@@ -16,6 +16,7 @@ import {
   loadLegalStatutes,
   updateLegalStatute,
 } from '../lib/legalLawReports'
+import { safeHttpUrl } from '../lib/safeUrl'
 
 import type {
   LegalRisk,
@@ -724,7 +725,7 @@ export default function LegalStatutesPanel({
                       </td>
 
                       <td>
-                        {item.regulator || '—'}
+                        {item.regulator || '-'}
                       </td>
 
                       <td>
@@ -887,7 +888,7 @@ export default function LegalStatutesPanel({
 
             {selected.source_url ? (
               <a
-                href={selected.source_url}
+                href={safeHttpUrl(selected.source_url)}
                 target="_blank"
                 rel="noreferrer"
               >

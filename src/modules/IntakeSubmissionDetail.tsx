@@ -33,7 +33,7 @@ function when(
     string | null | undefined,
 ) {
   if (!value) {
-    return '—'
+    return '-'
   }
 
   const date =
@@ -75,7 +75,7 @@ function statusLabel(
 
   return value
     ? humanize(String(value))
-    : '—'
+    : '-'
 }
 
 function shortId(
@@ -85,7 +85,7 @@ function shortId(
     String(value || '').trim()
 
   if (!text) {
-    return '—'
+    return '-'
   }
 
   return text.length > 12
@@ -100,7 +100,7 @@ function formatValue(
     value === null ||
     value === undefined
   ) {
-    return '—'
+    return '-'
   }
 
   if (
@@ -120,7 +120,7 @@ function formatValue(
               : String(item),
           )
           .join(', ')
-      : '—'
+      : '-'
   }
 
   if (
@@ -132,7 +132,7 @@ function formatValue(
           value,
           null,
           2,
-        ) || '—'
+        ) || '-'
       )
     } catch {
       return String(value)
@@ -142,7 +142,7 @@ function formatValue(
   const text =
     String(value)
 
-  return text || '—'
+  return text || '-'
 }
 
 function eventTitle(
@@ -482,7 +482,7 @@ export default function IntakeSubmissionDetail({
                 Ref:{' '}
                 {
                   submission.source_reference ||
-                  '—'
+                  '-'
                 }
               </span>
             </div>

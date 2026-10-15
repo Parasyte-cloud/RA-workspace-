@@ -157,7 +157,7 @@ export default function EmployeeHrDetailsForm(){
     }
 
     setSubmittedAt(nowIso)
-    setMessage('Submitted. Your HR details are now locked — contact your manager, HR or Administration to change them.')
+    setMessage('Submitted. Your HR details are now locked - contact your manager, HR or Administration to change them.')
   }
 
   if(loading){
@@ -182,14 +182,14 @@ export default function EmployeeHrDetailsForm(){
         <div>
           <span className="eyebrow">HR DETAILS</span>
           <h3>Employee HR Details</h3>
-          <p>Home address, next of kin and the bank/statutory details HR and payroll need on file. Fill this in once — after you submit, only your manager, HR or Administration can change it.</p>
+          <p>Home address, next of kin and the bank/statutory details HR and payroll need on file. Fill this in once - after you submit, only your manager, HR or Administration can change it.</p>
         </div>
       </div>
 
       {locked && (
         <div className="employeeHrDetailsLocked">
           <Lock size={14}/>
-          Submitted{submittedAt?` on ${new Date(submittedAt).toLocaleDateString()}`:''}. These details are locked to you now — ask your manager, HR or Administration if something needs to change.
+          Submitted{submittedAt?` on ${new Date(submittedAt).toLocaleDateString()}`:''}. These details are locked to you now - ask your manager, HR or Administration if something needs to change.
         </div>
       )}
 
@@ -213,15 +213,15 @@ export default function EmployeeHrDetailsForm(){
             </select>
           </label>
 
-          <label>Next of kin — full name
+          <label>Next of kin - full name
             <input type="text" required {...field('next_of_kin_name')}/>
           </label>
 
-          <label>Next of kin — relationship
+          <label>Next of kin - relationship
             <input type="text" required {...field('next_of_kin_relationship')} placeholder="e.g. Spouse, Parent, Sibling"/>
           </label>
 
-          <label>Next of kin — phone number
+          <label>Next of kin - phone number
             <input type="tel" required {...field('next_of_kin_phone')}/>
           </label>
 

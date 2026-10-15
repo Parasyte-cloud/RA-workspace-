@@ -16,6 +16,36 @@ const ACTIVITY_KEY =
 const ACTIVITY_WRITE_THROTTLE_MS =
   15 * 1000
 
+// While a call or meeting is open the person is present even when they are not
+// touching the keyboard, so the idle timer must not sign them out of it.
+let holds = 0
+
+export function useHoldIdleSignOut(active: boolean) {
+  useEffect(() => {
+    if (!active) return
+    holds += 1
+    try {
+      window.localStorage.setItem(ACTIVITY_KEY, String(Date.now()))
+    } catch {
+      /* storage can be blocked */
+    }
+    return () => {
+      holds = Math.max(0, holds - 1)
+      try {
+        // Counts as activity at the moment the call ends, so leaving a long
+        // call does not sign the person out a second later.
+        window.localStorage.setItem(ACTIVITY_KEY, String(Date.now()))
+      } catch {
+        /* storage can be blocked */
+      }
+    }
+  }, [active])
+}
+
+export function idleHoldCount() {
+  return holds
+}
+
 export function useIdleSignOut(
   client: SupabaseClient | null,
   session: Session | null
@@ -71,6 +101,14 @@ export function useIdleSignOut(
 
     const checkIdle = async () => {
       if (signingOut) {
+        return
+      }
+
+      if (holds > 0) {
+        window.localStorage.setItem(
+          ACTIVITY_KEY,
+          String(Date.now())
+        )
         return
       }
 

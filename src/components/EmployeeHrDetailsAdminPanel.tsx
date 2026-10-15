@@ -170,7 +170,7 @@ export default function EmployeeHrDetailsAdminPanel({
       <div className="workbenchHead">
         <div>
           <h3>Employee HR details</h3>
-          <p>View and edit any employee's HR biodata — this bypasses the employee's own lock, since HR or an admin is allowed to correct it at any time.</p>
+          <p>View and edit any employee's HR biodata - this bypasses the employee's own lock, since HR or an admin is allowed to correct it at any time.</p>
         </div>
         <IdCard/>
       </div>
@@ -196,7 +196,7 @@ export default function EmployeeHrDetailsAdminPanel({
                 onClick={()=>setSelectedId(id)}
               >
                 <strong>{String(employee.full_name||employee.email)}</strong>
-                <small>{String(employee.department||employee.role||'—')}</small>
+                <small>{String(employee.department||employee.role||'-')}</small>
               </button>
             )
           })}
@@ -242,13 +242,13 @@ export default function EmployeeHrDetailsAdminPanel({
                       <option value="widowed">Widowed</option>
                     </select>
                   </label>
-                  <label>Next of kin — full name
+                  <label>Next of kin - full name
                     <input type="text" {...field('next_of_kin_name')}/>
                   </label>
-                  <label>Next of kin — relationship
+                  <label>Next of kin - relationship
                     <input type="text" {...field('next_of_kin_relationship')}/>
                   </label>
-                  <label>Next of kin — phone number
+                  <label>Next of kin - phone number
                     <input type="tel" {...field('next_of_kin_phone')}/>
                   </label>
                   <label>Bank name

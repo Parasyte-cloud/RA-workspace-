@@ -1,4 +1,4 @@
-/* Global header search (Cmd/Ctrl+K) — see src/components/GlobalSearch.tsx.
+/* Global header search (Cmd/Ctrl+K) - see src/components/GlobalSearch.tsx.
    Reuses .socialModal's overlay (position:fixed, backdrop) from styles.css;
    everything below is specific to the search panel itself. */
 
