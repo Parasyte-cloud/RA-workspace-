@@ -1,0 +1,74 @@
+/*
+ * Shared liquid-glass primitives.
+ * Base backgrounds are intentionally readable without backdrop-filter;
+ * supported browsers receive blur/saturation as an enhancement.
+ */
+.glassSurface,
+.glassNav,
+.glassSheet {
+  background: var(--ra-glass-fallback);
+  border: 1px solid rgba(7,26,56,.09);
+  box-shadow: var(--ra-glass-shadow);
+  color: var(--navy);
+}
+
+.glassSurface {
+  border-radius: var(--ra-radius-lg);
+}
+
+.glassNav {
+  border-color: rgba(255,255,255,.16);
+  background: rgba(7,26,56,.95);
+  color: #fff;
+}
+
+.glassSheet {
+  border-radius: var(--ra-radius-xl) var(--ra-radius-xl) 0 0;
+}
+
+.workSurface {
+  min-width: 0;
+  background: var(--ra-work-surface);
+  border: 1px solid rgba(7,26,56,.08);
+  border-radius: var(--ra-radius-lg);
+  box-shadow: 0 12px 34px rgba(7,26,56,.08);
+  color: var(--navy);
+}
+
+.uiFocusRing:focus-visible,
+.uiFocusRing:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--amber) 70%, white);
+  outline-offset: 2px;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glassSurface,
+  .glassNav,
+  .glassSheet {
+    background: color-mix(in srgb, var(--ra-glass-fallback) calc(var(--ra-glass-opacity) * 100%), transparent);
+    -webkit-backdrop-filter: blur(var(--ra-glass-blur)) saturate(145%);
+    backdrop-filter: blur(var(--ra-glass-blur)) saturate(145%);
+    border-color: var(--ra-glass-border);
+  }
+
+  .glassNav {
+    background: rgba(7,26,56,.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glassSurface,
+  .glassNav,
+  .glassSheet,
+  .workSurface,
+  .uiFocusRing,
+  .glassSurface *,
+  .glassNav *,
+  .glassSheet *,
+  .workSurface * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

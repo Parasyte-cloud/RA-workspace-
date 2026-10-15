@@ -1,6 +1,7 @@
 import App from './App'
 import './styles.css'
 import './brand.css'
+import './liquid-glass.css'
 import './workspace-shell.css'
 import './chat.css'
 import './responsive.css'
