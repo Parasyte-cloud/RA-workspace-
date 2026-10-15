@@ -28,7 +28,7 @@ function candidateLabel(
   ].filter(Boolean)
 
   return details.length
-    ? `${candidate.full_name} — ${details.join(
+    ? `${candidate.full_name} - ${details.join(
         ' · ',
       )}`
     : candidate.full_name

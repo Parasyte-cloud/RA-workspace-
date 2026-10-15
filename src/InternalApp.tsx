@@ -16,6 +16,8 @@ import './responsive.css'
 import './phone-shell.css'
 import './liquid-glass.css'
 import './app-feel.css'
+import './nav-liquid.css'
+import './theme-fixes.css'
 
 
 export default App

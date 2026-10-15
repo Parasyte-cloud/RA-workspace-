@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from 'react'
+import { useHoldIdleSignOut } from '../lib/useIdleSignOut'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useRetiredClients } from '../room7-shared/useRetiredClients'
@@ -105,6 +106,7 @@ export default function RoomMeeting({
   chatCall?:boolean
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
+  useHoldIdleSignOut(Boolean(meeting))
   const {retire,isRetired}=useRetiredClients()
   const meetingRef=useRef(meeting)
   meetingRef.current=meeting

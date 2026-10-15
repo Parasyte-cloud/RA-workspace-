@@ -73,7 +73,7 @@ function titleFor(row: any, resource: SupportResource) {
   if (resource === 'tickets') {
     return (
       firstValue(row, ['subject', 'title']) ||
-      `Support ticket #${firstValue(row, ['id']) ?? '—'}`
+      `Support ticket #${firstValue(row, ['id']) ?? '-'}`
     )
   }
 
@@ -84,7 +84,7 @@ function titleFor(row: any, resource: SupportResource) {
         'reference',
         'ride_reference',
       ]) ||
-      `Ride #${firstValue(row, ['id']) ?? '—'}`
+      `Ride #${firstValue(row, ['id']) ?? '-'}`
     )
   }
 
@@ -92,14 +92,14 @@ function titleFor(row: any, resource: SupportResource) {
     return (
       firstValue(row, ['name', 'full_name', 'email']) ||
       `${resource === 'drivers' ? 'Driver' : 'Rider'} #${
-        firstValue(row, ['id']) ?? '—'
+        firstValue(row, ['id']) ?? '-'
       }`
     )
   }
 
   return (
     firstValue(row, ['reference', 'name', 'customer_name']) ||
-    `Request #${firstValue(row, ['id']) ?? '—'}`
+    `Request #${firstValue(row, ['id']) ?? '-'}`
   )
 }
 
@@ -369,7 +369,7 @@ export default function SupportOperationsPanel() {
           <div>
             <strong>
               {records.length
-                ? 'Live refresh failed — showing the last successful snapshot'
+                ? 'Live refresh failed - showing the last successful snapshot'
                 : 'Unable to load live Support data'}
             </strong>
             <p>{error}</p>

@@ -315,7 +315,7 @@ function displayDate(key:string){
 function displayScheduleTime(
   value:string|undefined|null
 ){
-  if(!value) return '—'
+  if(!value) return '-'
 
   const [hourRaw,minuteRaw]=
     value.split(':')
@@ -350,7 +350,7 @@ function percentLabel(
   value:number|null
 ){
   return value===null
-    ? '—'
+    ? '-'
     : `${value.toFixed(1)}%`
 }
 

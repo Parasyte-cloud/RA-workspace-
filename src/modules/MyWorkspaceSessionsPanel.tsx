@@ -29,7 +29,7 @@ type DeviceSession={
 
 function date(value:unknown){
   if(typeof value!=='string' || !value){
-    return '—'
+    return '-'
   }
 
   const parsed=new Date(value)

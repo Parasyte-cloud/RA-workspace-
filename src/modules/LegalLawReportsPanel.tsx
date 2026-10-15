@@ -35,6 +35,7 @@ import LegalStatutesPanel from './LegalStatutesPanel'
 import LegalResearchOpinionsPanel from './LegalResearchOpinionsPanel'
 
 import '../legal-law-reports.css'
+import { safeHttpUrl } from '../lib/safeUrl'
 
 type Tab =
   | 'overview'
@@ -1112,7 +1113,7 @@ export default function LegalLawReportsPanel(){
                         </td>
 
                         <td>
-                          {report.citation || '—'}
+                          {report.citation || '-'}
                         </td>
 
                         <td>{report.court}</td>
@@ -1369,7 +1370,7 @@ export default function LegalLawReportsPanel(){
 
                 {selected.source_url ? (
                   <a
-                    href={selected.source_url}
+                    href={safeHttpUrl(selected.source_url)}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -1383,9 +1384,7 @@ export default function LegalLawReportsPanel(){
 
                 {selected.secondary_source_url&&(
                   <a
-                    href={
-                      selected.secondary_source_url
-                    }
+                    href={safeHttpUrl(selected.secondary_source_url)}
                     target="_blank"
                     rel="noreferrer"
                   >

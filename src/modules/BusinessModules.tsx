@@ -31,7 +31,7 @@ const FinanceBanking = lazy(
 type Field={key:string;label:string;type?:'text'|'number'|'date'|'select'|'textarea';required?:boolean;options?:string[]}
 type Column={key:string;label:string;render?:(row:Record<string,unknown>)=>ReactNode}
 const money=(v:unknown)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(Number(v||0))
-const dateFmt=(v:unknown)=>v?new Intl.DateTimeFormat('en-NG',{dateStyle:'medium'}).format(new Date(String(v))):'—'
+const dateFmt=(v:unknown)=>{if(!v)return '-';const d=new Date(String(v));return Number.isNaN(d.getTime())?'-':new Intl.DateTimeFormat('en-NG',{dateStyle:'medium'}).format(d)}
 
 function Title({eyebrow,title,subtitle}:{eyebrow:string;title:string;subtitle:string}){return <div className="sectionTitle"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{subtitle}</p></div></div>}
 function KPI({icon,label,value,hint}:{icon:ReactNode;label:string;value:string;hint:string}){return <div className="metric glassCard"><div className="metricIcon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div></div>}

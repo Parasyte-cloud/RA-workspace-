@@ -65,8 +65,8 @@ test('ics escapes text, folds long lines and carries the repeat rule', () => {
   const out = L.buildIcs([{ id: 'x', title: 'Plan, review; "go"', description: 'a'.repeat(200), location: null, url: null,
     starts_at: new Date(2026, 0, 5, 9).toISOString(), ends_at: new Date(2026, 0, 5, 10).toISOString(), all_day: false,
     recurrence: 'biweekly', recurrence_until: '2026-03-01' }], new Date(Date.UTC(2026, 0, 1)))
-  assert.match(out, /SUMMARY:Plan\\, review\; "go"/)
-  assert.match(out, /RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=20260301/)
+  assert.match(out, /SUMMARY:Plan\\, review\\; "go"/)
+  assert.match(out, /RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=\d{8}T\d{6}Z/)
   for (const line of out.split('\r\n')) assert.ok(line.length <= 75)
   assert.match(out, /^BEGIN:VCALENDAR/)
 })

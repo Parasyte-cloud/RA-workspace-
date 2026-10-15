@@ -38,7 +38,7 @@ function money(amount:number,currency='NGN'){
 }
 
 function date(value?:string|null){
-  if(!value) return '—'
+  if(!value) return '-'
   const parsed=new Date(value)
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
 }

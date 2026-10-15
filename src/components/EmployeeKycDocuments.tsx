@@ -255,7 +255,7 @@ export default function EmployeeKycDocuments(){
     const problems=[
       ...failedFiles,
       ...(skipped
-        ? [`${skipped} file${skipped===1 ? '' : 's'} skipped — only ${remaining} slot${remaining===1 ? '' : 's'} left.`]
+        ? [`${skipped} file${skipped===1 ? '' : 's'} skipped - only ${remaining} slot${remaining===1 ? '' : 's'} left.`]
         : [])
     ]
 

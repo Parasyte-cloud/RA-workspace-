@@ -52,7 +52,7 @@ function when(value:string|null){
 }
 
 function duration(seconds:number|null){
-  if(seconds===null||seconds<0)return '—'
+  if(seconds===null||seconds<0)return '-'
   const mins=Math.floor(seconds/60)
   const secs=seconds%60
   if(mins<60)return `${mins}m ${secs}s`
@@ -173,7 +173,7 @@ export default function Room7MinutesPanel(){
           >
             <div>
               <strong>{row.room_title||'ROOM 7 meeting'}</strong>
-              <small>{row.room_code||'—'} · {when(row.ended_at||row.created_at)}</small>
+              <small>{row.room_code||'-'} · {when(row.ended_at||row.created_at)}</small>
             </div>
             <span className={`adminRoom7Status ${row.status}`}>{row.status}</span>
           </button>
@@ -189,7 +189,7 @@ export default function Room7MinutesPanel(){
               <span className="eyebrow">MEETING RECORD</span>
               <h3>{selected.room_title||'ROOM 7 meeting'}</h3>
               <p>
-                ROOM 7 {selected.room_code||'—'} · Host{' '}
+                ROOM 7 {selected.room_code||'-'} · Host{' '}
                 {selected.host_name||selected.host_email||'RideArrivo employee'}
               </p>
             </div>

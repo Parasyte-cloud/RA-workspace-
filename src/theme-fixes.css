@@ -1,0 +1,129 @@
+/* Readability fixes found by checking every screen in both themes.
+   Loaded last, so these win over the older rules. */
+
+/* Small amber labels (the "eyebrow" above headings) were bright amber on white
+   in light mode, about 2:1. A deeper amber reads clearly. Headers that sit on
+   a dark banner keep the bright amber. */
+html[data-ra-theme='light'] .eyebrow { color: #9a5800; }
+html[data-ra-theme='light'] :is(.personalHero, .glassHero, .adminControlHero, .bankingHero, .marketingWalletHero, .roomHero, .adminBackupHero, .vendorsHero, .authCopy) .eyebrow { color: var(--amber); }
+
+html[data-ra-theme='light'] .appearanceSettingNumber { color: #8a4f00; }
+
+/* =========================================================
+   DARK MODE: surfaces, inputs and text that stayed light
+   Found by a stylesheet audit: each of these rules paints white or near
+   white (or dark navy text) with no dark version, so in dark mode the page
+   showed pale boxes with pale text. Uses the same colour tokens as the rest of
+   the dark theme.
+   ========================================================= */
+
+html[data-ra-theme='dark'] :is(
+  .wcalGrid, .wcalIcon, .wcalTime, .wcalModal,
+  .adminDetailGrid > div, .adminLocationMeta span, .adminDeviceMini, .adminAuditRow, .adminBackupJob,
+  .adminRoom7MinuteRow, .adminRoom7Meta > div, .adminPeopleTable th,
+  .pdirMetrics > div, .pdirPanel, .pdirTabs button,
+  .workstationGuideCard, .kycDocsSection, .kycDocCard,
+  .arcStaged, .arcRow, .arcFolders button, .arcModal, .arcViewer,
+  .unifiedChatMessages .unifiedChatMessage, .unifiedChatShell .unifiedChatComposer,
+  .kanbanCard, .deviceInventoryRow, .supportWhatsAppMessage, .supportWhatsAppComposer,
+  .departmentDiscussionMessage, .financeRequestCreator, .financeRequestCard, .myWorkspaceSession,
+  .marketingIntelMetrics article, .recognitionBanner, .myEquipmentItem, .responsiveState,
+  .searchModalPanel, .cmModal, .workstationManagedWindow, .workstationManagedWindowHeader,
+  .workstationManagedWindowControls button, .workspaceClock, .adminControlTabs button
+) {
+  background: var(--ra-surface-soft, #0f2036);
+  color: var(--ra-text, #eef3fa);
+  border-color: var(--ra-border, rgba(255,255,255,.1));
+}
+
+/* Text boxes, menus and search fields. */
+html[data-ra-theme='dark'] :is(
+  .wcalForm, .wcalFestForm, .wcalModal, .wcalJump, .mailCompose, .mailComposerBody, .adminBackupFormGrid,
+  .adminAccessFields, .workForm, .pdirForm, .pdirLabel, .pdirBar, .myLeaveForm, .investorSupportRecord,
+  .investorSupportActions, .projectCreatePanel, .deviceFormGrid, .arcForm, .arcModal, .arcTools,
+  .vendorsFilters, .vendorField, .opsExportsDates, .unifiedChatComposer, .workStatusControl
+) :is(input, select, textarea),
+html[data-ra-theme='dark'] :is(
+  .wcalSearch, .adminSearch, .adminRoom7Search, .mailSearch, .pdirSearch, .arcSearch
+) {
+  background: var(--ra-control, #101f32);
+  color: var(--ra-text, #eef3fa);
+  border-color: var(--ra-border, rgba(255,255,255,.12));
+}
+html[data-ra-theme='dark'] :is(input, textarea)::placeholder { color: var(--ra-muted, #93a3b8); opacity: 1; }
+
+/* Hover and selected rows. */
+html[data-ra-theme='dark'] :is(.adminControlTabs button:hover, .mailFolderButton:hover, .mailMessageRow:hover, .workbenchEditButton:hover, .arcFolders button:hover) {
+  background: var(--ra-control-hover, #172941);
+  color: var(--ra-text, #eef3fa);
+}
+html[data-ra-theme='dark'] .workbenchEditButton { background: var(--ra-control, #101f32); color: var(--ra-muted, #93a3b8); }
+html[data-ra-theme='dark'] .adminControlTabs button.active { background: rgba(255,153,0,.2); color: #ffd9a0; border-color: rgba(255,153,0,.4); }
+
+/* Dark navy text that sat on those surfaces. */
+html[data-ra-theme='dark'] :is(
+  .wcalCell, .wcalCell.today .wcalNum, .wcalColHead, .mailMessageRow, .profileHero h2, .profileHeadshot,
+  .profileEditHeader h3, .mailReaderHeader h3, .kycDocsHeader h3, .kycDocCardHeader strong, .kycDocFileName,
+  .marketingIntelMetrics strong, .myLeaveBadge, .mailReaderBody
+) { color: var(--ra-text, #eef3fa); }
+html[data-ra-theme='dark'] :is(.mailFolderButton, .mailSender, .textButton, .profilePhotoAction, .kycDocFileRow) { color: var(--ra-muted, #93a3b8); }
+html[data-ra-theme='dark'] .mailReaderBody a { color: #8fc2ff; }
+html[data-ra-theme='dark'] .postActions button:hover,
+html[data-ra-theme='dark'] .postActions button.active { color: #8fc2ff; }
+
+/* Warning, error and success tones. */
+html[data-ra-theme='dark'] :is(.authMessage, .callout, .cmCallNotice, .paymentProviderStatus.pending, .embedNote, .paymentProviderNotice, .performanceBanner.needs_focus, .workstationGuideBadges span, .workstationGuideAdminButton, .cmRoomManagedBadge, .myLeaveBadge.pending, .vendorsWarn, .vendorPill.on_hold, .adminAuthorityBadge, .adminReward) {
+  background: var(--ra-warning-bg, rgba(255,174,64,.13));
+  color: var(--ra-warning, #ffc66d);
+  border-color: rgba(255,174,64,.25);
+}
+html[data-ra-theme='dark'] :is(.pdirError, .cmNotice, .marketingIntelError, .adminState.off, .adminBackupNotice.off, .adminBackupHealth header, .adminBackupCoverage.compact .missing, .adminBackupJobError, .adminRoom7Status.failed, .roomEndButton, .dahWarn, .opsExportsNotice.error, .opsExportsStatus.error, .workstationGuideError, .investorSupportError, .vendorsError, .myLeaveBadge.declined, .workPriority.urgent, .workMeta .workDue.overdue, .phoneAlerts .phoneAlertsError, .arcJobs li.failed small, .arcDanger:hover) {
+  color: var(--ra-danger, #ff8c8c);
+}
+html[data-ra-theme='dark'] :is(.pdirError, .cmNotice, .marketingIntelError) { background: var(--ra-danger-bg, rgba(222,72,72,.14)); }
+html[data-ra-theme='dark'] :is(.paymentProviderStatus.ready, .myLeaveBadge.approved, .investorSupportSuccess, .performanceBanner) {
+  background: var(--ra-positive-bg, rgba(50,177,106,.14));
+  color: var(--ra-positive, #72d69d);
+}
+html[data-ra-theme='dark'] :is(.vendorPill.onboarding, .performanceBanner.insufficient_data) { color: #8fc2ff; }
+
+/* Phone menu sheet and its tiles. */
+html[data-ra-theme='dark'] .phoneMoreSheet { background: rgba(12, 26, 44, .86); color: var(--ra-text, #eef3fa); }
+html[data-ra-theme='dark'] .phoneMoreItem,
+html[data-ra-theme='dark'] .phoneMoreSheet > header button { background: rgba(255,255,255,.07); color: var(--ra-text, #eef3fa); border-color: rgba(255,255,255,.1); }
+html[data-ra-theme='dark'] .phoneMoreItem.active { background: rgba(255,153,0,.2); border-color: rgba(255,153,0,.5); }
+html[data-ra-theme='dark'] .phoneAlerts { background: rgba(255,153,0,.1); color: var(--ra-text, #eef3fa); }
+
+/* Light theme: muted grey text that fell just under readable. */
+html[data-ra-theme='light'] .content :is(small, .muted) { --ra-muted-fix: #5d6b7e; }
+
+/* Page background in light mode: dark-shell.css forces a navy page colour, which
+   showed through behind wide tables and made dark text unreadable. */
+html[data-ra-theme='light'],
+html[data-ra-theme='light'] body,
+html[data-ra-theme='light'] #root { background: #eef3f9 !important; }
+
+/* Light mode: grey helper text darkened to pass contrast on white. */
+html[data-ra-theme='light'] :is(
+  .wcalHead p, .wcalFestList small, .wcalMore, .wcalNone, .wcalList small, .wcalColHead small, .wcalAllDayLabel,
+  .wcalGutter span, .wcalAgenda h4, .wcalMeta, .wcalAttendees small, .wcalHint, .bdTodayRow small, .bdX,
+  .bankingHero p, .lhAdminHeader p, .lhAdminResults small, .lhAdminList small, .lhAdminNone, .lhAdminFoot,
+  .myLeaveHead p, .myLeaveNone, .myLeaveList small, .pdirMetrics span, .pdirTable td small, .pdirHint,
+  .pdirFacts dt, .pdirChecklist small, .vendorsMuted
+) { color: #4f5d70; }
+
+/* Dark mode: same helper text lightened. */
+html[data-ra-theme='dark'] :is(
+  .wcalHead p, .wcalFestList small, .wcalMore, .wcalNone, .wcalList small, .wcalColHead small, .wcalAllDayLabel,
+  .wcalGutter span, .wcalAgenda h4, .wcalMeta, .wcalAttendees small, .wcalHint, .bdTodayRow small, .bdX,
+  .bankingHero p, .lhAdminHeader p, .lhAdminResults small, .lhAdminList small, .lhAdminNone, .lhAdminFoot,
+  .myLeaveHead p, .myLeaveNone, .myLeaveList small, .pdirMetrics span, .pdirTable td small, .pdirHint,
+  .pdirFacts dt, .pdirChecklist small, .vendorsMuted
+) { color: var(--ra-muted, #aab8cc); }
+
+html[data-ra-theme='dark'] .bankingFilters button.active { background: rgba(255,153,0,.2); color: #ffd9a0; }
+html[data-ra-theme='dark'] .room7EngagementMessage { color: #fecaca; }
+
+html[data-ra-theme='light'] .metric small { color: #4f5d70; }
+html[data-ra-theme='dark'] .metric small { color: var(--ra-muted, #aab8cc); }
+html[data-ra-theme='light'] .bankingHero .eyebrow { color: #9a5800; }

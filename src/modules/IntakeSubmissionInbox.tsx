@@ -37,7 +37,7 @@ function when(
   value: string | null | undefined,
 ) {
   if (!value) {
-    return '—'
+    return '-'
   }
 
   const date =

@@ -26,6 +26,7 @@ import ControlledDownloadButton from '../components/ControlledDownloadButton'
 import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
 
 import '../brand-library.css'
+import { safeHttpUrl } from '../lib/safeUrl'
 
 
 const BUCKET =
@@ -1184,9 +1185,7 @@ export default function BrandLibrary(){
 
                     {asset.preview_url &&
                       <a
-                        href={
-                          asset.preview_url
-                        }
+                        href={safeHttpUrl(asset.preview_url)}
                         target="_blank"
                         rel="noreferrer"
                       >

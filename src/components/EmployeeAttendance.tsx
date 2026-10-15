@@ -116,7 +116,7 @@ function scheduleDaysLabel(
 }
 
 function scheduleTime(value?: string | null) {
-  if (!value) return '—'
+  if (!value) return '-'
 
   const [hourRaw, minuteRaw] = value.split(':')
   const hour = Number(hourRaw)

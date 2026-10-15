@@ -444,7 +444,7 @@ export function DataWorkbench({
                   <td key={column.key}>
                     {column.render
                       ? column.render(row,employees)
-                      : String(row[column.key]??'—')}
+                      : String(row[column.key]??'-')}
                   </td>
                 ))}
                 <td>

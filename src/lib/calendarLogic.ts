@@ -52,6 +52,21 @@ function shifted(base: Date, rule: Recurrence, step: number): Date {
   return base
 }
 
+const DAY_MS = 86_400_000
+
+// The step to begin from: a little before the window, never before 0.
+function firstStep(start0: Date, rule: Recurrence, from: Date, length: number): number {
+  const gap = from.getTime() - start0.getTime()
+  if (gap <= 0) return 0
+  let guess = 0
+  if (rule === 'daily') guess = gap / DAY_MS - Math.ceil(length / DAY_MS)
+  else if (rule === 'weekly') guess = gap / (7 * DAY_MS) - Math.ceil(length / (7 * DAY_MS))
+  else if (rule === 'biweekly') guess = gap / (14 * DAY_MS) - Math.ceil(length / (14 * DAY_MS))
+  else if (rule === 'monthly') guess = (from.getFullYear() - start0.getFullYear()) * 12 + from.getMonth() - start0.getMonth() - Math.ceil(length / (28 * DAY_MS))
+  else if (rule === 'yearly') guess = from.getFullYear() - start0.getFullYear() - Math.ceil(length / (365 * DAY_MS))
+  return Math.max(0, Math.floor(guess) - 2)
+}
+
 // Every occurrence of an event that touches [from, to). A repeating event keeps
 // its length; a monthly event on the 31st lands on the last day of short months.
 export function expandEvent(ev: EventLike, from: Date, to: Date): Occurrence[] {
@@ -67,7 +82,10 @@ export function expandEvent(ev: EventLike, from: Date, to: Date): Occurrence[] {
   }
 
   const until = ev.recurrence_until ? addDays(parseKey(ev.recurrence_until), 1) : null
-  for (let step = 0; step < 2000; step += 1) {
+  // Start close to the window instead of at the first ever occurrence, so an
+  // event that has repeated for years still shows (the loop is capped).
+  const first = firstStep(start0, ev.recurrence, from, length)
+  for (let step = first; step < first + 2000; step += 1) {
     const s = shifted(start0, ev.recurrence, step)
     if (s >= to) break
     if (until && s >= until) break
@@ -138,8 +156,21 @@ export function layoutDay<T extends { start: Date; end: Date }>(items: T[], dayK
 
 // ---------- ICS export ----------
 
+// Same rule as lib/safeUrl.ts, kept here so this file has no imports.
+function plainWebUrl(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  try {
+    const url = new URL(value.trim())
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return ''
+    if (url.username || url.password) return ''
+    return url.href
+  } catch {
+    return ''
+  }
+}
+
 const icsEscape = (text: string) =>
-  text.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\;')
+  text.replace(/\\/g, '\\\\').replace(/\r\n|\r|\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
 
 const icsUtc = (d: Date) =>
   `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
@@ -192,9 +223,19 @@ export function buildIcs(events: IcsEvent[], now = new Date()): string {
     lines.push(`SUMMARY:${icsEscape(ev.title)}`)
     if (ev.description) lines.push(`DESCRIPTION:${icsEscape(ev.description)}`)
     if (ev.location) lines.push(`LOCATION:${icsEscape(ev.location)}`)
-    if (ev.url) lines.push(`URL:${ev.url}`)
+    // The link is text typed by whoever made the event. Keep only a plain web
+    // address, so it cannot carry a line break that adds lines to the file.
+    const link = plainWebUrl(ev.url)
+    if (link && !/[\r\n]/.test(link)) lines.push(`URL:${link}`)
     if (ev.recurrence !== 'none') {
-      const until = ev.recurrence_until ? `;UNTIL=${ev.recurrence_until.replace(/-/g, '')}` : ''
+      // UNTIL must be the same kind of value as DTSTART: a date for all-day
+      // events, a UTC time (end of that local day) for timed ones.
+      let until = ''
+      if (ev.recurrence_until) {
+        until = ev.all_day
+          ? `;UNTIL=${ev.recurrence_until.replace(/-/g, '')}`
+          : `;UNTIL=${icsUtc(new Date(parseKey(ev.recurrence_until).getTime() + 86_400_000 - 1000))}`
+      }
       lines.push(`RRULE:${RRULE[ev.recurrence]}${until}`)
     }
     lines.push('END:VEVENT')

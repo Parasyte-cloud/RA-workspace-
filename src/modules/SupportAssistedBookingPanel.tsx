@@ -79,7 +79,7 @@ function formatNaira(
 
   if (!Number.isFinite(numeric)) {
     return value === undefined
-      ? '—'
+      ? '-'
       : String(value)
   }
 
@@ -97,7 +97,7 @@ function formatUsd(
   value: number | string | undefined
 ) {
   if (value === undefined) {
-    return '—'
+    return '-'
   }
 
   const numeric = Number(value)

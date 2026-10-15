@@ -285,8 +285,8 @@ export default function PeopleDirectory({
                       <strong>{nameOf(p)}</strong>
                       <small>{p.email}</small>
                     </td>
-                    <td>{p.department || '—'}</td>
-                    <td>{p.job_title || '—'}</td>
+                    <td>{p.department || '-'}</td>
+                    <td>{p.job_title || '-'}</td>
                     <td>{p.role || 'employee'}</td>
                   </tr>
                 ))}
@@ -309,8 +309,8 @@ export default function PeopleDirectory({
 
               {!canManage && (
                 <dl className="pdirFacts">
-                  <dt>Department</dt><dd>{selected.department || '—'}</dd>
-                  <dt>Job title</dt><dd>{selected.job_title || '—'}</dd>
+                  <dt>Department</dt><dd>{selected.department || '-'}</dd>
+                  <dt>Job title</dt><dd>{selected.job_title || '-'}</dd>
                   <dt>Reports to</dt><dd>{managerName(selected.manager_id)}</dd>
                 </dl>
               )}
