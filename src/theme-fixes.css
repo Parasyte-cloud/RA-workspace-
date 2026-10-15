@@ -127,3 +127,6 @@ html[data-ra-theme='dark'] .room7EngagementMessage { color: #fecaca; }
 html[data-ra-theme='light'] .metric small { color: #4f5d70; }
 html[data-ra-theme='dark'] .metric small { color: var(--ra-muted, #aab8cc); }
 html[data-ra-theme='light'] .bankingHero .eyebrow { color: #9a5800; }
+
+.routeFailureDetail { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; word-break: break-word; }
+.routeFailure .glassButton + .glassButton { margin-left: 8px; }

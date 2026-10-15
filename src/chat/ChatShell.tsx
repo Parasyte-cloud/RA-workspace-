@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Reply,
+  MoreHorizontal,
   Search,
   Send,
   Smile,
@@ -43,6 +44,7 @@ import { InChatSearch } from './ui/InChatSearch'
 import { MyChatProfile, PersonCard } from './ui/ProfileDialogs'
 import '../chat-extras.css'
 import '../chat-dark.css'
+import '../chat-ios.css'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
@@ -221,6 +223,9 @@ const formatTime=(value?:string|null)=>{
 
 const dayLabel=(value:string)=>{
   const date=new Date(value)
+  // A missing or malformed timestamp made Intl throw a RangeError while the
+  // list was rendering, which took the whole Chat section down on every retry.
+  if(Number.isNaN(date.getTime()))return 'Earlier'
   const today=new Date()
   const yesterday=new Date()
   yesterday.setDate(today.getDate()-1)
@@ -309,6 +314,8 @@ export function ChatShell(){
   const [imageUrls,setImageUrls]=useState<Record<string,string>>({})
   const [voice,setVoice]=useState<Voice|null>(null)
   const [exportOpen,setExportOpen]=useState(false)
+  const [actionsFor,setActionsFor]=useState('')
+  const [moreOpen,setMoreOpen]=useState(false)
   const [exporting,setExporting]=useState('')
   const [viewer,setViewer]=useState<{url:string;name:string;path:string|null}|null>(null)
 
@@ -2213,10 +2220,20 @@ export function ChatShell(){
                     </div>
                   </>
                 )}
-                <div className="cmHeadActions">
+                <div className={`cmHeadActions${moreOpen?' moreOpen':''}`} onClick={()=>setMoreOpen(false)}>
                   <button
                     type="button"
-                    className="cmRound"
+                    className="cmRound cmMoreBtn"
+                    title="More"
+                    aria-label="More"
+                    aria-expanded={moreOpen}
+                    onClick={event=>{event.stopPropagation();setMoreOpen(open=>!open)}}
+                  >
+                    <MoreHorizontal size={18}/>
+                  </button>
+                  <button
+                    type="button"
+                    className="cmRound cmSecondary"
                     title="Search this conversation"
                     aria-label="Search this conversation"
                     aria-expanded={findOpen}
@@ -2226,7 +2243,7 @@ export function ChatShell(){
                   </button>
                   <button
                     type="button"
-                    className="cmRound"
+                    className="cmRound cmSecondary"
                     title="Export chat"
                     aria-label="Export chat"
                     aria-expanded={exportOpen}
@@ -2249,7 +2266,7 @@ export function ChatShell(){
                     <>
                       <button
                         type="button"
-                        className="cmRound"
+                        className="cmRound cmSecondary"
                         title={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
                         aria-label={selected.membership.archived_at?'Unarchive chat':'Archive chat'}
                         onClick={()=>void setArchived(selected,!selected.membership.archived_at)}
@@ -2260,7 +2277,7 @@ export function ChatShell(){
                       {isAdmin&&(
                         <button
                           type="button"
-                          className="cmRound cmDanger"
+                          className="cmRound cmDanger cmSecondary"
                           title="Delete chat (admin only)"
                           aria-label="Delete chat (admin only)"
                           onClick={()=>void deleteChat(selected)}
@@ -2428,55 +2445,21 @@ export function ChatShell(){
                   const showDelete=canDelete(message,userId)
                   const editing=editingId===message.id
                   return (
-                    <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}${deleted?' deleted':''}`}>
-                      <div className="cmBubble" title={displayName(sender)}>
-                        {!deleted&&!message.pending&&!message.failed&&!editing&&(
-                          <MessageToolbar
-                            canReact
-                            canPin
-                            pinned={extras.isPinned(message.id)}
-                            onReact={emoji=>void extras.react(message.id,emoji)}
-                            onTogglePin={()=>void extras.setPinned(message.id,!extras.isPinned(message.id))}
-                          />
-                        )}
+                    <div key={message.id} id={`cm-msg-${message.id}`} className={`cmMsg ${mine?'mine':'theirs'}${message.failed?' failed':''}${deleted?' deleted':''}${actionsFor===message.id?' actionsOpen':''}`}>
+                      <div className="cmRowWrap">
+                      <div
+                        className="cmBubble"
+                        title={displayName(sender)}
+                        onClick={event=>{
+                          if((event.target as HTMLElement).closest('button,a,audio,textarea,input,img'))return
+                          setActionsFor(current=>current===message.id?'':message.id)
+                        }}
+                      >
                         {showRoomSenderName&&(
                           <span className="cmSenderName">
                             {avatarFor(sender,20,true)}
                             {displayName(sender)}
                           </span>
-                        )}
-                        {canReply&&(
-                          <button
-                            type="button"
-                            className="cmReplyBtn"
-                            aria-label="Reply to this message"
-                            title="Reply"
-                            onClick={()=>{setReplyTo(message);composerRef.current?.focus()}}
-                          >
-                            <Reply size={14}/>
-                          </button>
-                        )}
-                        {showEdit&&!editing&&(
-                          <button
-                            type="button"
-                            className="cmReplyBtn cmEditBtn"
-                            aria-label="Edit this message"
-                            title="Edit"
-                            onClick={()=>{setEditingId(message.id);setEditText(message.body)}}
-                          >
-                            <Pencil size={14}/>
-                          </button>
-                        )}
-                        {showDelete&&!editing&&(
-                          <button
-                            type="button"
-                            className="cmReplyBtn cmDeleteBtn"
-                            aria-label="Delete this message"
-                            title="Delete"
-                            onClick={()=>void deleteMessage(message)}
-                          >
-                            <Trash2 size={14}/>
-                          </button>
                         )}
                         {!deleted&&message.reply_to_id&&(
                           <button
@@ -2636,6 +2619,51 @@ export function ChatShell(){
                                       </span>
                           )}
                         </span>
+                      </div>
+                      <div className="cmActions">
+                        {!deleted&&!message.pending&&!message.failed&&!editing&&(
+                          <MessageToolbar
+                            canReact
+                            canPin
+                            pinned={extras.isPinned(message.id)}
+                            onReact={emoji=>void extras.react(message.id,emoji)}
+                            onTogglePin={()=>void extras.setPinned(message.id,!extras.isPinned(message.id))}
+                          />
+                        )}
+                        {canReply&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn"
+                            aria-label="Reply to this message"
+                            title="Reply"
+                            onClick={()=>{setReplyTo(message);composerRef.current?.focus()}}
+                          >
+                            <Reply size={14}/>
+                          </button>
+                        )}
+                        {showEdit&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn cmEditBtn"
+                            aria-label="Edit this message"
+                            title="Edit"
+                            onClick={()=>{setEditingId(message.id);setEditText(message.body)}}
+                          >
+                            <Pencil size={14}/>
+                          </button>
+                        )}
+                        {showDelete&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn cmDeleteBtn"
+                            aria-label="Delete this message"
+                            title="Delete"
+                            onClick={()=>void deleteMessage(message)}
+                          >
+                            <Trash2 size={14}/>
+                          </button>
+                        )}
+                      </div>
                       </div>
                       {!deleted&&!message.pending&&!message.failed&&(
                         <ReactionChips
