@@ -27,7 +27,7 @@ Method: static review of the repository at origin/main 3a0b148 plus automated sc
 5. Low. FIXED. social_hashtags insert policy was with check (true). Migration 20261015200000 now only accepts lowercase letters, digits and underscores, 1 to 50 characters.
 6. Low. FIXED. Window.open for PROVIDUS_URL now sets noopener.
 7. Withdrawn. An earlier draft said authenticated functions allow any origin. On re-check every function restricts CORS to the workspace or an allow-list.
-8. Performance. PARTLY FIXED. Six logo PNGs (0.7 to 1.4 MB each) were downscaled to display size, saving about 3 MB. The 2.3 MB useRoom7MeetingExtras chunk is still to split.
+8. Performance. PARTLY FIXED. Six logo PNGs were downscaled (about 3 MB saved). On re-check the 2.3 MB Room 7 chunk is the video meeting SDK (617 KB over the wire), and it was already lazy: the entry page never loads it, only the meeting screens do. It now warms up in the background while the Room 7 module or the guest lobby is open, so joining feels instant. Pinning the SDK into its own chunk was tried and rejected: it made the entry page preload 3.8 MB.
 9. Maintainability. room-event-control (3.2k lines), room-event-documents (3.1k), ridearrivo-support (1.1k) are hard to review. Split by route.
 
 ### Verify in the live project (cannot be seen from the repo)
