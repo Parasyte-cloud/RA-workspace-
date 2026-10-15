@@ -80,7 +80,7 @@ export default function Room7Install() {
   }
 
   return (
-    <div className="room7InstallBar" role="region" aria-label="Install ROOM 7">
+    <div className="room7InstallBar responsiveActionBar" role="region" aria-label="Install ROOM 7">
       {event ? (
         <button type="button" className="room7InstallButton" onClick={() => void install()}>
           <Download size={16} /> Install ROOM 7

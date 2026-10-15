@@ -999,7 +999,7 @@ export default function ExternalRoom7App() {
   }
 
   return (
-    <main className="room7Public">
+    <main className="room7Public responsiveModule">
       <div className="room7PublicGlow room7PublicGlowOne" />
       <div className="room7PublicGlow room7PublicGlowTwo" />
 
@@ -1191,7 +1191,7 @@ export default function ExternalRoom7App() {
                 )}
             </div>
 
-            <aside id="room7-guest-access" className="room7PublicJoinCard">
+            <aside id="room7-guest-access" className="room7PublicJoinCard responsiveFormSurface">
               <div>
                 <span className="room7PublicEyebrow">
                   GUEST ACCESS

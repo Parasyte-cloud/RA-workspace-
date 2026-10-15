@@ -2000,3 +2000,139 @@
   }
   .room7PublicJumpJoin{margin-top:14px}
 }
+
+/* --- Public ROOM 7 responsive shell ---
+   Kept local to this public/lazy surface so the internal workspace stylesheet
+   remains outside the guest security boundary. */
+.room7Public.responsiveModule{
+  min-height:100vh;
+  min-height:100dvh;
+  min-width:0;
+  max-width:100%;
+  padding-left:max(6vw,env(safe-area-inset-left,0px));
+  padding-right:max(6vw,env(safe-area-inset-right,0px));
+  padding-bottom:max(50px,env(safe-area-inset-bottom,0px));
+}
+
+.room7PublicJoinCard.responsiveFormSurface{
+  min-width:0;
+  max-width:100%;
+}
+
+.room7InstallBar.responsiveActionBar{
+  min-width:0;
+  max-width:100%;
+}
+
+@media (min-width:600px) and (max-width:1023px){
+  .room7Public.responsiveModule{
+    padding-left:max(28px,env(safe-area-inset-left,0px));
+    padding-right:max(28px,env(safe-area-inset-right,0px));
+  }
+
+  .room7PublicHero{
+    width:min(900px,100%);
+    grid-template-columns:minmax(0,1fr) minmax(300px,.72fr);
+    gap:28px;
+    margin-top:42px;
+  }
+
+  .room7PublicHero h1{
+    font-size:clamp(38px,6.7vw,58px);
+  }
+}
+
+@media (max-width:599px){
+  .room7Public.responsiveModule{
+    min-height:100dvh;
+    padding:
+      max(8px,env(safe-area-inset-top,0px))
+      max(14px,env(safe-area-inset-right,0px))
+      max(28px,env(safe-area-inset-bottom,0px))
+      max(14px,env(safe-area-inset-left,0px));
+    overflow-x:hidden;
+  }
+
+  .room7PublicHeader{
+    min-height:72px;
+    gap:10px;
+  }
+
+  .room7PublicSecure{
+    display:none;
+  }
+
+  .room7PublicHero{
+    width:100%;
+    grid-template-columns:minmax(0,1fr);
+    gap:18px;
+    margin-top:18px;
+  }
+
+  .room7PublicHero h1{
+    margin:10px 0 14px;
+    font-size:clamp(30px,10vw,42px);
+    line-height:1.03;
+  }
+
+  .room7PublicMetaLine{
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+
+  .room7PublicCountdown{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    margin-top:20px;
+  }
+
+  .room7PublicJoinCard.responsiveFormSurface{
+    padding:20px;
+    border-radius:22px;
+  }
+
+  .room7PublicForm,
+  .room7PublicEntryForm{
+    grid-template-columns:minmax(0,1fr) !important;
+    flex-direction:column;
+  }
+
+  .room7PublicForm input:not([type="checkbox"]),
+  .room7PublicEntryForm input{
+    width:100%;
+    min-width:0;
+    font-size:16px;
+  }
+
+  .room7PublicJoinButton,
+  .room7PublicEntryForm button,
+  .room7PublicJumpJoin{
+    width:100%;
+    min-height:50px;
+    justify-content:center;
+  }
+
+  .room7InstallBar.responsiveActionBar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:8px;
+    padding:
+      14px
+      max(14px,env(safe-area-inset-right,0px))
+      max(14px,env(safe-area-inset-bottom,0px))
+      max(14px,env(safe-area-inset-left,0px));
+  }
+
+  .room7InstallButton,
+  .room7InstallLater{
+    width:100%;
+    justify-content:center;
+  }
+
+  .room7ExperienceShell{
+    inset:
+      max(5px,env(safe-area-inset-top,0px))
+      max(5px,env(safe-area-inset-right,0px))
+      max(5px,env(safe-area-inset-bottom,0px))
+      max(5px,env(safe-area-inset-left,0px));
+  }
+}
