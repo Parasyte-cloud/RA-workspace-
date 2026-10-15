@@ -142,3 +142,61 @@
 @media (max-width: 599px) and (prefers-reduced-motion: reduce) {
   nav.phoneTabs button.active::before { animation: none; }
 }
+
+/* ===== Round 2: make the phone bars unmistakably glass (iOS style) ===== */
+@media (max-width: 599px) {
+  /* Bottom bar: brighter rim, a diagonal sheen and a faint tint, so it reads as
+     glass even when the page behind it is a flat colour. */
+  html[data-ra-theme] nav.phoneTabs {
+    border-radius: 32px !important;
+    background:
+      radial-gradient(120% 140% at 8% 0%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%),
+      radial-gradient(90% 120% at 100% 100%, rgba(255,170,60,.16) 0%, rgba(255,170,60,0) 55%),
+      linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(210%) brightness(1.12) !important;
+    backdrop-filter: blur(16px) saturate(210%) brightness(1.12) !important;
+    border: 1px solid rgba(255,255,255,.42) !important;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.75),
+      inset 0 -1px 0 rgba(255,255,255,.18),
+      inset 1px 0 0 rgba(255,255,255,.18),
+      inset -1px 0 0 rgba(255,255,255,.18),
+      0 18px 44px rgba(0,0,0,.34),
+      0 0 0 .5px rgba(255,255,255,.12) !important;
+  }
+  html[data-ra-theme='light'] nav.phoneTabs {
+    background:
+      radial-gradient(120% 140% at 8% 0%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 50%),
+      radial-gradient(90% 120% at 100% 100%, rgba(255,170,60,.18) 0%, rgba(255,170,60,0) 55%),
+      linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.2)) !important;
+    border-color: rgba(255,255,255,.9) !important;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,1),
+      inset 0 -1px 0 rgba(7,26,56,.06),
+      0 14px 36px rgba(7,26,56,.18),
+      0 0 0 .5px rgba(7,26,56,.08) !important;
+  }
+  nav.phoneTabs { overflow: hidden !important; }
+  nav.phoneTabs button { position: relative; z-index: 1; }
+
+  /* Top bar: flat frosted strip like iOS, not a floating card. */
+  .shell.glassFrame .topbar.glassPanel {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-width: 0 0 .5px 0 !important;
+    border-color: rgba(255,255,255,.28) !important;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+    backdrop-filter: blur(20px) saturate(190%) !important;
+    box-shadow: none !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    min-height: 0;
+    height: auto !important;
+    padding-bottom: 8px !important;
+  }
+  html[data-ra-theme='light'] .shell.glassFrame .topbar.glassPanel {
+    background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.4)) !important;
+    border-color: rgba(7,26,56,.1) !important;
+  }
+  .shell.glassFrame .topbar h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; }
+}
