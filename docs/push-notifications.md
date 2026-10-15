@@ -56,3 +56,15 @@ Until step 6 is done the Phone alerts row is hidden, so nothing half-working is 
 - Decline or let it go unanswered: the ring is replaced by "Missed call".
 - If nothing arrives: `select * from push_subscriptions;` (is the phone listed?), the function logs in
   Supabase, and `select * from net._http_response order by id desc limit 5;` (did the trigger call out?).
+
+## Ringing when the app is closed (added Oct 2026)
+
+- A closed web app cannot loop its own ringtone. The device plays its normal
+  notification sound. To make a call feel like a ring, `push-dispatch` sends the
+  call again every 8 seconds (up to 5 times) while the call is still `ringing`.
+  Each repeat has the same tag, so it replaces the last one and re-alerts.
+- The ringtone picked in Settings (7 choices, Cricket by default) plays only
+  while the app is open, because browsers cannot play audio from a closed app.
+- iPhone and iPad: push works only for the app added to the Home Screen
+  (iOS 16.4 or newer). Laptops: the browser must be running in the background.
+- Redeploy after merging: `supabase functions deploy push-dispatch --no-verify-jwt --project-ref fkkxcivxnwshahnbatnp`

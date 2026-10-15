@@ -66,6 +66,7 @@ import {
   X as CloseIcon
 } from 'lucide-react'
 import PhoneNav from './modules/PhoneNav'
+import { NotificationSettings } from './modules/NotificationSettings'
 import { supabase,
   supabaseConfigured,
   initialAuthLink } from './lib/supabase'
@@ -1292,6 +1293,7 @@ function App(){
       open={phoneMenuOpen}
       onOpenChange={setPhoneMenuOpen}
       onPick={id=>{setSection(id as Section);setWorkspace(null);setPhoneMenuOpen(false)}}
+      onSignOut={()=>{setPhoneMenuOpen(false);void signOut()}}
     />
     <main className="workspaceMain">
       <header className="topbar glassPanel glassSurface">
@@ -1437,7 +1439,7 @@ function App(){
         {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
-        {section==='settings'&&<AppearanceSettings/>}
+        {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()}/></>}
         {section==='admin'&&<AdminModule/>}
         {section==='deptadmin'&&<DepartmentAdminView onNavigate={navigateToSection}/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}

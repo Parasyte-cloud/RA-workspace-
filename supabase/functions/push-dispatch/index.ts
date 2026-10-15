@@ -5,7 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import webpush from "npm:web-push@3.6.7"
-import { buildPushMessage, isGone } from "../_shared/pushPayload.ts"
+import { buildPushMessage, isGone, RING_GAP_MS, RING_REPEATS } from "../_shared/pushPayload.ts"
 
 const SECRET = Deno.env.get("PUSH_DISPATCH_SECRET") || ""
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") || ""
@@ -59,25 +59,53 @@ Deno.serve(async (request) => {
   const payload = JSON.stringify(message)
   const topic = message.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32) || undefined
 
-  let sent = 0
-  await Promise.all(subs.map(async (sub) => {
-    try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        payload,
-        { TTL: message.ttl, urgency: message.urgent ? "high" : "normal", topic },
-      )
-      sent++
-      await admin.from("push_subscriptions").update({ last_success_at: new Date().toISOString(), failure_count: 0 }).eq("id", sub.id)
-    } catch (error) {
-      const status = Number((error as { statusCode?: number })?.statusCode || 0)
-      if (isGone(status) || sub.failure_count + 1 >= MAX_FAILURES) {
-        await admin.from("push_subscriptions").delete().eq("id", sub.id)
-      } else {
-        await admin.from("push_subscriptions").update({ failure_count: sub.failure_count + 1 }).eq("id", sub.id)
+  const sendAll = async (body: string) => {
+    let delivered = 0
+    await Promise.all(subs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          body,
+          { TTL: message.ttl, urgency: message.urgent ? "high" : "normal", topic },
+        )
+        delivered++
+        await admin.from("push_subscriptions").update({ last_success_at: new Date().toISOString(), failure_count: 0 }).eq("id", sub.id)
+      } catch (error) {
+        const status = Number((error as { statusCode?: number })?.statusCode || 0)
+        if (isGone(status) || sub.failure_count + 1 >= MAX_FAILURES) {
+          await admin.from("push_subscriptions").delete().eq("id", sub.id)
+        } else {
+          await admin.from("push_subscriptions").update({ failure_count: sub.failure_count + 1 }).eq("id", sub.id)
+        }
+      }
+    }))
+    return delivered
+  }
+
+  const sent = await sendAll(payload)
+
+  // Keep ringing: while the call is still unanswered, send it again every few
+  // seconds. Runs after the response so the database trigger is not held up.
+  if (message.urgent && sent > 0 && row.type === "call") {
+    const repeat = async () => {
+      for (let n = 1; n <= RING_REPEATS; n++) {
+        await new Promise((resolve) => setTimeout(resolve, RING_GAP_MS))
+        const { data: ringing } = await admin
+          .from("chat_calls")
+          .select("id")
+          .eq("callee_id", row.user_id)
+          .eq("conversation_id", row.entity_id)
+          .eq("status", "ringing")
+          .gte("created_at", new Date(Date.now() - 60_000).toISOString())
+          .limit(1)
+        if (!ringing?.length) return
+        await sendAll(JSON.stringify({ ...message, repeat: n }))
       }
     }
-  }))
+    const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime
+    if (runtime?.waitUntil) runtime.waitUntil(repeat().catch(() => {}))
+    else void repeat().catch(() => {})
+  }
 
   return json({ sent })
 })

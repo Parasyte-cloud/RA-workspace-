@@ -1,0 +1,49 @@
+/* Settings for sound and alerts, and the ring light on phones. */
+
+.notificationSettings { margin-top: 18px; }
+.settingsNote { display: block; margin-top: 8px; opacity: .75; line-height: 1.4; }
+
+.ringtoneList { display: grid; gap: 8px; margin-top: 12px; }
+.ringtoneOption {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px;
+  border: 1px solid var(--ra-border, rgba(7,26,56,.14)); border-radius: 14px;
+  background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit;
+  touch-action: manipulation;
+}
+.ringtoneOption span { display: grid; min-width: 0; }
+.ringtoneOption small { opacity: .7; }
+.ringtoneOption.active { border-color: rgba(255,153,0,.8); box-shadow: inset 0 0 0 1px rgba(255,153,0,.25); }
+.ringtoneVolume { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.ringtoneVolume input { flex: 1; min-height: 32px; }
+.phoneMoreSignOut svg { color: #c0392b !important; }
+
+/* Ring light on phones. The desktop ring light is a glow around the framed
+   window; a phone fills the whole screen, so the glow is drawn along the
+   screen edges instead. It never takes taps. */
+@media (max-width: 599px) {
+  html[data-ra-glow]:not([data-ra-glow='off']) body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    border-radius: 0;
+  }
+  html[data-ra-glow='subtle'] body::after {
+    box-shadow: inset 0 0 0 1px rgba(255,177,59,.5), inset 0 0 26px rgba(255,153,0,.30), inset 0 0 60px rgba(68,128,255,.16);
+  }
+  html[data-ra-glow='medium'] body::after {
+    box-shadow: inset 0 0 0 2px rgba(255,177,59,.7), inset 0 0 36px 2px rgba(255,153,0,.45), inset 0 0 90px 8px rgba(68,128,255,.30);
+  }
+  html[data-ra-glow='high'] body::after {
+    box-shadow: inset 0 0 0 2px rgba(255,200,90,.9), inset 0 0 44px 6px rgba(255,170,30,.65), inset 0 0 120px 18px rgba(68,128,255,.45);
+  }
+}
+
+/* Installed app feel: no rubber-band page bounce or accidental text selection
+   on controls, and no grey tap flash. */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+  button, .iconButton, .phoneTabs { -webkit-user-select: none; user-select: none; }
+}
+* { -webkit-tap-highlight-color: transparent; }

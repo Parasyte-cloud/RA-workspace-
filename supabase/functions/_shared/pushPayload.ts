@@ -49,6 +49,12 @@ export function buildPushMessage(row: NotificationRow): PushMessage {
   }
 }
 
+// A closed app cannot loop a ringtone, so a call is sent again a few times
+// while it is still ringing. Each repeat carries the same tag and replaces the
+// last one, so the phone buzzes and sounds again without stacking notices.
+export const RING_REPEATS = 5
+export const RING_GAP_MS = 8000
+
 // Push services answer 404 or 410 for a subscription that no longer exists.
 export function isGone(status: number) {
   return status === 404 || status === 410

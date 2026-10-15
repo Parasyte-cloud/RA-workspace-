@@ -11,7 +11,16 @@
  * reports when sound is still blocked so the screen can say so.
  */
 
-export type Tone = { at: number; dur: number; freqs: number[]; gain: number }
+export type Tone = {
+  at: number
+  dur: number
+  freqs: number[]
+  gain: number
+  // Defaults: a plain sine that holds its level. "decay" instead fades the
+  // note away like a struck bell or key.
+  wave?: 'sine' | 'triangle' | 'square'
+  decay?: boolean
+}
 export type Pattern = { cycle: number; tones: Tone[] }
 
 const E5 = 659.25
@@ -26,9 +35,134 @@ function phrase(start: number): Tone[] {
   ]
 }
 
-export const INCOMING: Pattern = {
+const CLASSIC: Pattern = {
   cycle: 3.0,
   tones: [...phrase(0), ...phrase(1.0)],
+}
+export const INCOMING: Pattern = CLASSIC
+
+// ---- Ringtone choices -------------------------------------------------------
+// Every sound is made from plain tones (no audio files), so a new one is just
+// data. Cricket is the default.
+
+function cricket(): Pattern {
+  const tones: Tone[] = []
+  for (const group of [0, 0.42, 0.84]) {
+    for (let i = 0; i < 4; i++) {
+      tones.push({ at: group + i * 0.065, dur: 0.04, freqs: [4300], gain: 0.1 })
+    }
+  }
+  return { cycle: 2.6, tones }
+}
+
+function bell(): Pattern {
+  const strike = (at: number): Tone[] => [
+    { at, dur: 1.3, freqs: [784], gain: 0.16, decay: true },
+    { at, dur: 1.0, freqs: [2163], gain: 0.07, decay: true },
+    { at, dur: 0.7, freqs: [4233], gain: 0.03, decay: true },
+  ]
+  // Overlapping strikes are the point of a bell, so this one is exempt from
+  // the "tones never overlap" rule that the original ring keeps.
+  return { cycle: 3.4, tones: [...strike(0), ...strike(1.5)] }
+}
+
+function telephone(): Pattern {
+  const tones: Tone[] = []
+  for (const burst of [0, 0.6]) {
+    for (let i = 0; i < 9; i++) {
+      tones.push({ at: burst + i * 0.05, dur: 0.04, freqs: [480, 620], gain: 0.1, wave: 'triangle' })
+    }
+  }
+  return { cycle: 3.0, tones }
+}
+
+function chime(): Pattern {
+  const notes = [523.25, 659.25, 783.99, 1046.5]
+  return {
+    cycle: 3.2,
+    tones: notes.map((f, i) => ({ at: i * 0.22, dur: 0.9, freqs: [f], gain: 0.15, decay: true })),
+  }
+}
+
+function marimba(): Pattern {
+  const notes = [392, 494, 587, 494, 392, 587]
+  return {
+    cycle: 3.0,
+    tones: notes.map((f, i) => ({ at: i * 0.16, dur: 0.28, freqs: [f], gain: 0.2, wave: 'triangle' as const, decay: true })),
+  }
+}
+
+function digital(): Pattern {
+  const tones: Tone[] = []
+  for (let i = 0; i < 3; i++) tones.push({ at: i * 0.2, dur: 0.1, freqs: [988], gain: 0.1, wave: 'square' })
+  for (let i = 0; i < 3; i++) tones.push({ at: 1.1 + i * 0.2, dur: 0.1, freqs: [988], gain: 0.1, wave: 'square' })
+  return { cycle: 2.4, tones }
+}
+
+export type RingtoneId = 'cricket' | 'bell' | 'telephone' | 'chime' | 'marimba' | 'digital' | 'classic'
+
+export const RINGTONES: { id: RingtoneId; label: string; hint: string; pattern: Pattern }[] = [
+  { id: 'cricket', label: 'Cricket', hint: 'Soft evening chirps (default)', pattern: cricket() },
+  { id: 'bell', label: 'Bell', hint: 'Two clear bell strikes', pattern: bell() },
+  { id: 'telephone', label: 'Telephone', hint: 'An old desk phone', pattern: telephone() },
+  { id: 'chime', label: 'Chime', hint: 'Four rising notes', pattern: chime() },
+  { id: 'marimba', label: 'Marimba', hint: 'A warm wooden tune', pattern: marimba() },
+  { id: 'digital', label: 'Digital', hint: 'Short electronic beeps', pattern: digital() },
+  { id: 'classic', label: 'Classic', hint: 'The original RideArrivo ring', pattern: CLASSIC },
+]
+
+export const DEFAULT_RINGTONE: RingtoneId = 'cricket'
+export const DEFAULT_VOLUME = 0.8
+
+export function isRingtoneId(value: unknown): value is RingtoneId {
+  return typeof value === 'string' && RINGTONES.some(item => item.id === value)
+}
+
+export function ringtonePattern(id: unknown): Pattern {
+  return (RINGTONES.find(item => item.id === id) ?? RINGTONES[0]).pattern
+}
+
+export function clampVolume(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return DEFAULT_VOLUME
+  return Math.min(1, Math.max(0.2, n))
+}
+
+const TONE_KEY = 'ra-ringtone'
+const VOLUME_KEY = 'ra-ringtone-volume'
+
+export function readRingtone(): RingtoneId {
+  try {
+    const value = window.localStorage.getItem(TONE_KEY)
+    return isRingtoneId(value) ? value : DEFAULT_RINGTONE
+  } catch {
+    return DEFAULT_RINGTONE
+  }
+}
+
+export function saveRingtone(id: RingtoneId) {
+  try {
+    window.localStorage.setItem(TONE_KEY, id)
+  } catch {
+    /* storage can be blocked; the choice then lasts until reload */
+  }
+}
+
+export function readVolume(): number {
+  try {
+    const raw = window.localStorage.getItem(VOLUME_KEY)
+    return raw === null ? DEFAULT_VOLUME : clampVolume(raw)
+  } catch {
+    return DEFAULT_VOLUME
+  }
+}
+
+export function saveVolume(value: number) {
+  try {
+    window.localStorage.setItem(VOLUME_KEY, String(clampVolume(value)))
+  } catch {
+    /* see saveRingtone */
+  }
 }
 
 // 425 Hz for one second, then three seconds of quiet.
@@ -88,21 +222,29 @@ export function wireAudioUnlock() {
   }
 }
 
-function playCycle(ctx: AudioContext, pattern: Pattern) {
+function playCycle(ctx: AudioContext, pattern: Pattern, volume = 1) {
   const base = ctx.currentTime + 0.02
   for (const tone of pattern.tones) {
     for (const freq of tone.freqs) {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      osc.type = 'sine'
+      osc.type = tone.wave ?? 'sine'
       osc.frequency.value = freq
       const start = base + tone.at
       const end = start + tone.dur
-      // Short fade in and out so the tone never clicks.
+      const level = tone.gain * volume
       gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.linearRampToValueAtTime(tone.gain, start + 0.02)
-      gain.gain.setValueAtTime(tone.gain, Math.max(start + 0.02, end - 0.04))
-      gain.gain.linearRampToValueAtTime(0.0001, end)
+      if (tone.decay) {
+        // A quick attack, then a smooth fade to silence.
+        gain.gain.linearRampToValueAtTime(level, start + 0.012)
+        gain.gain.exponentialRampToValueAtTime(0.0001, end)
+      } else {
+        // Short fade in and out so the tone never clicks.
+        const fade = Math.min(0.02, tone.dur / 3)
+        gain.gain.linearRampToValueAtTime(level, start + fade)
+        gain.gain.setValueAtTime(level, Math.max(start + fade, end - fade * 2))
+        gain.gain.linearRampToValueAtTime(0.0001, end)
+      }
       osc.connect(gain)
       gain.connect(ctx.destination)
       osc.start(start)
@@ -117,7 +259,8 @@ export function startTone(
   kind: 'incoming' | 'ringback',
   onBlocked?: (blocked: boolean) => void,
 ): () => void {
-  const pattern = kind === 'incoming' ? INCOMING : RINGBACK
+  const pattern = kind === 'incoming' ? ringtonePattern(readRingtone()) : RINGBACK
+  const volume = kind === 'incoming' ? readVolume() : 1
   let stopped = false
   let timer = 0
 
@@ -129,7 +272,7 @@ export function startTone(
     onBlocked?.(blocked)
     if (ctx && !blocked) {
       try {
-        playCycle(ctx, pattern)
+        playCycle(ctx, pattern, volume)
       } catch {
         /* no sound this round; the banner is still on screen */
       }
@@ -161,3 +304,19 @@ export function startTone(
 }
 
 export const hasBeenPrimed = () => primed
+
+// Plays one round of a ringtone so it can be heard before it is chosen.
+// Call from a tap. Resolves to false when the browser still blocks sound.
+export async function previewRingtone(id: RingtoneId, volume = readVolume()): Promise<boolean> {
+  const ctx = context()
+  if (!ctx) return false
+  primed = true
+  try {
+    if (ctx.state !== 'running') await ctx.resume()
+    if (ctx.state !== 'running') return false
+    playCycle(ctx, ringtonePattern(id), clampVolume(volume))
+    return true
+  } catch {
+    return false
+  }
+}

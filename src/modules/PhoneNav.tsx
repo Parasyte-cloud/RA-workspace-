@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react'
+import { LogOut, Menu as MenuIcon, Moon, Sun, X as CloseIcon } from 'lucide-react'
+import { readAppearance, saveAppearance } from '../lib/appearance'
 
 type NavItem = readonly [id: string, label: string, Icon: LucideIcon, ...rest: unknown[]]
 type Groups = {
@@ -9,6 +10,7 @@ type Groups = {
   mine: NavItem[]
   groups: { id: string; label: string; items: NavItem[] }[]
   system: NavItem[]
+  menu?: NavItem[]
 }
 
 const TAB_IDS = ['overview', 'tasks', 'chat', 'mail']
@@ -24,6 +26,7 @@ export default function PhoneNav({
   open,
   onOpenChange,
   onPick,
+  onSignOut,
 }: {
   nav: readonly NavItem[]
   groups: Groups
@@ -31,7 +34,15 @@ export default function PhoneNav({
   open: boolean
   onOpenChange: (open: boolean) => void
   onPick: (id: string) => void
+  onSignOut?: () => void
 }) {
+  const [theme, setTheme] = useState(() => readAppearance().theme)
+  const flipTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    saveAppearance({ ...readAppearance(), theme: next })
+    setTheme(next)
+  }
+
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
@@ -111,6 +122,22 @@ export default function PhoneNav({
                   <div className="phoneMoreGrid">{block.items.map(row)}</div>
                 </section>
               ))}
+              <section>
+                <h3>Account</h3>
+                <div className="phoneMoreGrid">
+                  {(groups.menu ?? []).map(row)}
+                  <button type="button" className="phoneMoreItem uiFocusRing" onClick={flipTheme}>
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                  </button>
+                  {onSignOut && (
+                    <button type="button" className="phoneMoreItem phoneMoreSignOut uiFocusRing" onClick={onSignOut}>
+                      <LogOut size={20} />
+                      <span>Sign out</span>
+                    </button>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         </div>

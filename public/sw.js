@@ -87,10 +87,15 @@ self.addEventListener('push', event => {
     const iphone = /iphone|ipad|ipod/i.test(self.navigator.userAgent || '')
     if (!iphone && windows.some(client => client.visibilityState === 'visible')) return
 
+    // Little count on the app icon, like other apps (where the device supports it).
+    try { if (self.navigator.setAppBadge) await self.navigator.setAppBadge() } catch (_) {}
+
     await self.registration.showNotification(data.title || 'RideArrivo', {
       body: data.body || '',
       tag: data.tag || undefined,
       renotify: Boolean(data.tag),
+      silent: false,
+      timestamp: Date.now(),
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       requireInteraction: Boolean(data.urgent),
@@ -102,6 +107,7 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close()
+  try { if (self.navigator.clearAppBadge) self.navigator.clearAppBadge() } catch (_) {}
   const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
 
   event.waitUntil((async () => {
