@@ -28,7 +28,7 @@ Method: static review of the repository at origin/main 3a0b148 plus automated sc
 6. Low. FIXED. Window.open for PROVIDUS_URL now sets noopener.
 7. Withdrawn. An earlier draft said authenticated functions allow any origin. On re-check every function restricts CORS to the workspace or an allow-list.
 8. Performance. PARTLY FIXED. Six logo PNGs were downscaled (about 3 MB saved). On re-check the 2.3 MB Room 7 chunk is the video meeting SDK (617 KB over the wire), and it was already lazy: the entry page never loads it, only the meeting screens do. It now warms up in the background while the Room 7 module or the guest lobby is open, so joining feels instant. Pinning the SDK into its own chunk was tried and rejected: it made the entry page preload 3.8 MB.
-9. Maintainability. room-event-control (3.2k lines), room-event-documents (3.1k), ridearrivo-support (1.1k) are hard to review. Split by route.
+9. Maintainability. PARTLY FIXED. The self-contained helpers (CORS, request parsing, hashing, validators, constants) of room-event-control, room-event-documents and ridearrivo-support moved into sibling files, cutting room-event-control by about 560 lines and room-event-documents by about 700. Request handling and mutable state stay in index.ts so behavior and order are unchanged. The action handlers (configure, invitations, documents) are the next candidates but need live testing.
 
 ### Verify in the live project (cannot be seen from the repo)
 - Vault secrets for push (push_dispatch_url, push_dispatch_secret) match PUSH_DISPATCH_SECRET.

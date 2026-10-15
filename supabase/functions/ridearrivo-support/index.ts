@@ -1,40 +1,15 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { routes, allowedParams } from "./config.ts"
+import type { SupportResource } from "./config.ts"
+import { base64Url, jwtPart } from "./encoding.ts"
+import { cors, json, fetchWithTimeout } from "./http.ts"
 
-const allowedOrigins = new Set([
-  "https://intranet.ridearrivo.com",
-])
-
-type SupportResource =
-  | "tickets"
-  | "rides"
-  | "liveRides"
-  | "riders"
-  | "drivers"
-  | "onTheGo"
-
-const routes: Record<SupportResource, string> = {
-  tickets: "/api/support/tickets",
-  rides: "/api/admin/rides",
-  liveRides: "/api/admin/rides/live",
-  riders: "/api/admin/riders",
-  drivers: "/api/admin/drivers",
-  onTheGo: "/api/on-the-go",
-}
-
-const allowedParams = new Set([
-  "status",
-  "search",
-  "page",
-  "limit",
-  "id",
-])
 
 let cachedBackendToken = ""
 let cachedBackendTokenUntil = 0
 let backendLoginPromise: Promise<string> | null = null
 
-const UPSTREAM_TIMEOUT_MS = 15_000
 
 const assistedBookingRoles =
   new Set(["support", "admin"])
@@ -88,32 +63,6 @@ function sanitizeAssistedBooking(
   }
 
   return booking
-}
-
-function base64Url(
-  bytes: Uint8Array,
-) {
-  let binary = ""
-
-  for (const byte of bytes) {
-    binary +=
-      String.fromCharCode(byte)
-  }
-
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "")
-}
-
-function jwtPart(
-  value: Record<string, unknown>,
-) {
-  return base64Url(
-    new TextEncoder().encode(
-      JSON.stringify(value),
-    ),
-  )
 }
 
 async function signWorkspaceActor(
@@ -197,82 +146,6 @@ async function signWorkspaceActor(
     )
 
   return `${unsigned}.${base64Url(signature)}`
-}
-
-function cors(req: Request) {
-  const origin = req.headers.get("origin") || ""
-
-  return {
-    "Access-Control-Allow-Origin":
-      allowedOrigins.has(origin)
-        ? origin
-        : "https://intranet.ridearrivo.com",
-
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-
-    "Access-Control-Allow-Methods":
-      "POST, OPTIONS",
-
-    "Vary": "Origin",
-  }
-}
-
-function json(
-  req: Request,
-  body: unknown,
-  status = 200,
-  requestId?: string,
-) {
-  return new Response(
-    JSON.stringify(body),
-    {
-      status,
-      headers: {
-        ...cors(req),
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-        ...(requestId
-          ? { "X-Request-ID": requestId }
-          : {}),
-      },
-    },
-  )
-}
-
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs = UPSTREAM_TIMEOUT_MS,
-) {
-  const controller = new AbortController()
-  const timeout = setTimeout(
-    () => controller.abort(),
-    timeoutMs,
-  )
-
-  try {
-    return await fetch(
-      url,
-      {
-        ...init,
-        signal: controller.signal,
-      },
-    )
-  } catch (error) {
-    if (
-      error instanceof DOMException &&
-      error.name === "AbortError"
-    ) {
-      throw new Error(
-        `RideArrivo backend timed out after ${Math.round(timeoutMs / 1000)} seconds.`,
-      )
-    }
-
-    throw error
-  } finally {
-    clearTimeout(timeout)
-  }
 }
 
 function invalidateBackendToken() {
