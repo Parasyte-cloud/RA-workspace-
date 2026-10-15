@@ -187,7 +187,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
   const overdue=snapshot?.overdue_open ?? null
 
   return (
-    <section className="personalDashboard todayView">
+    <section className="personalDashboard todayView responsiveModule responsiveDashboard">
       <div className="personalHero todayHero glassHero">
         <div className="personalHeroCopy">
           <span className="eyebrow">TODAY</span>

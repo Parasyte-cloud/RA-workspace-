@@ -421,7 +421,7 @@ export function DepartmentTeamWorkspace({
   if(loading && !hasLoadedRef.current && !profile){
 
     return (
-      <section className="departmentWorkspace">
+      <section className="departmentWorkspace responsiveModule responsiveWorkbench">
 
         <div className="glassCard departmentLoading">
           Loading {title}...
@@ -434,7 +434,7 @@ export function DepartmentTeamWorkspace({
 
 
   return (
-    <section className="departmentWorkspace">
+    <section className="departmentWorkspace responsiveModule responsiveWorkbench">
 
       <div className="departmentHero">
 

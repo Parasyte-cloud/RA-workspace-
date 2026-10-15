@@ -106,6 +106,7 @@
   .glassFrame.glassSurface,
   .topbar.glassSurface,
   .glassCard,
+  .dailyNoteCard,
   .glassNav,
   .glassSheet {
     -webkit-backdrop-filter: blur(var(--ra-glass-blur)) saturate(145%) !important;
