@@ -54,3 +54,17 @@
 @media(max-width:800px){.todayRow,.todayHero{grid-template-columns:1fr}.todayHeroActions{justify-content:flex-start}}
 @media(max-width:650px){.todayKpiGrid{grid-template-columns:1fr}.todayHero{padding:18px 20px}}
 @media(prefers-reduced-motion:reduce){.todayDisclosure>summary::after{transition:none}}
+
+/* Employee names and assigned workstation labels are not fixed-length copy. */
+.personalHeroCopy h2,
+.personalHeroCopy p {
+  overflow-wrap: anywhere;
+}
+
+.todayHeroActions > .primaryButton {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-height: var(--ra-touch-target, 44px);
+  height: auto;
+}
