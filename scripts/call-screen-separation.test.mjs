@@ -1,0 +1,15 @@
+import {readFileSync} from 'node:fs'
+import assert from 'node:assert/strict'
+const room=readFileSync('src/modules/RoomModule.tsx','utf8')
+const app=readFileSync('src/App.tsx','utf8')
+const call=readFileSync('src/modules/CallModule.tsx','utf8')
+const meeting=readFileSync('src/modules/RoomMeeting.tsx','utf8')
+assert(/if\(detail\.callId\)return/.test(room),'ROOM 7 must ignore chat calls')
+assert(app.includes('<CallModule/>'),'calls have their own mount')
+assert(/!detail\.callId\) return/.test(call),'CallModule handles only chat calls')
+const i=meeting.indexOf('const callScreen=('),j=meeting.indexOf('const call=(')
+assert(i>0&&j>i)
+assert(!/ROOM 7/.test(meeting.slice(i,j)),'call screen must not mention ROOM 7')
+assert(meeting.includes('chatCall?callScreen:call'))
+assert(/if\(!chatCall&&!window\.confirm/.test(meeting),'hanging up a call must not show a ROOM 7 confirm')
+console.log('call-screen-separation ok')

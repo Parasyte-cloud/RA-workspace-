@@ -80,6 +80,7 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 import { NotificationCenter } from './components/NotificationCenter'
 import CallRinger from './modules/CallRinger'
+import CallModule from './modules/CallModule'
 import EventReminders from './modules/EventReminders'
 import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
@@ -1384,6 +1385,9 @@ function App(){
           Inside them, loading another section could hide the call and a
           crash in any section would tear it down, ending the meeting. */}
       <CallRinger/>
+      <RouteErrorBoundary resetKey="calls">
+        <CallModule/>
+      </RouteErrorBoundary>
       <EventReminders/>
       <BirthdayCelebration/>
       <RouteErrorBoundary resetKey="room7">
