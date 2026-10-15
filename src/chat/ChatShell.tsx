@@ -1820,6 +1820,27 @@ export function ChatShell(){
     window.setTimeout(()=>element.classList.remove('flash'),1200)
   }
 
+  // On a phone the open chat follows the visible area, so the on screen
+  // keyboard never hides the message box.
+  useEffect(()=>{
+    if(!mobileThreadOpen||!window.visualViewport)return
+    const vv=window.visualViewport
+    const root=document.documentElement
+    const sync=()=>{
+      root.style.setProperty('--cm-vh',`${vv.height}px`)
+      root.style.setProperty('--cm-vtop',`${vv.offsetTop}px`)
+    }
+    sync()
+    vv.addEventListener('resize',sync)
+    vv.addEventListener('scroll',sync)
+    return()=>{
+      vv.removeEventListener('resize',sync)
+      vv.removeEventListener('scroll',sync)
+      root.style.removeProperty('--cm-vh')
+      root.style.removeProperty('--cm-vtop')
+    }
+  },[mobileThreadOpen])
+
   const startCall=async(kind:'Voice'|'Video',target:DirectRow|null=selected)=>{
     const client=supabase
     const selected=target

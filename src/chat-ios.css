@@ -102,7 +102,8 @@ html[data-ra-theme='dark'] .cm .cmBubble .cmSenderName { color: #ffc46b; }
 @media (max-width: 860px) {
   /* The conversation fills the whole screen, above the tab bar, like Messages. */
   .cm .cmShell.threadOpen {
-    position: fixed; inset: 0; z-index: 70; height: 100dvh; min-height: 0; margin: 0;
+    position: fixed; top: var(--cm-vtop, 0px); left: 0; right: 0; bottom: auto; z-index: 70;
+    height: var(--cm-vh, 100dvh); min-height: 0; margin: 0;
     border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column;
   }
   .cm .cmShell.threadOpen .cmThread {
@@ -202,3 +203,20 @@ html[data-ra-theme='dark'] .cm .cmChips button.on { background: rgba(255,153,0,.
   .cm .cmShell.listOpen .cmSide { height: 100%; }
   .shell.glassFrame .content:has(.cm .cmShell) { overflow: hidden; overscroll-behavior: none; }
 }
+
+/* While a chat is open on a phone, the thread is the whole screen: the top bar
+   and the tab bar step aside (like Messages) so they can never cover the
+   message box. */
+@media (max-width: 860px) {
+  body:has(.cm .cmShell.threadOpen) .topbar,
+  body:has(.cm .cmShell.threadOpen) .phoneTabs { display: none !important; }
+  .shell.glassFrame .content:has(.cm .cmShell.threadOpen) { padding: 0 !important; }
+}
+
+/* Bubble text must always be readable on amber and on grey. */
+.cm .cmMsg.mine .cmBubble p, .cm .cmMsg.mine .cmBubble .cmMeta { color: #1a1200 !important; }
+.cm .cmMsg.theirs .cmBubble p { color: #14181f !important; }
+html[data-ra-theme='dark'] .cm .cmMsg.theirs .cmBubble p, html[data-ra-theme='dark'] .cm .cmMsg.theirs .cmBubble .cmMeta { color: #f2f5fa !important; }
+html[data-ra-theme='dark'] .cm .cmMsg.mine .cmBubble p, html[data-ra-theme='dark'] .cm .cmMsg.mine .cmBubble .cmMeta { color: #140c00 !important; }
+.cm .cmBubble .cmQuote, .cm .cmBubble .cmQuote span, .cm .cmBubble .cmQuote strong { color: inherit; }
+.cm .cmMsg.mine .cmBubble .cmQuote, .cm .cmMsg.mine .cmBubble .cmQuote span, .cm .cmMsg.mine .cmBubble .cmQuote strong { color: #1a1200 !important; }
