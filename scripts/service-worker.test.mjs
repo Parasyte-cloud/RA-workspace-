@@ -17,7 +17,11 @@ function boot({ network, cachedBody }) {
     URL, Response, Request,
     self: { location: { origin: ORIGIN }, addEventListener: (n, f) => { handlers[n] = f }, skipWaiting() {}, clients: { claim() {} } },
     caches: {
-      open: async () => ({ addAll: async () => {}, put: async (r, res) => { cachePut.push(r.url) } }),
+      open: async () => ({
+        addAll: async () => {}, put: async (r, res) => { cachePut.push(r.url) },
+        match: async () => cachedBody ? new Response(cachedBody.body, { headers: { 'content-type': cachedBody.type } }) : undefined,
+        keys: async () => [], delete: async () => true,
+      }),
       match: async () => cachedBody ? new Response(cachedBody.body, { headers: { 'content-type': cachedBody.type } }) : undefined,
       keys: async () => [], delete: async () => true,
     },
@@ -75,4 +79,11 @@ test('headers: hashed assets are not marked immutable', () => {
   const block = headers.split('\n/assets/*\n')[1].split('\n')[0]
   assert.ok(!/immutable/.test(block), block)
   assert.match(block, /must-revalidate/)
+})
+
+test('a good cached hashed asset is served without touching the network', async () => {
+  const sw = boot({ network: () => { throw new Error('should not fetch') }, cachedBody: { body: 'export{}', type: 'application/javascript' } })
+  const r = await sw.run('/assets/index-abc.js')
+  assert.equal(r.headers.get('content-type'), 'application/javascript')
+  assert.equal(sw.calls.length, 0)
 })
