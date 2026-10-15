@@ -47,6 +47,13 @@ test('glass surfaces have a non backdrop-filter fallback', () => {
   assert.match(glass, /@supports\s*\(\(backdrop-filter:\s*blur/)
 })
 
+test('dark appearance keeps new glass sheets and work surfaces readable', () => {
+  assert.match(glass, /html\[data-ra-theme=['"]dark['"]\][\s\S]*\.glassSheet/)
+  assert.match(glass, /html\[data-ra-theme=['"]dark['"]\][\s\S]*\.workSurface/)
+  assert.match(glass, /html\[data-ra-theme=['"]dark['"]\][\s\S]*background:\s*var\(--ra-surface\)/)
+  assert.match(glass, /html\[data-ra-theme=['"]dark['"]\][\s\S]*color:\s*var\(--ra-text\)/)
+})
+
 test('reduced motion disables non essential transitions', () => {
   assert.match(glass + responsive, /@media\s*\(prefers-reduced-motion:\s*reduce\)/)
   assert.match(glass + responsive, /animation-duration:\s*0\.01ms/)
