@@ -141,10 +141,15 @@ test(
       'Archived must not be a dropdown option',
     )
 
-    assert.match(
+    assert.doesNotMatch(
       s,
       /window\.confirm\(['"]Archive this content\?/,
-      'archiving must require explicit confirmation',
+      'archiving must not depend on a native browser dialog',
+    )
+    assert.match(
+      s,
+      /Confirm archive/,
+      'archiving must require an in-app confirmation action',
     )
   },
 )
@@ -252,3 +257,21 @@ test(
 )
 
 // BLOG_FILES_MEDIA_ACTIONS_TEST_END
+
+
+test('Blog lifecycle mutations use a synchronous in-flight guard to prevent self-conflicts',()=>{
+  const s=read('src/modules/BlogStudio.tsx')
+  assert.match(s,/saveInFlightRef=useRef\(false\)/)
+  assert.match(s,/if\(!draft\|\|busy\|\|saveInFlightRef\.current\)return/)
+  assert.match(s,/saveInFlightRef\.current=true/)
+  assert.match(s,/saveInFlightRef\.current=false/)
+})
+
+test('archiving uses an in-app confirmation and reports the archived state',()=>{
+  const s=read('src/modules/BlogStudio.tsx')
+  assert.doesNotMatch(s,/window\.confirm\(['"]Archive this content\?/)
+  assert.match(s,/archiveConfirming/)
+  assert.match(s,/Confirm archive/)
+  assert.match(s,/void save\(undefined,'archived'\)/)
+  assert.match(s,/Content archived\. It is no longer public\./)
+})
