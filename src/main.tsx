@@ -3,6 +3,7 @@ import React, {
   Suspense,
 } from 'react'
 import ReactDOM from 'react-dom/client'
+import './lib/safeIntlDate'
 
 // Changing this value changes the entry script's hashed filename. Used to move
 // every visitor off a filename a CDN cache has poisoned (see public/recover.js).

@@ -221,6 +221,9 @@ const formatTime=(value?:string|null)=>{
 
 const dayLabel=(value:string)=>{
   const date=new Date(value)
+  // A missing or malformed timestamp made Intl throw a RangeError while the
+  // list was rendering, which took the whole Chat section down on every retry.
+  if(Number.isNaN(date.getTime()))return 'Earlier'
   const today=new Date()
   const yesterday=new Date()
   yesterday.setDate(today.getDate()-1)
