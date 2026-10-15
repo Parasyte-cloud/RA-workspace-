@@ -1246,6 +1246,7 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 }
 
 .cmComposer textarea {
+  min-width: 0;
   min-height: 40px;
   max-height: 126px;
 
@@ -1376,9 +1377,9 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
   }
 
   .cmComposer {
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1884,7 +1885,9 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 /* Chat mentions and WhatsApp-style room activity */
 
 .cmComposer{
-  position:relative;
+  /* Keep the floating composer anchored to .cmThread. Absolute positioning
+     also establishes the containing block used by the mention suggestions. */
+  position:absolute;
 }
 
 .cmMentionSuggestions{
