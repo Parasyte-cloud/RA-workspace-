@@ -11,7 +11,7 @@ import {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
@@ -81,7 +81,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Zoho returned an invalid folders response.",
@@ -99,7 +99,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             payload?.status?.description ||
@@ -172,7 +172,7 @@ serve(async (req) => {
           Boolean(folder.folderId)
         )
 
-    return jsonResponse({
+    return jsonResponse(req, {
       success: true,
       count: folders.length,
       folders,
@@ -184,7 +184,7 @@ serve(async (req) => {
       error
     )
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         error:
           error instanceof Error

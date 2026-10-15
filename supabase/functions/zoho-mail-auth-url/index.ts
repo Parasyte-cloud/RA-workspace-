@@ -1,15 +1,41 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+function allowedZohoOrigin(req: Request) {
+  const origin = req.headers.get("Origin") || ""
+
+  try {
+    const url = new URL(origin)
+
+    const allowed =
+      url.protocol === "https:" &&
+      (
+        url.hostname === "intranet.ridearrivo.com" ||
+        url.hostname === "ra-workspace.pages.dev" ||
+        url.hostname.endsWith(".ra-workspace.pages.dev")
+      )
+
+    if (allowed) return origin
+  } catch {
+    // Fall back to the production origin for non-browser requests.
+  }
+
+  return "https://intranet.ridearrivo.com"
+}
+
+function corsHeaders(req: Request) {
+  return {
+    "Access-Control-Allow-Origin": allowedZohoOrigin(req),
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  }
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
+    return new Response("ok", { headers: corsHeaders(req) })
   }
 
   try {
@@ -21,7 +47,7 @@ serve(async (req) => {
         {
           status: 401,
           headers: {
-            ...corsHeaders,
+            ...corsHeaders(req),
             "Content-Type": "application/json",
           },
         }
@@ -50,7 +76,7 @@ serve(async (req) => {
         {
           status: 401,
           headers: {
-            ...corsHeaders,
+            ...corsHeaders(req),
             "Content-Type": "application/json",
           },
         }
@@ -103,7 +129,7 @@ serve(async (req) => {
       {
         status: 200,
         headers: {
-          ...corsHeaders,
+          ...corsHeaders(req),
           "Content-Type": "application/json",
         },
       }
@@ -121,7 +147,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: {
-          ...corsHeaders,
+          ...corsHeaders(req),
           "Content-Type": "application/json",
         },
       }

@@ -11,7 +11,7 @@ import {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
@@ -29,14 +29,14 @@ serve(async (req) => {
       String(body?.folderId || "").trim()
 
     if (!messageId) {
-      return jsonResponse(
+      return jsonResponse(req, 
         { error: "messageId is required." },
         400
       )
     }
 
     if (!folderId) {
-      return jsonResponse(
+      return jsonResponse(req, 
         { error: "folderId is required to open this email." },
         400
       )
@@ -100,7 +100,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Zoho returned an invalid response while opening this email.",
@@ -128,7 +128,7 @@ serve(async (req) => {
         data?.error ||
         "Unable to load email content."
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error: `Unable to load email content: ${description}`,
         },
@@ -139,7 +139,7 @@ serve(async (req) => {
       )
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       message:
         data?.data ||
         {},
@@ -150,7 +150,7 @@ serve(async (req) => {
       error
     )
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         error:
           error instanceof Error

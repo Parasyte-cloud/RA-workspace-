@@ -23,7 +23,7 @@ import {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
+    return new Response("ok", { headers: corsHeaders(req) })
   }
 
   try {
@@ -31,10 +31,10 @@ serve(async (req) => {
     const query = String(payload?.query || "").trim()
 
     if (query.length < 2) {
-      return jsonResponse({ error: "Search needs at least 2 characters." }, 400)
+      return jsonResponse(req, { error: "Search needs at least 2 characters." }, 400)
     }
     if (query.length > 120) {
-      return jsonResponse({ error: "Search query is too long." }, 400)
+      return jsonResponse(req, { error: "Search query is too long." }, 400)
     }
 
     const { user, admin } = await getAuthenticatedUser(req)
@@ -53,7 +53,7 @@ serve(async (req) => {
     )
 
     if (mailboxIds.length === 0) {
-      return jsonResponse({ query, messages: [] })
+      return jsonResponse(req, { query, messages: [] })
     }
 
     const perMailbox = await Promise.all(
@@ -100,10 +100,10 @@ serve(async (req) => {
       .sort((a, b) => Number(b.receivedTime || 0) - Number(a.receivedTime || 0))
       .slice(0, 10)
 
-    return jsonResponse({ query, messages })
+    return jsonResponse(req, { query, messages })
   } catch (error) {
     console.error("zoho-mail-search failed", error)
-    return jsonResponse(
+    return jsonResponse(req, 
       { error: error instanceof Error ? error.message : "Mail search failed." },
       500,
     )

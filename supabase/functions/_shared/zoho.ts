@@ -1,9 +1,35 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+function allowedZohoOrigin(req: Request) {
+  const origin = req.headers.get("Origin") || ""
+
+  try {
+    const url = new URL(origin)
+
+    const allowed =
+      url.protocol === "https:" &&
+      (
+        url.hostname === "intranet.ridearrivo.com" ||
+        url.hostname === "ra-workspace.pages.dev" ||
+        url.hostname.endsWith(".ra-workspace.pages.dev")
+      )
+
+    if (allowed) return origin
+  } catch {
+    // Fall back to production origin below.
+  }
+
+  return "https://intranet.ridearrivo.com"
+}
+
+export function corsHeaders(req: Request) {
+  return {
+    "Access-Control-Allow-Origin": allowedZohoOrigin(req),
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  }
 }
 
 export async function getAuthenticatedUser(req: Request) {
@@ -168,6 +194,7 @@ export async function getZohoAccessToken(
 }
 
 export function jsonResponse(
+  req: Request,
   body: unknown,
   status = 200
 ) {
@@ -176,7 +203,7 @@ export function jsonResponse(
     {
       status,
       headers: {
-        ...corsHeaders,
+        ...corsHeaders(req),
         "Content-Type": "application/json",
       },
     }

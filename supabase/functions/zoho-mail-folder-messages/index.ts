@@ -11,7 +11,7 @@ import {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
@@ -86,7 +86,7 @@ serve(async (req) => {
     if (!folderId &&
         view !== "starred" &&
         view !== "archive") {
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "folderId or supported view is required.",
@@ -119,7 +119,7 @@ serve(async (req) => {
           ? JSON.parse(raw)
           : {}
     } catch {
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Zoho returned an invalid message-list response.",
@@ -139,7 +139,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             data?.status?.description ||
@@ -150,7 +150,7 @@ serve(async (req) => {
       )
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       success: true,
       folderId:
         folderId || null,
@@ -168,7 +168,7 @@ serve(async (req) => {
       error
     )
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         error:
           error instanceof Error
