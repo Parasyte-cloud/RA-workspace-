@@ -1038,3 +1038,474 @@ test(
     })
   },
 )
+
+test(
+  'chat mention records one notification and unread mention state',
+  { timeout: 120000 },
+  async () => {
+    await fixture(async ({
+      service,
+      identity,
+      login,
+      createRoom,
+      addMember,
+    }) => {
+      const owner = await identity(
+        'mention-owner',
+        'Engineering',
+      )
+
+      const member = await identity(
+        'mention-member',
+        'Engineering',
+      )
+
+      const conversationId =
+        await createRoom(owner)
+
+      await addMember(
+        conversationId,
+        member,
+      )
+
+      const ownerClient =
+        await login(owner)
+
+      const memberClient =
+        await login(member)
+
+      const rawSent = await data(
+        'send mentioned message',
+        ownerClient.rpc(
+          'send_chat_message_with_mentions',
+          {
+            p_conversation_id:
+              conversationId,
+            p_body:
+              `Hello @Chat Message Test mention-member`,
+            p_reply_to_id: null,
+            p_client_message_id:
+              crypto.randomUUID(),
+            p_mentioned_user_ids: [
+              member.id,
+            ],
+          },
+        ),
+      )
+
+      const sent = rpcRow(rawSent)
+
+      assert.ok(
+        sent?.id,
+        'mentioned message must persist',
+      )
+
+      const mentions = await data(
+        'stored message mentions',
+        service
+          .from('chat_message_mentions')
+          .select(
+            'message_id,conversation_id,mentioned_user_id',
+          )
+          .eq('message_id', sent.id),
+      )
+
+      assert.equal(
+        mentions.length,
+        1,
+      )
+
+      assert.equal(
+        mentions[0].conversation_id,
+        conversationId,
+      )
+
+      assert.equal(
+        mentions[0].mentioned_user_id,
+        member.id,
+      )
+
+      const notifications = await data(
+        'mention notification',
+        service
+          .from('notifications')
+          .select(
+            'id,type,entity_type,entity_id,read_at',
+          )
+          .eq('user_id', member.id)
+          .eq('entity_id', conversationId)
+          .is('read_at', null),
+      )
+
+      assert.equal(
+        notifications.length,
+        1,
+        'conversation must keep one unread notification row',
+      )
+
+      assert.equal(
+        notifications[0].type,
+        'chat_mention',
+      )
+
+      assert.equal(
+        notifications[0].entity_type,
+        'social_conversation',
+      )
+
+      const beforeRead = await data(
+        'unread mention summary',
+        memberClient.rpc(
+          'list_chat_unread_summary',
+        ),
+      )
+
+      const before =
+        beforeRead.find(
+          row =>
+            row.conversation_id ===
+            conversationId,
+        )
+
+      assert.ok(
+        before,
+        'room must appear in unread summary',
+      )
+
+      assert.equal(
+        Number(before.unread_count),
+        1,
+      )
+
+      assert.equal(
+        before.mentioned,
+        true,
+      )
+
+      await data(
+        'mark mentioned room read',
+        memberClient.rpc(
+          'mark_social_conversation_read',
+          {
+            p_conversation_id:
+              conversationId,
+          },
+        ),
+      )
+
+      const afterRead = await data(
+        'read summary after opening room',
+        memberClient.rpc(
+          'list_chat_unread_summary',
+        ),
+      )
+
+      const after =
+        afterRead.find(
+          row =>
+            row.conversation_id ===
+            conversationId,
+        )
+
+      assert.ok(
+        after,
+        'room remains in summary after read',
+      )
+
+      assert.equal(
+        Number(after.unread_count),
+        0,
+      )
+
+      assert.equal(
+        after.mentioned,
+        false,
+      )
+
+      const notificationsAfterRead =
+        await data(
+          'notification cleared on read',
+          service
+            .from('notifications')
+            .select('id')
+            .eq('user_id', member.id)
+            .eq(
+              'entity_id',
+              conversationId,
+            )
+            .in(
+              'type',
+              [
+                'chat_message',
+                'chat_mention',
+              ],
+            ),
+        )
+
+      assert.equal(
+        notificationsAfterRead.length,
+        0,
+        'opening the conversation must clear its notification',
+      )
+    })
+  },
+)
+
+test(
+  'chat mention rejects foreign inactive and removed targets',
+  { timeout: 120000 },
+  async () => {
+    await fixture(async ({
+      identity,
+      login,
+      createRoom,
+      addMember,
+    }) => {
+      const owner = await identity(
+        'mention-security-owner',
+        'Operations',
+      )
+
+      const valid = await identity(
+        'mention-valid',
+        'Operations',
+      )
+
+      const removed = await identity(
+        'mention-removed',
+        'Operations',
+      )
+
+      const inactive = await identity(
+        'mention-inactive',
+        'Operations',
+        false,
+      )
+
+      const foreign = await identity(
+        'mention-foreign',
+        'Legal',
+      )
+
+      const conversationId =
+        await createRoom(owner)
+
+      await addMember(
+        conversationId,
+        valid,
+      )
+
+      await addMember(
+        conversationId,
+        inactive,
+      )
+
+      await addMember(
+        conversationId,
+        removed,
+        {
+          removedAt:
+            new Date().toISOString(),
+        },
+      )
+
+      const ownerClient =
+        await login(owner)
+
+      for (
+        const target of [
+          foreign,
+          inactive,
+          removed,
+        ]
+      ) {
+        const error = await denied(
+          `reject ${target.key} mention`,
+          ownerClient.rpc(
+            'send_chat_message_with_mentions',
+            {
+              p_conversation_id:
+                conversationId,
+              p_body:
+                `Invalid mention ${target.key}`,
+              p_reply_to_id: null,
+              p_client_message_id:
+                crypto.randomUUID(),
+              p_mentioned_user_ids: [
+                target.id,
+              ],
+            },
+          ),
+        )
+
+        assert.match(
+          error.message,
+          /active members of this conversation/i,
+        )
+      }
+    })
+  },
+)
+
+test(
+  'chat mention storage is not directly exposed to authenticated clients',
+  { timeout: 120000 },
+  async () => {
+    await fixture(async ({
+      identity,
+      login,
+    }) => {
+      const employee = await identity(
+        'mention-table-boundary',
+        'Finance',
+      )
+
+      const client =
+        await login(employee)
+
+      await denied(
+        'direct mention-table read',
+        client
+          .from('chat_message_mentions')
+          .select('*'),
+      )
+
+      await denied(
+        'direct mention-table write',
+        client
+          .from('chat_message_mentions')
+          .insert({
+            message_id:
+              crypto.randomUUID(),
+            conversation_id:
+              crypto.randomUUID(),
+            mentioned_user_id:
+              employee.id,
+          }),
+      )
+    })
+  },
+)
+
+test(
+  'replaying an existing mention does not recreate a cleared notification',
+  { timeout: 120000 },
+  async () => {
+    await fixture(async ({
+      service,
+      identity,
+      login,
+      createRoom,
+      addMember,
+    }) => {
+      const owner = await identity(
+        'mention-replay-owner',
+        'Engineering',
+      )
+
+      const member = await identity(
+        'mention-replay-member',
+        'Engineering',
+      )
+
+      const conversationId =
+        await createRoom(owner)
+
+      await addMember(
+        conversationId,
+        member,
+      )
+
+      const ownerClient =
+        await login(owner)
+
+      const memberClient =
+        await login(member)
+
+      const rawSent = await data(
+        'send original mention',
+        ownerClient.rpc(
+          'send_chat_message_with_mentions',
+          {
+            p_conversation_id:
+              conversationId,
+            p_body:
+              'Original replay-safe mention',
+            p_reply_to_id: null,
+            p_client_message_id:
+              crypto.randomUUID(),
+            p_mentioned_user_ids: [
+              member.id,
+            ],
+          },
+        ),
+      )
+
+      const sent = rpcRow(rawSent)
+
+      assert.ok(sent?.id)
+
+      await data(
+        'read mentioned conversation',
+        memberClient.rpc(
+          'mark_social_conversation_read',
+          {
+            p_conversation_id:
+              conversationId,
+          },
+        ),
+      )
+
+      const cleared = await data(
+        'confirm notification cleared',
+        service
+          .from('notifications')
+          .select('id')
+          .eq('user_id', member.id)
+          .eq('entity_id', conversationId)
+          .in(
+            'type',
+            [
+              'chat_message',
+              'chat_mention',
+            ],
+          ),
+      )
+
+      assert.equal(
+        cleared.length,
+        0,
+        'reading must clear the original mention notification',
+      )
+
+      await data(
+        'replay existing mention registration',
+        ownerClient.rpc(
+          'register_chat_message_mentions',
+          {
+            p_message_id: sent.id,
+            p_mentioned_user_ids: [
+              member.id,
+            ],
+          },
+        ),
+      )
+
+      const afterReplay = await data(
+        'check replay did not notify again',
+        service
+          .from('notifications')
+          .select('id,type')
+          .eq('user_id', member.id)
+          .eq('entity_id', conversationId)
+          .is('read_at', null),
+      )
+
+      assert.equal(
+        afterReplay.length,
+        0,
+        'an already-recorded mention must not be able to notify the recipient again',
+      )
+    })
+  },
+)

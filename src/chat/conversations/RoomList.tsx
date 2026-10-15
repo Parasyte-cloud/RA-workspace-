@@ -79,7 +79,30 @@ export function RoomList({
             >
               ›
             </span>
-          </button>
+          <span className="cmRoomRowSignals">
+              {room.mentioned && (
+                <span
+                  className="cmRoomMention"
+                  aria-label="Unread mention"
+                  title="You were mentioned"
+                >
+                  @
+                </span>
+              )}
+
+              {!!room.unread && (
+                <span
+                  className="cmRoomUnread"
+                  aria-label={`${room.unread} unread messages`}
+                >
+                  {room.unread > 99
+                    ? '99+'
+                    : room.unread}
+                </span>
+              )}
+            </span>
+
+            </button>
         )
       })}
     </div>

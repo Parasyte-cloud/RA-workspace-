@@ -24,6 +24,8 @@ export type ConversationSummary = {
   created_by: string
   created_at: string
   conversation_kind: ConversationKind
+  unread?: number
+  mentioned?: boolean
 }
 
 export type SendMessageInput = {
@@ -31,4 +33,5 @@ export type SendMessageInput = {
   body: string
   replyToId?: string | null
   clientMessageId: string
+  mentionedUserIds?: string[]
 }
