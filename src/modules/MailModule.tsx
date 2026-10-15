@@ -18,7 +18,7 @@ import {
   Settings,
   X
 } from 'lucide-react'
-import DOMPurify from 'dompurify'
+import { safeMailHtml } from '../lib/mailHtml'
 import { supabase } from '../lib/supabase'
 
 type MailMessage = {
@@ -1137,7 +1137,7 @@ export function MailModule(){
               <div
                 className="mailReaderBody"
                 dangerouslySetInnerHTML={{
-                  __html:DOMPurify.sanitize(
+                  __html:safeMailHtml(
                     selected.content ||
                     selected.summary ||
                     ''

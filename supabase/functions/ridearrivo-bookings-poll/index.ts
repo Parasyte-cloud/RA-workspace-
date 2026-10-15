@@ -147,7 +147,7 @@ serve(async (req) => {
   const authorization = req.headers.get("Authorization") || ""
   const dispatchSecret = Deno.env.get("CRON_DISPATCH_SECRET") || ""
 
-  if (!dispatchSecret || authorization !== `Bearer ${dispatchSecret}`) {
+  if (!dispatchSecret || !sameSecret(authorization, `Bearer ${dispatchSecret}`)) {
     return json(401, { error: "Not authorized to run the RideArrivo bookings poll." })
   }
 
@@ -227,3 +227,10 @@ serve(async (req) => {
     return json(500, { error: error instanceof Error ? error.message : "Unknown error" })
   }
 })
+
+function sameSecret(a: string, b: string) {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
