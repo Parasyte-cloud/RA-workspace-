@@ -1,0 +1,181 @@
+/* Phone chrome: a Dynamic Island style top bar and a pill dock, plus a few
+   playful but quiet touches. Loaded last. Phones only (599px and narrower). */
+
+@media (max-width: 599px) {
+  /* ---------- Top bar: a floating pill that shrinks on scroll ---------- */
+  html[data-ra-theme] .shell.glassFrame .topbar.glassPanel {
+    position: sticky !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    z-index: 60;
+    box-sizing: border-box;
+    width: calc(100% - 20px) !important;
+    height: 58px !important;
+    min-height: 0 !important;
+    margin: 6px auto 4px !important;
+    padding: 0 8px 0 22px !important;
+    border: 1px solid rgba(255,255,255,.16) !important;
+    border-radius: 999px !important;
+    background:
+      radial-gradient(120% 160% at 12% 0%, rgba(255,255,255,.14), rgba(255,255,255,0) 55%),
+      rgba(9,14,26,.74) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(180%) !important;
+    backdrop-filter: blur(22px) saturate(180%) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.22),
+      0 14px 34px rgba(0,0,0,.34) !important;
+    transform-origin: 50% 0;
+    transition:
+      width .6s cubic-bezier(.34,1.45,.5,1),
+      height .5s cubic-bezier(.34,1.45,.5,1),
+      margin .5s cubic-bezier(.34,1.45,.5,1),
+      padding .5s cubic-bezier(.34,1.45,.5,1),
+      background .3s ease,
+      box-shadow .3s ease;
+  }
+  html[data-ra-theme='light'] .shell.glassFrame .topbar.glassPanel {
+    border-color: rgba(7,26,56,.10) !important;
+    background:
+      radial-gradient(120% 160% at 12% 0%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%),
+      rgba(255,255,255,.72) !important;
+    box-shadow: inset 0 1px 0 #fff, 0 12px 30px rgba(7,26,56,.16) !important;
+  }
+
+  html[data-ra-island='compact'] .shell.glassFrame .topbar.glassPanel {
+    width: min(calc(100% - 64px), 296px) !important;
+    height: 44px !important;
+    margin-top: 2px !important;
+    padding: 0 5px 0 16px !important;
+  }
+
+  .shell.glassFrame .topbar .topbarTitle { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .shell.glassFrame .topbar h1 {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: font-size .45s cubic-bezier(.34,1.45,.5,1), letter-spacing .45s ease;
+  }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: 1rem; letter-spacing: -.01em; }
+
+  /* A small amber light that wakes up when the bar is compact, like a live activity. */
+  .shell.glassFrame .topbar .topbarTitle::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 0;
+    height: 8px;
+    border-radius: 99px;
+    background: #ffb13b;
+    box-shadow: 0 0 10px rgba(255,160,40,.9);
+    opacity: 0;
+    transition: width .4s cubic-bezier(.34,1.45,.5,1), opacity .3s ease;
+  }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { width: 8px; opacity: 1; animation: raIslandPulse 2.4s ease-in-out infinite; }
+
+  .shell.glassFrame .topbar .headerActions { gap: 6px; flex: 0 0 auto; }
+  .shell.glassFrame .topbar .headerActions > .iconButton,
+  .shell.glassFrame .topbar .notificationButton {
+    border-radius: 999px !important;
+    transition: width .45s cubic-bezier(.34,1.45,.5,1), height .45s cubic-bezier(.34,1.45,.5,1), min-width .45s, min-height .45s, flex-basis .45s;
+  }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions > .iconButton,
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .notificationButton {
+    flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; min-height: 34px !important;
+  }
+
+  /* Soft fade behind the status bar so content never collides with the clock. */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: calc(env(safe-area-inset-top, 0px) + 10px);
+    z-index: 59;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    -webkit-mask-image: linear-gradient(#000 45%, transparent);
+    mask-image: linear-gradient(#000 45%, transparent);
+  }
+
+  /* ---------- Bottom dock: a slim pill that shrinks on scroll too ---------- */
+  html[data-ra-theme] nav.phoneTabs {
+    box-sizing: border-box;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    width: calc(100% - 28px) !important;
+    max-width: 420px;
+    bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 999px !important;
+    padding: 4px !important;
+    transition:
+      width .6s cubic-bezier(.34,1.45,.5,1),
+      padding .5s cubic-bezier(.34,1.45,.5,1),
+      bottom .5s cubic-bezier(.34,1.45,.5,1),
+      background .3s ease, box-shadow .3s ease;
+  }
+  html[data-ra-theme] nav.phoneTabs button {
+    border-radius: 999px !important;
+    min-height: 44px !important;
+    padding: 4px 2px !important;
+    gap: 1px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: background .25s ease, color .25s ease, min-height .45s cubic-bezier(.34,1.45,.5,1), transform .35s cubic-bezier(.34,1.7,.5,1);
+  }
+  html[data-ra-theme] nav.phoneTabs button svg { width: 19px !important; height: 19px !important; stroke-width: 1.9; transition: width .4s cubic-bezier(.34,1.45,.5,1), height .4s cubic-bezier(.34,1.45,.5,1); }
+  html[data-ra-theme] nav.phoneTabs button span {
+    font-size: 9.5px !important; line-height: 1.1; font-weight: 650; letter-spacing: .02em;
+    max-height: 12px; overflow: hidden;
+    transition: max-height .35s ease, opacity .25s ease, margin .35s ease;
+  }
+  html[data-ra-theme] nav.phoneTabs button:active { transform: scale(.9); }
+  html[data-ra-theme] nav.phoneTabs button.active { animation: raDockPop .55s cubic-bezier(.34,1.7,.5,1); }
+  html[data-ra-theme] nav.phoneTabs button.active svg { animation: raIconHop .6s cubic-bezier(.34,1.7,.5,1); }
+
+  /* Compact: icons only, narrower, a little lower. */
+  html[data-ra-island='compact'] nav.phoneTabs {
+    width: min(calc(100% - 64px), 300px) !important;
+    padding: 3px !important;
+    bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html[data-ra-island='compact'] nav.phoneTabs button { min-height: 36px !important; }
+  html[data-ra-island='compact'] nav.phoneTabs button svg { width: 18px !important; height: 18px !important; }
+  html[data-ra-island='compact'] nav.phoneTabs button span { max-height: 0; opacity: 0; margin: 0; }
+
+  /* ---------- Quiet playfulness ---------- */
+  .content > *, .workspaceMain > section > * { animation: raRise .55s cubic-bezier(.2,.8,.2,1) both; }
+  .content > *:nth-child(2) { animation-delay: .05s; }
+  .content > *:nth-child(3) { animation-delay: .10s; }
+  .content > *:nth-child(4) { animation-delay: .15s; }
+  .content > *:nth-child(5) { animation-delay: .20s; }
+  .content > *:nth-child(n+6) { animation-delay: .25s; }
+
+  .primaryButton { transition: transform .3s cubic-bezier(.34,1.7,.5,1), box-shadow .3s ease; }
+  .primaryButton:active { transform: scale(.94); }
+  .glassCard.launch:active, button.glassCard:active { transform: scale(.985); transition: transform .2s ease; }
+
+  /* The amber call to action breathes, very slightly. */
+  .primaryButton { position: relative; overflow: hidden; }
+  .primaryButton::after {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
+    transform: skewX(-18deg);
+    animation: raGlint 6s ease-in-out 1.2s infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes raIslandPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.7); opacity: .6; } }
+@keyframes raDockPop { 0% { transform: scale(.86); } 100% { transform: scale(1); } }
+@keyframes raIconHop { 0% { transform: translateY(5px) scale(.8); } 60% { transform: translateY(-3px) scale(1.12); } 100% { transform: none; } }
+@keyframes raRise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes raGlint { 0%,60% { left: -60%; } 100% { left: 140%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ra-theme] nav.phoneTabs button.active,
+  html[data-ra-theme] nav.phoneTabs button.active svg,
+  .content > *, .workspaceMain > section > *,
+  .primaryButton::after,
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { animation: none !important; }
+  html[data-ra-theme] .shell.glassFrame .topbar.glassPanel { transition: none !important; }
+}

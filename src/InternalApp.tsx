@@ -18,6 +18,12 @@ import './liquid-glass.css'
 import './app-feel.css'
 import './nav-liquid.css'
 import './theme-fixes.css'
+import './island.css'
+import {useEffect} from 'react'
+import {startIslandBar} from './lib/islandBar'
 
 
-export default App
+export default function InternalApp(){
+  useEffect(()=>startIslandBar(),[])
+  return <App/>
+}
