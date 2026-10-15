@@ -243,7 +243,7 @@ export function SocialModule(){
   const sendReply=async(e:FormEvent)=>{e.preventDefault();if(!supabase||!replyTo||!replyBody.trim())return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid)return;const {error}=await supabase.from('social_posts').insert({author_id:uid,body:replyBody.trim(),post_type:'reply',visibility:replyTo.visibility,reply_to_id:replyTo.id});if(error)setNotice({kind:'error',text:error.message});else{setReplyBody('');setReplyTo(null);await load()}}
   const follow=async(id:string)=>{if(!supabase)return;const {data:s}=await supabase.auth.getSession();const uid=s.session?.user.id;if(!uid||uid===id)return;await supabase.from('social_follows').upsert({follower_id:uid,following_id:id});setNotice({kind:'ok',text:'Following updated.'})}
 
-  return <section className="socialModule" aria-busy={loading||refreshing}>
+  return <section className="socialModule responsiveModule" aria-busy={loading||refreshing}>
     <div className="sectionTitle"><div><span className="eyebrow">RIDEARRIVO SOCIAL & NEWS</span><h2>RideArrivo Pulse</h2><p>Company news, conversations, announcements and team knowledge in a fast social feed.</p></div><div className="buttonRow"><button className="glassButton"><Bell size={16}/>Notifications</button><button className="primaryButton" onClick={()=>document.getElementById('social-composer')?.scrollIntoView({behavior:'smooth'})}><Plus size={16}/>Post</button></div></div>
     <div className="socialLayout">
       <div className="socialMain">

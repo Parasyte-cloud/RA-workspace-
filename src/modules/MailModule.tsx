@@ -656,7 +656,7 @@ export function MailModule(){
 
   if(connected===null){
     return (
-      <section className="mailLoading">
+      <section className="mailLoading responsiveModule responsiveState">
         <Loader2 className="mailSpinner"/>
         <span>Loading Mail...</span>
       </section>
@@ -665,7 +665,7 @@ export function MailModule(){
 
   if(!connected){
     return (
-      <section>
+      <section className="responsiveModule responsiveFormSurface">
         <div className="sectionTitle">
           <div>
             <span className="eyebrow">
@@ -749,7 +749,7 @@ export function MailModule(){
     })
 
   return (
-    <section className="mailModule">
+    <section className="mailModule responsiveModule">
       <div className="sectionTitle">
         <div>
           <span className="eyebrow">

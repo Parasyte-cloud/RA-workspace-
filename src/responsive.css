@@ -1357,3 +1357,180 @@ main {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* --- Adaptive forms, data, files and sheets --- */
+.responsiveDataSurface,
+.responsiveFormSurface {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.responsiveFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.responsiveFormGrid > * {
+  min-width: 0;
+}
+
+.responsiveRecordList {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.responsiveRecordList > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.responsiveTableScroller {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.responsiveTableScroller > table {
+  width: max(100%, 680px);
+}
+
+.responsiveModalSheet {
+  width: min(720px, calc(100vw - 32px));
+  max-width: 100%;
+  max-height: min(88vh, 880px);
+  max-height: min(88dvh, 880px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--ra-radius-xl) !important;
+}
+
+.responsiveModule :where(
+  .moduleNotice,
+  .moduleError,
+  .mailNotice,
+  .phase2Empty,
+  .socialEmpty,
+  .appHubState,
+  .brandLibraryEmpty,
+  .supportOpsState,
+  .supportOpsError,
+  .dahNote
+) {
+  overflow-wrap: anywhere;
+}
+
+.responsiveModule :where(input, textarea, select, button, a) {
+  max-width: 100%;
+}
+
+.responsiveModule :where(img, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+.responsiveModule :where(
+  .bankingHero,
+  .bankingToolbar,
+  .dahHeader,
+  .appHubToolbar,
+  .profileEditForm,
+  .mailConnect,
+  .socialComposer,
+  .supportOpsHeader,
+  .supportOpsToolbar,
+  .brandLibraryToolbar
+) {
+  min-width: 0;
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .responsiveFormGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .responsiveModule :where(.stats, .dahMetrics, .supportMetrics, .appGrid, .brandLibraryGrid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .responsiveModule .mailWorkspace {
+    grid-template-columns: minmax(170px, .55fr) minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .responsiveFormGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .responsiveModalSheet {
+    width: 100%;
+    max-height: calc(100dvh - var(--ra-safe-top));
+    margin-top: auto;
+    border-radius: var(--ra-radius-xl) var(--ra-radius-xl) 0 0 !important;
+    padding-bottom: max(16px, var(--ra-safe-bottom));
+  }
+
+  .responsiveModule :where(
+    .bankingHero,
+    .bankingToolbar,
+    .dahHeader,
+    .appHubToolbar,
+    .profileEditHeader,
+    .mailComposerHeader,
+    .supportOpsHeader,
+    .supportOpsToolbar,
+    .brandLibraryHero,
+    .brandLibraryToolbar
+  ) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .responsiveModule :where(.bankingHeroActions, .workbenchActions, .downloadAccessModalActions, .profileEditActions) {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .responsiveModule :where(.bankingHeroActions, .workbenchActions, .downloadAccessModalActions, .profileEditActions) > button,
+  .responsiveModule :where(.bankingHeroActions, .workbenchActions, .downloadAccessModalActions, .profileEditActions) > a,
+  .responsiveModule :where(.bankingHeroActions, .workbenchActions, .downloadAccessModalActions, .profileEditActions) > label {
+    width: 100%;
+    justify-content: center;
+    min-height: var(--ra-touch-target);
+  }
+
+  .responsiveModule .mailWorkspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .responsiveModule .mailFolders {
+    display: flex !important;
+    gap: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 4px;
+  }
+
+  .responsiveModule .mailFolders > button {
+    flex: 0 0 auto;
+    min-height: var(--ra-touch-target);
+  }
+
+  .responsiveModule :where(.socialLayout, .dahSplit) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .responsiveModule .socialRail {
+    order: 2;
+  }
+}

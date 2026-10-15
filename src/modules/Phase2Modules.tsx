@@ -131,7 +131,7 @@ export function AnnouncementsModule() {
   }
 
   return (
-    <section className="phase2Module">
+    <section className="phase2Module responsiveModule">
       <ModuleHeader
         eyebrow="COMPANY"
         title="Announcements"
@@ -141,7 +141,7 @@ export function AnnouncementsModule() {
       {loading && <EmptyState text="Loading announcements..." />}
       {error && <EmptyState text={error} />}
 
-      <div className="phase2Stack">
+      <div className="phase2Stack responsiveRecordList">
         {items.map((item) => (
           <article className="glassCard phase2Record" key={item.id}>
             <div className="phase2RecordTop">
@@ -202,7 +202,7 @@ export function TasksModule() {
   }, [items, filter])
 
   return (
-    <section className="phase2Module">
+    <section className="phase2Module responsiveModule">
       <ModuleHeader
         eyebrow="MY WORK"
         title="Tasks"
@@ -229,7 +229,7 @@ export function TasksModule() {
 
       {loading && <EmptyState text="Loading tasks..." />}
 
-      <div className="phase2Stack">
+      <div className="phase2Stack responsiveRecordList">
         {filtered.map((task) => (
           <article className="glassCard phase2Record" key={task.id}>
             <div className="phase2RecordTop">
@@ -336,7 +336,7 @@ export function KnowledgeBaseModule() {
 
   if (selected) {
     return (
-      <section className="phase2Module">
+      <section className="phase2Module responsiveModule">
         <button
           className="glassButton"
           onClick={() => setSelected(null)}
@@ -355,7 +355,7 @@ export function KnowledgeBaseModule() {
   }
 
   return (
-    <section className="phase2Module">
+    <section className="phase2Module responsiveModule">
       <ModuleHeader
         eyebrow="COMPANY"
         title="Knowledge Base"
@@ -685,7 +685,7 @@ export function CompanyFilesModule() {
   }, [items, query])
 
   return (
-    <section className="phase2Module">
+    <section className="phase2Module responsiveModule">
       <ModuleHeader
         eyebrow="COMPANY"
         title="Company Files"
@@ -731,7 +731,7 @@ export function CompanyFilesModule() {
 
       {loading && <EmptyState text="Loading company files..." />}
 
-      <div className="phase2Stack">
+      <div className="phase2Stack responsiveRecordList">
         {filtered.map((file) => (
           <article className="glassCard phase2Record" key={file.id}>
             <div className="phase2RecordTop">
@@ -809,7 +809,7 @@ export function CompanyFilesModule() {
 
       {showUpload && canUpload && (
         <div className="downloadAccessOverlay" role="dialog" aria-modal="true">
-          <form className="downloadAccessModal glassCard companyFileUploadModal" onSubmit={(event) => void uploadCompanyFile(event)}>
+          <form className="downloadAccessModal glassCard glassSheet responsiveModalSheet companyFileUploadModal" onSubmit={(event) => void uploadCompanyFile(event)}>
             <div className="downloadAccessModalHead">
               <FileUp size={22} />
               <div>

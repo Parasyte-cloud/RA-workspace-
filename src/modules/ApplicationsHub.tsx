@@ -239,7 +239,7 @@ export default function ApplicationsHub() {
   }
 
   return (
-    <section className="applicationsHub">
+    <section className="applicationsHub responsiveModule">
       <div className="sectionTitle">
         <div>
           <span className="eyebrow">WORKSPACE</span>

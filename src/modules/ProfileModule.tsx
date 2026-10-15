@@ -319,7 +319,7 @@ export function ProfileModule({
   }
 
   return (
-    <section className="employeeProfilePage">
+    <section className="employeeProfilePage responsiveModule responsiveFormSurface">
       <div className="profileHero">
         <div>
           <span className="eyebrow">
@@ -496,7 +496,7 @@ export function ProfileModule({
                 </button>
               </div>
 
-              <div className="profileFieldGrid">
+              <div className="profileFieldGrid responsiveFormGrid">
                 <Field
                   label="Phone"
                   value={phone}
