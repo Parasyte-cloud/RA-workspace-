@@ -72,6 +72,14 @@ import {
   sendMessage as sendChatMessage
 } from './api/chatApi'
 import {
+  ackChatDelivered,
+  ackChatRead,
+  listReceiptSummaries,
+  receiptState,
+  receiptTitle,
+  type ChatReceiptSummary
+} from './api/chatReceipts'
+import {
   buildTranscript,
   exportFileName,
   uniqueZipName
@@ -268,6 +276,7 @@ export function ChatShell(){
   const [notice,setNotice]=useState('')
   const [callNotice,setCallNotice]=useState('')
   const [hasCalling,setHasCalling]=useState(false)
+  const [receiptSummaries,setReceiptSummaries]=useState<Record<string,ChatReceiptSummary>>({})
   // When each chat was last looked at in this session, so a missed call stops
   // counting as new the moment its chat is opened.
   const [callSeen,setCallSeen]=useState<Record<string,string>>({})
@@ -347,6 +356,7 @@ export function ChatShell(){
   }
   useEffect(()=>{directsRef.current=directs},[directs])
   useEffect(()=>{userRef.current=userId},[userId])
+
   useEffect(()=>{peopleRef.current=new Map(people.map(person=>[person.id,person]))},[people])
 
   const selectedRoom=useMemo(
@@ -847,6 +857,34 @@ export function ChatShell(){
     }
   },[])
 
+  const loadReceiptSummaries=useCallback(async(conversationId:string)=>{
+    if(!conversationId){
+      setReceiptSummaries({})
+      return
+    }
+
+    try{
+      const rows=
+        await listReceiptSummaries(
+          conversationId
+        )
+
+      setReceiptSummaries(
+        Object.fromEntries(
+          rows.map(row=>[
+            row.message_id,
+            row
+          ])
+        )
+      )
+    }catch(error){
+      console.warn(
+        'Unable to refresh message receipts.',
+        error
+      )
+    }
+  },[])
+
   const markRead=useCallback(async(conversationId:string)=>{
     const client=supabase
     if(!client || !conversationId || !canMarkReadNow())return
@@ -857,9 +895,44 @@ export function ChatShell(){
       ? {...room,unread:0,mentioned:false}
       : room))
     setCallSeen(current=>({...current,[conversationId]:new Date().toISOString()}))
-    const {error}=await client.rpc('mark_social_conversation_read',{p_conversation_id:conversationId})
-    if(error)setNotice(error.message)
-  },[])
+    const [
+      membershipResult,
+      receiptResult
+    ]=await Promise.allSettled([
+      client.rpc(
+        'mark_social_conversation_read',
+        {
+          p_conversation_id:
+            conversationId
+        }
+      ),
+      ackChatRead(
+        conversationId
+      )
+    ])
+
+    if(
+      membershipResult.status==='fulfilled' &&
+      membershipResult.value.error
+    ){
+      setNotice(
+        membershipResult.value.error.message
+      )
+    }
+
+    if(
+      receiptResult.status==='rejected'
+    ){
+      console.warn(
+        'Unable to acknowledge read receipts.',
+        receiptResult.reason
+      )
+    }
+
+    void loadReceiptSummaries(
+      conversationId
+    )
+  },[loadReceiptSummaries])
 
   const loadThread=useCallback(async(conversationId:string)=>{
     const client=supabase
@@ -887,7 +960,30 @@ export function ChatShell(){
         return mergeMessages(mergeMessages(older,fresh),local)
       })
       setHasOlder(current=>(current && fresh.length>=300) || (data||[]).length>=300)
-      void markRead(conversationId)
+
+      void ackChatDelivered(
+        fresh
+          .filter(
+            message=>
+              message.sender_id!==userId
+          )
+          .map(
+            message=>message.id
+          )
+      ).catch(error=>{
+        console.warn(
+          'Unable to acknowledge message delivery.',
+          error
+        )
+      })
+
+      void loadReceiptSummaries(
+        conversationId
+      )
+
+      void markRead(
+        conversationId
+      )
     }catch(error){
       if(sequence===threadRequestRef.current){
         setNotice(error instanceof Error ? error.message : 'Unable to load this conversation.')
@@ -895,7 +991,7 @@ export function ChatShell(){
     }finally{
       if(sequence===threadRequestRef.current)setThreadLoading(false)
     }
-  },[markRead])
+  },[loadReceiptSummaries,markRead,userId])
 
   // First load, plus a conversation opened from a notification.
   useEffect(()=>{
@@ -1048,6 +1144,18 @@ export function ChatShell(){
             return
           }
           const mine=row.sender_id===userRef.current
+
+          if(!mine){
+            void ackChatDelivered(
+              [row.id]
+            ).catch(error=>{
+              console.warn(
+                'Unable to acknowledge realtime delivery.',
+                error
+              )
+            })
+          }
+
           const open=row.conversation_id===selectedRef.current
           setDirects(rows=>rows.map(item=>item.conversation.id===row.conversation_id
             ? {
@@ -1081,6 +1189,24 @@ export function ChatShell(){
       )
       .on(
         'postgres_changes',
+        {
+          event:'*',
+          schema:'public',
+          table:'chat_message_receipts'
+        },
+        ()=>{
+          const conversationId=
+            selectedRef.current
+
+          if(conversationId){
+            void loadReceiptSummaries(
+              conversationId
+            )
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
         {event:'*',schema:'public',table:'social_conversation_members'},
         ()=>{void loadBase()}
       )
@@ -1089,7 +1215,7 @@ export function ChatShell(){
     return()=>{
       void client.removeChannel(channel)
     }
-  },[userId,loadBase,markRead])
+  },[userId,loadBase,markRead,loadReceiptSummaries])
 
   // Safety net if the realtime socket drops: quiet refresh, and on return to the tab.
   useEffect(()=>{
@@ -2161,8 +2287,37 @@ export function ChatShell(){
                   const message=item.message
                   const mine=message.sender_id===userId
                   const sender=mine ? null : peopleMap.get(message.sender_id)
-                  const read=mine && !message.pending && !message.failed && selected.otherReadAt &&
-                    new Date(selected.otherReadAt).getTime()>=new Date(message.created_at).getTime()
+                  const legacyRead=
+                    mine &&
+                    !message.pending &&
+                    !message.failed &&
+                    selected.otherReadAt &&
+                    new Date(selected.otherReadAt).getTime()>=
+                      new Date(message.created_at).getTime()
+
+                  const receipt=
+                    mine
+                      ? receiptSummaries[
+                          message.id
+                        ]
+                      : undefined
+
+                  const deliveryState=
+                    mine
+                      ? receiptState(
+                          receipt,
+                          !!legacyRead
+                        )
+                      : 'sent'
+
+                  const deliveryTitle=
+                    mine
+                      ? receiptTitle(
+                          receipt,
+                          selectedRoom!==null,
+                          !!legacyRead
+                        )
+                      : ''
                   const quoted=message.reply_to_id ? messages.find(m=>m.id===message.reply_to_id) || null : null
                   const deleted=isDeleted(message)
                   const canReply=!message.pending && !message.failed && !deleted
@@ -2304,10 +2459,63 @@ export function ChatShell(){
                           {formatTime(message.created_at)}
                           {message.edited_at&&!deleted?' edited':''}
                           {mine&&(
-                            message.failed ? null :
-                            message.pending ? <Check size={14} className="cmTick pending"/> :
-                            read ? <CheckCheck size={15} className="cmTick read"/> :
-                            <Check size={14} className="cmTick"/>
+                            message.failed
+                              ? null
+                              : message.pending
+                                ? <span
+                                    className="cmReceipt"
+                                    aria-label="Sending"
+                                    title="Sending"
+                                  >
+                                    <Check
+                                      size={14}
+                                      className="cmTick pending"
+                                      aria-hidden="true"
+                                    />
+                                  </span>
+                                : deliveryState==='read'
+                                  ? <span
+                                      className="cmReceipt"
+                                      title={deliveryTitle}
+                                      aria-label={deliveryTitle}
+                                    >
+                                      <CheckCheck
+                                        size={15}
+                                        className="cmTick read"
+                                      />
+                                      {selectedRoom&&receipt&&(
+                                        <small className="cmReceiptLabel">
+                                          Seen {receipt.read_count}/{receipt.recipient_count}
+                                        </small>
+                                      )}
+                                    </span>
+                                  : deliveryState==='delivered'
+                                    ? <span
+                                        className="cmReceipt"
+                                        title={deliveryTitle}
+                                        aria-label={deliveryTitle}
+                                      >
+                                        <CheckCheck
+                                          size={15}
+                                          className="cmTick delivered"
+                                        />
+                                        {selectedRoom&&receipt&&(
+                                          <small className="cmReceiptLabel">
+                                            Delivered {receipt.delivered_count}/{receipt.recipient_count}
+                                          </small>
+                                        )}
+                                      </span>
+                                    : <span
+                                        className="cmReceipt"
+                                        aria-label="Sent"
+                                        title="Sent"
+                                      >
+                                        <Check
+                                          size={14}
+                                          className="cmTick"
+                                          aria-hidden="true"
+                                        />
+                                      </span>
                           )}
                         </span>
                       </div>
@@ -2434,6 +2642,7 @@ export function ChatShell(){
                     }
                   }}
                   rows={1}
+                  enterKeyHint="enter"
                   aria-label={`Message ${displayName(selected.other)}`}
                   onKeyDown={event=>{
                     if(mentionQuery!==null && mentionSuggestions.length){
@@ -2480,10 +2689,6 @@ export function ChatShell(){
                       return
                     }
 
-                    if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){
-                      event.preventDefault()
-                      event.currentTarget.form?.requestSubmit()
-                    }
                   }}
                 />
                 <button className="cmSend" type="submit" aria-label="Send" disabled={!messageText.trim() && !staged.length}>
