@@ -103,8 +103,6 @@
 
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glassFrame.glassSurface,
-  .topbar.glassSurface,
   .glassCard,
   .dailyNoteCard,
   .glassNav,
@@ -129,6 +127,15 @@
   .glassSheet {
     background: rgba(248,250,253,.88) !important;
   }
+}
+
+/* Layout ancestors host viewport-fixed navigation and dialogs. Blurring these
+   boxes creates a containing block and traps overlays inside the frame/header.
+   Keep their tinted glass backgrounds; blur leaf cards, navigation and sheets. */
+.shell.glassFrame.glassSurface,
+.topbar.glassSurface {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* Dark appearance must remain dark even though this design-system layer loads last. */

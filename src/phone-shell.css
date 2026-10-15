@@ -15,6 +15,19 @@
   }
 }
 
+/* The header is also used on touch tablets. Do not hide the first icon:
+   that selector matches both Search and the bell in its nested wrapper. */
+@media (max-width: 1023px) {
+  .topbar .headerActions > .iconButton,
+  .topbar .notificationButton {
+    flex: 0 0 var(--ra-touch-target);
+    width: var(--ra-touch-target);
+    min-width: var(--ra-touch-target);
+    height: var(--ra-touch-target);
+    min-height: var(--ra-touch-target);
+  }
+}
+
 @media (max-width: 599px) {
   .shell.glassFrame > .sidebar {
     display: none !important;
