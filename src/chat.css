@@ -2089,3 +2089,40 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 }
 
 /* CHAT_MENTION_LIGHT_FIX_END */
+
+/* CHAT_MESSAGE_RECEIPTS_START */
+
+.cmReceipt{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  vertical-align:middle;
+}
+
+.cmTick.delivered{
+  color:rgba(74,92,116,.78);
+}
+
+.cmReceiptLabel{
+  font-size:10px;
+  line-height:1;
+  font-weight:700;
+  white-space:nowrap;
+  letter-spacing:-.01em;
+}
+
+.cmMsg.mine .cmReceiptLabel{
+  color:rgba(25,58,89,.72);
+}
+
+.cmMsg.mine .cmTick.read + .cmReceiptLabel{
+  color:#b96f00;
+}
+
+@media(max-width:600px){
+  .cmReceiptLabel{
+    font-size:9px;
+  }
+}
+
+/* CHAT_MESSAGE_RECEIPTS_END */
