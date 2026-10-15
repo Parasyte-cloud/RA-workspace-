@@ -1,0 +1,164 @@
+/* Chat upgrade: photos, status, emoji, reactions, pins, in-chat search. */
+
+/* Photos */
+.cmAvatarBox{position:relative;overflow:visible}
+.cmAvatarBox img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.cmAvatarBox.cmHasPhoto{background:var(--cm-line)}
+.cmAvatarButton{border:0;padding:0;cursor:pointer;font:inherit;color:#fff}
+.cmAvatarButton:focus-visible{outline:2px solid var(--cm-accent);outline-offset:2px}
+.cmAvatarStatus{
+  position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;padding:0 1px;border-radius:999px;
+  display:grid;place-items:center;font-size:12px;line-height:1;background:var(--cm-side);
+  box-shadow:0 0 0 2px var(--cm-side);
+}
+.cmSenderName{display:flex !important;align-items:center;gap:6px}
+.cmSenderName .cmAvatar{font-size:9px}
+.cmMine{border:0;background:transparent;padding:0;margin-left:auto;margin-right:8px;cursor:pointer;border-radius:50%}
+.cmMine:focus-visible{outline:2px solid var(--cm-accent);outline-offset:2px}
+.cmSideHead h2{margin-right:0}
+
+/* Hover toolbar above a bubble */
+.cmToolbar{
+  position:absolute;top:-30px;display:flex;gap:2px;padding:3px;border-radius:999px;z-index:4;
+  background:var(--cm-side);box-shadow:0 2px 8px rgba(7,26,56,.22);opacity:0;pointer-events:none;
+  transition:opacity .12s;
+}
+.cmMsg.theirs .cmToolbar{left:0}
+.cmMsg.mine .cmToolbar{right:0}
+.cmBubble:hover .cmToolbar,.cmBubble:focus-within .cmToolbar,.cmToolbar.open{opacity:1;pointer-events:auto}
+.cmToolBtn{
+  width:28px;height:28px;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:transparent;color:var(--cm-muted);
+}
+.cmToolBtn:hover,.cmToolBtn:focus-visible{background:var(--cm-hover);color:var(--cm-text)}
+.cmToolBtn[aria-pressed='true']{color:var(--cm-accent)}
+.cmQuick{
+  position:absolute;top:36px;display:flex;gap:2px;padding:5px;border-radius:999px;background:var(--cm-side);
+  box-shadow:0 6px 20px rgba(7,26,56,.28);white-space:nowrap;
+}
+.cmMsg.theirs .cmQuick{left:0}
+.cmMsg.mine .cmQuick{right:0}
+.cmQuick button{
+  width:34px;height:34px;border:0;border-radius:50%;background:transparent;cursor:pointer;font-size:20px;
+  display:grid;place-items:center;color:var(--cm-text);transition:transform .1s;
+}
+.cmQuick button:hover,.cmQuick button:focus-visible{background:var(--cm-hover);transform:scale(1.18)}
+@media (hover:none){
+  .cmToolbar{position:static;opacity:1;pointer-events:auto;margin:0 0 4px;padding:0;box-shadow:none;background:transparent;width:max-content}
+  .cmToolBtn{width:34px;height:34px}
+  .cmQuick{top:38px}
+}
+
+/* Reaction chips */
+.cmReactions{display:flex;flex-wrap:wrap;gap:4px;margin:3px 2px 0;max-width:min(560px,78%)}
+.cmMsg.mine .cmReactions{justify-content:flex-end}
+.cmChip{
+  display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--cm-line);background:var(--cm-side);color:var(--cm-text);font:inherit;font-size:13px;
+  transition:transform .1s,background .12s;
+}
+.cmChip b{font-size:12px;font-weight:700;color:var(--cm-muted)}
+.cmChip:hover{transform:translateY(-1px)}
+.cmChip.mine{background:var(--cm-active);border-color:var(--cm-accent)}
+.cmChip.mine b{color:var(--cm-text)}
+.cmChip:focus-visible{outline:2px solid var(--cm-accent);outline-offset:1px}
+
+/* Emoji picker */
+.cmEmojiWrap{position:relative;display:inline-flex}
+.cmEmoji{
+  width:min(340px,86vw);display:flex;flex-direction:column;border-radius:14px;z-index:30;
+  background:var(--cm-side);color:var(--cm-text);box-shadow:0 10px 32px rgba(7,26,56,.32);border:1px solid var(--cm-line);
+  overflow:hidden;
+}
+.cmEmojiUp{position:absolute;bottom:52px;left:-48px}
+.cmEmojiOver{position:absolute;top:36px;left:0}
+.cmMsg.mine .cmEmojiOver{left:auto;right:0}
+.cmEmojiDown{top:46px}
+.cmEmojiSearch{display:flex;align-items:center;gap:8px;margin:10px 10px 6px;padding:0 10px;height:36px;border-radius:10px;background:var(--cm-input);box-shadow:inset 0 0 0 1px var(--cm-line)}
+.cmEmojiSearch input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--cm-text);font:inherit;font-size:14px}
+.cmEmojiTabs{display:flex;gap:2px;padding:0 8px 6px;border-bottom:1px solid var(--cm-line)}
+.cmEmojiTabs button{flex:1;height:32px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:17px}
+.cmEmojiTabs button:hover{background:var(--cm-hover)}
+.cmEmojiTabs button.on{background:var(--cm-active)}
+.cmEmojiScroll{height:240px;overflow-y:auto;padding:4px 8px 10px}
+.cmEmojiLabel{padding:8px 4px 4px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--cm-muted)}
+.cmEmojiGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.cmEmojiGrid button{height:36px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:22px;line-height:1}
+.cmEmojiGrid button:hover,.cmEmojiGrid button:focus-visible{background:var(--cm-hover);outline:0;transform:scale(1.12)}
+.cmEmojiNone{grid-column:1/-1;padding:16px 4px;color:var(--cm-muted);font-size:13px}
+@media (max-width:520px){.cmEmojiUp{left:auto;right:-90px}}
+
+/* Pinned messages */
+.cmPinned{background:var(--cm-side);border-bottom:1px solid var(--cm-line)}
+.cmPinnedTop{display:flex;align-items:center;gap:10px;padding:7px 14px;color:var(--cm-accent)}
+.cmPinnedMain{
+  flex:1;min-width:0;display:flex;gap:8px;align-items:baseline;border:0;background:transparent;cursor:pointer;
+  text-align:left;color:var(--cm-text);font:inherit;padding:2px 0;
+}
+.cmPinnedMain strong{font-size:12px;flex:0 0 auto}
+.cmPinnedMain span,.cmPinnedList span{font-size:13px;color:var(--cm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmPinnedMore{display:inline-flex;align-items:center;gap:2px;height:26px;padding:0 8px;border:1px solid var(--cm-line);border-radius:999px;background:transparent;color:var(--cm-text);cursor:pointer;font:inherit;font-size:12px;font-weight:700}
+.cmPinnedList{list-style:none;margin:0;padding:0 14px 8px;display:grid;gap:2px;max-height:200px;overflow:auto}
+.cmPinnedList li{display:flex;gap:8px;align-items:center}
+.cmPinnedList li>button:first-child{flex:1;min-width:0;display:flex;gap:8px;align-items:baseline;border:0;background:transparent;cursor:pointer;text-align:left;color:var(--cm-text);font:inherit;padding:5px 4px;border-radius:8px}
+.cmPinnedList li>button:first-child:hover{background:var(--cm-hover)}
+.cmPinnedList strong{font-size:12px;flex:0 0 auto}
+.cmPinnedX{border:0;background:transparent;color:var(--cm-muted);cursor:pointer;font:inherit;font-size:12px;padding:4px 6px;flex:0 0 auto;white-space:nowrap}
+.cmPinnedX:hover{color:var(--cm-text);text-decoration:underline}
+
+/* In-conversation search */
+.cmFind{background:var(--cm-side);border-bottom:1px solid var(--cm-line)}
+.cmFindBar{display:flex;align-items:center;gap:8px;padding:8px 14px;color:var(--cm-muted)}
+.cmFindBar input{flex:1;min-width:0;height:36px;border:0;outline:0;border-radius:10px;padding:0 12px;background:var(--cm-input);color:var(--cm-text);font:inherit;font-size:14px;box-shadow:inset 0 0 0 1px var(--cm-line)}
+.cmFindBar input:focus{box-shadow:inset 0 0 0 2px var(--cm-accent)}
+.cmFindBar button{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--cm-muted);cursor:pointer;display:grid;place-items:center}
+.cmFindBar button:hover{background:var(--cm-hover)}
+.cmFindList{max-height:260px;overflow:auto;padding:0 8px 8px}
+.cmFindHint{margin:0;padding:8px 8px 12px;color:var(--cm-muted);font-size:13px}
+.cmFindHit{display:grid;gap:2px;width:100%;text-align:left;border:0;background:transparent;cursor:pointer;padding:8px;border-radius:10px;color:var(--cm-text);font:inherit}
+.cmFindHit:hover,.cmFindHit:focus-visible{background:var(--cm-hover);outline:0}
+.cmFindMeta{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.cmFindMeta small{color:var(--cm-muted)}
+.cmFindText{font-size:13.5px;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cmFindText mark{background:rgba(255,153,0,.35);color:inherit;border-radius:3px;padding:0 1px}
+
+/* Dialogs */
+.cmModalBack{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(7,26,56,.5)}
+.cmModal{
+  position:relative;width:min(460px,100%);max-height:calc(100vh - 32px);overflow:auto;border-radius:18px;
+  background:var(--cm-side,#fff);color:var(--cm-text,#071a38);box-shadow:0 24px 60px rgba(7,26,56,.4);
+}
+.cmModal header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px}
+.cmModal h3{margin:0;font-size:18px}
+.cmModal h4{margin:0 0 8px;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--cm-muted)}
+.cmModal header button,.cmCardX{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--cm-muted);cursor:pointer;display:grid;place-items:center}
+.cmModal header button:hover,.cmCardX:hover{background:var(--cm-hover)}
+.cmProfilePhoto{display:flex;gap:16px;align-items:center;padding:10px 18px 16px;border-bottom:1px solid var(--cm-line)}
+.cmProfilePhoto p{margin:0 0 10px;font-size:13px;color:var(--cm-muted);line-height:1.4}
+.cmProfileBtns{display:flex;gap:8px;flex-wrap:wrap}
+.cmBtn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--cm-line);background:transparent;color:var(--cm-text);cursor:pointer;font:inherit;font-size:13px;font-weight:700}
+.cmBtn:hover{background:var(--cm-hover)}
+.cmBtn.primary{background:var(--cm-accent);border-color:var(--cm-accent);color:var(--cm-accent-ink)}
+.cmBtn:disabled{opacity:.5;cursor:default}
+.cmProfileStatus{padding:14px 18px}
+.cmStatusRow{display:flex;gap:8px;align-items:center}
+.cmStatusEmojiWrap{position:relative}
+.cmStatusEmoji{width:44px;height:44px;border-radius:12px;border:1px solid var(--cm-line);background:var(--cm-input);cursor:pointer;font-size:22px}
+.cmStatusRow input{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--cm-line);background:var(--cm-input);color:var(--cm-text);padding:0 12px;font:inherit;font-size:14px;box-sizing:border-box}
+.cmStatusRow input:focus{outline:2px solid var(--cm-accent);outline-offset:0}
+.cmPresets{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.cmPresets button{display:inline-flex;gap:6px;align-items:center;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--cm-line);background:transparent;color:var(--cm-text);cursor:pointer;font:inherit;font-size:12.5px}
+.cmPresets button:hover{background:var(--cm-hover)}
+.cmStatusFor{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--cm-muted)}
+.cmStatusFor select{height:34px;border-radius:10px;border:1px solid var(--cm-line);background:var(--cm-input);color:var(--cm-text);font:inherit;padding:0 8px}
+.cmModal footer{display:flex;justify-content:flex-end;gap:8px;padding:8px 18px 18px}
+.cmCard{padding:28px 22px 22px;text-align:center;display:grid;justify-items:center;gap:6px}
+.cmCardX{position:absolute;top:10px;right:10px}
+.cmCard h3{margin-top:10px}
+.cmCardTitle{margin:0;color:var(--cm-muted);font-size:14px}
+.cmCardStatus{margin:8px 0 0;padding:6px 12px;border-radius:999px;background:var(--cm-hover);font-size:14px}
+
+@media (prefers-reduced-motion:reduce){
+  .cmChip,.cmQuick button,.cmEmojiGrid button,.cmToolbar{transition:none}
+  .cmChip:hover,.cmQuick button:hover,.cmEmojiGrid button:hover{transform:none}
+}
