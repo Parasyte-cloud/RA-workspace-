@@ -44,3 +44,106 @@
   .callCard{min-width:0}
   .callCopy{overflow-wrap:anywhere}
 }
+
+/* RA_WHATSAPP_ALERT_CARD_START */
+.callCard {
+  border: 1px solid rgba(255, 255, 255, .17);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(25, 55, 91, .82),
+      rgba(8, 31, 61, .91)
+    );
+
+  box-shadow:
+    0 22px 60px rgba(2, 17, 40, .34),
+    inset 0 1px 0 rgba(255, 255, 255, .16);
+
+  -webkit-backdrop-filter: blur(28px) saturate(165%);
+  backdrop-filter: blur(28px) saturate(165%);
+}
+
+.callCard.alerts {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(29, 61, 98, .84),
+      rgba(9, 34, 66, .92)
+    );
+}
+
+@media (max-width: 599px) {
+  .callRinger.responsiveModule {
+    top:
+      calc(
+        env(safe-area-inset-top, 0px)
+        + 8px
+      );
+
+    right:
+      max(
+        8px,
+        env(safe-area-inset-right, 0px)
+      );
+
+    left:
+      max(
+        8px,
+        env(safe-area-inset-left, 0px)
+      );
+
+    width: auto;
+
+    transform: none;
+  }
+
+  /*
+   * Long permission copy takes its own row.
+   * Actions remain usable even at 320px.
+   */
+  .callCard.alerts {
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(74px, auto);
+
+    gap: 8px;
+
+    padding: 12px;
+
+    border-radius: 24px;
+  }
+
+  .callCard.alerts .callCopy {
+    grid-column: 1 / -1;
+
+    min-width: 0;
+  }
+
+  .callCard.alerts .callCopy strong,
+  .callCard.alerts .callCopy small {
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+  }
+
+  .callCard.alerts .callBtn {
+    width: 100%;
+    min-width: 0;
+
+    height: 44px;
+
+    border-radius: 999px;
+  }
+
+  .callCard.alerts .callBtn.later {
+    grid-column: 1;
+  }
+
+  .callCard.alerts .callBtn.accept {
+    grid-column: 2;
+  }
+}
+/* RA_WHATSAPP_ALERT_CARD_END */

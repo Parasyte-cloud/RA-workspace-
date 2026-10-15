@@ -137,7 +137,17 @@ try {
         check(children[0].right<=children[1].x+1 || children[0].bottom<=children[1].y+1, `${label}: notification heading children do not overlap`, children)
         if (width<600) {
           check(shell.w>=width-2, `${label}: phone frame uses full width`, shell)
-          check(m['.phoneTabs'].w>=width-2, `${label}: bottom navigation uses full width`, m['.phoneTabs'])
+          const phoneTabs=m['.phoneTabs']
+          const rightInset=width-phoneTabs.right
+          check(phoneTabs.x>=7, `${label}: bottom navigation is inset from left edge`, phoneTabs)
+          check(rightInset>=7, `${label}: bottom navigation is inset from right edge`, phoneTabs)
+          check(phoneTabs.right<=width+1, `${label}: bottom navigation stays inside viewport`, phoneTabs)
+          check(phoneTabs.w>=width-24, `${label}: bottom navigation still spans most of the phone`, phoneTabs)
+          check(Math.abs(phoneTabs.x-rightInset)<=2, `${label}: bottom navigation is horizontally centred`, {
+            ...phoneTabs,
+            leftInset:phoneTabs.x,
+            rightInset
+          })
           check(m.navLabels.every(s=>s.sw<=s.cw+1), `${label}: bottom labels are readable`, m.navLabels)
           check(m['.sidebar'].display==='none', `${label}: no desktop sidebar on phone`)
         } else {

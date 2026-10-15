@@ -2233,3 +2233,159 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
 }
 
 /* CHAT_MOBILE_WIDTH_CONTAINMENT_END */
+
+/* RA_WHATSAPP_REPLY_UI_START */
+@media (max-width: 860px) {
+  .cmThread {
+    isolation: isolate;
+  }
+
+  /*
+   * Floating, rounded composer.
+   */
+  .cmComposer {
+    min-width: 0;
+
+    border: 1px solid rgba(18, 48, 82, .10);
+    border-radius: 28px;
+
+    background: rgba(255, 255, 255, .91);
+
+    box-shadow:
+      0 12px 36px rgba(7, 26, 56, .14),
+      inset 0 1px 0 rgba(255, 255, 255, .82);
+
+    -webkit-backdrop-filter: blur(24px) saturate(155%);
+    backdrop-filter: blur(24px) saturate(155%);
+  }
+
+  .cmComposer textarea {
+    min-width: 0;
+
+    border-radius: 999px;
+  }
+
+  /*
+   * WhatsApp-style reply preview:
+   * directly above the composer rather than underneath it.
+   */
+  .cmReplyBar {
+    position: absolute;
+
+    left:
+      max(
+        8px,
+        env(safe-area-inset-left, 0px)
+      );
+
+    right:
+      max(
+        8px,
+        env(safe-area-inset-right, 0px)
+      );
+
+    bottom:
+      calc(
+        76px
+        + env(safe-area-inset-bottom, 0px)
+      );
+
+    z-index: 24;
+
+    min-width: 0;
+
+    padding: 8px 9px 8px 11px;
+
+    gap: 8px;
+
+    border: 1px solid rgba(19, 50, 84, .10);
+    border-radius: 20px;
+
+    background: rgba(250, 252, 255, .92);
+
+    box-shadow:
+      0 10px 30px rgba(7, 26, 56, .12),
+      inset 0 1px 0 rgba(255, 255, 255, .88);
+
+    -webkit-backdrop-filter: blur(22px) saturate(155%);
+    backdrop-filter: blur(22px) saturate(155%);
+  }
+
+  .cmReplyBar > div {
+    min-width: 0;
+
+    overflow: hidden;
+
+    padding: 2px 4px 2px 9px;
+
+    border-left:
+      3px solid
+      var(--cm-accent);
+  }
+
+  .cmReplyBar strong,
+  .cmReplyBar span {
+    min-width: 0;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cmReplyBar button {
+    width: 40px;
+    height: 40px;
+
+    flex:
+      0
+      0
+      40px;
+
+    display: grid;
+
+    place-items: center;
+
+    padding: 0;
+
+    border-radius: 50%;
+
+    background:
+      rgba(15, 45, 80, .055);
+  }
+
+  .cmThread:has(.cmReplyBar) .cmMessages {
+    padding-bottom: 166px;
+  }
+
+  /*
+   * Reply affordance must be a real touch target.
+   */
+  .cmReplyBtn {
+    width: 34px;
+    height: 34px;
+
+    display: grid;
+
+    place-items: center;
+  }
+}
+
+html[data-ra-theme='dark'] .cmComposer {
+  background: rgba(16, 36, 60, .91);
+
+  border-color: rgba(255, 255, 255, .09);
+
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, .30),
+    inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+html[data-ra-theme='dark'] .cmReplyBar {
+  background: rgba(18, 40, 66, .92);
+
+  border-color: rgba(255, 255, 255, .08);
+
+  color: #dbe5f1;
+}
+/* RA_WHATSAPP_REPLY_UI_END */

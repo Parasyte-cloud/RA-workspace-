@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PhoneAlertsToggle from './PhoneAlertsToggle'
 import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
 
 import {
   Bell,
+  MessageCircle,
   CheckCheck,
   Trash2,
   X
@@ -36,6 +37,134 @@ export function NotificationCenter({
   const readCount=items.filter(item=>item.read_at).length
 
   const rootRef=useRef<HTMLDivElement|null>(null)
+
+// RA_WHATSAPP_NOTIFICATION_TOAST_STATE_START
+
+/*
+ * Foreground notifications:
+ *
+ * - Do not replay old notifications when the workspace first loads.
+ * - Only surface IDs that arrive after the initial notification snapshot.
+ * - Closing this banner does NOT delete or mark the underlying notification.
+ * - Opening it goes through the same governed notification routing as the bell.
+ */
+const [toastItem,setToastItem]=useState<NotificationItem|null>(null)
+
+const knownToastIdsRef=useRef<Set<string>>(new Set())
+
+const toastBootstrappedRef=useRef(false)
+
+const toastTimerRef=useRef<number|undefined>(undefined)
+
+const hideToast=()=>{
+
+  if(toastTimerRef.current!==undefined){
+
+    window.clearTimeout(
+      toastTimerRef.current
+    )
+
+    toastTimerRef.current=undefined
+
+  }
+
+  setToastItem(null)
+
+}
+
+useEffect(()=>{
+
+  if(loading)return
+
+  /*
+   * The first database snapshot is history, not a new incoming alert.
+   */
+  if(!toastBootstrappedRef.current){
+
+    knownToastIdsRef.current=
+      new Set(
+        items.map(item=>item.id)
+      )
+
+    toastBootstrappedRef.current=true
+
+    return
+
+  }
+
+  /*
+   * Realtime/load may replace the complete notification array.
+   * Detect by unseen ID rather than array position so dismissing an older
+   * notification cannot accidentally replay another old notification.
+   */
+  const fresh=
+    items.find(
+      item=>
+        !knownToastIdsRef.current.has(
+          item.id
+        )
+    )
+
+  for(const item of items){
+
+    knownToastIdsRef.current.add(
+      item.id
+    )
+
+  }
+
+  if(
+    !fresh ||
+    fresh.read_at
+  )return
+
+  if(
+    toastTimerRef.current!==undefined
+  ){
+
+    window.clearTimeout(
+      toastTimerRef.current
+    )
+
+  }
+
+  setToastItem(fresh)
+
+  toastTimerRef.current=
+    window.setTimeout(
+      ()=>{
+
+        setToastItem(null)
+
+        toastTimerRef.current=undefined
+
+      },
+      5500
+    )
+
+},[
+  items,
+  loading
+])
+
+useEffect(
+  ()=>()=>{
+
+    if(
+      toastTimerRef.current!==undefined
+    ){
+
+      window.clearTimeout(
+        toastTimerRef.current
+      )
+
+    }
+
+  },
+  []
+)
+
+// RA_WHATSAPP_NOTIFICATION_TOAST_STATE_END
 
   useEffect(()=>{
     if(!onOpenSection) return
@@ -200,7 +329,83 @@ export function NotificationCenter({
         }
       </button>
 
-      {open&&
+      
+{/* RA_WHATSAPP_NOTIFICATION_TOAST_VIEW_START */}
+
+{toastItem&&(
+
+  <div
+    className="notificationToast"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+
+    <button
+      type="button"
+      className="notificationToastMain uiFocusRing"
+      aria-label={`Open notification: ${toastItem.title}`}
+      onClick={()=>{
+
+        hideToast()
+
+        void openNotification(
+          toastItem
+        )
+
+      }}
+    >
+
+      <span
+        className="notificationToastIcon"
+        aria-hidden="true"
+      >
+
+        {toastItem.type==='chat_message'
+
+          ? <MessageCircle size={19}/>
+
+          : <Bell size={19}/>
+
+        }
+
+      </span>
+
+      <span className="notificationToastCopy">
+
+        <strong>
+          {toastItem.title}
+        </strong>
+
+        {toastItem.body&&(
+
+          <span>
+            {toastItem.body}
+          </span>
+
+        )}
+
+      </span>
+
+    </button>
+
+    <button
+      type="button"
+      className="notificationToastClose uiFocusRing"
+      aria-label="Dismiss notification banner"
+      onClick={hideToast}
+    >
+
+      <X size={16}/>
+
+    </button>
+
+  </div>
+
+)}
+
+{/* RA_WHATSAPP_NOTIFICATION_TOAST_VIEW_END */}
+
+{open&&
         <div className="notificationMenu glassPanel">
           <div className="notificationHeader">
             <div>
