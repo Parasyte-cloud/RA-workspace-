@@ -17,10 +17,10 @@ import {
   POLL_WAITING_MS,
 } from '../lib/room7Admission'
 import './room7-public.css'
+import { prefetchWhenIdle } from '../lib/prefetch'
 
-const ExternalRoom7Meeting = lazy(
-  () => import('./ExternalRoom7Meeting'),
-)
+const loadExternalMeeting = () => import('./ExternalRoom7Meeting')
+const ExternalRoom7Meeting = lazy(loadExternalMeeting)
 
 type RoomState =
   | 'draft'
@@ -454,6 +454,7 @@ function requestKeyFor(locator: Locator | null) {
 export default function ExternalRoom7App() {
   useEffect(() => {
     registerRoom7Worker()
+    prefetchWhenIdle(loadExternalMeeting)
   }, [])
 
   const locator =

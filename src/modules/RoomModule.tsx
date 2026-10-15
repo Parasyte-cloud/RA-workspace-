@@ -45,6 +45,7 @@ import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
 import GuestAdmissionPanel from './GuestAdmissionPanel'
 import '../room.css'
+import { prefetchWhenIdle } from '../lib/prefetch'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
 type RoomStatus='active'|'ended'
@@ -104,7 +105,8 @@ function formatWhen(value:string){
   }
 }
 
-const RoomMeeting=lazy(()=>import('./RoomMeeting'))
+const loadRoomMeeting=()=>import('./RoomMeeting')
+const RoomMeeting=lazy(loadRoomMeeting)
 
 export default function RoomModule({
   active=true,
@@ -116,6 +118,7 @@ export default function RoomModule({
   onMinimize?:()=>void
 }){
   const client=supabase
+  useEffect(()=>{if(active)prefetchWhenIdle(loadRoomMeeting)},[active])
   const initialCode=useMemo(()=>{
     if(typeof window==='undefined')return ''
     return normalizeRoomCode(new URLSearchParams(window.location.search).get('room')||'')
