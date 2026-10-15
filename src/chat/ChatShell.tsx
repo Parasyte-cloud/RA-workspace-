@@ -303,6 +303,7 @@ export function ChatShell(){
   const [otherTyping,setOtherTyping]=useState(false)
   const [hasOlder,setHasOlder]=useState(false)
   const [loadingOlder,setLoadingOlder]=useState(false)
+  const baseTimerRef=useRef(0)
   const typingChannelRef=useRef<{send:(payload:unknown)=>unknown}|null>(null)
   const typingSentRef=useRef(0)
   const typingTimerRef=useRef<number|undefined>(undefined)
@@ -873,6 +874,27 @@ export function ChatShell(){
         }
       }
 
+      // The 500 message window can miss quiet chats. When it is full, ask the
+      // database for each chat's own latest message and unread count.
+      if(recentMessages.length>=500){
+        await Promise.all(directConversations.map(async conversation=>{
+          const membership=ownMap.get(conversation.id)
+          if(!membership)return
+          const [lastResult,unreadResult]=await Promise.all([
+            latestMap.has(conversation.id)
+              ? Promise.resolve(null)
+              : client.from('social_messages').select(MESSAGE_COLUMNS).eq('conversation_id',conversation.id).order('created_at',{ascending:false}).limit(1),
+            client.from('social_messages').select('id',{count:'exact',head:true})
+              .eq('conversation_id',conversation.id)
+              .neq('sender_id',me)
+              .gt('created_at',membership.last_read_at)
+          ])
+          const first=lastResult && !lastResult.error ? ((lastResult.data || [])[0] as Message|undefined) : undefined
+          if(first)latestMap.set(conversation.id,first)
+          if(!unreadResult.error && typeof unreadResult.count==='number')unreadMap.set(conversation.id,unreadResult.count)
+        }))
+      }
+
       const rows:DirectRow[]=directConversations.map(conversation=>{
         const membership=ownMap.get(conversation.id)!
         const otherMember=members.find(member=>member.conversation_id===conversation.id && member.user_id!==me)
@@ -1183,11 +1205,21 @@ export function ChatShell(){
         payload=>{
           const row=payload.new as Message
           const known=directsRef.current.some(item=>item.conversation.id===row.conversation_id)
+          const mine=row.sender_id===userRef.current
           if(!known){
-            void loadBase()
+            // A room message (or a brand new chat). Show it if that room is open,
+            // and refresh the list once, not once per message.
+            if(row.conversation_id===selectedRef.current){
+              setMessages(current=>mergeMessages(current,[row]))
+              if(!mine){
+                void ackChatDelivered([row.id]).catch(()=>undefined)
+                if(canMarkReadNow())void markRead(row.conversation_id)
+              }
+            }
+            if(baseTimerRef.current)window.clearTimeout(baseTimerRef.current)
+            baseTimerRef.current=window.setTimeout(()=>{baseTimerRef.current=0;void loadBase()},1200)
             return
           }
-          const mine=row.sender_id===userRef.current
 
           if(!mine){
             void ackChatDelivered(
@@ -1257,6 +1289,7 @@ export function ChatShell(){
       .subscribe()
 
     return()=>{
+      if(baseTimerRef.current){window.clearTimeout(baseTimerRef.current);baseTimerRef.current=0}
       void client.removeChannel(channel)
     }
   },[userId,loadBase,markRead,loadReceiptSummaries])
