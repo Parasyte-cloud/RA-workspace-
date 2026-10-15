@@ -34,10 +34,24 @@ test('Blog API client exposes generic asset and import contracts without leaking
   assert.match(s,/X-Asset-Kind/);assert.doesNotMatch(s,/access_token=.*URL|searchParams\.set\(['"]token/);
   assert.match(s,/BlogContentType/);assert.match(s,/BlogAssetRelationship/);
 });
-test('Add Content exposes exactly the four approved entry actions',()=>{
+test('Articles exposes the editorial workflow directly instead of routing creation through Files & media',()=>{
   const s=read('src/modules/BlogStudio.tsx');
-  for(const label of ['Quick writeup','New article','Import file','Upload attachment/media'])assert.match(s,new RegExp(label));
-  assert.match(s,/ADD_CONTENT_ACTIONS/);
+  assert.match(s,/className="bs-article-actions"/);
+  for(const label of ['New article','Import document','Quick writeup'])assert.match(s,new RegExp(label));
+  assert.match(s,/onClick=\{newDraft\}/);
+  assert.match(s,/void extractImport\(file\)/);
+  assert.doesNotMatch(s,/What are you publishing\?/);
+  assert.doesNotMatch(s,/ADD_CONTENT_ACTIONS/);
+});
+
+test('Article editor presents the five-step editorial workflow and publication checks',()=>{
+  const s=read('src/modules/BlogStudio.tsx');
+  assert.match(s,/bs-editorial-workflow/);
+  for(const label of ['Create draft','Details & content','Sources & attachments','Publication checks','Publish or schedule'])assert.match(s,new RegExp(label));
+  assert.match(s,/>Summary</);
+  assert.match(s,/facts, sources and image rights/i);
+  assert.match(s,/Publish now/);
+  assert.match(s,/Schedule publication/);
 });
 test('quick composer is body-first and publication remains permission-gated',()=>{
   const s=read('src/modules/BlogStudio.tsx');
@@ -53,8 +67,13 @@ test('generic assets can be listed linked and unlinked from saved drafts',()=>{
   const s=read('src/modules/BlogStudio.tsx');assert.match(s,/listBlogAssets/);assert.match(s,/linkBlogAsset/);assert.match(s,/unlinkBlogAsset/);assert.match(s,/Files & media/);
   const client=read('src/lib/blogStudio.ts');assert.match(client,/listPostAssets/);
 });
-test('mobile Add Content uses bottom sheet hooks and 44px interaction targets',()=>{
-  const s=read('src/modules/BlogStudio.tsx'),css=read('src/blog-studio.css');assert.match(s,/bs-add-sheet/);assert.match(css,/bs-add-sheet/);assert.match(css,/min-height:\s*44px/);assert.match(css,/@media\s*\(max-width:\s*640px\)/);
+test('mobile editorial entry actions remain touch-safe without a creation bottom sheet',()=>{
+  const s=read('src/modules/BlogStudio.tsx'),css=read('src/blog-studio.css');
+  assert.match(s,/bs-article-actions/);
+  assert.match(css,/bs-article-actions/);
+  assert.match(css,/min-height:\s*44px/);
+  assert.match(css,/@media\s*\(max-width:\s*640px\)/);
+  assert.doesNotMatch(s,/bs-add-sheet/);
 });
 test('asset uploads infer approved MIME types when browser File.type is empty',()=>{
   const client=read('src/lib/blogStudio.ts');
