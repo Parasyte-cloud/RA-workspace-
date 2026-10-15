@@ -1,4 +1,6 @@
-const CACHE = 'ra-workspace-shell-v7'
+const CACHE = 'ra-workspace-shell-v8'
+const ASSETS = 'ra-workspace-assets-v1'
+const ASSET_LIMIT = 400
 const SHELL = [
   '/',
   '/index.html',
@@ -21,7 +23,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== ASSETS).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   )
 })
@@ -43,6 +45,35 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
+
+  // Files under /assets/ have a content hash in their name, so a name never
+  // changes meaning. Answer from the device when it is there (instant) and
+  // fetch only on a miss. The page itself (index.html) stays network-first
+  // below, so a deploy still shows up on the next visit.
+  if (url.pathname.startsWith('/assets/') && !url.searchParams.has('_r')) {
+    event.respondWith((async () => {
+      const cache = await caches.open(ASSETS)
+      const hit = await cache.match(request)
+      if (hit && !isWrongType(url, hit)) return hit
+      let response
+      try { response = await fetch(request) } catch (_) { return Response.error() }
+      if (isWrongType(url, response)) {
+        const retry = new URL(url.href)
+        retry.searchParams.set('_r', Date.now().toString(36))
+        response = await fetch(retry.href, { cache: 'reload', credentials: 'same-origin' })
+        if (isWrongType(url, response)) return Response.error()
+      }
+      if (response.ok) {
+        cache.put(request, response.clone()).then(async () => {
+          const keys = await cache.keys()
+          // Oldest first: drop old builds' files once the cache grows large.
+          for (const key of keys.slice(0, Math.max(0, keys.length - ASSET_LIMIT))) await cache.delete(key)
+        }).catch(() => {})
+      }
+      return response
+    })())
+    return
+  }
 
   // Network-first prevents stale authenticated UI after a deployment.
   event.respondWith((async () => {

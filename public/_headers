@@ -30,6 +30,8 @@
   Cache-Control: no-cache
 /recover.js
   Cache-Control: no-cache
+/preload-internal.js
+  Cache-Control: no-cache
 
 # Report-only CSP on the public forms hosts. It enforces nothing yet: watch the
 # browser console on each form for violations, then rename the header to
