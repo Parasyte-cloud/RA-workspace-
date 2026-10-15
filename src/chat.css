@@ -2006,3 +2006,86 @@ html[data-ra-theme='dark'] .cmLock{background:rgba(255,153,0,.14);color:#f3cf8f}
     max-height:230px;
   }
 }
+
+/* CHAT_MENTION_LIGHT_FIX_START */
+
+/*
+ * RideArrivo Chat @mention picker
+ *
+ * The mention picker belongs to the light Chat workspace, so it must not
+ * inherit the application's dark workstation surfaces.
+ */
+
+.cmMentionSuggestions {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.985),
+      rgba(248, 250, 253, 0.975)
+    ) !important;
+  border: 1px solid rgba(13, 39, 72, 0.12) !important;
+  box-shadow:
+    0 22px 54px rgba(7, 31, 61, 0.16),
+    0 4px 14px rgba(7, 31, 61, 0.08) !important;
+  color: #102b4e !important;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+.cmMentionSuggestions button {
+  background: transparent !important;
+  color: #102b4e !important;
+  border-color: transparent !important;
+}
+
+.cmMentionSuggestions button:hover {
+  background: rgba(255, 171, 52, 0.09) !important;
+  color: #0b2546 !important;
+}
+
+.cmMentionSuggestions button.active,
+.cmMentionSuggestions button[aria-selected="true"] {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 171, 52, 0.17),
+      rgba(255, 171, 52, 0.09)
+    ) !important;
+  color: #0b2546 !important;
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.cmMentionSuggestions .cmMentionAvatar {
+  background: rgba(13, 48, 84, 0.08) !important;
+  border: 1px solid rgba(13, 48, 84, 0.08) !important;
+  color: #173d69 !important;
+}
+
+.cmMentionSuggestions button.active .cmMentionAvatar,
+.cmMentionSuggestions button[aria-selected="true"] .cmMentionAvatar {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #173d69 !important;
+}
+
+.cmMentionSuggestions .cmMentionPerson {
+  color: #102b4e !important;
+}
+
+.cmMentionSuggestions .cmMentionPerson strong {
+  color: #102b4e !important;
+}
+
+.cmMentionSuggestions .cmMentionPerson small {
+  color: #68798e !important;
+}
+
+.cmMentionSuggestions .cmMentionAt {
+  color: #f59e0b !important;
+}
+
+.cmMentionSuggestions button:focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.72) !important;
+  outline-offset: -2px;
+}
+
+/* CHAT_MENTION_LIGHT_FIX_END */
