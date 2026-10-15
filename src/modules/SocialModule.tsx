@@ -224,7 +224,7 @@ export function SocialModule(){
   }
   const extractHashtags=async(postId:string,text:string)=>{
     if(!supabase)return
-    const tags=[...new Set([...text.matchAll(/(?:^|\s)#([\p{L}\p{N}_]+)/gu)].map(m=>m[1].toLowerCase()).slice(0,10))]
+    const tags=[...new Set([...text.matchAll(/(?:^|\s)#([\p{L}\p{N}_]+)/gu)].map(m=>m[1].toLowerCase().slice(0,50)).slice(0,10))]
     for(const tag of tags){const {data}=await supabase.from('social_hashtags').upsert({tag},{onConflict:'tag'}).select('id').single();if(data)await supabase.from('social_post_hashtags').upsert({post_id:postId,hashtag_id:data.id})}
   }
   const publish=async(e:FormEvent)=>{

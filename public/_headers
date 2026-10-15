@@ -37,3 +37,9 @@
 # the analytics allowances (see src/lib/analytics.ts).
 https://forms.ridearrivo.com/*
   Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.onrender.com; img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+
+# Report-only CSP on the workspace host. It blocks nothing. Watch the browser
+# console and the reports for a few days, tighten connect-src and frame-src to
+# the exact providers in use, then rename the header to enforce it.
+https://intranet.ridearrivo.com/*
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; frame-src 'self' https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'

@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
   // invoke this. Anyone else gets rejected before touching the DB.
   if (
     !dispatchSecret ||
-    authorization !== `Bearer ${dispatchSecret}`
+    !sameSecret(authorization, `Bearer ${dispatchSecret}`)
   ) {
     return json(401, { error: "Not authorized to dispatch notification email." })
   }
@@ -305,3 +305,10 @@ Deno.serve(async (req) => {
 
   return json(200, { sent, failed, skipped })
 })
+
+function sameSecret(a: string, b: string) {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}

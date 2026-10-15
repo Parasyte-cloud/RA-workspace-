@@ -69,7 +69,7 @@ export function FinanceModule(){const [tab,setTab]=useState('Dashboard');const t
               window.open(
                 PROVIDUS_URL,
                 'ridearrivo-providus',
-                'width=1280,height=900'
+                'width=1280,height=900,noopener,noreferrer'
               )
             }}
           >
