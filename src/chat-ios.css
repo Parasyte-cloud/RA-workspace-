@@ -1,0 +1,192 @@
+/* Chat layout: iMessage structure with WhatsApp style bubbles.
+   Loaded last so it wins over the older chat stylesheets. */
+
+/* ---------- Bubbles (all screen sizes) ---------- */
+.cmMsg { display: flex; flex-direction: column; max-width: 100%; margin-top: 2px; }
+.cmMsg.mine { align-items: flex-end; }
+.cmMsg.theirs { align-items: flex-start; }
+.cmRowWrap { position: relative; display: flex; align-items: flex-end; max-width: 80%; min-width: 0; }
+.cmMsg.mine .cmRowWrap { justify-content: flex-end; }
+
+.cm .cmBubble {
+  position: relative;
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end;
+  column-gap: 10px; row-gap: 2px;
+  max-width: 100%; min-width: 0;
+  padding: 8px 12px 6px;
+  border-radius: 19px; border: 0;
+  box-shadow: 0 1px 1px rgba(0,0,0,.08);
+  overflow-wrap: anywhere; word-break: break-word;
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+.cm .cmMsg.mine .cmBubble {
+  background: linear-gradient(180deg, #ffb84a 0%, #f59a0a 100%);
+  color: #1a1200; border-bottom-right-radius: 6px;
+}
+.cm .cmMsg.theirs .cmBubble {
+  background: #e9e9ee; color: #14181f; border-bottom-left-radius: 6px;
+}
+html[data-ra-theme='dark'] .cm .cmMsg.mine .cmBubble {
+  background: linear-gradient(180deg, #f2a12a 0%, #d98400 100%); color: #140c00;
+}
+html[data-ra-theme='dark'] .cm .cmMsg.theirs .cmBubble { background: #2a3447; color: #f2f5fa; }
+.cm .cmBubble p { margin: 0; flex: 0 1 auto; min-width: 0; font-size: 16px; line-height: 1.32; color: inherit; white-space: pre-wrap; }
+.cm .cmBubble .cmSenderName, .cm .cmBubble .cmQuote, .cm .cmBubble .cmImage, .cm .cmBubble .cmFile,
+.cm .cmBubble .cmVoice, .cm .cmBubble .cmEditBox { flex: 0 0 100%; max-width: 100%; }
+.cm .cmBubble .cmSenderName { font-size: 12.5px; font-weight: 700; color: #8a4f00; margin-bottom: 1px; }
+html[data-ra-theme='dark'] .cm .cmBubble .cmSenderName { color: #ffc46b; }
+.cm .cmBubble .cmQuote {
+  text-align: left; border: 0; border-left: 3px solid rgba(0,0,0,.35); border-radius: 8px;
+  background: rgba(0,0,0,.08); color: inherit; padding: 5px 8px; margin-bottom: 4px; display: grid; gap: 1px;
+}
+.cm .cmBubble .cmQuote span { opacity: .8; font-size: 13px; }
+.cm .cmBubble .cmMeta {
+  margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; line-height: 1; opacity: .7; padding-top: 3px; color: inherit; position: relative; top: 1px;
+}
+.cm .cmMsg.mine .cmMeta { opacity: .8; }
+.cm .cmBubble .cmTick { color: currentColor; }
+.cm .cmBubble .cmTick.read { color: #0a63d8; }
+.cm .cmMsg.theirs .cmBubble .cmMeta { color: inherit; }
+.cm .cmMsg.mine .cmBubble .cmReceiptLabel { display: none; }
+.cm .cmMsg.flash .cmBubble { outline: 2px solid #ff9900; outline-offset: 2px; }
+.cm .cmReactions { margin: -6px 10px 0; position: relative; z-index: 2; }
+
+/* ---------- Message actions: never on top of the text ---------- */
+.cmActions { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.cmActions .cmToolbar { position: static; opacity: 1; pointer-events: auto; box-shadow: none; background: transparent; padding: 0; margin: 0; }
+.cmActions .cmQuick { top: 100%; margin-top: 4px; z-index: 6; }
+.cmActions .cmEmojiOver { top: 100%; margin-top: 4px; z-index: 7; }
+.cm .cmActions .cmReplyBtn {
+  position: static; width: 32px; height: 32px; display: grid; place-items: center; right: auto; top: auto;
+  border: 0; border-radius: 50%; background: transparent; color: var(--cm-muted, #65748a); opacity: 1; cursor: pointer;
+}
+.cm .cmActions .cmReplyBtn:hover, .cm .cmActions .cmToolBtn:hover { background: var(--cm-hover, rgba(0,0,0,.06)); color: var(--cm-text, inherit); }
+.cm .cmActions .cmDeleteBtn:hover { color: #d33; }
+.cm .cmActions .cmToolBtn { width: 32px; height: 32px; }
+
+/* Desktop and mouse: the actions float beside the bubble on hover. */
+@media (hover: hover) and (min-width: 861px) {
+  .cmActions {
+    position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; pointer-events: none; flex-wrap: nowrap;
+    padding: 3px; border-radius: 999px; background: var(--cm-side, #fff); box-shadow: 0 2px 10px rgba(7,26,56,.2); z-index: 5;
+    transition: opacity .12s;
+  }
+  .cmMsg.mine .cmActions { right: calc(100% + 8px); }
+  .cmMsg.theirs .cmActions { left: calc(100% + 8px); }
+  .cmRowWrap:hover .cmActions, .cmRowWrap:focus-within .cmActions, .cmMsg.actionsOpen .cmActions { opacity: 1; pointer-events: auto; }
+  .cmActions .cmQuick { top: calc(100% + 6px); }
+}
+
+/* Touch: tap a bubble and its actions appear underneath it. */
+@media (max-width: 860px), (hover: none) {
+  .cmRowWrap { flex-direction: column; align-items: flex-end; max-width: 82%; }
+  .cmMsg.theirs .cmRowWrap { align-items: flex-start; }
+  .cmActions {
+    display: none; margin-top: 4px; padding: 3px 4px; border-radius: 999px;
+    background: var(--cm-side, #fff); box-shadow: 0 2px 12px rgba(7,26,56,.18); position: relative;
+  }
+  .cmMsg.actionsOpen .cmActions { display: flex; }
+  .cmActions .cmQuick { position: static; margin: 0; box-shadow: none; padding: 0 2px; }
+  .cmActions .cmEmojiOver { position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto; z-index: 90; }
+}
+
+/* ---------- Day pill, lock note, call lines ---------- */
+.cm .cmDay { align-self: center; margin: 12px 0 6px; }
+.cm .cmDay span { background: rgba(120,128,140,.22); color: var(--cm-muted, #65748a); padding: 3px 11px; font-size: 12px; font-weight: 600; border-radius: 999px; box-shadow: none; }
+.cm .cmLock { align-self: center; max-width: 92%; margin: 6px 0; font-size: 12px; text-align: center; border-radius: 12px; }
+.cm .cmCallLine { align-self: center; max-width: 92%; margin: 8px 0; border-radius: 16px; }
+
+/* ---------- Phone: iMessage style full screen thread ---------- */
+@media (max-width: 860px) {
+  /* The conversation fills the whole screen, above the tab bar, like Messages. */
+  .cm .cmShell.threadOpen {
+    position: fixed; inset: 0; z-index: 70; height: 100dvh; min-height: 0; margin: 0;
+    border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column;
+  }
+  .cm .cmShell.threadOpen .cmThread {
+    flex: 1 1 auto; height: auto; min-height: 0; display: flex; flex-direction: column; position: relative; width: 100%;
+  }
+  .cm .cmShell.threadOpen .cmThreadHead {
+    flex: 0 0 auto; position: relative; z-index: 5;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px 8px; gap: 8px;
+    background: color-mix(in srgb, var(--cm-side, #fff) 78%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+    border-bottom: 1px solid var(--cm-line, rgba(0,0,0,.1));
+  }
+  .cm .cmShell.threadOpen .cmHeadCopy { flex: 1 1 auto; min-width: 0; }
+  .cm .cmShell.threadOpen .cmHeadCopy strong { font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cm .cmShell.threadOpen .cmHeadCopy small { font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cm .cmShell.threadOpen .cmThreadHead .cmAvatar { width: 38px; height: 38px; }
+  .cm .cmBack { color: #f59300; width: 36px; height: 36px; }
+
+  /* Header actions: call buttons stay, the rest move into a More menu. */
+  .cm .cmHeadActions { position: relative; display: flex; align-items: center; gap: 0; background: transparent; box-shadow: none; border: 0; padding: 0; }
+  .cm .cmHeadActions .cmRound { color: #f59300; width: 38px; height: 38px; }
+  .cm .cmMoreBtn { display: grid; }
+  .cm .cmHeadActions .cmSecondary { display: none; }
+  .cm .cmHeadActions.moreOpen {
+    flex-wrap: wrap;
+  }
+  .cm .cmHeadActions.moreOpen .cmSecondary {
+    display: flex; align-items: center; gap: 12px; position: absolute; right: 0; width: 220px; height: 46px; padding: 0 14px;
+    border-radius: 0; color: var(--cm-text, #14181f); background: var(--cm-side, #fff); z-index: 30; justify-content: flex-start;
+  }
+  .cm .cmHeadActions.moreOpen .cmSecondary::after { content: attr(aria-label); font-size: 15px; font-weight: 600; }
+  .cm .cmHeadActions.moreOpen .cmSecondary:nth-of-type(2) { top: 44px; border-radius: 14px 14px 0 0; }
+  .cm .cmHeadActions.moreOpen .cmSecondary:nth-of-type(3) { top: 90px; }
+  .cm .cmHeadActions.moreOpen .cmSecondary:nth-of-type(4) { top: 136px; }
+  .cm .cmHeadActions.moreOpen .cmSecondary:nth-of-type(5) { top: 182px; border-radius: 0 0 14px 14px; }
+  .cm .cmHeadActions.moreOpen::before { content: ''; position: fixed; inset: 0; z-index: 20; }
+
+  /* Banners sit in normal flow so a call or notice is never hidden. */
+  .cm .cmCallNotice, .cm .cmExporting { flex: 0 0 auto; margin: 6px 10px 0; }
+
+  /* Messages scroll between the header and the composer. */
+  .cm .cmShell.threadOpen .cmMessages {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 0; position: static;
+  }
+  .cm .cmShell.threadOpen .cmComposer {
+    position: static !important; flex: 0 0 auto; margin: 0; width: auto; border-radius: 0; border: 0;
+    border-top: 1px solid var(--cm-line, rgba(0,0,0,.1));
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 6px; align-items: flex-end;
+    background: color-mix(in srgb, var(--cm-side, #fff) 82%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: none; transform: none; bottom: auto;
+  }
+  .cm .cmShell.threadOpen .cmComposer textarea {
+    border-radius: 20px; padding: 9px 14px; font-size: 16px; min-height: 38px; max-height: 120px;
+    border: 1px solid var(--cm-line, rgba(0,0,0,.14));
+  }
+  .cm .cmShell.threadOpen .cmSend { width: 36px; height: 36px; }
+  .cm .cmShell.threadOpen .cmReplyBar, .cm .cmShell.threadOpen .cmTyping, .cm .cmShell.threadOpen .cmStaged, .cm .cmShell.threadOpen .cmVoiceBar { flex: 0 0 auto; }
+
+  /* Conversation list, iMessage style. */
+  .cm .cmShell.listOpen { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+  .cm .cmShell.listOpen .cmSide { border: 0; background: transparent; }
+  .cm .cmSideHead h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .cm .cmRow { padding: 10px 14px; gap: 12px; border-radius: 0; border-bottom: 1px solid var(--cm-line, rgba(0,0,0,.07)); }
+  .cm .cmRow .cmAvatar { width: 48px; height: 48px; font-size: 16px; }
+}
+
+/* Calls ringing: keep the banner above every other bar. */
+.callRinger { z-index: 5000; top: calc(env(safe-area-inset-top, 0px) + 10px); }
+
+.cm .cmMsg.actionsOpen .cmReactions { margin-top: 6px; }
+.cm .cmLock { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; }
+@media (max-width: 860px) {
+  .cm .cmShell.threadOpen .cmThreadHead .cmAvatar { display: grid; width: 38px; height: 38px; flex: 0 0 auto; }
+  .cm .cmShell.threadOpen .cmThreadHead .cmHeadActions { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+}
+
+.cm .cmActions .cmReplyBtn, .cm .cmActions .cmToolBtn { background: transparent !important; box-shadow: none !important; }
+html[data-ra-theme='dark'] .cm .cmSearch { background: rgba(255,255,255,.08); color: #aab8cc; }
+html[data-ra-theme='dark'] .cm .cmSearch input { color: #f4f7fb; }
+html[data-ra-theme='dark'] .cm .cmSearch input::placeholder { color: #93a3b8; opacity: 1; }
+html[data-ra-theme='dark'] .cm .cmChips button { background: rgba(255,255,255,.08); color: #cdd7e6; border-color: transparent; }
+html[data-ra-theme='dark'] .cm .cmChips button.on { background: rgba(255,153,0,.22); color: #ffd9a0; }
+
+.cm .cmMoreBtn { display: none; }
+@media (max-width: 860px) { .cm .cmMoreBtn { display: grid; } }
