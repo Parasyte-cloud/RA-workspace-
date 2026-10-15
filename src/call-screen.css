@@ -1,0 +1,72 @@
+/* Voice and video calls: their own screen, separate from ROOM 7. */
+
+.callScreen {
+  position: fixed; z-index: 3000; display: flex; flex-direction: column; color: #fff; box-sizing: border-box;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255,153,0,.16) 0%, rgba(255,153,0,0) 55%),
+    radial-gradient(140% 90% at 50% 100%, #17365c 0%, #0a1626 62%, #050b14 100%);
+}
+.callScreen *, .callScreen *::before, .callScreen *::after { box-sizing: border-box; }
+
+.callScreen.callFull { inset: 0; }
+@media (min-width: 861px) {
+  .callScreen.callFull {
+    inset: 5vh 8vw; border-radius: 28px; overflow: hidden;
+    box-shadow: 0 0 0 100vmax rgba(3,8,16,.62), 0 30px 90px rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.14);
+  }
+}
+
+.callBar {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: .5px solid rgba(255,255,255,.14);
+}
+.callWho { display: grid; gap: 2px; min-width: 0; }
+.callWho strong { font-size: 18px; font-weight: 800; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.callPill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8fe3b0; }
+.callPill i { width: 8px; height: 8px; border-radius: 50%; background: #3ed27d; box-shadow: 0 0 0 3px rgba(62,210,125,.25); }
+.callClock { font-variant-numeric: tabular-nums; color: rgba(255,255,255,.66); font-size: 13px; }
+
+.callBtns { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.callRoundBtn {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: #fff;
+  border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.10);
+}
+.callRoundBtn:hover { background: rgba(255,255,255,.18); }
+.callEndBtn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(180deg, #f0585d, #d93a40); color: #fff; font-weight: 800; font-size: 15px;
+  box-shadow: 0 8px 22px rgba(217,58,64,.4);
+}
+.callEndBtn:disabled { opacity: .7; cursor: wait; }
+
+.callStage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #05090f; }
+.callStage > div, .callStage rtk-meeting { width: 100%; height: 100%; }
+.callStage .roomMeetingState {
+  position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; padding: 30px; text-align: center; color: rgba(255,255,255,.75);
+}
+.callStage .roomMeetingState h3 { margin: 4px 0 0; color: #fff; }
+.callStage .roomMeetingStateActions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 6px; }
+
+/* Minimised: a small floating call, tap to return. */
+.callScreen.callMini {
+  right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); width: min(360px, calc(100vw - 24px)); height: 250px;
+  border-radius: 22px; overflow: hidden; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 18px 50px rgba(0,0,0,.5);
+}
+@media (min-width: 861px) { .callScreen.callMini { bottom: 22px; right: 22px; } }
+.callMini .callBar { padding: 8px 10px; }
+.callMini .callWho strong { font-size: 14px; }
+.callMini .callPill, .callMini .callClock { font-size: 10px; }
+.callMini .callRoundBtn { width: 34px; height: 34px; }
+.callMini .callEndBtn { min-height: 34px; padding: 0 12px; font-size: 13px; }
+
+.callToast {
+  position: fixed; z-index: 4000; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 12px);
+  padding: 10px 16px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 14px; max-width: calc(100vw - 24px);
+  background: rgba(15,28,46,.82); border: 1px solid rgba(255,255,255,.2); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}

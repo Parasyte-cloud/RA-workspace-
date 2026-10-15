@@ -190,3 +190,15 @@ html[data-ra-theme='dark'] .cm .cmChips button.on { background: rgba(255,153,0,.
 
 .cm .cmMoreBtn { display: none; }
 @media (max-width: 860px) { .cm .cmMoreBtn { display: grid; } }
+
+/* Stop the Chat list wobbling: one scroller only, and no sideways scroll. */
+.cm .cmList, .cm .cmSide { overflow-x: hidden; }
+.cm .cmRow { max-width: 100%; box-sizing: border-box; }
+.cm .cmChips { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.cm .cmChips::-webkit-scrollbar { display: none; }
+@media (max-width: 860px) {
+  html:has(.cm .cmShell), body:has(.cm .cmShell) { overflow: hidden; overscroll-behavior: none; }
+  .cm .cmShell.listOpen { height: calc(100dvh - 240px); min-height: 0; overflow: hidden; }
+  .cm .cmShell.listOpen .cmSide { height: 100%; }
+  .shell.glassFrame .content:has(.cm .cmShell) { overflow: hidden; overscroll-behavior: none; }
+}

@@ -279,6 +279,8 @@ export default function RoomModule({
     const handler=(event:Event)=>{
       const detail=(event as CustomEvent<JoinRoomDetail>).detail
       if(!detail?.code)return
+      // Chat calls have their own screen (CallModule), not ROOM 7.
+      if(detail.callId)return
       // A call started from Chat stays in Chat: no jump to the ROOM 7 page.
       // It opens as a small window over the page and can be expanded.
       if(!detail.inPlace)onOpenRef.current?.()

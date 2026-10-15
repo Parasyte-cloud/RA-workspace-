@@ -18,6 +18,7 @@ import {
   Maximize2,
   Minimize2,
   NotebookPen,
+  PhoneOff,
   RefreshCw,
   ShieldCheck,
   WifiOff
@@ -118,6 +119,13 @@ export default function RoomMeeting({
   const [frameStyle,setFrameStyle]=useState<CSSProperties>({})
   const [peopleOpen,setPeopleOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
+  const [elapsed,setElapsed]=useState(0)
+  useEffect(()=>{
+    if(!chatCall)return
+    const started=Date.now()
+    const timer=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),1000)
+    return()=>window.clearInterval(timer)
+  },[chatCall])
 
   // After a reconnect we skip RealtimeKit's setup screen and restore the
   // microphone/camera state the person had before the drop.
@@ -371,7 +379,7 @@ export default function RoomMeeting({
 
   const endRoom=async()=>{
     if(ending||session.role!=='host')return
-    if(!window.confirm('End this ROOM 7 meeting for everyone? Participants will be disconnected and the ROOM 7 code will stop accepting joins.'))return
+    if(!chatCall&&!window.confirm('End this ROOM 7 meeting for everyone? Participants will be disconnected and the ROOM 7 code will stop accepting joins.'))return
     setEnding(true)
     try{
       await onEnded()
@@ -384,6 +392,102 @@ export default function RoomMeeting({
     setConnection('connected')
     window.setTimeout(()=>void reconnect(),0)
   }
+
+  const frame=(
+      <div className={chatCall?'callStage':'roomMeetingFrame'}>
+        {initError&&
+          <div className="roomMeetingState">
+            <ShieldCheck size={30}/>
+            <h3>{chatCall?'The call could not start':'ROOM 7 could not start'}</h3>
+            <p>{initError}</p>
+            <div className="roomMeetingStateActions">
+              <button type="button" className="primaryButton" onClick={()=>setInitTry(n=>n+1)}>Try again</button>
+              <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
+            </div>
+          </div>
+        }
+        {!initError&&!meeting&&
+          <div className="roomMeetingState">
+            <LoaderCircle size={32} className="roomSpin"/>
+            <h3>{chatCall?'Connecting call':'Preparing ROOM 7'}</h3>
+            <p>Initialising secure audio and video.</p>
+          </div>
+        }
+        {!initError&&meeting&&
+          <RealtimeKitProvider value={meeting}>
+            <RtkMeeting
+              key={session.auth_token}
+              meeting={meeting}
+              mode="fill"
+              showSetupScreen={!rejoiningRef.current}
+              leaveOnUnmount={false}
+            />
+            <Room7ExtrasOverlay extras={extras}/>
+            {canModerate&&moderation&&peopleOpen&&!minimized&&
+              <Room7PeoplePanel
+                meeting={meeting}
+                creatorId={session.room.created_by}
+                selfTarget={String(meeting.self?.customParticipantId||'')}
+                moderation={moderation}
+                onClose={()=>setPeopleOpen(false)}
+              />
+            }
+          </RealtimeKitProvider>
+        }
+        {connection!=='connected'&&
+          <div className={`roomReconnect ${connection}`} role="status">
+            {connection==='reconnecting'
+              ?<><RefreshCw size={18} className="roomSpin"/>
+                <span>Connection interrupted. Reconnecting{rejoinAttempt>1?` (attempt ${rejoinAttempt})`:''}...</span></>
+              :<><WifiOff size={18}/>
+                <span>{chatCall?'Could not reconnect the call.':'Could not reconnect to ROOM 7.'}</span>
+                <button type="button" onClick={retryNow}>Try again</button>
+                <button type="button" onClick={()=>onLeft('lost')}>Leave</button></>
+            }
+          </div>
+        }
+      </div>
+  )
+
+  const hangUp=()=>{
+    if(session.role==='host'){void endRoom();return}
+    void meeting?.leave().catch(()=>{})
+    onLeft('left')
+  }
+  const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
+  const callTitle=session.room.title.replace(/^Call with /,'')
+
+  const callScreen=(
+    <section
+      className={`callScreen ${minimized?'callMini':'callFull'} ${audioOnly?'callVoice':'callVideo'}`}
+      role="dialog"
+      aria-label={`${audioOnly?'Voice':'Video'} call with ${callTitle}`}
+    >
+      <header className="callBar">
+        <div className="callWho">
+          <span className="callPill"><i/>{audioOnly?'Voice call':'Video call'}</span>
+          <strong>{callTitle}</strong>
+          <small className="callClock">{clock}</small>
+        </div>
+        <div className="callBtns">
+          <button
+            type="button"
+            className="callRoundBtn"
+            onClick={minimized?onRestore:onMinimize}
+            aria-label={minimized?'Return to call':'Minimize call'}
+            title={minimized?'Return to call':'Minimize call'}
+          >
+            {minimized?<Maximize2 size={18}/>:<Minimize2 size={18}/>}
+          </button>
+          <button type="button" className="callEndBtn" disabled={ending} onClick={hangUp}>
+            {ending?<LoaderCircle size={18} className="roomSpin"/>:<PhoneOff size={18}/>}
+            <span>{ending?'Ending':'End'}</span>
+          </button>
+        </div>
+      </header>
+      {frame}
+    </section>
+  )
 
   const call=(
     <section
@@ -440,64 +544,12 @@ export default function RoomMeeting({
         </div>
       </div>
 
-      <div className="roomMeetingFrame">
-        {initError&&
-          <div className="roomMeetingState">
-            <ShieldCheck size={30}/>
-            <h3>{chatCall?'The call could not start':'ROOM 7 could not start'}</h3>
-            <p>{initError}</p>
-            <div className="roomMeetingStateActions">
-              <button type="button" className="primaryButton" onClick={()=>setInitTry(n=>n+1)}>Try again</button>
-              <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
-            </div>
-          </div>
-        }
-        {!initError&&!meeting&&
-          <div className="roomMeetingState">
-            <LoaderCircle size={32} className="roomSpin"/>
-            <h3>{chatCall?'Connecting call':'Preparing ROOM 7'}</h3>
-            <p>Initialising secure audio and video.</p>
-          </div>
-        }
-        {!initError&&meeting&&
-          <RealtimeKitProvider value={meeting}>
-            <RtkMeeting
-              key={session.auth_token}
-              meeting={meeting}
-              mode="fill"
-              showSetupScreen={!rejoiningRef.current}
-              leaveOnUnmount={false}
-            />
-            <Room7ExtrasOverlay extras={extras}/>
-            {canModerate&&moderation&&peopleOpen&&!minimized&&
-              <Room7PeoplePanel
-                meeting={meeting}
-                creatorId={session.room.created_by}
-                selfTarget={String(meeting.self?.customParticipantId||'')}
-                moderation={moderation}
-                onClose={()=>setPeopleOpen(false)}
-              />
-            }
-          </RealtimeKitProvider>
-        }
-        {connection!=='connected'&&
-          <div className={`roomReconnect ${connection}`} role="status">
-            {connection==='reconnecting'
-              ?<><RefreshCw size={18} className="roomSpin"/>
-                <span>Connection interrupted. Reconnecting{rejoinAttempt>1?` (attempt ${rejoinAttempt})`:''}...</span></>
-              :<><WifiOff size={18}/>
-                <span>{chatCall?'Could not reconnect the call.':'Could not reconnect to ROOM 7.'}</span>
-                <button type="button" onClick={retryNow}>Try again</button>
-                <button type="button" onClick={()=>onLeft('lost')}>Leave</button></>
-            }
-          </div>
-        }
-      </div>
+      {frame}
     </section>
   )
 
   // The call always lives in a portal on <body>. Parents in the intranet use
   // backdrop-filter and overflow:hidden, which would otherwise trap a
   // position:fixed call window and could clip it off-screen.
-  return createPortal(call,document.body)
+  return createPortal(chatCall?callScreen:call,document.body)
 }
