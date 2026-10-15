@@ -57,6 +57,17 @@ export function NotificationsProvider({children}:{children:ReactNode}){
     [items]
   )
 
+  // Count on the app icon (installed app, where the device supports it).
+  useEffect(()=>{
+    const nav=navigator as Navigator&{setAppBadge?:(n?:number)=>Promise<void>;clearAppBadge?:()=>Promise<void>}
+    try{
+      if(unreadCount>0) void nav.setAppBadge?.(unreadCount)?.catch(()=>{})
+      else void nav.clearAppBadge?.()?.catch(()=>{})
+    }catch{
+      /* badges are optional */
+    }
+  },[unreadCount])
+
   const load=useCallback(async()=>{
     const client=supabase
     if(!client){

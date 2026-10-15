@@ -20,6 +20,56 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "shortcuts": [
+    {
+      "name": "Chat",
+      "short_name": "Chat",
+      "url": "/?section=chat",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mail",
+      "short_name": "Mail",
+      "url": "/?section=mail",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "short_name": "Tasks",
+      "url": "/?section=tasks",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
