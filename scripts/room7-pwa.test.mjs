@@ -18,8 +18,10 @@ test('ROOM 7 manifest is installable and separate from the intranet one', () => 
 
 test('index.html swaps to the ROOM 7 manifest only on the room7 host', () => {
   const html = read('index.html')
-  assert.match(html, /room7\.ridearrivo\.com/)
-  assert.match(html, /\/room7\.webmanifest/)
+  const host = read('public/room7-host.js')
+  assert.match(html, /src="\/room7-host\.js"/)
+  assert.match(host, /room7\.ridearrivo\.com/)
+  assert.match(host, /\/room7\.webmanifest/)
   assert.match(html, /href="\/manifest\.webmanifest"/)
 })
 
