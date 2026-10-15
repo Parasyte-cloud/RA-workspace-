@@ -8,7 +8,18 @@ const glass = read('src/liquid-glass.css')
 const shell = read('src/workspace-shell.css')
 const responsive = read('src/responsive.css')
 const phoneCss = read('src/phone-shell.css')
+const phoneNav = read('src/modules/PhoneNav.tsx')
+
 const combined = [styles, glass, shell, responsive, phoneCss].join('\n')
+
+test('shared shell defines compact medium and wide layout modes', () => {
+  assert.match(styles, /--ra-gutter-compact\s*:/)
+  assert.match(styles, /--ra-gutter-medium\s*:/)
+  assert.match(styles, /--ra-gutter-wide\s*:/)
+  assert.match(responsive, /@media\s*\(max-width:\s*599px\)/)
+  assert.match(responsive, /@media\s*\(min-width:\s*600px\)\s*and\s*\(max-width:\s*1023px\)/)
+  assert.match(responsive, /@media\s*\(min-width:\s*1024px\)/)
+})
 
 test('full height shell uses dynamic viewport and safe area fallbacks', () => {
   assert.match(combined, /100dvh/)
@@ -17,6 +28,14 @@ test('full height shell uses dynamic viewport and safe area fallbacks', () => {
   assert.match(styles, /--ra-safe-bottom\s*:\s*env\(safe-area-inset-bottom/)
   assert.match(styles, /--ra-safe-left\s*:\s*env\(safe-area-inset-left/)
   assert.match(shell + responsive, /min-height:\s*0/)
+})
+
+test('phone navigation exposes a More affordance without horizontal scrolling', () => {
+  assert.match(phoneNav, /const TAB_IDS = \['overview', 'tasks', 'chat', 'mail'\]/)
+  assert.match(phoneNav, /aria-controls="phone-more-sheet"/)
+  assert.match(phoneNav, /<span>More<\/span>/)
+  assert.match(phoneCss, /\.phoneTabs\s*\{[^}]*overflow-x:\s*clip/s)
+  assert.match(phoneCss, /\.phoneMoreSheet\s*\{[^}]*max-width:\s*100%/s)
 })
 
 test('glass surfaces have a non backdrop-filter fallback', () => {
@@ -32,4 +51,14 @@ test('reduced motion disables non essential transitions', () => {
   assert.match(glass + responsive, /@media\s*\(prefers-reduced-motion:\s*reduce\)/)
   assert.match(glass + responsive, /animation-duration:\s*0\.01ms/)
   assert.match(glass + responsive, /transition-duration:\s*0\.01ms/)
+})
+
+test('tablet shell uses a labelled expandable navigation rail', () => {
+  const app = read('src/App.tsx')
+  assert.match(app, /mediumNavExpanded/)
+  assert.match(app, /'Collapse navigation'/)
+  assert.match(app, /'Expand navigation'/)
+  assert.match(app, /className="mediumNavToggle/)
+  assert.match(responsive, /@media\s*\(min-width:\s*600px\)\s*and\s*\(max-width:\s*1023px\)[\s\S]*--ra-nav-medium/)
+  assert.match(responsive, /\.shell\.mediumNavExpanded/)
 })

@@ -133,7 +133,7 @@ body {
    Secondary destinations live in one-open-at-a-time groups.
    ========================================================= */
 
-@media (min-width: 1080px) {
+@media (min-width: 1024px) {
   .shell.glassFrame > .sidebar {
     position: relative !important;
     inset: auto !important;
@@ -382,7 +382,7 @@ body {
 }
 
 /* Short Windows laptop viewports get density, not another scrollbar. */
-@media (min-width: 1080px) and (max-height: 760px) {
+@media (min-width: 1024px) and (max-height: 760px) {
   .appBackground {
     --ra-shell-gutter: 8px;
   }
@@ -449,7 +449,7 @@ body {
    Keep access, but remove the visible nested scrollbar.
    ========================================================= */
 
-@media (min-width: 641px) and (max-width: 1079px) {
+@media (min-width: 600px) and (max-width: 1023px) {
   .appBackground {
     --ra-shell-gutter: 8px;
   }
@@ -501,7 +501,7 @@ body {
    Flatten groups back into the existing horizontal rail.
    ========================================================= */
 
-@media (max-width: 640px) {
+@media (max-width: 599px) {
   body {
     position: static;
     inset: auto;

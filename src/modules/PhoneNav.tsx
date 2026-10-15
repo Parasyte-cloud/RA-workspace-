@@ -49,7 +49,7 @@ export default function PhoneNav({
     <button
       key={id}
       type="button"
-      className={`phoneMoreItem${section === id ? ' active' : ''}`}
+      className={`phoneMoreItem uiFocusRing${section === id ? ' active' : ''}`}
       aria-current={section === id ? 'page' : undefined}
       onClick={() => onPick(id)}
     >
@@ -68,12 +68,12 @@ export default function PhoneNav({
 
   return (
     <>
-      <nav className="phoneTabs" aria-label="Main navigation">
+      <nav className="phoneTabs glassNav" aria-label="Main navigation">
         {tabs.map(([id, label, Icon]) => (
           <button
             key={id}
             type="button"
-            className={section === id ? 'active' : ''}
+            className={`uiFocusRing${section === id ? ' active' : ''}`}
             aria-current={section === id ? 'page' : undefined}
             onClick={() => onPick(id)}
           >
@@ -83,7 +83,8 @@ export default function PhoneNav({
         ))}
         <button
           type="button"
-          className={open || !inTabs ? 'active' : ''}
+          className={`uiFocusRing${open || !inTabs ? ' active' : ''}`}
+          aria-label="More sections"
           aria-expanded={open}
           aria-controls="phone-more-sheet"
           onClick={() => onOpenChange(!open)}
@@ -95,11 +96,11 @@ export default function PhoneNav({
 
       {open && (
         <div className="phoneMoreLayer">
-          <button type="button" className="phoneMoreScrim" aria-label="Close menu" onClick={() => onOpenChange(false)} />
-          <div id="phone-more-sheet" className="phoneMoreSheet" role="dialog" aria-modal="true" aria-label="All sections">
+          <button type="button" className="phoneMoreScrim uiFocusRing" aria-label="Close menu" onClick={() => onOpenChange(false)} />
+          <div id="phone-more-sheet" className="phoneMoreSheet glassSheet" role="dialog" aria-modal="true" aria-label="All sections">
             <header>
               <strong>All sections</strong>
-              <button type="button" aria-label="Close" onClick={() => onOpenChange(false)}>
+              <button type="button" className="uiFocusRing" aria-label="Close" onClick={() => onOpenChange(false)}>
                 <CloseIcon size={20} />
               </button>
             </header>

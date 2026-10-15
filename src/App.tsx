@@ -522,6 +522,7 @@ function App(){
   })
   const [openNavGroup,setOpenNavGroup]=useState<string|null>(null)
   const [phoneMenuOpen,setPhoneMenuOpen]=useState(false)
+  const [mediumNavExpanded,setMediumNavExpanded]=useState(false)
   const contentRef=useRef<HTMLDivElement|null>(null)
   const roomReturnSectionRef=useRef<Section>('overview')
   const historyReadyRef=useRef(false)
@@ -1238,10 +1239,10 @@ function App(){
   const renderNavRow=([id,label,Icon]:typeof nav[number])=>{
     const starred=favourites.includes(id)
     return <div key={id} className={`sidebarNavRow${starred?' starred':''}`}>
-      <button type="button" className={`sidebarNavItem ${section===id?'active':''}`} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setWorkspace(null)}}><Icon size={18}/><span>{label}</span></button>
+      <button type="button" className={`sidebarNavItem uiFocusRing ${section===id?'active':''}`} aria-current={section===id?'page':undefined} title={label} onClick={()=>{setSection(id);setWorkspace(null);setMediumNavExpanded(false)}}><Icon size={18}/><span>{label}</span></button>
       <button
         type="button"
-        className="sidebarNavStar"
+        className="sidebarNavStar uiFocusRing"
         aria-pressed={starred}
         aria-label={starred?`Remove ${label} from favourites`:`Add ${label} to favourites`}
         title={starred?'Remove from favourites':'Add to favourites'}
@@ -1250,8 +1251,8 @@ function App(){
     </div>
   }
 
-  return <NotificationsProvider><div className="appBackground"><div className="shell glassFrame">
-    <aside className="sidebar glassPanel">
+  return <NotificationsProvider><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
+    <aside className="sidebar glassPanel glassNav">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
         <div className="sidebarNavPrimary">
@@ -1269,7 +1270,7 @@ function App(){
           {groupedNav.groups.map(group=>{
             const isOpen=openNavGroup===group.id
             return <div key={group.id} className={`sidebarNavGroup ${isOpen?'open':''}`}>
-              <button type="button" className="sidebarNavGroupToggle" aria-expanded={isOpen} onClick={()=>setOpenNavGroup(current=>current===group.id?null:group.id)}>
+              <button type="button" className="sidebarNavGroupToggle uiFocusRing" aria-label={`${isOpen?'Collapse':'Expand'} ${group.label}`} title={group.label} aria-expanded={isOpen} onClick={()=>setOpenNavGroup(current=>current===group.id?null:group.id)}>
                 <span>{group.label}</span><ChevronRight size={14}/>
               </button>
               <div className="sidebarNavGroupItems">
@@ -1292,8 +1293,18 @@ function App(){
       onOpenChange={setPhoneMenuOpen}
       onPick={id=>{setSection(id as Section);setWorkspace(null);setPhoneMenuOpen(false)}}
     />
-    <main>
-      <header className="topbar glassPanel"><div><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1></div><div className="headerActions"><WorkspaceClock/><GlobalSearch sections={nav.map(([id,label])=>({id,label}))} recent={recentSections} onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
+    <main className="workspaceMain">
+      <header className="topbar glassPanel glassSurface">
+        <button
+          type="button"
+          className="mediumNavToggle iconButton uiFocusRing"
+          aria-label={mediumNavExpanded ? 'Collapse navigation' : 'Expand navigation'}
+          aria-expanded={mediumNavExpanded}
+          onClick={()=>setMediumNavExpanded(current=>!current)}
+        >
+          {mediumNavExpanded?<CloseIcon size={18}/>:<MenuIcon size={18}/>}
+        </button>
+        <div className="topbarTitle"><h1>{section==='workspace'&&workspace?workspace.title:nav.find(n=>n[0]===section)?.[1]||'Workspace'}</h1></div><div className="headerActions"><WorkspaceClock/><GlobalSearch sections={nav.map(([id,label])=>({id,label}))} recent={recentSections} onNavigate={target=>{setSection(target as Section);setWorkspace(null)}}/><NotificationCenter
   onOpenWork={()=>{
     setSection('tasks')
   }}
@@ -1304,7 +1315,7 @@ function App(){
 />{deferredPrompt&&<button className="glassButton" onClick={install}><Download size={16}/>Install</button>}<div className="profileMenuWrap">
   <button
     type="button"
-    className="profileButton"
+    className="profileButton uiFocusRing"
     aria-haspopup="menu"
     aria-expanded={profileMenuOpen}
     onClick={()=>setProfileMenuOpen(
@@ -1366,7 +1377,7 @@ function App(){
     </div>
   }
 </div></div></header>
-      <div className="content" ref={contentRef}>
+      <div className="content workspaceContent" ref={contentRef}>
       {/* ROOM 7 sits outside the per-section loading and error boundaries.
           Inside them, loading another section could hide the call and a
           crash in any section would tear it down, ending the meeting. */}

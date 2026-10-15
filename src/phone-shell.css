@@ -1,26 +1,27 @@
 /*
- * Phone shell (640px and narrower).
- *
- * The desktop sidebar is hidden and replaced by a bottom tab bar plus a "More"
- * sheet (see modules/PhoneNav.tsx). Above 640px none of this shows.
- * Loaded last, so it wins over the older rail rules that used !important.
+ * Compact phone shell (599px and narrower).
+ * Four daily destinations stay in reach; every other authorised section lives
+ * in a safe-area aware More sheet. Tablet widths use the workspace rail.
  */
 .phoneTabs,
 .phoneMoreLayer {
   display: none;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 600px) {
+  .phoneTabs,
+  .phoneMoreLayer {
+    display: none !important;
+  }
+}
+
+@media (max-width: 599px) {
   .shell.glassFrame > .sidebar {
     display: none !important;
   }
 
-  .shell.glassFrame {
-    grid-template-rows: minmax(0, 1fr) !important;
-  }
-
   .shell.glassFrame > main {
-    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
   }
 
   .phoneTabs {
@@ -28,98 +29,130 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 60;
+    z-index: var(--ra-z-nav);
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
-    background: rgba(7, 26, 56, 0.97);
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 -10px 30px rgba(2, 17, 40, 0.28);
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
+    padding:
+      7px
+      max(7px, var(--ra-safe-right))
+      calc(7px + var(--ra-safe-bottom))
+      max(7px, var(--ra-safe-left));
+    border: 0;
+    border-top: 1px solid rgba(255,255,255,.12);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 36px rgba(2,17,40,.28);
   }
 
   .phoneTabs button {
     min-width: 0;
-    min-height: 48px;
+    min-height: 50px;
+    padding: 5px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 13px;
     background: transparent;
-    color: #b7c3d4;
-    font-size: 11px;
-    font-weight: 700;
+    color: rgba(231,239,249,.72);
+    font-size: 10.5px;
+    font-weight: 760;
+    line-height: 1.1;
     cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .phoneTabs button span {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .phoneTabs button.active {
     color: #fff;
-    background: rgba(255, 153, 0, 0.2);
-    box-shadow: inset 0 2px 0 #ff9900;
+    background: linear-gradient(180deg, rgba(255,177,59,.2), rgba(255,153,0,.11));
+    box-shadow: inset 0 1px 0 rgba(255,196,103,.62);
   }
 
   .phoneMoreLayer {
     position: fixed;
     inset: 0;
-    z-index: 70;
-    display: block;
+    z-index: var(--ra-z-sheet);
+    display: grid;
+    align-items: end;
   }
 
   .phoneMoreScrim {
     position: absolute;
     inset: 0;
+    width: 100%;
     border: 0;
-    background: rgba(2, 12, 28, 0.55);
+    background: rgba(2,12,28,.58);
   }
 
   .phoneMoreSheet {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    max-height: 86dvh;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(88dvh, 760px);
     display: flex;
     flex-direction: column;
-    border-radius: 22px 22px 0 0;
-    background: #f6f8fb;
-    color: #071a38;
-    box-shadow: 0 -20px 60px rgba(2, 17, 40, 0.4);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow: hidden;
+    color: var(--navy);
+    padding-bottom: var(--ra-safe-bottom);
+  }
+
+  .phoneMoreSheet::before {
+    content: '';
+    width: 42px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: 999px;
+    background: rgba(7,26,56,.18);
   }
 
   .phoneMoreSheet > header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px 10px;
-    border-bottom: 1px solid rgba(7, 26, 56, 0.08);
+    gap: 12px;
+    padding: 10px var(--ra-gutter-compact) 12px;
+    border-bottom: 1px solid rgba(7,26,56,.08);
+  }
+
+  .phoneMoreSheet > header strong {
+    font-size: 16px;
   }
 
   .phoneMoreSheet > header button {
-    width: 40px;
-    height: 40px;
+    width: var(--ra-touch-target);
+    height: var(--ra-touch-target);
     display: grid;
     place-items: center;
-    border: 0;
-    border-radius: 12px;
-    background: rgba(7, 26, 56, 0.07);
+    border: 1px solid rgba(7,26,56,.08);
+    border-radius: 14px;
+    background: rgba(255,255,255,.62);
     color: inherit;
   }
 
   .phoneMoreBody {
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 6px 14px 18px;
+    padding: 4px var(--ra-gutter-compact) 20px;
   }
 
   .phoneMoreBody h3 {
-    margin: 14px 2px 8px;
-    font-size: 11px;
-    letter-spacing: 0.12em;
+    margin: 16px 2px 8px;
+    font-size: 10px;
+    letter-spacing: .13em;
     text-transform: uppercase;
-    color: #66758a;
+    color: #68788c;
   }
 
   .phoneMoreGrid {
@@ -129,25 +162,26 @@
   }
 
   .phoneMoreItem {
-    min-height: 48px;
+    min-height: 52px;
     min-width: 0;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border: 1px solid rgba(7, 26, 56, 0.1);
-    border-radius: 14px;
-    background: #fff;
-    color: #071a38;
-    font-size: 14px;
-    font-weight: 700;
+    border: 1px solid rgba(7,26,56,.09);
+    border-radius: 15px;
+    background: rgba(255,255,255,.72);
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 760;
     text-align: left;
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   .phoneMoreItem svg {
     flex: 0 0 auto;
-    color: #b66e00;
+    color: #a86600;
   }
 
   .phoneMoreItem span {
@@ -158,52 +192,11 @@
   }
 
   .phoneMoreItem.active {
-    border-color: #ff9900;
-    background: #fff4de;
+    border-color: rgba(255,153,0,.62);
+    background: rgba(255,244,222,.92);
+    box-shadow: inset 0 0 0 1px rgba(255,153,0,.12);
   }
 
-  /* Header: title, then search, notifications and the profile avatar. */
-  .shell.glassFrame .topbar {
-    gap: 8px;
-    padding: 0 12px !important;
-  }
-
-  .shell.glassFrame .topbar h1 {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .shell.glassFrame .topbar > div:first-child {
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  .shell.glassFrame .headerActions {
-    flex: 0 0 auto;
-    width: auto !important;
-    gap: 6px;
-  }
-
-  .shell.glassFrame .headerActions .workspaceClock {
-    display: none !important;
-  }
-
-  .shell.glassFrame .headerActions .iconButton,
-  .shell.glassFrame .headerActions .notificationCenter,
-  .shell.glassFrame .headerActions .profileMenuWrap {
-    display: inline-flex !important;
-    width: auto !important;
-    min-width: 40px;
-    flex: 0 0 auto;
-  }
-
-  .shell.glassFrame .headerActions .profileButton span {
-    display: none !important;
-  }
-
-  /* Notice rows (icon, text, button) wrap instead of squeezing the text. */
   .content .companyFilesNotice,
   .content .moduleNotice,
   .content .mailNotice,
@@ -216,12 +209,18 @@
   .content .mailNotice > div,
   .content .callout > div {
     flex: 1 1 0;
-    min-width: 160px;
+    min-width: min(160px, 100%);
   }
 
   .content .companyFilesNotice > .primaryButton {
     flex: 1 1 100%;
     margin-left: 0;
     justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .phoneMoreGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

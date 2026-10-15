@@ -891,3 +891,357 @@ main {
   }
 }
 
+
+/* =========================================================
+   RESPONSIVE LAYOUT MODES V3
+   Compact <=599px, medium 600-1023px, wide >=1024px.
+   This block intentionally follows shell-stability.css in InternalApp.
+   ========================================================= */
+
+.mediumNavToggle {
+  display: none !important;
+}
+
+.workspaceMain,
+.workspaceContent,
+.topbarTitle {
+  min-width: 0;
+}
+
+.workspaceContent {
+  container-type: inline-size;
+}
+
+@media (min-width: 1024px) {
+  .appBackground {
+    --ra-shell-gutter: clamp(12px, 1.2vw, 20px) !important;
+    padding:
+      max(var(--ra-shell-gutter), var(--ra-safe-top))
+      max(var(--ra-shell-gutter), var(--ra-safe-right))
+      max(var(--ra-shell-gutter), var(--ra-safe-bottom))
+      max(var(--ra-shell-gutter), var(--ra-safe-left)) !important;
+  }
+
+  .shell.glassFrame {
+    --ra-sidebar-width: var(--ra-nav-wide) !important;
+    grid-template-columns: var(--ra-sidebar-width) minmax(0, 1fr) !important;
+  }
+
+  .content.workspaceContent {
+    padding: var(--ra-gutter-wide) !important;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .appBackground {
+    --ra-shell-gutter: 8px !important;
+    padding:
+      max(8px, var(--ra-safe-top))
+      max(8px, var(--ra-safe-right))
+      max(8px, var(--ra-safe-bottom))
+      max(8px, var(--ra-safe-left)) !important;
+  }
+
+  .shell.glassFrame {
+    --ra-sidebar-width: var(--ra-nav-medium) !important;
+    grid-template-columns: var(--ra-nav-medium) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    transition: grid-template-columns var(--ra-motion-base) ease;
+  }
+
+  .shell.mediumNavExpanded {
+    --ra-sidebar-width: min(248px, 38vw) !important;
+    grid-template-columns: var(--ra-sidebar-width) minmax(0, 1fr) !important;
+  }
+
+  .shell.glassFrame > .sidebar {
+    width: var(--ra-sidebar-width) !important;
+    min-width: var(--ra-sidebar-width) !important;
+    max-width: var(--ra-sidebar-width) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 12px 8px 10px !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    overflow: hidden !important;
+    transition:
+      width var(--ra-motion-base) ease,
+      min-width var(--ra-motion-base) ease,
+      max-width var(--ra-motion-base) ease;
+  }
+
+  .shell.glassFrame .brand {
+    margin: 0 0 8px !important;
+    padding: 6px 4px 10px !important;
+    text-align: center;
+    overflow: hidden !important;
+  }
+
+  .shell.glassFrame .brand .sidebarLogo {
+    width: 46px !important;
+    max-height: 42px !important;
+    object-fit: contain !important;
+  }
+
+  .shell.mediumNavExpanded .brand .sidebarLogo {
+    width: min(154px, 100%) !important;
+  }
+
+  .shell.glassFrame .brand > span,
+  .shell.glassFrame .sidebarNavLabel,
+  .shell.glassFrame .sidebarFooter small,
+  .shell.glassFrame nav.sidebarNav button.sidebarNavItem span,
+  .shell.glassFrame nav.sidebarNav button.sidebarNavGroupToggle span {
+    display: none !important;
+  }
+
+  .shell.mediumNavExpanded .brand > span,
+  .shell.mediumNavExpanded .sidebarNavLabel,
+  .shell.mediumNavExpanded .sidebarFooter small,
+  .shell.mediumNavExpanded nav.sidebarNav button.sidebarNavItem span,
+  .shell.mediumNavExpanded nav.sidebarNav button.sidebarNavGroupToggle span {
+    display: block !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .shell.glassFrame nav.sidebarNav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .shell.glassFrame .sidebarNavPrimary,
+  .shell.glassFrame .sidebarNavGroups,
+  .shell.glassFrame .sidebarNavSystem,
+  .shell.glassFrame .sidebarNavGroup {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+  }
+
+  .shell.glassFrame .sidebarNavGroup:not(.open) > .sidebarNavGroupItems {
+    display: none !important;
+  }
+
+  .shell.glassFrame .sidebarNavGroup.open > .sidebarNavGroupItems {
+    display: grid !important;
+    gap: 2px !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem,
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: var(--ra-touch-target) !important;
+    max-height: none !important;
+    padding: 0 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+    border-radius: 12px !important;
+  }
+
+  .shell.mediumNavExpanded > .sidebar nav.sidebarNav button.sidebarNavItem {
+    justify-content: flex-start !important;
+  }
+
+  .shell.mediumNavExpanded > .sidebar nav.sidebarNav button.sidebarNavGroupToggle {
+    justify-content: space-between !important;
+  }
+
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem svg,
+  .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavGroupToggle svg {
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .shell.glassFrame .sidebarNavStar {
+    display: none !important;
+  }
+
+  .shell.mediumNavExpanded .sidebarNavStar {
+    display: inline-flex !important;
+  }
+
+  .shell.glassFrame .sidebarFooter {
+    padding: 8px 4px !important;
+    text-align: center;
+  }
+
+  .mediumNavToggle {
+    display: grid !important;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+
+  .topbar.glassPanel {
+    min-height: 68px !important;
+    height: auto !important;
+    padding:
+      max(10px, var(--ra-safe-top))
+      var(--ra-gutter-medium)
+      10px !important;
+    gap: 10px;
+  }
+
+  .topbarTitle {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .topbarTitle h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .content.workspaceContent {
+    padding: var(--ra-gutter-medium) !important;
+  }
+
+  .stats,
+  .grid2,
+  .grid3,
+  .appGrid,
+  .appFeatured,
+  .phase2Grid,
+  .toolGrid,
+  .quickFormGrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)) !important;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .hero img {
+    display: none !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .appBackground {
+    --ra-shell-gutter: 0px !important;
+    padding: 0 !important;
+  }
+
+  .shell.glassFrame {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    border-radius: 0 !important;
+  }
+
+  .mediumNavToggle {
+    display: none !important;
+  }
+
+  .topbar.glassPanel {
+    min-height: 62px !important;
+    height: auto !important;
+    padding:
+      max(8px, var(--ra-safe-top))
+      max(var(--ra-gutter-compact), var(--ra-safe-right))
+      8px
+      max(var(--ra-gutter-compact), var(--ra-safe-left)) !important;
+    gap: 8px;
+  }
+
+  .topbarTitle {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .topbarTitle h1 {
+    font-size: 1rem !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .headerActions {
+    flex: 0 0 auto;
+    gap: 5px !important;
+  }
+
+  .headerActions .workspaceClock {
+    display: none !important;
+  }
+
+  .content.workspaceContent {
+    padding:
+      var(--ra-gutter-compact)
+      max(var(--ra-gutter-compact), var(--ra-safe-right))
+      calc(var(--ra-phone-nav-height) + var(--ra-safe-bottom) + var(--ra-gutter-compact))
+      max(var(--ra-gutter-compact), var(--ra-safe-left)) !important;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  .stats,
+  .grid2,
+  .grid3,
+  .appGrid,
+  .appFeatured,
+  .phase2Grid,
+  .toolGrid,
+  .quickFormGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .sectionTitle {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .sectionTitle > :last-child:not(:first-child),
+  .sectionTitle .buttonRow {
+    width: 100%;
+  }
+
+  .buttonRow {
+    flex-wrap: wrap;
+  }
+
+  .buttonRow > button,
+  .buttonRow > a {
+    min-height: var(--ra-touch-target);
+  }
+
+  .hero,
+  .glassHero {
+    padding: 20px !important;
+    border-radius: var(--ra-radius-lg) !important;
+  }
+
+  .hero h2 {
+    font-size: clamp(1.6rem, 8.5vw, 2.25rem) !important;
+  }
+
+  .tableCard,
+  .moduleTableWrap,
+  .responsiveTableScroller {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
