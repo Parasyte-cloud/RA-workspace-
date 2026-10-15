@@ -11,7 +11,7 @@ import {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
@@ -99,7 +99,7 @@ serve(async (req) => {
       )
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       email: connection.email,
       folderId: inbox.folderId,
       messages: messagesData?.data || [],
@@ -107,7 +107,7 @@ serve(async (req) => {
   } catch (error) {
     console.error(error)
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         error:
           error instanceof Error

@@ -13,13 +13,13 @@ const UUID_RE =
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
   try {
     if (req.method !== "POST") {
-      return jsonResponse(
+      return jsonResponse(req, 
         { error: "Method not allowed." },
         405
       )
@@ -44,21 +44,21 @@ serve(async (req) => {
       String(payload?.content || "").trim()
 
     if (!UUID_RE.test(mailboxId)) {
-      return jsonResponse(
+      return jsonResponse(req, 
         { error: "A valid mailboxId is required." },
         400
       )
     }
 
     if (!UUID_RE.test(identityId)) {
-      return jsonResponse(
+      return jsonResponse(req, 
         { error: "A valid identityId is required." },
         400
       )
     }
 
     if (!toAddress || !subject || !content) {
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Recipient, subject and message are required.",
@@ -100,7 +100,7 @@ serve(async (req) => {
       !senderIdentity?.identity_id ||
       !senderIdentity?.email_address
     ) {
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Zoho sender identity is not authorised.",
@@ -158,7 +158,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             "Zoho returned an invalid response while sending.",
@@ -195,7 +195,7 @@ serve(async (req) => {
         }
       )
 
-      return jsonResponse(
+      return jsonResponse(req, 
         {
           error:
             zohoError ||
@@ -208,7 +208,7 @@ serve(async (req) => {
       )
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       success:true,
       mailboxId,
       identityId: senderIdentity.identity_id,
@@ -221,7 +221,7 @@ serve(async (req) => {
       error
     )
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         error:
           error instanceof Error

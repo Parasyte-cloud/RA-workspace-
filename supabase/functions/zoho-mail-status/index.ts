@@ -9,7 +9,7 @@ import {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders,
+      headers: corsHeaders(req),
     })
   }
 
@@ -64,7 +64,7 @@ serve(async (req) => {
         .filter(Boolean)
 
     if (mailboxIds.length === 0) {
-      return jsonResponse({
+      return jsonResponse(req, {
         connected: false,
         mailboxId: null,
         email: null,
@@ -168,7 +168,7 @@ serve(async (req) => {
     const selected =
       mailboxes[0] || null
 
-    return jsonResponse({
+    return jsonResponse(req, {
       connected:
         mailboxes.length > 0,
 
@@ -186,7 +186,7 @@ serve(async (req) => {
       error
     )
 
-    return jsonResponse(
+    return jsonResponse(req, 
       {
         connected: false,
         mailboxId: null,
