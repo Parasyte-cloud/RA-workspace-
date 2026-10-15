@@ -11,3 +11,6 @@ const css=readFileSync(new URL('../src/island.css',import.meta.url),'utf8')
 assert.ok(/border-radius: 999px !important/.test(css)); assert.ok(!css.includes('—'))
 console.log('island bar ok')
 assert.ok(/data-ra-island='compact'\] nav\.phoneTabs/.test(css),'dock shrinks too')
+const rise=css.match(/@keyframes raRise \{[^}]*\}[^}]*\}/)[0]
+assert.ok(!/transform|translate|scale/.test(rise),'entrance animation must not use transforms (breaks fixed screens like the open chat)')
+assert.ok(/:not\(\.cm\)/.test(css),'chat is never animated')

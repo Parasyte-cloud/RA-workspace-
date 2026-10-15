@@ -142,7 +142,11 @@
   html[data-ra-island='compact'] nav.phoneTabs button span { max-height: 0; opacity: 0; margin: 0; }
 
   /* ---------- Quiet playfulness ---------- */
-  .content > *, .workspaceMain > section > * { animation: raRise .55s cubic-bezier(.2,.8,.2,1) both; }
+  /* Never animate the chat (or anything holding fixed screens): a leftover
+     transform makes position:fixed children relative to it, which blanked the
+     open chat. backwards fill means no transform remains after the animation. */
+  .content > *:not(.cm):not(.callScreen):not(.roomMeeting),
+  .workspaceMain > section:not(.cm) > * { animation: raRise .55s cubic-bezier(.2,.8,.2,1) backwards; }
   .content > *:nth-child(2) { animation-delay: .05s; }
   .content > *:nth-child(3) { animation-delay: .10s; }
   .content > *:nth-child(4) { animation-delay: .15s; }
@@ -168,13 +172,14 @@
 @keyframes raIslandPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.7); opacity: .6; } }
 @keyframes raDockPop { 0% { transform: scale(.86); } 100% { transform: scale(1); } }
 @keyframes raIconHop { 0% { transform: translateY(5px) scale(.8); } 60% { transform: translateY(-3px) scale(1.12); } 100% { transform: none; } }
-@keyframes raRise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+/* Opacity only: any transform, even a finished one, becomes the containing block for position:fixed children. */
+@keyframes raRise { from { opacity: 0; } to { opacity: 1; } }
 @keyframes raGlint { 0%,60% { left: -60%; } 100% { left: 140%; } }
 
 @media (prefers-reduced-motion: reduce) {
   html[data-ra-theme] nav.phoneTabs button.active,
   html[data-ra-theme] nav.phoneTabs button.active svg,
-  .content > *, .workspaceMain > section > *,
+  .content > *:not(.cm), .workspaceMain > section:not(.cm) > *,
   .primaryButton::after,
   html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { animation: none !important; }
   html[data-ra-theme] .shell.glassFrame .topbar.glassPanel { transition: none !important; }
