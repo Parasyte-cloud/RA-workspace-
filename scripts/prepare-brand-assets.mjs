@@ -112,18 +112,6 @@ async function makeWorkspaceWordmark(input, output) {
     .toFile(output)
 }
 
-
-async function resizeWorkspaceIcon(input, output, size) {
-  await sharp(input)
-    .ensureAlpha()
-    .resize(size, size, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png()
-    .toFile(output)
-}
-
 fs.mkdirSync('public/icons', { recursive: true })
 
 await removeNearWhite(
@@ -136,41 +124,21 @@ await makeWorkspaceWordmark(
   'public/ridearrivo-wordmark-workspace.png'
 )
 
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
+await removeDarkNavy(
+  'public/ridearrivo-mark.png',
   'public/favicon.png',
   256
 )
 
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
+await removeDarkNavy(
+  'public/ridearrivo-mark.png',
   'public/icons/icon-192.png',
   192
 )
 
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
+await removeDarkNavy(
+  'public/ridearrivo-mark.png',
   'public/icons/icon-512.png',
-  512
-)
-
-
-
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
-  'public/icons/workspace-icon-180.png',
-  180
-)
-
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
-  'public/icons/workspace-icon-192.png',
-  192
-)
-
-await resizeWorkspaceIcon(
-  'public/workspace-app-icon.png',
-  'public/icons/workspace-icon-512.png',
   512
 )
 
