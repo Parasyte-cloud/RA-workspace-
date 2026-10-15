@@ -38,8 +38,17 @@
 https://forms.ridearrivo.com/*
   Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.onrender.com; img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
 
-# Report-only CSP on the workspace host. It blocks nothing. Watch the browser
-# console and the reports for a few days, tighten connect-src and frame-src to
-# the exact providers in use, then rename the header to enforce it.
+# Content-Security-Policy on the workspace host, in two parts. Two policies sent
+# together are both applied, and the stricter wins for each directive.
+#
+# 1. ENFORCED. The directives that stop injected script from running or being
+#    framed or re-based: only our own scripts plus the named sign-in and
+#    analytics providers may run, no plugins, no <base> tricks, nobody else may
+#    frame the workspace. Inline scripts are not allowed, so never add one to
+#    index.html (put it in a file under public/).
+# 2. REPORT ONLY. Everything else (where data may be sent, what may be framed,
+#    images, fonts). Watch the browser console for violations before moving a
+#    directive up into the enforced policy.
 https://intranet.ridearrivo.com/*
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; frame-src 'self' https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy: script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://accounts.google.com https://appleid.cdn-apple.com https://static.cloudflareinsights.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'
+  Content-Security-Policy-Report-Only: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; frame-src 'self' https:; worker-src 'self' blob:; form-action 'self'
