@@ -44,6 +44,10 @@ body {
   padding: var(--ra-shell-gutter) !important;
 
   display: grid !important;
+  /* The frame can have width:100% from saved appearance settings. Give that
+     percentage a definite full-width track; an implicit auto track combined
+     with the legacy justify-content:center otherwise shrink-wraps the app. */
+  grid-template-columns: minmax(0, 1fr) !important;
   place-items: center !important;
 
   overflow: hidden !important;
