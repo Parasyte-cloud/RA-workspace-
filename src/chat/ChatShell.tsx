@@ -379,6 +379,12 @@ export function ChatShell(){
   const voiceMsRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
+  // Lets the notification sound know which chat is on screen, so a message in
+  // the chat you are reading does not beep at you.
+  useEffect(()=>{
+    document.documentElement.dataset.raOpenChat=selectedId
+    return()=>{delete document.documentElement.dataset.raOpenChat}
+  },[selectedId])
 
   // Typing indicator: a broadcast channel per open chat. Nothing is stored.
   useEffect(()=>{

@@ -1,3 +1,4 @@
+import {playChatArrival,shouldChatSound} from '../lib/chatSound'
 import {
   createContext,
   useCallback,
@@ -113,8 +114,14 @@ export function NotificationsProvider({children}:{children:ReactNode}){
         {event:'*',schema:'public',table:'notifications'},
         payload=>{
           const row=payload.new as Partial<NotificationItem>|null
+          const isChatRow=row?.type==='chat_message' || row?.type==='chat_mention'
           const fresh=payload.eventType==='INSERT'
-            || (payload.eventType==='UPDATE' && row?.type==='chat_message' && !row?.read_at)
+            || (payload.eventType==='UPDATE' && isChatRow && !row?.read_at)
+          if(fresh && isChatRow && shouldChatSound(
+            row?.entity_id,
+            document.documentElement.dataset.raOpenChat||'',
+            document.visibilityState==='visible'
+          )) playChatArrival()
           if(fresh && row?.title){
             showDesktopAlert({
               title:row.title,

@@ -66,7 +66,7 @@ Deno.serve(async (request) => {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           body,
-          { TTL: message.ttl, urgency: message.urgent ? "high" : "normal", topic },
+          { TTL: message.ttl, urgency: message.urgent || message.highPriority ? "high" : "normal", topic },
         )
         delivered++
         await admin.from("push_subscriptions").update({ last_success_at: new Date().toISOString(), failure_count: 0 }).eq("id", sub.id)
