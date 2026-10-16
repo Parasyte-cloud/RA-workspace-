@@ -39,6 +39,7 @@ import {
 import EmployeeAttendance from '../components/EmployeeAttendance'
 import MyLeave from '../components/MyLeave'
 import EmployeeKycDocuments from '../components/EmployeeKycDocuments'
+import { RibbonWall } from '../components/Recognition'
 import EmployeeHrDetailsForm from '../components/EmployeeHrDetailsForm'
 
 import '../virtual-card.css'
@@ -616,6 +617,8 @@ export function ProfileModule({
 
       <EmployeeAttendance/>
 
+
+      <RibbonWall userId={profile.id} isSelf/>
 
       <MySignInActivity/>
 

@@ -94,6 +94,39 @@ function birthdayEmail(fullName: string) {
   return { html, text: textBody }
 }
 
+// Monthly ribbon digest for leadership. `body` is plain text made by the database.
+function ribbonDigestEmail(title: string, summary: string, fullName: string) {
+  const first = escapeHtml(fullName.trim().split(/\s+/)[0] || "there")
+  const font = "'Helvetica Neue',Helvetica,Arial,sans-serif"
+  const blocks = summary.split(/\n{2,}/).map((part) => {
+    const lines = part.split("\n")
+    const heading = lines.length > 1 ? lines[0] : ""
+    const rest = heading ? lines.slice(1) : lines
+    return (
+      (heading
+        ? `<div style="font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#b8860b;padding:6px 0 4px;">${escapeHtml(heading)}</div>`
+        : "") +
+      `<p style="margin:0 0 12px;">${rest.map((line) => escapeHtml(line)).join("<br>")}</p>`
+    )
+  }).join("")
+  const html =
+    `<!doctype html><html><body style="margin:0;padding:0;background:#f4f6f9;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:24px 12px;">` +
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;">` +
+    `<tr><td>${ribbonBand(10)}</td></tr>` +
+    `<tr><td style="background:#071a38;padding:18px 24px;font-family:${font};font-size:12px;font-weight:800;letter-spacing:3px;color:#ffc83d;">RIBBON DIGEST</td></tr>` +
+    `<tr><td style="padding:22px 24px 6px;font-family:${font};font-size:22px;font-weight:800;color:#071a38;">${escapeHtml(title)}</td></tr>` +
+    `<tr><td style="padding:6px 24px 4px;font-family:${font};font-size:14px;line-height:1.6;color:#3a4756;">Hi ${first}, here is how the team recognised each other last month.</td></tr>` +
+    `<tr><td style="padding:10px 24px 8px;font-family:${font};font-size:14px;line-height:1.65;color:#1d2733;">${blocks}</td></tr>` +
+    `<tr><td align="center" style="padding:10px 24px 22px;"><a href="${WORKSPACE_URL}" style="display:inline-block;background:#ff9900;color:#071a38;text-decoration:none;font-family:${font};font-size:14px;font-weight:800;padding:12px 26px;border-radius:999px;">Open the Hall of Fame</a></td></tr>` +
+    `<tr><td>${ribbonBand(10)}</td></tr>` +
+    `</table></td></tr></table></body></html>`
+  const textBody =
+    `${title}\n\nHi ${fullName.trim().split(/\s+/)[0] || "there"}, here is how the team recognised each other last month.\n\n${summary}\n\n` +
+    `Open the Hall of Fame: ${WORKSPACE_URL}`
+  return { html, text: textBody }
+}
+
 // Meeting summary: the text in `body` is already plain and short.
 function minutesEmail(title: string, summary: string, fullName: string) {
   const first = escapeHtml(fullName.trim().split(/\s+/)[0] || "there")
@@ -233,7 +266,9 @@ Deno.serve(async (req) => {
       ? birthdayEmail(displayName)
       : row.type === "room_minutes" && body
         ? minutesEmail(title, body, displayName)
-        : null
+        : row.type === "ribbon_digest" && body
+          ? ribbonDigestEmail(title, body, displayName)
+          : null
 
     try {
       const response = await fetch("https://api.resend.com/emails", {

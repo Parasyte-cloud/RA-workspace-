@@ -356,3 +356,10 @@
     height:40px;
   }
 }
+
+/* Golden buzzer (host) */
+.r7xGolden{background:linear-gradient(120deg,#ffe27a,#f5c518 50%,#e0a800)!important;color:#4a3200!important;font-weight:800}
+.r7xBuzzPanel{position:absolute;bottom:46px;left:0;z-index:70;width:260px;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;
+  background:#fff;color:#14213d;box-shadow:0 14px 36px rgba(0,0,0,.4)}
+.r7xBuzzPanel label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700}
+.r7xBuzzPanel select,.r7xBuzzPanel input{height:36px;border-radius:9px;border:1px solid rgba(20,33,61,.25);padding:0 10px;font:inherit;color:#14213d;background:#fff}

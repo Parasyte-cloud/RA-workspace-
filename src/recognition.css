@@ -1,0 +1,102 @@
+/* Recognition suite: champion frame, Hall of Fame, ribbon wall, streaks */
+
+/* Golden frame. It stays on the current champion until the next winner. */
+.champAvatar{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%}
+.champPhoto{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;overflow:hidden;
+  background:linear-gradient(135deg,#1c3a6b,#0b1f44);color:#fff;font-weight:800}
+.champPhoto img{width:100%;height:100%;object-fit:cover;display:block}
+.champAvatar.framed{padding:3px;background:conic-gradient(from 0deg,#fff3b0,#f5c518,#b8860b,#ffe27a,#f5c518,#fff3b0);
+  box-shadow:0 0 0 2px rgba(245,197,24,.35),0 6px 18px rgba(245,197,24,.45);animation:champGlow 3.4s ease-in-out infinite}
+.champAvatar.framed .champPhoto{box-shadow:0 0 0 2px #fff inset}
+.champCrown{position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-8deg);display:grid;place-items:center;
+  padding:2px 5px;border-radius:999px;color:#4a3200;background:linear-gradient(120deg,#fff3b0,#f5c518);
+  box-shadow:0 2px 6px rgba(0,0,0,.3)}
+@keyframes champGlow{0%,100%{box-shadow:0 0 0 2px rgba(245,197,24,.3),0 6px 16px rgba(245,197,24,.35)}
+  50%{box-shadow:0 0 0 3px rgba(245,197,24,.55),0 8px 26px rgba(245,197,24,.6)}}
+
+/* Header avatar */
+.headerAvatar.champFramed{padding:2px;background:conic-gradient(from 0deg,#fff3b0,#f5c518,#b8860b,#ffe27a,#f5c518,#fff3b0);
+  box-shadow:0 0 0 2px rgba(245,197,24,.4),0 4px 14px rgba(245,197,24,.5);position:relative}
+.headerAvatar.champFramed::after{content:"👑";position:absolute;top:-11px;left:50%;transform:translateX(-50%) rotate(-8deg);font-size:13px;line-height:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+
+/* Streak flame */
+.streakBadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;
+  background:linear-gradient(120deg,#ff9a3c,#ff5a1f);box-shadow:0 2px 8px rgba(255,90,31,.4)}
+.streakBadge small{font-weight:600;opacity:.92}
+.streakBadge.blaze{background:linear-gradient(120deg,#ff7a1a,#e8260c)}
+.streakBadge.inferno{background:linear-gradient(120deg,#ff3d1f,#a3162a);animation:flameBeat 1.6s ease-in-out infinite}
+.streakBadge.compact{padding:2px 7px;font-size:11px}
+@keyframes flameBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+
+/* Hall of Fame card */
+.hofCard{display:flex;flex-direction:column;gap:12px}
+.hofEmpty p{margin:0;opacity:.8}
+.hofGrid{display:grid;grid-template-columns:minmax(190px,240px) 1fr;gap:18px;align-items:start}
+.hofSpotlight{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:20px 14px 16px;border-radius:18px;
+  background:linear-gradient(160deg,rgba(245,197,24,.2),rgba(245,197,24,.04));border:1px solid rgba(245,197,24,.35)}
+.hofSpotlight .champAvatar{margin-bottom:8px}
+.hofKicker{letter-spacing:.2em;font-weight:800;color:#b8860b;font-size:11px}
+.hofSpotlight strong{font-size:18px;line-height:1.2}
+.hofSpotlight span{font-size:13px;opacity:.8}
+.hofSpotlight em{font-style:normal;font-size:12px;opacity:.65}
+.hofSpotlight small{font-size:12px;opacity:.85;margin-bottom:4px}
+.hofBoard h4{margin:0 0 6px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.7}
+.hofBoard h4:not(:first-child){margin-top:14px}
+.hofBoard ol,.hofFeed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.hofBoard li{display:flex;align-items:center;gap:10px}
+.hofPos{width:20px;text-align:center;font-weight:800;opacity:.6}
+.hofName{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
+.hofName small{opacity:.7}
+.hofBoard li.isChamp .hofPos{color:#b8860b;opacity:1}
+.hofNone{margin:0;opacity:.7}
+.hofFeed li{align-items:flex-start;font-size:13px;line-height:1.35}
+.hofFeed li>span:first-child{font-size:18px}
+.hofFeed em{display:block;font-style:italic;opacity:.75}
+@media (max-width:720px){.hofGrid{grid-template-columns:1fr}}
+
+/* Ribbon wall */
+.ribbonWall{display:flex;flex-direction:column;gap:14px}
+.ribbonWallHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ribbonWallHead h3{margin:2px 0 0}
+.ribbonWallBadges{display:flex;gap:8px;flex-wrap:wrap}
+.weeksBadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#4a3200;
+  background:linear-gradient(120deg,#fff3b0,#f5c518);box-shadow:0 2px 8px rgba(245,197,24,.4)}
+.weeksBadge small{font-weight:600}
+.trophyShelf{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:10px;padding:14px 10px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(120,135,160,.1),rgba(120,135,160,.04));
+  box-shadow:inset 0 -6px 0 rgba(120,135,160,.18)}
+.trophy{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;opacity:.45;filter:grayscale(.85);transition:transform .15s ease}
+.trophy.earned{opacity:1;filter:none;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--wrx-b) 24%,transparent),transparent);
+  box-shadow:0 4px 14px color-mix(in srgb,var(--wrx-b) 35%,transparent)}
+.trophy.earned:hover{transform:translateY(-3px) scale(1.04)}
+.trophyIcon{font-size:30px;line-height:1}
+.trophy b{font-size:16px}
+.trophy small{font-size:11px;opacity:.75}
+.wallList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wallList li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4}
+.wallList li>span:first-child{font-size:20px}
+.wallList li>span:nth-child(2){flex:1;min-width:0}
+.wallList em{display:block;font-style:italic;opacity:.75}
+.wallList time{opacity:.6;font-size:12px;white-space:nowrap}
+.wallBudget{margin:0;font-size:12px;opacity:.7}
+
+/* Chat toolbar button and thank-you */
+.wrxThanks{margin-top:14px;border:0;border-radius:999px;padding:10px 22px;font:inherit;font-weight:800;cursor:pointer;color:#4a3200;
+  background:linear-gradient(120deg,#fff3b0,#f5c518);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.wrxThanks:disabled{opacity:.7;cursor:default}
+.wrxThankBtn{position:relative;z-index:1;border:0;border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,.7);color:#2b1d00}
+.wrxThanked{font-size:12px;opacity:.9}
+.wrxBudget{margin:0;font-size:12px;opacity:.75}
+.wrxKind:disabled{opacity:.4;cursor:not-allowed}
+.wrxMedal.withPhoto .wrxMedalEmoji{display:none}
+.wrxMedalPhoto{position:absolute;top:18px;left:50%;margin-left:-39px;width:78px;height:78px;border-radius:50%;object-fit:cover;
+  border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.wrxPeople .wrxLimit{width:54px;height:30px;border-radius:8px;border:1px solid rgba(20,33,61,.25);text-align:center;font:inherit}
+.wrxPerson .wrxPersonCtl{display:flex;align-items:center;gap:10px}
+.wrxPersonCtl label{display:flex;align-items:center;gap:4px;font-size:11px;opacity:.75}
+@media (prefers-reduced-motion:reduce){.champAvatar.framed,.streakBadge.inferno{animation:none}}
+.cmRibbonBtn{color:#b8860b}
+.wrxLimitBox{display:flex;flex-direction:column;align-items:center;gap:2px}.wrxLimitBox small{font-size:10px;opacity:.65}

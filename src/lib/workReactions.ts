@@ -76,11 +76,12 @@ export const BUZZ_PATTERN = [60, 40, 60, 40, 140]
 
 export type UnseenRibbon = {
   id: string
-  work_item_id: string
+  work_item_id: string | null
   given_by: string
   kind: RibbonKind
   message: string
   created_at: string
   task_title: string
   giver_name: string
+  source: 'work' | 'gift'
 }

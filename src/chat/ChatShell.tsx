@@ -46,6 +46,7 @@ import { useChatExtras } from './hooks/useChatExtras'
 import { ChatAvatar } from './ui/ChatAvatar'
 import { EmojiPicker } from './ui/EmojiPicker'
 import { MessageToolbar, ReactionChips } from './ui/ReactionBar'
+import { RibbonPicker, useCanGiveRibbon } from '../components/Recognition'
 import { PinnedBar } from './ui/PinnedBar'
 import ThreadPanel from './ui/ThreadPanel'
 import LinkedText from './LinkedText'
@@ -284,6 +285,8 @@ const mergeMessages=(current:Message[],incoming:Message[])=>{
 
 export function ChatShell(){
   const [userId,setUserId]=useState('')
+  const ribbonRights=useCanGiveRibbon()
+  const [ribbonFor,setRibbonFor]=useState<{id:string;sender:string}|null>(null)
   const [people,setPeople]=useState<Person[]>([])
   const [selectedId,setSelectedId]=useState('')
   const {
@@ -3047,6 +3050,7 @@ export function ChatShell(){
                             pinned={extras.isPinned(message.id)}
                             onReact={emoji=>void extras.react(message.id,emoji)}
                             onTogglePin={()=>void extras.setPinned(message.id,!extras.isPinned(message.id))}
+                            onRibbon={ribbonRights.canGive&&message.sender_id!==userId?()=>setRibbonFor({id:message.id,sender:message.sender_id}):undefined}
                           />
                         )}
                         {canReply&&(
@@ -3389,6 +3393,18 @@ export function ChatShell(){
           busy={forwardBusy}
           onSend={(keys,note)=>void doForward(keys,note)}
           onClose={()=>{if(!forwardBusy)setForwardMsg(null)}}
+        />
+      )}
+      {ribbonFor&&(
+        <RibbonPicker
+          title={`Give ${nameOfId(ribbonFor.sender)} a ribbon`}
+          budget={ribbonRights.budget}
+          onClose={()=>setRibbonFor(null)}
+          onSend={async(kind,note)=>{
+            if(!supabase)return 'Not connected.'
+            const {error}=await supabase.rpc('give_direct_ribbon',{p_recipient:ribbonFor.sender,p_kind:kind,p_message:note,p_source:'chat',p_ref:ribbonFor.id})
+            return error?error.message:null
+          }}
         />
       )}
       {thread&&(
