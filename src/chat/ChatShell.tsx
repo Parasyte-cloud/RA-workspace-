@@ -68,6 +68,7 @@ import { MyChatProfile, PersonCard } from './ui/ProfileDialogs'
 import '../chat-extras.css'
 import '../chat-dark.css'
 import '../chat-ios.css'
+import './chat-room-remove.css'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
@@ -291,6 +292,7 @@ export function ChatShell(){
   const [rooms,setRooms]=useState<ConversationSummary[]>([])
   const [roomMembers,setRoomMembers]=useState<RoomMember[]>([])
   const [canAdministerRoom,setCanAdministerRoom]=useState(false)
+  const [canRemoveRoomMembers,setCanRemoveRoomMembers]=useState(false)
   const [isGlobalChatAdmin,setIsGlobalChatAdmin]=useState(false)
   const [roomDetailsLoading,setRoomDetailsLoading]=useState(false)
   const [mobileThreadOpen,setMobileThreadOpen]=useState(false)
@@ -663,11 +665,12 @@ export function ChatShell(){
       const [
         memberResult,
         roomAdminResult,
-        globalAdminResult
+        globalAdminResult,
+        removeRightResult
       ]=await Promise.all([
         client
           .from('social_conversation_members')
-          .select('user_id,room_role,removed_at')
+          .select('user_id,room_role,removed_at,can_remove_members')
           .eq('conversation_id',selectedRoom.id)
           .is('removed_at',null),
         client.rpc(
@@ -678,6 +681,12 @@ export function ChatShell(){
         ),
         client.rpc(
           'is_workspace_chat_admin'
+        ),
+        client.rpc(
+          'can_remove_room_members',
+          {
+            p_conversation_id:selectedRoom.id
+          }
         )
       ])
 
@@ -689,6 +698,7 @@ export function ChatShell(){
         user_id:string
         room_role:'member'|'admin'|'owner'
         removed_at:string|null
+        can_remove_members?:boolean|null
       }>).map(member=>{
         const person=peopleRef.current.get(
           member.user_id
@@ -701,7 +711,8 @@ export function ChatShell(){
             person?.email ||
             'RideArrivo employee',
           email:person?.email || undefined,
-          roomRole:member.room_role
+          roomRole:member.room_role,
+          canRemoveMembers:member.can_remove_members===true
         } satisfies RoomMember
       })
 
@@ -724,6 +735,9 @@ export function ChatShell(){
       setRoomMembers(mapped)
       setCanAdministerRoom(
         roomAdminResult.data === true
+      )
+      setCanRemoveRoomMembers(
+        removeRightResult.error ? roomAdminResult.data === true : removeRightResult.data === true
       )
       setIsGlobalChatAdmin(
         globalAdminResult.data === true
@@ -2446,6 +2460,8 @@ export function ChatShell(){
               members={roomMembers}
               candidates={roomCandidates}
               canAdministerRoom={canAdministerRoom}
+              canRemoveMembers={canRemoveRoomMembers}
+              currentUserId={userId}
               isGlobalChatAdmin={isGlobalChatAdmin}
               onClose={()=>setMobileDetailsOpen(false)}
               onChanged={()=>void loadRoomDetails()}

@@ -16,6 +16,8 @@ type RoomDetailsProps = {
   members?: RoomMember[]
   candidates?: RoomCandidate[]
   canAdministerRoom?: boolean
+  canRemoveMembers?: boolean
+  currentUserId?: string
   isGlobalChatAdmin?: boolean
   onClose?: () => void
   onChanged?: () => void
@@ -53,6 +55,8 @@ export function RoomDetails({
   members = [],
   candidates = [],
   canAdministerRoom = false,
+  canRemoveMembers = false,
+  currentUserId = '',
   isGlobalChatAdmin = false,
   onClose,
   onChanged,
@@ -142,6 +146,8 @@ export function RoomDetails({
         canAdministerRoom={
           canAdministerRoom
         }
+        canRemoveMembers={canRemoveMembers}
+        currentUserId={currentUserId}
         isGlobalChatAdmin={
           isGlobalChatAdmin
         }

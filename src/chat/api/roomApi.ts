@@ -113,3 +113,21 @@ export async function archiveRoom(
 
   if (error) throw error
 }
+
+export async function setMemberRemoveRight(input: {
+  conversationId: string
+  employeeId: string
+  allowed: boolean
+}) {
+  const { error } =
+    await client().rpc(
+      'set_chat_member_remove_right',
+      {
+        p_conversation_id: input.conversationId,
+        p_employee_id: input.employeeId,
+        p_allowed: input.allowed,
+      },
+    )
+
+  if (error) throw error
+}

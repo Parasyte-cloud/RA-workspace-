@@ -15,6 +15,8 @@ type RoomAdminPanelProps = {
   members: RoomMember[]
   candidates?: RoomCandidate[]
   canAdministerRoom: boolean
+  canRemoveMembers?: boolean
+  currentUserId?: string
   isGlobalChatAdmin: boolean
   onChanged?: () => void
   onArchived?: () => void
@@ -26,6 +28,8 @@ export function RoomAdminPanel({
   members,
   candidates = [],
   canAdministerRoom,
+  canRemoveMembers = false,
+  currentUserId = '',
   isGlobalChatAdmin,
   onChanged,
   onArchived,
@@ -57,6 +61,8 @@ export function RoomAdminPanel({
         canAdministerRoom={
           canAdministerRoom
         }
+        canRemoveMembers={canRemoveMembers || canAdministerRoom}
+        currentUserId={currentUserId}
         membershipManagedByDepartment={
           isDepartmentRoom
         }
