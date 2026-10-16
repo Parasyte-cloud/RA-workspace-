@@ -18,6 +18,8 @@ import {
 } from '../lib/room7Admission'
 import './room7-public.css'
 import { prefetchWhenIdle } from '../lib/prefetch'
+import { googleCalendarUrl, icsFile, outlookCalendarUrl } from '../lib/room7Share'
+import type { CalendarEvent } from '../lib/room7Share'
 
 const loadExternalMeeting = () => import('./ExternalRoom7Meeting')
 const ExternalRoom7Meeting = lazy(loadExternalMeeting)
@@ -325,6 +327,64 @@ async function room7Request<T>(
   return payload as T
 }
 
+// The countdown ticks once a second, so it lives in its own component: only
+// these four numbers re-render, not the whole page. Screen readers get one
+// calm sentence instead of numbers changing every second.
+function Room7Countdown({ target }: { target: string | null }) {
+  const countdown = useCountdown(target)
+  if (!countdown) return null
+  const spoken = `Starts in ${countdown.days} days, ${countdown.hours} hours and ${countdown.minutes} minutes`
+  const two = (value: number) => String(value).padStart(2, '0')
+  return (
+    <div className="room7PublicCountdown" role="timer" aria-label={spoken}>
+      <div aria-hidden="true"><strong>{countdown.days}</strong><span>Days</span></div>
+      <div aria-hidden="true"><strong>{two(countdown.hours)}</strong><span>Hours</span></div>
+      <div aria-hidden="true"><strong>{two(countdown.minutes)}</strong><span>Minutes</span></div>
+      <div aria-hidden="true"><strong>{two(countdown.seconds)}</strong><span>Seconds</span></div>
+    </div>
+  )
+}
+
+// Guests plan around invitations: let them put the event in their calendar.
+// The link carries no token, only the public event address.
+function Room7AddToCalendar({ room }: { room: PublicRoom }) {
+  const start = new Date(room.scheduled_start || '')
+  if (Number.isNaN(start.getTime())) return null
+  const end = room.scheduled_end ? new Date(room.scheduled_end) : null
+  const minutes = end && !Number.isNaN(end.getTime()) && end > start
+    ? Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
+    : 60
+  const here = new URL(window.location.href)
+  here.search = ''
+  here.hash = ''
+  const event: CalendarEvent = {
+    title: room.title,
+    start,
+    minutes,
+    location: here.toString(),
+    details: `${room.public_summary ? `${room.public_summary}\n\n` : ''}Join the event: ${here.toString()}`,
+  }
+  const download = () => {
+    const blob = new Blob([icsFile(event, `${room.slug || room.title}@room7.ridearrivo.com`)], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'room7-event.ics'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  return (
+    <div className="room7PublicCalendar" aria-label="Add this event to your calendar">
+      <span>Add to calendar</span>
+      <a href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer">Google</a>
+      <a href={outlookCalendarUrl(event)} target="_blank" rel="noopener noreferrer">Outlook</a>
+      <button type="button" onClick={download}>Apple / other</button>
+    </div>
+  )
+}
+
 function formatEventDate(
   value: string | null,
   timezone: string,
@@ -619,6 +679,15 @@ export default function ExternalRoom7App() {
         : 'RideArrivo ROOM 7'
   }, [room?.title])
 
+  // Event pages are for invited guests: keep them out of search results.
+  useEffect(() => {
+    const tag = document.createElement('meta')
+    tag.name = 'robots'
+    tag.content = 'noindex, nofollow'
+    document.head.appendChild(tag)
+    return () => tag.remove()
+  }, [])
+
   useEffect(() => {
     if (!locator) {
       setLoading(false)
@@ -778,12 +847,6 @@ export default function ExternalRoom7App() {
     room,
     authToken,
   ])
-
-  const countdown =
-    useCountdown(
-      room?.scheduled_start ||
-      null,
-    )
 
   // Passcodes are case sensitive on the server, and phones love capital letters
   // or none at all. The event code from the link is tried as the passcode too:
@@ -1156,39 +1219,14 @@ export default function ExternalRoom7App() {
                   </a>
                 )}
 
-              {countdown &&
-                room.event_state ===
-                  'pre_event' && (
-                  <div className="room7PublicCountdown">
-                    <div>
-                      <strong>{countdown.days}</strong>
-                      <span>Days</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {String(
-                          countdown.hours,
-                        ).padStart(2, '0')}
-                      </strong>
-                      <span>Hours</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {String(
-                          countdown.minutes,
-                        ).padStart(2, '0')}
-                      </strong>
-                      <span>Minutes</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {String(
-                          countdown.seconds,
-                        ).padStart(2, '0')}
-                      </strong>
-                      <span>Seconds</span>
-                    </div>
-                  </div>
+              {room.event_state === 'pre_event' && (
+                <Room7Countdown target={room.scheduled_start} />
+              )}
+
+              {room.scheduled_start &&
+                !room.past_scheduled_end &&
+                ['draft', 'pre_event', 'doors_open'].includes(room.event_state) && (
+                  <Room7AddToCalendar room={room} />
                 )}
             </div>
 

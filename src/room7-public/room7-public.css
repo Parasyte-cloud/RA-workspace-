@@ -2136,3 +2136,19 @@
       max(5px,env(safe-area-inset-left,0px));
   }
 }
+
+
+/* Add to calendar (guest lobby) */
+.room7PublicCalendar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:18px}
+.room7PublicCalendar span{color:#9fb0c3;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:4px}
+.room7PublicCalendar a,.room7PublicCalendar button{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.05);color:#f1f5fa;font:inherit;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer}
+.room7PublicCalendar a:hover,.room7PublicCalendar button:hover{background:rgba(255,255,255,.1)}
+.room7PublicCalendar a:focus-visible,.room7PublicCalendar button:focus-visible{outline:2px solid #ffb13b;outline-offset:2px}
+
+/* Phones: one compact countdown row instead of a 2 by 2 block, so the join
+   card is reachable without a long scroll. */
+@media(max-width:560px){
+  .room7PublicCountdown{grid-template-columns:repeat(4,1fr)!important;gap:6px;margin-top:18px}
+  .room7PublicCountdown>div{padding:10px 6px;border-radius:13px;text-align:center}
+  .room7PublicCountdown strong{font-size:20px}
+}
