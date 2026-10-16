@@ -3,7 +3,7 @@
 // Runs before the browser reads the manifest, same idea as room7-host.js.
 (function () {
   var names = {
-    'bookings.ridearrivo.com': ['bookings', 'RideArrivo Bookings', 'Bookings'],
+    'bookings.ridearrivo.com': ['bookings', 'ArrivoChauffeur', 'Chauffeur'],
     'membership.ridearrivo.com': ['membership', 'RideArrivo Membership', 'Membership'],
     'move.ridearrivo.com': ['move', 'ArrivoRemovals', 'Removals'],
     'easybook.ridearrivo.com': ['easybook', 'RideArrivo Easybook', 'Easybook'],
@@ -15,6 +15,11 @@
   var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = '/service-' + hit[0] + '.webmanifest'
   var t = document.querySelector('meta[name="theme-color"]'); if (t) t.content = '#071A38'
   document.title = hit[1]
+  // ArrivoChauffeur has its own icon, for the tab and the iPhone home screen.
+  if (hit[0] === 'bookings') {
+    var fav = document.querySelector('link[rel="icon"]'); if (fav) fav.href = '/icons/chauffeur-192.png'
+    var apple = document.querySelector('link[rel="apple-touch-icon"]'); if (apple) apple.href = '/icons/chauffeur-apple-180.png'
+  }
   var meta = document.createElement('meta'); meta.name = 'apple-mobile-web-app-title'; meta.content = hit[2]
   document.head.appendChild(meta)
 })()

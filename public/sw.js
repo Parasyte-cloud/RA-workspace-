@@ -1,4 +1,4 @@
-const CACHE = 'ra-workspace-shell-v8'
+const CACHE = 'ra-workspace-shell-v9'
 const ASSETS = 'ra-workspace-assets-v1'
 const ASSET_LIMIT = 400
 const SHELL = [

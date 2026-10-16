@@ -124,22 +124,8 @@ await makeWorkspaceWordmark(
   'public/ridearrivo-wordmark-workspace.png'
 )
 
-await removeDarkNavy(
-  'public/ridearrivo-mark.png',
-  'public/favicon.png',
-  256
-)
-
-await removeDarkNavy(
-  'public/ridearrivo-mark.png',
-  'public/icons/icon-192.png',
-  192
-)
-
-await removeDarkNavy(
-  'public/ridearrivo-mark.png',
-  'public/icons/icon-512.png',
-  512
-)
+// favicon.png and the installed-app icons (public/icons/*) are no longer
+// generated here. They come from the master artwork in brand/ via
+// `node scripts/make-app-icons.mjs`, and a build must not overwrite them.
 
 console.log('RideArrivo transparent brand assets generated.')
