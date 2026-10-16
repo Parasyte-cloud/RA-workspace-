@@ -7,9 +7,11 @@ import {
   ArrowLeft,
   Check,
   CheckCheck,
+  Copy,
   Download,
   FileDown,
   FileText,
+  Forward,
   MessageSquareText,
   MessagesSquare,
   Mic,
@@ -34,6 +36,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -46,6 +49,10 @@ import { MessageToolbar, ReactionChips } from './ui/ReactionBar'
 import { PinnedBar } from './ui/PinnedBar'
 import ThreadPanel from './ui/ThreadPanel'
 import LinkedText from './LinkedText'
+import ForwardDialog from './ui/ForwardDialog'
+import { buildForwardTargets, canForward, cleanNote, forwardSummary, forwardedLabel } from './forward'
+import type { ForwardResult } from './forward'
+import { copyableText, copyToClipboard } from './copy'
 import MessageSearchResults from './ui/MessageSearchResults'
 import { addTyper, liveTypers, typingSentence, TYPING_TTL_MS } from './typingPeople'
 import type { Typer } from './typingPeople'
@@ -55,7 +62,8 @@ import { broadcastSuggestions, detectBroadcast } from './broadcast'
 import { searchable } from './messageSearch'
 import type { SearchHit } from './messageSearch'
 import { replyCounts, threadView, repliesLabel } from './threads'
-import './chat-batch2.css'
+import '../chat-extras.css'
+import './chat-bottom.css'
 import { InChatSearch } from './ui/InChatSearch'
 import { MyChatProfile, PersonCard } from './ui/ProfileDialogs'
 import '../chat-extras.css'
@@ -176,6 +184,7 @@ type Message = {
   deleted_at?:string|null
   created_at:string
   reply_to_id?:string|null
+  forwarded_from_user_id?:string|null
   client_message_id?:string|null
   mentionedUserIds?:string[]
   attachment_path?:string|null
@@ -197,7 +206,7 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,deleted_at,created_at,reply_to_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,deleted_at,created_at,reply_to_id,forwarded_from_user_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
 const OPEN_KEY='ra.chat.open'
 const ATTACH_BUCKET='chat-attachments'
 const SIGNED_SECONDS=3600
@@ -323,6 +332,9 @@ export function ChatShell(){
   const [searchLoading,setSearchLoading]=useState(false)
   const pendingJumpRef=useRef('')
   const [threadRootId,setThreadRootId]=useState('')
+  const [forwardMsg,setForwardMsg]=useState<Message|null>(null)
+  const [forwardBusy,setForwardBusy]=useState(false)
+  const [copiedId,setCopiedId]=useState('')
   const [threadFetched,setThreadFetched]=useState<Message[]>([])
   const [repliesLoading,setRepliesLoading]=useState(false)
   const [hasOlder,setHasOlder]=useState(false)
@@ -350,6 +362,7 @@ export function ChatShell(){
   const userRef=useRef('')
   const threadRequestRef=useRef(0)
   const scrollRef=useRef<HTMLDivElement|null>(null)
+  const threadRef=useRef<HTMLDivElement|null>(null)
   const stickToBottomRef=useRef(true)
   const forceScrollRef=useRef(true)
   const composerRef=useRef<HTMLTextAreaElement|null>(null)
@@ -1228,6 +1241,49 @@ export function ChatShell(){
     }
   },[messages])
 
+  // The message box and the typing line float over the thread. Measure how much
+  // room they take so the newest message always rests above them, and stay at
+  // the bottom when that room changes (typing line appears, box grows, reply bar).
+  useLayoutEffect(()=>{
+    const thread=threadRef.current
+    if(!thread || typeof ResizeObserver==='undefined')return
+    const watched=new Set<Element>()
+    const floating=(el:Element)=>{
+      const position=getComputedStyle(el).position
+      return position==='absolute' || position==='fixed'
+    }
+    const measure=()=>{
+      const box=thread.getBoundingClientRect()
+      const composer=thread.querySelector('.cmComposer:not([hidden])')
+      const composerGap=composer ? Math.max(0,box.bottom-composer.getBoundingClientRect().top) : 0
+      thread.style.setProperty('--cm-composer-gap',`${Math.ceil(composerGap)}px`)
+      let overlay=composerGap
+      for(const selector of ['.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping']){
+        const el=thread.querySelector(selector)
+        if(!el || !floating(el))continue
+        overlay=Math.max(overlay,box.bottom-el.getBoundingClientRect().top)
+      }
+      const next=`${Math.ceil(overlay)+14}px`
+      const changed=thread.style.getPropertyValue('--cm-overlay')!==next
+      thread.style.setProperty('--cm-overlay',next)
+      const list=scrollRef.current
+      if(changed && list && stickToBottomRef.current)list.scrollTop=list.scrollHeight
+    }
+    const resize=new ResizeObserver(measure)
+    const watch=()=>{
+      for(const selector of ['.cmComposer','.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping']){
+        const el=thread.querySelector(selector)
+        if(el && !watched.has(el)){watched.add(el);resize.observe(el)}
+      }
+    }
+    resize.observe(thread)
+    watch()
+    measure()
+    const mutations=new MutationObserver(()=>{watch();measure()})
+    mutations.observe(thread,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']})
+    return()=>{resize.disconnect();mutations.disconnect()}
+  },[selectedId])
+
   const onScroll=()=>{
     const element=scrollRef.current
     if(!element)return
@@ -1423,6 +1479,77 @@ export function ChatShell(){
       window.removeEventListener('focus',refresh)
     }
   },[loadBase,loadThread])
+
+  const forwardTargets=useMemo(()=>{
+    if(!forwardMsg)return []
+    return buildForwardTargets(
+      rooms.map(room=>({id:room.id,title:room.title})),
+      directs.map(row=>({conversationId:row.conversation.id,personId:row.other?.id || null,name:displayName(row.other),subtitle:secondary(row.other)})),
+      people.map(person=>({id:person.id,name:displayName(person),subtitle:secondary(person)})),
+      userId || ''
+    )
+  },[forwardMsg,rooms,directs,people,userId])
+
+  const doForward=async(keys:string[],rawNote:string)=>{
+    const client=supabase
+    const source=forwardMsg
+    if(!client || !userId || !source || forwardBusy)return
+    setForwardBusy(true)
+    const note=cleanNote(rawNote)
+    const results:ForwardResult[]=[]
+    let madeChat=false
+    let lastConversation=''
+    for(const key of keys){
+      const target=forwardTargets.find(item=>item.key===key)
+      if(!target)continue
+      try{
+        let conversationId=target.id
+        if(target.kind==='person'){
+          const {data,error}=await client.rpc('start_or_get_social_direct_conversation',{p_other_user:target.id})
+          if(error)throw error
+          conversationId=typeof data==='string' ? data : String(data || '')
+          if(!conversationId)throw new Error('The chat could not be created.')
+          madeChat=true
+        }
+        let copied:string|null=null
+        if(source.attachment_path){
+          copied=attachmentPath(conversationId,userId,crypto.randomUUID(),source.attachment_name || 'file')
+          const {error:copyError}=await client.storage.from(ATTACH_BUCKET).copy(source.attachment_path,copied)
+          if(copyError)throw new Error('The file could not be copied.')
+        }
+        const {data,error}=await client.rpc('forward_chat_message',{
+          p_source_id:source.id,
+          p_target_conversation_id:conversationId,
+          p_attachment_path:copied,
+          p_note:note || null
+        })
+        if(error)throw error
+        if(conversationId===selectedRef.current && data)setMessages(current=>mergeMessages(current,[data as Message]))
+        lastConversation=conversationId
+        results.push({title:target.title,ok:true})
+      }catch(error){
+        const text=error instanceof Error ? error.message : String((error as {message?:string})?.message || 'Unable to forward.')
+        results.push({title:target.title,ok:false,error:explainWriteError(text)})
+      }
+    }
+    setForwardBusy(false)
+    if(results.some(item=>!item.ok)){
+      // Stay open so the failed chats can be retried or changed.
+      setNotice(forwardSummary(results))
+    }else{
+      setForwardMsg(null)
+      setNotice(forwardSummary(results))
+      if(results.length===1 && lastConversation && lastConversation!==selectedRef.current)openConversation(lastConversation)
+    }
+    if(madeChat)void loadBase()
+  }
+
+  const copyMessage=async(message:Message)=>{
+    const ok=await copyToClipboard(copyableText(message))
+    if(!ok){setNotice('Copy did not work in this browser. Select the text and copy it by hand.');return}
+    setCopiedId(message.id)
+    window.setTimeout(()=>setCopiedId(current=>current===message.id?'':current),1600)
+  }
 
   const startDirect=async(person:Person)=>{
     const client=supabase
@@ -2334,6 +2461,7 @@ export function ChatShell(){
         )}
 
         <div
+          ref={threadRef}
           className={`cmThread${dragging?' dragging':''}`}
           onDragEnter={event=>{
             if(!selected || !event.dataTransfer.types.includes('Files'))return
@@ -2684,7 +2812,7 @@ export function ChatShell(){
                   const quoted=message.reply_to_id ? messages.find(m=>m.id===message.reply_to_id) || null : null
                   const deleted=isDeleted(message)
                   const canReply=!message.pending && !message.failed && !deleted
-                  const showEdit=canEdit(message,userId)
+                  const showEdit=canEdit(message,userId) && !message.forwarded_from_user_id
                   const showDelete=canDelete(message,userId)
                   const editing=editingId===message.id
                   return (
@@ -2702,6 +2830,12 @@ export function ChatShell(){
                           <span className="cmSenderName">
                             {avatarFor(sender,20,true)}
                             {displayName(sender)}
+                          </span>
+                        )}
+                        {!deleted&&message.forwarded_from_user_id&&(
+                          <span className="cmForwarded">
+                            <Forward size={12}/>
+                            {forwardedLabel(peopleMap.get(message.forwarded_from_user_id)?displayName(peopleMap.get(message.forwarded_from_user_id)):'')}
                           </span>
                         )}
                         {!deleted&&message.reply_to_id&&(
@@ -2887,6 +3021,28 @@ export function ChatShell(){
                             onClick={()=>setThreadRootId(message.id)}
                           >
                             <MessagesSquare size={14}/>
+                          </button>
+                        )}
+                        {copyableText(message)&&!message.pending&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn"
+                            aria-label={copiedId===message.id?'Copied':'Copy message text'}
+                            title={copiedId===message.id?'Copied':'Copy'}
+                            onClick={()=>void copyMessage(message)}
+                          >
+                            {copiedId===message.id?<Check size={14}/>:<Copy size={14}/>}
+                          </button>
+                        )}
+                        {canForward(message)&&!editing&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn"
+                            aria-label="Forward this message"
+                            title="Forward"
+                            onClick={()=>setForwardMsg(message)}
+                          >
+                            <Forward size={14}/>
                           </button>
                         )}
                         {canReply&&(
@@ -3186,6 +3342,16 @@ export function ChatShell(){
           title={secondary(peopleMap.get(cardId))}
           status={extras.statusOf(cardId)}
           onClose={()=>setCardId('')}
+        />
+      )}
+      {forwardMsg&&(
+        <ForwardDialog
+          senderName={forwardMsg.sender_id===userId?'You':displayName(peopleMap.get(forwardMsg.sender_id))}
+          preview={messagePreview(forwardMsg)}
+          targets={forwardTargets}
+          busy={forwardBusy}
+          onSend={(keys,note)=>void doForward(keys,note)}
+          onClose={()=>{if(!forwardBusy)setForwardMsg(null)}}
         />
       )}
       {thread&&(
