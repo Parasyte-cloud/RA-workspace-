@@ -19,6 +19,7 @@ import './app-feel.css'
 import './nav-liquid.css'
 import './theme-fixes.css'
 import './island.css'
+import './glass-clear.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
 
