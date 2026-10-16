@@ -13,7 +13,7 @@ import {
   KeyRound,
   Laptop,
   MapPin,
-  Phone,
+  MessagesSquare,
   RefreshCw,
   ShieldCheck,
   Users,
@@ -25,7 +25,7 @@ import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import AdminAccessManager from './AdminAccessManager'
 import AdminDownloadAccessManager from './AdminDownloadAccessManager'
 import AdminLetterheadAccess from './AdminLetterheadAccess'
-import AdminCallingAccess from './AdminCallingAccess'
+import AdminChatAccess from './AdminChatAccess'
 import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
@@ -43,13 +43,12 @@ type AdminTab=
   | 'overview'
   | 'people'
   
-  | 'attendance'| 'access'
+  | 'attendance'| 'access'| 'chat'
   | 'workstations'
   | 'performance'
   | 'assets'
   | 'downloads'
   | 'letterhead'
-  | 'calling'
   | 'applications'
   | 'backups'
   | 'room-minutes'
@@ -166,7 +165,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
   ['letterhead','Letterhead',FileText],
-  ['calling','Calling',Phone],
+  ['chat','Chat',MessagesSquare],
   ['applications','Applications',AppWindow],
   ['payments','Payments',CreditCard],
   ['backups','Backups',DatabaseBackup],
@@ -559,7 +558,7 @@ export default function AdministrationControlPlane(){
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='letterhead'&&<AdminLetterheadAccess/>}
-      {tab==='calling'&&<AdminCallingAccess/>}
+      {tab==='chat'&&<AdminChatAccess/>}
       {tab==='applications'&&<ApplicationsPanel/>}
       {tab==='payments'&&
         <div className="adminPaymentsStack">

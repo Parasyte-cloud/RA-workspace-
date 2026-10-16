@@ -21,7 +21,6 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
-import ChatAdminManager from './ChatAdminManager'
 
 type AccessUser = {
   id:string
@@ -393,8 +392,6 @@ export default function AdminAccessManager(){
 
   return (
     <div className="adminAccessStack responsiveModule responsiveFormSurface">
-      <ChatAdminManager employees={users}/>
-
       <section
         className="adminAccessCard glassCard"
       >
