@@ -2152,3 +2152,135 @@
   .room7PublicCountdown>div{padding:10px 6px;border-radius:13px;text-align:center}
   .room7PublicCountdown strong{font-size:20px}
 }
+
+/* Front door redesign: sits on the page gradient instead of a flat box */
+.room7Landing{
+  min-height:calc(100vh - 96px);
+  display:grid;
+  align-content:center;
+  justify-items:center;
+  gap:36px;
+  padding:40px 0 24px;
+  text-align:center;
+}
+.room7LandingHero{
+  display:grid;
+  justify-items:center;
+  gap:14px;
+  width:min(620px,100%);
+}
+.room7LandingHero h1{
+  margin:0;
+  font-size:clamp(2.2rem,7vw,3.6rem);
+  line-height:1.04;
+  letter-spacing:-.03em;
+  background:linear-gradient(180deg,#fff 30%,#b8c6d6);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.room7LandingHero>p{
+  margin:0;
+  max-width:480px;
+  color:var(--r7-muted);
+  font-size:1.05rem;
+  line-height:1.55;
+}
+.room7LandingForm{
+  width:100%;
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+  text-align:left;
+}
+.room7LandingForm label{
+  font-size:.8rem;
+  font-weight:600;
+  color:var(--r7-muted);
+  padding-left:6px;
+}
+.room7LandingField{
+  display:flex;
+  gap:8px;
+  padding:6px;
+  border-radius:22px;
+  background:var(--r7-panel);
+  border:1px solid var(--r7-border);
+  box-shadow:0 20px 50px rgba(0,0,0,.35);
+  backdrop-filter:blur(14px);
+  transition:border-color .2s,box-shadow .2s;
+}
+.room7LandingField:focus-within{
+  border-color:rgba(246,161,26,.65);
+  box-shadow:0 20px 50px rgba(0,0,0,.35),0 0 0 4px var(--r7-amber-soft);
+}
+.room7LandingField input{
+  flex:1;
+  min-width:0;
+  min-height:52px;
+  padding:0 14px;
+  border:0;
+  background:transparent;
+  color:var(--r7-text);
+  font:inherit;
+  font-size:18px;
+  letter-spacing:.04em;
+  outline:none;
+}
+.room7LandingField input::placeholder{color:#6b7a8c;letter-spacing:.02em}
+.room7LandingField button{
+  min-height:52px;
+  padding:0 26px;
+  border:0;
+  border-radius:17px;
+  background:linear-gradient(180deg,#ffb83a,#f6a11a);
+  color:#160e03;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .15s,opacity .2s;
+}
+.room7LandingField button:active:not(:disabled){transform:scale(.97)}
+.room7LandingField button:disabled{opacity:.45;cursor:default}
+.room7LandingSteps{
+  list-style:none;
+  margin:0;
+  padding:0;
+  width:min(900px,100%);
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  text-align:left;
+}
+.room7LandingSteps li{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding:16px;
+  border-radius:18px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--r7-border);
+}
+.room7LandingSteps b{
+  flex:0 0 auto;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--r7-amber-soft);
+  color:var(--r7-amber);
+  font-size:.85rem;
+}
+.room7LandingSteps span{display:grid;gap:3px;font-size:.88rem;color:var(--r7-muted);line-height:1.4}
+.room7LandingSteps strong{color:var(--r7-text);font-size:.95rem}
+@media(max-width:640px){
+  .room7Landing{gap:26px;padding-top:24px}
+  .room7LandingSteps{grid-template-columns:1fr}
+  .room7LandingField button{padding:0 20px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .room7LandingHero{animation:room7LandIn .5s ease-out backwards}
+  .room7LandingSteps{animation:room7LandIn .5s .12s ease-out backwards}
+}
+@keyframes room7LandIn{from{opacity:0;transform:translateY(10px)}}
