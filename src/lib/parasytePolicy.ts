@@ -35,6 +35,59 @@ export type ParasytePolicyOptions = {
   allowHttp?: boolean
 }
 
+/**
+ * First-party RideArrivo sites that always render inside the PArAsYtE frame,
+ * so nobody has to remember to set VITE_PARASYTE_EMBED_ORIGINS for them.
+ * Exact origins only, plus one wildcard for the website's Cloudflare preview
+ * hosts (https://<branch>.arrivo-website.pages.dev), which are created only by
+ * our own Cloudflare account. The sites must also allow this app in their own
+ * frame-ancestors header (see arrivo-website/_headers); this list never
+ * overrides what a site permits, it only stops the intranet refusing first.
+ * None of these is the intranet's own origin, so allow-same-origin for them
+ * cannot reach back into this app.
+ */
+export const DEFAULT_EMBED_ORIGINS: readonly string[] = [
+  'https://ridearrivo.com',
+  'https://www.ridearrivo.com',
+  'https://*.arrivo-website.pages.dev'
+]
+
+/**
+ * True when `origin` is in `set` exactly, or matches a "https://*.example.com"
+ * entry. A wildcard matches subdomains of example.com only (one or more
+ * labels), never example.com itself, and never over plain HTTP.
+ */
+export function originInSet(set: ReadonlySet<string> | undefined, origin: string): boolean {
+  if (!set || !origin) {
+    return false
+  }
+  if (set.has(origin)) {
+    return true
+  }
+  let host = ''
+  let secure = false
+  try {
+    const u = new URL(origin)
+    host = u.hostname.toLowerCase()
+    secure = u.protocol === 'https:' && !u.port
+  } catch {
+    return false
+  }
+  if (!secure) {
+    return false
+  }
+  for (const entry of set) {
+    if (!entry.startsWith('https://*.')) {
+      continue
+    }
+    const suffix = entry.slice('https://*.'.length).toLowerCase()
+    if (suffix && host.length > suffix.length + 1 && host.endsWith('.' + suffix)) {
+      return true
+    }
+  }
+  return false
+}
+
 export function safeWebUrl(value: string): URL | null {
   try {
     const url = new URL(value)
@@ -247,7 +300,7 @@ export function classifyParasyteTarget(
     }
   }
 
-  if (options.embedOrigins.has(url.origin)) {
+  if (originInSet(options.embedOrigins, url.origin)) {
     return {
       kind: 'embed',
       value: url.toString(),
@@ -255,7 +308,7 @@ export function classifyParasyteTarget(
       origin: url.origin,
       secure,
       reason: 'This origin is explicitly approved for embedded use.',
-      allowSameOrigin: Boolean(options.storageTrustedOrigins?.has(url.origin))
+      allowSameOrigin: originInSet(options.storageTrustedOrigins, url.origin)
     }
   }
 
@@ -278,6 +331,10 @@ function parseOriginList(value: string | undefined): Set<string> {
     if (!trimmed) {
       continue
     }
+    if (/^https:\/\/\*\.[a-z0-9.-]+$/i.test(trimmed)) {
+      origins.add(trimmed.toLowerCase())
+      continue
+    }
     const parsed = safeWebUrl(trimmed)
     if (parsed) {
       origins.add(parsed.origin)
@@ -292,6 +349,7 @@ export function parseEmbedOrigins(
   currentOrigin?: string
 ): ReadonlySet<string> {
   const origins = parseOriginList(value)
+  DEFAULT_EMBED_ORIGINS.forEach(origin => origins.add(origin))
 
   if (currentOrigin) {
     const current = safeWebUrl(currentOrigin)
@@ -310,5 +368,7 @@ export function parseEmbedOrigins(
  * has no effect - it can only ever loosen an origin that is already embeddable.
  */
 export function parseStorageTrustedOrigins(value: string | undefined): ReadonlySet<string> {
-  return parseOriginList(value)
+  const origins = parseOriginList(value)
+  DEFAULT_EMBED_ORIGINS.forEach(origin => origins.add(origin))
+  return origins
 }

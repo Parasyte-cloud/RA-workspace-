@@ -7,6 +7,7 @@ import {
   isPrivateNetworkHost,
   parseEmbedOrigins,
   parseStorageTrustedOrigins,
+  originInSet,
   resolveParasyteInput,
   safeWebUrl
 } from '../src/lib/parasytePolicy.ts'
@@ -182,4 +183,42 @@ test('allowSameOrigin is only ever granted for embed origins explicitly marked s
   })
   assert.equal(notEmbedded.kind, 'external')
   assert.equal(notEmbedded.allowSameOrigin, false)
+})
+
+test('first-party RideArrivo sites embed by default, with storage', () => {
+  const embedOrigins = parseEmbedOrigins('', 'https://intranet.ridearrivo.com')
+  const storageTrustedOrigins = parseStorageTrustedOrigins('')
+  for (const url of [
+    'https://ridearrivo.com/',
+    'https://www.ridearrivo.com/book.html',
+    'https://feat-final-home-composite-20.arrivo-website.pages.dev/'
+  ]) {
+    const policy = classifyParasyteTarget(url, { embedOrigins, storageTrustedOrigins })
+    assert.equal(policy.kind, 'embed', url)
+    assert.equal(policy.allowSameOrigin, true, url)
+  }
+})
+
+test('default first-party list does not widen to look-alikes or other subdomains', () => {
+  const embedOrigins = parseEmbedOrigins('', 'https://intranet.ridearrivo.com')
+  for (const url of [
+    'https://evil.ridearrivo.com/',
+    'https://ridearrivo.com.evil.com/',
+    'https://arrivo-website.pages.dev/',
+    'https://evilarrivo-website.pages.dev/',
+    'https://x.arrivo-website.pages.dev.evil.com/',
+    'http://www.ridearrivo.com/'
+  ]) {
+    assert.notEqual(classifyParasyteTarget(url, { embedOrigins }).kind, 'embed', url)
+  }
+})
+
+test('wildcard entries match subdomains only, over HTTPS only', () => {
+  const set = new Set(['https://*.example.com'])
+  assert.equal(originInSet(set, 'https://a.example.com'), true)
+  assert.equal(originInSet(set, 'https://a.b.example.com'), true)
+  assert.equal(originInSet(set, 'https://example.com'), false)
+  assert.equal(originInSet(set, 'http://a.example.com'), false)
+  assert.equal(originInSet(set, 'https://a.example.com:8443'), false)
+  assert.equal(originInSet(set, 'https://notexample.com'), false)
 })
