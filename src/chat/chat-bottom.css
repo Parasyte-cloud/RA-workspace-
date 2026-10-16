@@ -1,0 +1,62 @@
+/* Keep the newest message above the floating message box and the typing line. */
+.cmThread .cmMessages{
+  padding-bottom:var(--cm-overlay,108px) !important;
+  scroll-padding-bottom:var(--cm-overlay,108px);
+}
+
+/* The typing line floats just above the message box, as a small pill. */
+.cmThread .cmTyping{
+  position:absolute;
+  left:max(16px,env(safe-area-inset-left,0px));
+  right:auto;
+  bottom:calc(var(--cm-composer-gap,72px) + 6px);
+  z-index:23;
+  max-width:calc(100% - 32px);
+  padding:5px 12px;
+  border-radius:999px;
+  background:var(--cm-side,rgba(255,255,255,.94));
+  box-shadow:0 4px 14px rgba(8,30,57,.12);
+  font-style:normal;
+  pointer-events:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+html[data-ra-theme='dark'] .cmThread .cmTyping{background:rgba(18,40,66,.94);color:#dbe5f1}
+
+/* ---------- forward dialog ---------- */
+html.cm-fwd-lock{overflow:hidden}
+.cmFwd{box-sizing:border-box;width:min(460px,calc(100vw - 24px));max-height:min(640px,calc(100vh - 32px));padding:0;border:0;border-radius:20px;background:var(--cm-surface,#fff);color:var(--cm-ink,#101828);box-shadow:0 30px 80px rgba(8,8,40,.45);overflow:hidden}
+.cmFwd[open]{display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto auto}
+.cmFwd::backdrop{background:rgba(10,10,40,.55);backdrop-filter:blur(3px)}
+.cmFwd header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
+.cmFwd h3{margin:0;display:flex;align-items:center;gap:8px;font-size:17px;color:inherit}
+.cmFwd header button{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(127,127,127,.15);color:inherit;cursor:pointer}
+.cmFwdPreview{margin:4px 18px 10px;padding:8px 12px;border-left:3px solid #f6a11a;background:rgba(127,127,127,.1);border-radius:0 10px 10px 0;display:grid;gap:2px;min-width:0}
+.cmFwdPreview strong{font-size:12px;color:inherit}
+.cmFwdPreview span{font-size:13.5px;opacity:.85;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.cmFwdSearch{margin:0 18px 8px;display:flex;align-items:center;gap:8px;padding:0 12px;min-height:42px;border-radius:999px;border:1px solid rgba(127,127,127,.35)}
+.cmFwdSearch input{flex:1;min-width:0;border:0;background:transparent;color:inherit;font:inherit;font-size:16px;outline:none}
+.cmFwdList{list-style:none;margin:0;padding:0 10px;overflow-y:auto;min-height:120px;overscroll-behavior:contain}
+.cmFwdList button{width:100%;display:flex;align-items:center;gap:12px;padding:8px;border:0;border-radius:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmFwdList button:hover{background:rgba(127,127,127,.12)}
+.cmFwdList button.on{background:rgba(246,161,26,.16)}
+.cmFwdList button:disabled{opacity:.45;cursor:default}
+.cmFwdMark{flex:0 0 auto;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:rgba(127,127,127,.2);font-weight:800}
+.cmFwdCopy{flex:1;min-width:0;display:grid}
+.cmFwdCopy strong{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmFwdCopy small{font-size:12px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmFwdTick{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;border:1.5px solid rgba(127,127,127,.5)}
+.cmFwdList button.on .cmFwdTick{background:#f6a11a;border-color:#f6a11a;color:#160e03}
+.cmFwdEmpty{padding:18px;text-align:center;opacity:.7;font-size:14px}
+.cmFwdNote{margin:10px 18px 0;min-height:42px;padding:0 14px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;font-size:16px;outline:none}
+.cmFwdNote:focus,.cmFwdSearch:focus-within{border-color:#f6a11a}
+.cmFwd footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px))}
+.cmFwd footer small{opacity:.7;font-size:12.5px}
+.cmFwdSend{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:999px;background:#f6a11a;color:#160e03;font:inherit;font-weight:800;cursor:pointer}
+.cmFwdSend:disabled{opacity:.5;cursor:default}
+@media (max-width:640px){
+  .cmFwd[open]{width:100%;max-width:none;margin:auto 0 0;border-radius:22px 22px 0 0;max-height:88vh}
+}
+
+.cmForwarded{display:inline-flex;align-items:center;gap:5px;margin-bottom:4px;font-size:12px;font-style:italic;opacity:.75}
