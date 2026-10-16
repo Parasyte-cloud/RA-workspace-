@@ -1095,53 +1095,88 @@ export default function ExternalRoom7App() {
       )}
 
       {!loading && !locator && (
-        <section className="room7PublicErrorCard room7PublicEntry">
-          <span className="room7PublicEyebrow">
-            RIDEARRIVO ROOM 7
-          </span>
+        <section className="room7Landing">
+          <div className="room7LandingHero">
+            <span className="room7PublicEyebrow">
+              RIDEARRIVO ROOM 7
+            </span>
 
-          <h1>
-            Join a ROOM 7 event
-          </h1>
+            <h1>
+              Your event,<br />one tap away.
+            </h1>
 
-          <p>
-            Enter the event code or paste the link from your invitation.
-          </p>
-
-          <form
-            className="room7PublicEntryForm"
-            onSubmit={event => void openEntry(event)}
-          >
-            <input
-              value={entryValue}
-              onChange={event => setEntryValue(event.target.value)}
-              placeholder="Event code or link, e.g. 4YXZTE4K"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              aria-label="ROOM 7 event code or link"
-            />
-
-            <button
-              type="submit"
-              disabled={entryBusy || !entryValue.trim()}
-            >
-              {entryBusy ? 'Checking...' : 'Continue'}
-            </button>
-          </form>
-
-          {entryError && (
-            <p className="room7PublicEntryError" role="alert">
-              {entryError}
+            <p>
+              Join live meetings and events from any phone or laptop.
+              No app to download and no account to create.
             </p>
-          )}
 
-          <a
-            className="room7PublicEntryStaff"
-            href="https://intranet.ridearrivo.com/?section=room"
-          >
-            RideArrivo staff? Open ROOM 7 in the workspace
-          </a>
+            <form
+              className="room7LandingForm"
+              onSubmit={event => void openEntry(event)}
+            >
+              <label htmlFor="room7-entry-code">
+                Event code or invitation link
+              </label>
+
+              <div className="room7LandingField">
+                <input
+                  id="room7-entry-code"
+                  value={entryValue}
+                  onChange={event => setEntryValue(event.target.value)}
+                  placeholder="e.g. 4YXZTE4K"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  inputMode="text"
+                  enterKeyHint="go"
+                />
+
+                <button
+                  type="submit"
+                  disabled={entryBusy || !entryValue.trim()}
+                >
+                  {entryBusy ? 'Checking...' : 'Join'}
+                </button>
+              </div>
+
+              {entryError && (
+                <p className="room7PublicEntryError" role="alert">
+                  {entryError}
+                </p>
+              )}
+            </form>
+
+            <a
+              className="room7PublicEntryStaff"
+              href="https://intranet.ridearrivo.com/?section=room"
+            >
+              RideArrivo staff? Open ROOM 7 in the workspace
+            </a>
+          </div>
+
+          <ol className="room7LandingSteps" aria-label="How it works">
+            <li>
+              <b>1</b>
+              <span>
+                <strong>Enter your code</strong>
+                It is in your invitation email or message.
+              </span>
+            </li>
+            <li>
+              <b>2</b>
+              <span>
+                <strong>Add your name</strong>
+                Check your camera and microphone before you go in.
+              </span>
+            </li>
+            <li>
+              <b>3</b>
+              <span>
+                <strong>Join the room</strong>
+                Chat, ask questions and view shared documents.
+              </span>
+            </li>
+          </ol>
         </section>
       )}
 
