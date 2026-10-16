@@ -412,8 +412,9 @@ const workspaceFromHistory=(value:unknown):Workspace|null=>{
 }
 
 const initialSection=():Section=>{
-  const requested=
-    new URLSearchParams(window.location.search).get('section')
+  const query=new URLSearchParams(window.location.search)
+  // Zoho sends people back here with ?mail=connected or ?mail=error.
+  const requested=query.get('section') || (query.has('mail') ? 'mail' : null)
   let candidate:unknown=requested
   if(!isSection(candidate)){
     try{

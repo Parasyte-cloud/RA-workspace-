@@ -58,6 +58,20 @@ type MailFolderKey =
   | 'trash'
   | 'archive'
 
+// Zoho sends times as milliseconds since 1970 in a text field.
+function mailTime(value?:string){
+  if(!value) return ''
+  const text=String(value).trim()
+  const stamp=/^\d{10,13}$/.test(text) ? Number(text.length===10 ? text+'000' : text) : Date.parse(text)
+  if(Number.isNaN(stamp)) return text
+  const date=new Date(stamp)
+  const now=new Date()
+  const sameDay=date.toDateString()===now.toDateString()
+  return sameDay
+    ? date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+    : date.toLocaleDateString([], {day:'numeric',month:'short',year:date.getFullYear()===now.getFullYear()?undefined:'numeric'})
+}
+
 export function MailModule(){
   const [connected,setConnected]=
     useState<boolean|null>(null)
@@ -90,6 +104,7 @@ export function MailModule(){
     useState<{mailboxId:string;email:string|null;displayName:string|null;isDefault:boolean;permissions?:{send?:boolean}}[]>([])
   const [mailboxId,setMailboxId]=useState('')
   const mailboxRef=useRef('')
+  const flashRef=useRef('')
 
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
@@ -138,6 +153,12 @@ export function MailModule(){
       let errorMessage=
         error.message ||
         'Mail service request failed.'
+
+      // A request that never reached the function (not deployed, blocked or timed out).
+      if(/failed to send a request/i.test(errorMessage)){
+        errorMessage=
+          `The mail service (${name}) did not respond. Try Refresh. If it keeps happening, the function needs redeploying.`
+      }
 
       try{
         const context=(error as any).context
@@ -454,7 +475,9 @@ export function MailModule(){
 
   const loadInbox=async()=>{
     setLoading(true)
-    setMessage('')
+    // Keep the "mailbox connected" notice through the first load after Zoho sends you back.
+    setMessage(flashRef.current)
+    flashRef.current=''
 
     try{
       const data=
@@ -687,6 +710,20 @@ export function MailModule(){
   }
 
   useEffect(()=>{
+    const query=new URLSearchParams(window.location.search)
+    const result=query.get('mail')
+    if(result){
+      const reason=query.get('reason')||''
+      flashRef.current=
+        result==='connected'
+          ? 'Mailbox connected. It now appears in the Mailbox menu.'
+          : `Zoho did not connect the mailbox (${reason.replace(/_/g,' ')||'unknown reason'}). Try again.`
+      setMessage(flashRef.current)
+      const url=new URL(window.location.href)
+      url.searchParams.delete('mail')
+      url.searchParams.delete('reason')
+      window.history.replaceState(window.history.state,'',`${url.pathname}${url.search}${url.hash}`)
+    }
     void checkConnection()
   },[])
 
@@ -726,7 +763,7 @@ export function MailModule(){
           </div>
         </div>
 
-        <MailboxAdmin/>
+        <MailboxAdmin onConnect={()=>void connect()} connecting={loading}/>
 
         <div className="mailConnect glassCard">
           <Mail size={34}/>
@@ -836,7 +873,7 @@ export function MailModule(){
         </div>
       </div>
 
-      <MailboxAdmin/>
+      <MailboxAdmin onConnect={()=>void connect()} connecting={loading}/>
 
       {mailboxes.length>1 &&
         <div className="mailboxSwitch" role="group" aria-label="Choose mailbox">
@@ -1128,9 +1165,8 @@ export function MailModule(){
                   </div>
 
                   <span className="mailMessageTime">
-                    {item.receivedTime ||
-                     item.sentDateInGMT ||
-                     ''}
+                    {mailTime(item.receivedTime ||
+                     item.sentDateInGMT)}
                   </span>
 
                 </button>

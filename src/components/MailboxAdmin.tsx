@@ -7,7 +7,7 @@ type Grant = { mailbox_id: string; employee_id: string; can_read: boolean; can_s
 type Overview = { is_admin: boolean; max_per_person?: number; mailboxes?: Box[]; employees?: Person[]; grants?: Grant[] }
 
 // Admins only. Who can open which company mailbox. Hidden from everyone else.
-export function MailboxAdmin() {
+export function MailboxAdmin({ onConnect, connecting }: { onConnect?: () => void; connecting?: boolean } = {}) {
   const [data, setData] = useState<Overview | null>(null)
   const [open, setOpen] = useState(false)
   const [boxId, setBoxId] = useState('')
@@ -65,9 +65,23 @@ export function MailboxAdmin() {
 
   return (
     <div className="mailboxAdmin glassCard">
-      <button type="button" className="glassButton" aria-expanded={open} onClick={() => setOpen(value => !value)}>
-        {open ? 'Hide mailbox access' : 'Manage mailbox access'}
-      </button>
+      <div className="mailboxAdminBar">
+        <button type="button" className="glassButton" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+          {open ? 'Hide mailbox access' : 'Manage mailbox access'}
+        </button>
+        {onConnect && (
+          <button type="button" className="glassButton" disabled={connecting} onClick={onConnect}>
+            Connect another mailbox
+          </button>
+        )}
+      </div>
+      {onConnect && open && (
+        <p className="mailboxAdminHelp">
+          To add info@, admin@ or any other mailbox: first sign out of Zoho in this browser (open accounts.zoho.com and
+          choose Sign out). Then press "Connect another mailbox", sign in to Zoho as that mailbox and approve. It appears
+          in the Mailbox menu. Then use the table below to choose who else can open it.
+        </p>
+      )}
       {open && (
         <div className="mailboxAdminBody">
           {boxes.length === 0 ? (
