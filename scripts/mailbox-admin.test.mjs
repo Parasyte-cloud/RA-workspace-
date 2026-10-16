@@ -53,3 +53,9 @@ test('mail loads older pages: functions take a start and say if there is more, t
   assert.match(ui, /Load older messages/)
   assert.match(ui, /start:messages\.length\+1/)
 })
+
+test('on a computer the mail screen is sized to the window so only the list scrolls', () => {
+  const css = read('src/app-feel.css')
+  assert.match(css, /\.mailModule\.responsiveModule \{[^}]*height: calc\(100dvh - 176px\)/)
+  assert.match(css, /\.mailListScroller \{[^}]*overflow-y: auto/)
+})
