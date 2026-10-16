@@ -7,6 +7,7 @@ import {
   useState
 } from 'react'
 import { useHoldIdleSignOut } from '../lib/useIdleSignOut'
+import { useWakeLock } from '../lib/useWakeLock'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useRetiredClients } from '../room7-shared/useRetiredClients'
@@ -16,6 +17,7 @@ import {
   Link2,
   LoaderCircle,
   Maximize2,
+  MessageSquare,
   Minimize2,
   NotebookPen,
   PhoneOff,
@@ -40,6 +42,9 @@ import {
 } from '../room7-shared/Room7PeoplePanel'
 import type { Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 import type { RoomLeaveReason } from './RoomModule'
+import RoomChat from '../room7-shared/RoomChat'
+import { useRoomChat } from '../room7-shared/useRoomChat'
+import '../room7-shared/room7-chat.css'
 
 type RoomStatus='active'|'ended'
 
@@ -108,6 +113,7 @@ export default function RoomMeeting({
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   useHoldIdleSignOut(Boolean(meeting))
+  useWakeLock(Boolean(meeting))
   const {retire,isRetired}=useRetiredClients()
   const meetingRef=useRef(meeting)
   meetingRef.current=meeting
@@ -118,6 +124,7 @@ export default function RoomMeeting({
   const [rejoinAttempt,setRejoinAttempt]=useState(0)
   const [frameStyle,setFrameStyle]=useState<CSSProperties>({})
   const [peopleOpen,setPeopleOpen]=useState(false)
+  const [teamChatOpen,setTeamChatOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
   const [elapsed,setElapsed]=useState(0)
   useEffect(()=>{
@@ -141,6 +148,11 @@ export default function RoomMeeting({
   // reconnect loop and against treating our own stale-peer kick as a
   // real removal.
   const rejoinInFlightRef=useRef(false)
+  // The "did the new connection come up" watchdog, so it can be cancelled.
+  const joinWatchRef=useRef(0)
+  useEffect(()=>()=>{
+    if(joinWatchRef.current)window.clearTimeout(joinWatchRef.current)
+  },[])
 
   // A different room is a fresh join: show the setup screen again.
   useEffect(()=>{
@@ -216,7 +228,9 @@ export default function RoomMeeting({
         // cleared when that meeting reports roomJoined. If it never does,
         // stop waiting and offer a manual retry.
         if(ok){
-          window.setTimeout(()=>{
+          if(joinWatchRef.current)window.clearTimeout(joinWatchRef.current)
+          joinWatchRef.current=window.setTimeout(()=>{
+            joinWatchRef.current=0
             if(rejoinInFlightRef.current){
               rejoinInFlightRef.current=false
               setConnection('lost')
@@ -251,6 +265,7 @@ export default function RoomMeeting({
 
     const handleJoined=()=>{
       if(isRetired(meeting))return
+      if(joinWatchRef.current){window.clearTimeout(joinWatchRef.current);joinWatchRef.current=0}
       rejoinInFlightRef.current=false
       setConnection('connected')
       setRejoinAttempt(0)
@@ -306,6 +321,40 @@ export default function RoomMeeting({
     }
   },[meeting,reconnect,session.role,isRetired])
 
+  // When the network or the app comes back after the connection was given up
+  // on, try again by itself instead of waiting for a tap.
+  const connectionRef=useRef(connection)
+  connectionRef.current=connection
+  useEffect(()=>{
+    const again=()=>{
+      if(document.visibilityState==='hidden')return
+      if(connectionRef.current==='lost'&&!rejoinInFlightRef.current){
+        setConnection('connected')
+        window.setTimeout(()=>void reconnect(),0)
+      }
+    }
+    window.addEventListener('online',again)
+    document.addEventListener('visibilitychange',again)
+    return()=>{
+      window.removeEventListener('online',again)
+      document.removeEventListener('visibilitychange',again)
+    }
+  },[reconnect])
+
+  // Closing the tab or the installed app leaves the meeting properly, so the
+  // person does not stay in the room as a ghost for minutes.
+  useEffect(()=>{
+    if(!meeting)return
+    // A page that may come back from the back/forward cache (persisted) is
+    // only paused, not closed, so it keeps its place in the meeting.
+    const leaveNow=(event:PageTransitionEvent)=>{
+      if(event.persisted)return
+      void meeting.leave().catch(()=>undefined)
+    }
+    window.addEventListener('pagehide',leaveNow)
+    return()=>window.removeEventListener('pagehide',leaveNow)
+  },[meeting])
+
   const scheduleLeave=useCallback(()=>{
     void meeting?.leave().catch(()=>{})
     onLeftRef.current('schedule')
@@ -319,6 +368,11 @@ export default function RoomMeeting({
     onExtend:session.role==='host'?onExtend:undefined,
     onScheduleLeave:scheduleLeave
   })
+
+  // The saved team chat of this meeting (not for one-to-one calls). It is
+  // kept after the meeting ends, unlike RealtimeKit's own chat.
+  const myUserId=String(meeting?.self?.customParticipantId||'')
+  const teamChat=useRoomChat(chatCall||!myUserId?'':session.room.id,myUserId,teamChatOpen&&!minimized)
 
   // Creator or administrator (decided by the server on join).
   const canModerate=Boolean(moderation)&&(session.can_moderate??session.role==='host')
@@ -423,6 +477,15 @@ export default function RoomMeeting({
               leaveOnUnmount={false}
             />
             <Room7ExtrasOverlay extras={extras}/>
+            {!chatCall&&teamChatOpen&&!minimized&&myUserId&&
+              <aside className="rcDrawer" aria-label="Team chat">
+                <header>
+                  <strong>Team chat</strong>
+                  <button type="button" aria-label="Close team chat" onClick={()=>setTeamChatOpen(false)}>×</button>
+                </header>
+                <RoomChat chat={teamChat} myId={myUserId} canModerate={canModerate}/>
+              </aside>
+            }
             {canModerate&&moderation&&peopleOpen&&!minimized&&
               <Room7PeoplePanel
                 meeting={meeting}
@@ -508,7 +571,12 @@ export default function RoomMeeting({
         <div className="roomCallActions responsiveActionBar">
           {!chatCall&&<Room7ExtrasControls extras={extras} compact={minimized}/>}
           {canModerate&&!minimized&&!chatCall&&
-            <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>setPeopleOpen(open=>!open)}/>
+            <Room7PeopleButton open={peopleOpen} count={joinedCount} onToggle={()=>{setPeopleOpen(open=>!open);setTeamChatOpen(false)}}/>
+          }
+          {!chatCall&&!minimized&&myUserId&&
+            <button type="button" className="glassButton roomSecondaryCallAction" aria-pressed={teamChatOpen} onClick={()=>{setTeamChatOpen(open=>!open);setPeopleOpen(false)}} title="Saved chat for this meeting. It stays after the meeting ends.">
+              <MessageSquare size={16}/>Team chat{teamChat.unread>0&&!teamChatOpen?` (${teamChat.unread>9?'9+':teamChat.unread})`:''}
+            </button>
           }
           {!chatCall&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={()=>void copyLink('staff')} title="Link for RideArrivo staff (intranet sign-in)">
             <Link2 size={16}/>{copied==='staff'?'Copied':'Staff link'}

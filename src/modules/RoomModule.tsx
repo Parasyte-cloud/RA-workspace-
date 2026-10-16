@@ -15,6 +15,7 @@ import {
   History,
   LoaderCircle,
   LogIn,
+  MessageSquare,
   NotebookPen,
   Plus,
   RefreshCw,
@@ -44,6 +45,7 @@ import {
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventControlCenter from './Room7EventControlCenter'
 import GuestAdmissionPanel from './GuestAdmissionPanel'
+import RoomHub from './RoomHub'
 import '../room.css'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
@@ -147,6 +149,7 @@ export default function RoomModule({
   const [created,setCreated]=useState<{code:string,title:string}|null>(null)
   const [audioOnly,setAudioOnly]=useState(false)
   const [guestInvite,setGuestInvite]=useState<GuestReady|null>(null)
+  const [hub,setHub]=useState<{room:RoomRecord;tab:'chat'|'notes'}|null>(null)
   const [guestBusy,setGuestBusy]=useState('')
   const [guestError,setGuestError]=useState('')
   const [copied,setCopied]=useState('')
@@ -790,6 +793,9 @@ export default function RoomModule({
                     <X size={15}/>{endingId===room.id?'Ending...':'End'}
                   </button>
                 }
+                <button type="button" className="secondaryButton" title="Saved chat for this meeting" onClick={()=>setHub({room,tab:'chat'})}>
+                  <MessageSquare size={15}/>Chat
+                </button>
                 <button
                   type="button"
                   className="primaryButton"
@@ -933,6 +939,8 @@ export default function RoomModule({
         </div>
       )}
 
+      {hub&&myId&&<RoomHub room={hub.room} myId={myId} canModerate={hub.room.created_by===myId} initialTab={hub.tab} onClose={()=>setHub(null)}/>}
+
       <div className="roomSectionHeading compact">
         <div>
           <span className="eyebrow"><History size={14}/>RECENT</span>
@@ -943,12 +951,16 @@ export default function RoomModule({
       {recentRooms.length===0
         ?<div className="roomRecentEmpty">Ended ROOM 7 meetings will appear here.</div>
         :<div className="roomRecentGrid">
-          {recentRooms.slice(0,8).map(room=>
+          {recentRooms.slice(0,12).map(room=>
             <article key={room.id} className="roomRecentCard">
               <Video size={17}/>
               <div>
                 <strong>{room.title}</strong>
                 <small>{room.room_code} · {room.ended_at?formatWhen(room.ended_at):formatWhen(room.updated_at)}</small>
+              </div>
+              <div className="roomRecentActions">
+                <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'chat'})}><MessageSquare size={14}/>Chat</button>
+                <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'notes'})}><NotebookPen size={14}/>Notes</button>
               </div>
             </article>
           )}

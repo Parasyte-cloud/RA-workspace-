@@ -346,3 +346,8 @@ html[data-ra-theme='dark'] .roomGuestRow code{background:rgba(255,255,255,.07)}
     height: min(38dvh, 280px);
   }
 }
+
+/* ROOM 7 history: chat and notes buttons on each past meeting. */
+.roomRecentCard{flex-wrap:wrap}
+.roomRecentActions{display:flex;gap:6px;margin-left:auto}
+.roomRecentActions .secondaryButton{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:0 10px;font-size:12px}

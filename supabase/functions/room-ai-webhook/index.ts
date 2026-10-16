@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
+import { matchOwner, parseMeetingNotes } from "../_shared/roomNotes.ts"
 
 const PUBLIC_KEY_URL =
   "https://api.realtime.cloudflare.com/.well-known/webhooks.json"
@@ -592,7 +593,7 @@ serve(async req => {
       const participantCount =
         Number(employeeCount || 0) + Number(guestCount || 0)
 
-      const { error } = await admin
+      const { data: minuteRow, error } = await admin
         .from("workspace_room_minutes")
         .upsert({
           room_id: room.id,
@@ -602,8 +603,66 @@ serve(async req => {
           summary_received_at: new Date().toISOString(),
           participant_count: participantCount,
         }, { onConflict: "room_id,session_id" })
+        .select("id")
+        .single()
 
       if (error) throw error
+
+      // Pull the action items out of the summary so people can tick them off.
+      // Best effort: a parsing problem must never lose the summary itself. The
+      // first delivery wins, so a repeated webhook cannot undo ticked items.
+      try {
+        const minutesId = (minuteRow as { id?: string } | null)?.id
+        if (minutesId) {
+          const { count: existingItems } = await admin
+            .from("workspace_room_action_items")
+            .select("id", { count: "exact", head: true })
+            .eq("minutes_id", minutesId)
+          if (!existingItems) {
+            const notes = parseMeetingNotes(summary)
+            if (notes.actions.length) {
+              const { data: attendees } = await admin
+                .from("workspace_room_attendance")
+                .select("user_id,display_name")
+                .eq("room_id", room.id)
+                .eq("session_id", sessionId)
+              const rows = notes.actions.map((item, index) => ({
+                minutes_id: minutesId,
+                room_id: room.id,
+                position: index,
+                body: item.body,
+                owner_name: item.owner,
+                owner_id: matchOwner(item.owner, attendees || []),
+                due_text: item.due,
+              }))
+              const { error: itemsError } = await admin
+                .from("workspace_room_action_items")
+                .insert(rows)
+              if (itemsError) {
+                console.warn("ROOM 7 action items skipped:", itemsError.message)
+              } else {
+                // Tell each person about the action items that are theirs.
+                const mine = rows.filter(row => row.owner_id)
+                if (mine.length) {
+                  const { error: noticeError } = await admin.from("notifications").insert(
+                    mine.map(row => ({
+                      user_id: row.owner_id,
+                      type: "room_action_item",
+                      title: `Action item from ${text(room.title, 100)}`,
+                      body: `${row.body}${row.due_text ? ` (due ${row.due_text})` : ""}`.slice(0, 500),
+                      entity_type: "workspace_room",
+                      entity_id: room.id,
+                    })),
+                  )
+                  if (noticeError) console.warn("ROOM 7 action notices skipped:", noticeError.message)
+                }
+              }
+            }
+          }
+        }
+      } catch (itemsFailure) {
+        console.warn("ROOM 7 action item parsing skipped:", itemsFailure)
+      }
     }
 
     await finish("processed", room.id, null)

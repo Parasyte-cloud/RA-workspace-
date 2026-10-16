@@ -102,7 +102,7 @@ async function createMeeting(config: MediaConfig, title: string, aiNotesEnabled:
       ai_config: aiNotesEnabled
         ? {
             summarization: {
-              word_limit: 700,
+              word_limit: 900,
               text_format: "markdown",
               summary_type: "team_meeting",
             },
