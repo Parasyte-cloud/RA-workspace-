@@ -5,6 +5,7 @@ import {
 import {
   addRoomMember,
   removeRoomMember,
+  setMemberRemoveRight,
   setRoomMemberRole,
   type RoomRole,
 } from '../api/roomApi'
@@ -14,6 +15,7 @@ export type RoomMember = {
   name: string
   email?: string
   roomRole: RoomRole
+  canRemoveMembers?: boolean
 }
 
 export type RoomCandidate = {
@@ -27,6 +29,8 @@ type RoomMembersProps = {
   members: RoomMember[]
   candidates?: RoomCandidate[]
   canAdministerRoom: boolean
+  canRemoveMembers?: boolean
+  currentUserId?: string
   membershipManagedByDepartment?: boolean
   onChanged?: () => void
 }
@@ -36,6 +40,8 @@ export function RoomMembers({
   members,
   candidates = [],
   canAdministerRoom,
+  canRemoveMembers = false,
+  currentUserId = '',
   membershipManagedByDepartment = false,
   onChanged,
 }: RoomMembersProps) {
@@ -45,6 +51,25 @@ export function RoomMembers({
     useState('')
   const [error, setError] =
     useState('')
+  const [confirmId, setConfirmId] =
+    useState('')
+
+  async function toggleRight(member: RoomMember) {
+    setBusyKey(`right:${member.userId}`)
+    setError('')
+    try {
+      await setMemberRemoveRight({
+        conversationId,
+        employeeId: member.userId,
+        allowed: !member.canRemoveMembers,
+      })
+      onChanged?.()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to change this right.')
+    } finally {
+      setBusyKey('')
+    }
+  }
 
   const availableCandidates =
     useMemo(() => {
@@ -97,6 +122,7 @@ export function RoomMembers({
         employeeId: member.userId,
       })
 
+      setConfirmId('')
       onChanged?.()
     } catch (cause) {
       setError(
@@ -266,24 +292,42 @@ export function RoomMembers({
                   </option>
                 </select>
 
-                {!membershipManagedByDepartment && (
-                  <button
-                    type="button"
-                    disabled={
-                      changingRole ||
-                      removing
-                    }
-                    onClick={() =>
-                      void remove(member)
-                    }
-                  >
-                    {removing
-                      ? 'Removing...'
-                      : 'Remove'}
-                  </button>
+                {member.roomRole === 'member' && (
+                  <label className="cmRoomRight">
+                    <input
+                      type="checkbox"
+                      checked={member.canRemoveMembers === true}
+                      disabled={changingRole || removing || busyKey === `right:${member.userId}`}
+                      onChange={() => void toggleRight(member)}
+                    />
+                    Can remove members
+                  </label>
                 )}
               </div>
             )}
+
+            {canRemoveMembers &&
+              !membershipManagedByDepartment &&
+              member.userId !== currentUserId &&
+              (canAdministerRoom || member.roomRole === 'member') && (
+                <div className="cmRoomRemove">
+                  {confirmId === member.userId ? (
+                    <>
+                      <span>Remove {member.name} from this room?</span>
+                      <button type="button" className="danger" disabled={removing} onClick={() => void remove(member)}>
+                        {removing ? 'Removing...' : 'Yes, remove'}
+                      </button>
+                      <button type="button" disabled={removing} onClick={() => setConfirmId('')}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" disabled={removing} onClick={() => setConfirmId(member.userId)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
         )
       })}

@@ -1,0 +1,5 @@
+
+/* room member removal */
+.cmRoomRemove{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:.85rem}
+.cmRoomRemove button.danger{background:#c62828;color:#fff;border-color:#c62828}
+.cmRoomRight{display:flex;align-items:center;gap:6px;font-size:.8rem;margin-top:4px}

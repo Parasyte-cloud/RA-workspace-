@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const sql = readFileSync('supabase/migrations/20261016250000_chat_remove_members_right.sql', 'utf8')
+const ui = readFileSync('src/chat/rooms/RoomMembers.tsx', 'utf8')
+const shell = readFileSync('src/chat/ChatShell.tsx', 'utf8')
+assert.match(sql, /can_remove_members boolean not null default false/)
+assert.match(sql, /set search_path = public, pg_temp/)
+assert.match(sql, /remove right covers members only/)
+assert.match(sql, /Use Leave room/)
+assert.match(sql, /by_delegated_right/)
+assert.match(sql, /remove_chat_room_member[\s\S]*to authenticated/)
+assert.match(ui, /Yes, remove/)
+assert.match(ui, /member\.userId !== currentUserId/)
+assert.match(shell, /can_remove_room_members/)
+console.log('chat-remove-right ok')
