@@ -388,7 +388,7 @@ export function ChatShell(){
     if(openedFromAlert.current)return
     const id=new URLSearchParams(window.location.search).get('conversation')
     if(!id||!/^[0-9a-f-]{36}$/i.test(id))return
-    if(![...directs,...rooms].some(item=>item.id===id))return
+    if(!directs.some(row=>row.conversation.id===id)&&!rooms.some(room=>room.id===id))return
     openedFromAlert.current=true
     setSelectedId(id)
     setMobileThreadOpen(true)
