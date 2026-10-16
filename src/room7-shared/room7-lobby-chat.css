@@ -1,0 +1,21 @@
+.lcRoot{--lc-fg:var(--r7-text,#f5f7fa);--lc-muted:var(--r7-muted,#9eabba);--lc-surface:rgba(255,255,255,.05);--lc-line:rgba(255,255,255,.12);--lc-accent:var(--r7-amber,#f6a11a);
+  width:100%;display:grid;gap:8px;padding:12px;border-radius:18px;background:var(--lc-surface);border:1px solid var(--lc-line);color:var(--lc-fg);text-align:left}
+.lcRoot header{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--lc-accent)}
+.lcList{display:grid;align-content:start;gap:8px;max-height:220px;min-height:90px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+.lcEmpty{display:flex;align-items:center;justify-content:center;gap:6px;min-height:80px;color:var(--lc-muted);font-size:.85rem;text-align:center}
+.lcMsg{max-width:88%;justify-self:start;padding:8px 11px;border-radius:14px 14px 14px 4px;background:rgba(255,255,255,.07);border:1px solid var(--lc-line)}
+.lcMsg.mine{justify-self:end;border-radius:14px 14px 4px 14px;background:rgba(246,161,26,.16);border-color:rgba(246,161,26,.35)}
+.lcMsg.fromHost{border-color:rgba(246,161,26,.5)}
+.lcMsg.fromHost .lcMeta b{color:var(--lc-accent)}
+.lcMeta{display:flex;gap:8px;align-items:baseline;font-size:.72rem;color:var(--lc-muted)}
+.lcMeta b{color:var(--lc-fg);font-size:.78rem}
+.lcMsg p{margin:2px 0 0;font-size:.9rem;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+.lcRoot form{display:flex;gap:6px}
+.lcRoot input{flex:1;min-width:0;min-height:42px;padding:0 12px;border-radius:999px;border:1px solid var(--lc-line);background:rgba(0,0,0,.18);color:var(--lc-fg);font:inherit;font-size:16px;outline:none}
+.lcRoot input:focus{border-color:var(--lc-accent)}
+.lcRoot button{flex:0 0 auto;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--lc-accent);color:#160e03;cursor:pointer}
+.lcRoot button:disabled{opacity:.45;cursor:default}
+.lcError{font-size:.8rem;color:#fca5a5}
+.lcSpin{animation:lcSpin .8s linear infinite}
+@keyframes lcSpin{to{transform:rotate(360deg)}}
+.lcHost .lcList{max-height:160px}

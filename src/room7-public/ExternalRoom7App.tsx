@@ -2,6 +2,7 @@ import {
   FormEvent,
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -17,6 +18,14 @@ import {
   POLL_WAITING_MS,
 } from '../lib/room7Admission'
 import './room7-public.css'
+import './room7-theme-generated.css'
+import './room7-theme.css'
+import './room7-island.css'
+import './room7-top-island.css'
+import Room7TopIsland from './Room7TopIsland'
+import '../room7-shared/room7-lobby-chat.css'
+import { useRoom7Appearance } from './room7Theme'
+import Room7LobbyChat from '../room7-shared/Room7LobbyChat'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import { googleCalendarUrl, icsFile, outlookCalendarUrl } from '../lib/room7Share'
 import type { CalendarEvent } from '../lib/room7Share'
@@ -512,6 +521,7 @@ function requestKeyFor(locator: Locator | null) {
 }
 
 export default function ExternalRoom7App() {
+  const appearance = useRoom7Appearance()
   useEffect(() => {
     registerRoom7Worker()
     prefetchWhenIdle(loadExternalMeeting)
@@ -852,6 +862,17 @@ export default function ExternalRoom7App() {
   // or none at all. The event code from the link is tried as the passcode too:
   // that is how "just the code" events work, with nothing extra to type. Only
   // if every candidate is refused does the guest see the passcode box.
+  const lobbyTransport = useCallback(
+    (action: 'lobby_chat_list' | 'lobby_chat_send', text?: string) =>
+      room7Request<{ messages?: import('../room7-shared/Room7LobbyChat').LobbyMessage[] }>({
+        action,
+        ...locator,
+        request_key: requestKey,
+        ...(text ? { body: text } : {}),
+      }),
+    [locator, requestKey],
+  )
+
   const joinRequest =
     async (): Promise<{ response: JoinResponse; used: string }> => {
       const send =
@@ -1063,26 +1084,11 @@ export default function ExternalRoom7App() {
   }
 
   return (
-    <main className="room7Public responsiveModule">
+    <main className="room7Public responsiveModule" data-theme={appearance.theme}>
       <div className="room7PublicGlow room7PublicGlowOne" />
       <div className="room7PublicGlow room7PublicGlowTwo" />
 
-      <header className="room7PublicHeader">
-        <img
-          className="room7PublicLogo"
-          src="/ridearrivo-wordmark-workspace.png"
-          alt="RideArrivo"
-        />
-
-        <div className="room7PublicHeaderRight">
-          <span className="room7PublicSecure">
-            Secure guest access
-          </span>
-          <span className="room7PublicRoomMark">
-            ROOM 7
-          </span>
-        </div>
-      </header>
+      <Room7TopIsland pref={appearance.pref} theme={appearance.theme} onCycleTheme={appearance.cycle} />
 
       {loading && (
         <section className="room7PublicLoading">
@@ -1349,6 +1355,12 @@ export default function ExternalRoom7App() {
                     Cancel
                   </button>
                 </div>
+              )}
+
+              {waiting && locator && (
+                <Room7LobbyChat
+                  transport={lobbyTransport}
+                />
               )}
 
               {room.join_available &&

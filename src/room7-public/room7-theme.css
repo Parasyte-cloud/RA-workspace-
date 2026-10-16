@@ -1,0 +1,31 @@
+/* Light appearance for the guest site (landing, lobby, event page).
+   The meeting screen has its own light theme further down room7-public.css. */
+.room7Public[data-theme="light"]{
+  --r7-bg:#f4f6f9;
+  --r7-panel:rgba(255,255,255,.78);
+  --r7-panel-strong:rgba(255,255,255,.95);
+  --r7-border:rgba(15,23,42,.12);
+  --r7-text:#0f1b2d;
+  --r7-muted:#566478;
+  --r7-amber:#b86e00;
+  --r7-amber-soft:rgba(246,161,26,.18);
+  color-scheme:light;
+  background:
+    radial-gradient(circle at 14% 8%,rgba(80,140,200,.18),transparent 34%),
+    radial-gradient(circle at 88% 15%,rgba(246,161,26,.16),transparent 28%),
+    linear-gradient(145deg,#f8fafc 0%,#eef2f7 55%,#e8edf4 100%);
+}
+.room7Public[data-theme="light"] .room7PublicGlow{opacity:.35}
+.room7Public[data-theme="light"] .room7PublicHeader{border-bottom-color:rgba(15,23,42,.1)}
+.room7Public[data-theme="light"] .room7ThemeToggle{background:rgba(15,23,42,.05)}
+.room7Public[data-theme="light"] .room7LandingHero h1{background:linear-gradient(180deg,#0f1b2d 30%,#3b4b63);-webkit-background-clip:text;background-clip:text}
+.room7Public[data-theme="light"] .room7LandingField{box-shadow:0 18px 40px rgba(15,23,42,.12)}
+.room7Public[data-theme="light"] .room7LandingField input::placeholder{color:#8794a6}
+.room7Public[data-theme="light"] .room7LandingSteps li{background:rgba(255,255,255,.7)}
+.room7Public[data-theme="light"] .room7PublicEntryStaff{color:#8a5200}
+.room7Public[data-theme="light"] .lcRoot{--lc-surface:rgba(255,255,255,.8);--lc-line:rgba(15,23,42,.14);--lc-accent:#b86e00}
+.room7Public[data-theme="light"] .lcMsg{background:#fff}
+.room7Public[data-theme="light"] .lcMsg.mine{background:rgba(246,161,26,.2)}
+.room7Public[data-theme="light"] .lcRoot input{background:#fff}
+.room7Public[data-theme="light"] .lcRoot button{color:#fff}
+.room7Public[data-theme="light"] .lcError{color:#b42318}

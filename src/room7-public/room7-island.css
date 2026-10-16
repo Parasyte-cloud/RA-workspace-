@@ -1,0 +1,103 @@
+/* ROOM 7 meeting options bar: liquid glass pill with Dynamic Island behaviour.
+   The glass lives on ::before, never on the bar itself. A backdrop-filter on
+   the bar made it the containing block for position:fixed dropdowns (reaction
+   picker, Q&A) and hid them behind the video, so the bar stays filter free. */
+.room7ExperienceShell{
+  --island-spring:cubic-bezier(.34,1.45,.5,1);
+  --glass-tint:rgba(255,255,255,.10);
+  --glass-tint-2:rgba(255,255,255,.04);
+  --glass-edge:rgba(255,255,255,.28);
+  --glass-edge-2:rgba(255,255,255,.04);
+  --glass-shadow:rgba(0,0,0,.45);
+}
+.room7ExperienceShell[data-room7-theme="light"]{
+  --glass-tint:rgba(255,255,255,.72);
+  --glass-tint-2:rgba(255,255,255,.42);
+  --glass-edge:rgba(255,255,255,.95);
+  --glass-edge-2:rgba(15,23,42,.08);
+  --glass-shadow:rgba(15,23,42,.22);
+}
+
+.room7ExperienceChrome{
+  position:relative;
+  justify-self:center;
+  align-self:center;
+  width:max-content;
+  max-width:calc(100% - 20px);
+  min-height:48px;
+  gap:14px;
+  padding:5px 8px 5px 18px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  transition:padding .4s var(--island-spring),gap .4s var(--island-spring);
+}
+.room7ExperienceChrome::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(120% 140% at 20% 0%,rgba(255,255,255,.22),transparent 55%),
+    linear-gradient(135deg,var(--glass-tint),var(--glass-tint-2));
+  -webkit-backdrop-filter:blur(26px) saturate(180%);
+  backdrop-filter:blur(26px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-edge-2),
+    0 0 0 1px var(--glass-edge-2),
+    0 14px 34px var(--glass-shadow);
+}
+
+/* Buttons become round glass chips. */
+.room7ExperienceChrome .room7ExperienceConnection,
+.room7ExperienceChrome .room7GuestDocumentTrigger,
+.room7ExperienceChrome .room7ExperienceSettingsButton{
+  min-height:36px;
+  border-radius:999px;
+  border-color:transparent;
+  background:color-mix(in srgb,var(--r7x-text) 7%,transparent);
+  transition:font-size .35s var(--island-spring),padding .35s var(--island-spring),gap .35s var(--island-spring),background .2s;
+}
+.room7ExperienceChrome .room7GuestDocumentTrigger:hover,
+.room7ExperienceChrome .room7ExperienceSettingsButton:hover{
+  background:rgba(246,161,26,.18);
+}
+
+/* Small pill: icons only, no wordmark. Text collapses through font-size so the
+   chips shrink smoothly around their icons. */
+.room7ExperienceShell[data-island="compact"] .room7ExperienceChrome{
+  gap:6px;
+  padding:4px 5px;
+}
+.room7ExperienceShell[data-island="compact"] .room7ExperienceIdentity{
+  display:none;
+}
+.room7ExperienceShell[data-island="compact"] .room7ExperienceChrome .room7ExperienceConnection,
+.room7ExperienceShell[data-island="compact"] .room7ExperienceChrome .room7GuestDocumentTrigger,
+.room7ExperienceShell[data-island="compact"] .room7ExperienceChrome .room7ExperienceSettingsButton{
+  font-size:0;
+  gap:0;
+  padding:0 10px;
+}
+.room7ExperienceShell[data-island="compact"] .room7ExperienceChrome .room7GuestDocumentTrigger>span{
+  font-size:8px;
+  margin-left:3px;
+}
+
+@media(max-width:480px){
+  .room7ExperienceChrome{max-width:calc(100% - 12px);padding:4px 6px}
+  .room7ExperienceControls{gap:4px}
+}
+@media(prefers-reduced-motion:reduce){
+  .room7ExperienceChrome,
+  .room7ExperienceChrome .room7ExperienceConnection,
+  .room7ExperienceChrome .room7GuestDocumentTrigger,
+  .room7ExperienceChrome .room7ExperienceSettingsButton{transition:none}
+}
+
+.room7ExperienceShell[data-room7-theme="light"] .room7ExperienceConnection.online{color:#0b7a46}
+.room7ExperienceShell[data-room7-theme="light"] .room7ExperienceConnection.reconnecting{color:#8a5200}
+.room7ExperienceShell[data-room7-theme="light"] .room7ExperienceConnection.offline{color:#b42318}

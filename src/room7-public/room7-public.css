@@ -2284,3 +2284,13 @@
   .room7LandingSteps{animation:room7LandIn .5s .12s ease-out backwards}
 }
 @keyframes room7LandIn{from{opacity:0;transform:translateY(10px)}}
+
+.room7ThemeToggle{
+  display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;
+  border-radius:999px;border:1px solid var(--r7-border);
+  background:rgba(255,255,255,.06);color:var(--r7-text);
+  font:inherit;font-size:.72rem;font-weight:700;letter-spacing:.04em;cursor:pointer;
+  transition:background .2s,transform .15s;
+}
+.room7ThemeToggle:active{transform:scale(.95)}
+@media(max-width:560px){.room7ThemeToggle span{display:none}.room7ThemeToggle{padding:0 10px}}
