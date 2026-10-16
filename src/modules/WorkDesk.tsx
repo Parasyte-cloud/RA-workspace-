@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 import {
+  Award,
   CheckCircle2,
   CircleDot,
   Clock3,
@@ -21,6 +22,7 @@ import {
 
 import { supabase } from '../lib/supabase'
 import { WorkItemDetail } from './WorkItemDetail'
+import { RibbonPermissions, WorkCelebration, WorkReactionBar, useWorkReactions } from '../components/WorkReactions'
 import { formatWorkTime, isWorkOverdue } from '../lib/workTime'
 
 
@@ -531,6 +533,13 @@ export function WorkDesk(){
     [viewItems,showFinished]
   )
 
+  const reactionIds=useMemo(
+    ()=>filtered.map(item=>item.id),
+    [filtered]
+  )
+  const rx=useWorkReactions(reactionIds)
+  const [ribbonAdmin,setRibbonAdmin]=useState(false)
+
 
   const createWork=async()=>{
     if(
@@ -776,6 +785,16 @@ export function WorkDesk(){
           </button>
         }
 
+        {rx.isAdmin&&
+          <button
+            type="button"
+            onClick={()=>setRibbonAdmin(true)}
+          >
+            <Award size={16}/>
+            Ribbon permissions
+          </button>
+        }
+
         <button
           type="button"
           className={showFinished ? 'active' : ''}
@@ -883,6 +902,12 @@ export function WorkDesk(){
                   )}
                 </div>
 
+                <WorkReactionBar
+                  itemId={item.id}
+                  status={item.status}
+                  rx={rx}
+                />
+
                 <button
                   type="button"
                   className="glassButton workDetailsButton"
@@ -944,6 +969,17 @@ export function WorkDesk(){
         </div>
       }
 
+
+      {ribbonAdmin&&
+        <RibbonPermissions onClose={()=>setRibbonAdmin(false)}/>
+      }
+
+      <WorkCelebration
+        ribbon={rx.celebration}
+        giverName={rx.celebration?rx.nameOf(rx.celebration.given_by):''}
+        task={rx.celebration?items.find(item=>item.id===rx.celebration?.work_item_id)?.title:''}
+        onClose={()=>rx.celebrate(null)}
+      />
 
       {selectedWork&&profile&&
         <WorkItemDetail
