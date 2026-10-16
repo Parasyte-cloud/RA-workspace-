@@ -1,0 +1,69 @@
+/* ROOM 7 team chat, meeting notes and the hub that holds them. */
+.rcRoot{display:flex;flex-direction:column;min-height:0;height:100%;color:inherit}
+.rcList{flex:1;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain}
+.rcState{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;text-align:center;padding:18px 14px;opacity:.8;font-size:13px}
+.rcDay{align-self:center;margin:8px auto 4px;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(127,127,127,.18);text-align:center;width:fit-content}
+.rcMsg{position:relative;max-width:86%;width:fit-content;display:flex;flex-direction:column;gap:2px;padding:7px 11px;border-radius:16px 16px 16px 5px;background:rgba(127,127,127,.18);font-size:14px;line-height:1.35}
+.rcMsg.mine{margin-left:auto;border-radius:16px 16px 5px 16px;background:linear-gradient(135deg,#ffb13b,#ff9900);color:#1d1100}
+.rcMsg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rcMsg a{color:inherit;text-decoration:underline}
+.rcMsg.pending{opacity:.65}.rcMsg.failed{outline:1px solid #e5484d}
+.rcWho{font-size:11px;font-weight:800;opacity:.75}
+.rcMeta{font-size:10px;opacity:.65;align-self:flex-end}
+.rcDeleted{font-style:italic;opacity:.65}
+.rcMention{font-weight:800;text-decoration:underline dotted}
+.rcQuote{display:block;padding:3px 8px;margin-bottom:3px;border-left:3px solid rgba(0,0,0,.35);border-radius:6px;background:rgba(0,0,0,.08);font-size:12px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcTools{position:absolute;top:-14px;right:8px;display:none;gap:2px;padding:2px;border-radius:999px;background:rgba(20,28,44,.95);box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.rcMsg:hover .rcTools,.rcMsg:focus-within .rcTools{display:flex}
+@media (hover:none){.rcTools{display:flex;position:static;align-self:flex-end;background:transparent;box-shadow:none;padding:0}}
+.rcTools button,.rcRetry,.rcError button,.rcReplying button{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:0;background:transparent;color:#fff;cursor:pointer;min-width:26px;min-height:26px;border-radius:999px;font:inherit;font-size:11px}
+@media (hover:none){.rcTools button{color:inherit;min-width:32px;min-height:32px}}
+.rcRetry{color:#e5484d;padding:0 4px;font-weight:700}
+.rcError{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 12px 6px;padding:6px 10px;border-radius:10px;background:rgba(229,72,77,.16);color:#ff8a8d;font-size:12px}
+.rcError button{color:inherit}
+.rcComposer{padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(127,127,127,.25)}
+.rcReplying{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;padding:5px 10px;border-radius:10px;background:rgba(127,127,127,.16);font-size:12px}
+.rcReplying span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcReplying button{color:inherit}
+.rcRow{display:flex;align-items:flex-end;gap:8px}
+.rcRow textarea{flex:1;min-width:0;max-height:120px;resize:none;border:1px solid rgba(127,127,127,.35);border-radius:18px;padding:9px 13px;background:rgba(127,127,127,.12);color:inherit;font:inherit;font-size:16px;line-height:1.3;outline:0}
+.rcRow textarea:focus{border-color:#ff9900;box-shadow:0 0 0 3px rgba(255,153,0,.2)}
+.rcSend{flex:0 0 auto;width:38px;height:38px;border:0;border-radius:999px;background:linear-gradient(135deg,#ffb13b,#ff9900);color:#1d1100;display:grid;place-items:center;cursor:pointer}
+.rcSend:disabled{opacity:.4;cursor:default}
+
+/* In-meeting drawer */
+.rcDrawer{position:absolute;top:12px;right:12px;bottom:12px;z-index:31;width:min(360px,calc(100% - 24px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(11,20,33,.97);color:#f5f7fa;box-shadow:0 18px 48px rgba(0,0,0,.5)}
+.rcDrawer>header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.rcDrawer>header button{border:0;background:rgba(255,255,255,.08);color:inherit;width:30px;height:30px;border-radius:999px;display:grid;place-items:center;cursor:pointer}
+@media (max-width:599px){.rcDrawer{inset:0;width:auto;border-radius:0}}
+
+/* Hub: chat and notes of one meeting */
+.rhOverlay{position:fixed;inset:0;z-index:2600;display:grid;place-items:center;padding:16px;background:rgba(3,10,22,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.rhCard{width:min(560px,100%);height:min(720px,100%);display:flex;flex-direction:column;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.14);background:rgba(11,20,33,.98);color:#f5f7fa;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.rhCard>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.rhCard>header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rhTabs{display:flex;gap:6px;padding:8px 12px}
+.rhTabs button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 14px;background:rgba(255,255,255,.07);color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.rhTabs button.on{background:linear-gradient(135deg,#ffb13b,#ff9900);color:#1d1100}
+.rhBody{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
+.rhBody>.rcRoot,.rhBody>.rnRoot{flex:1}
+@media (max-width:599px){.rhOverlay{padding:0}.rhCard{height:100%;border-radius:0}}
+
+/* Notes */
+.rnRoot{padding:10px 12px 18px;display:grid;gap:12px;align-content:start}
+.rnCard{display:grid;gap:10px;padding:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.rnCard>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rnCard>header small{display:block;opacity:.7}
+.rnBody h4{margin:12px 0 4px;font-size:14px;color:#ffb13b}
+.rnBody p,.rnBody li{font-size:13.5px;line-height:1.45;margin:3px 0}
+.rnBody ul{margin:2px 0 4px;padding-left:18px}
+.rnActions h4{margin:0 0 6px;display:flex;justify-content:space-between;font-size:14px;color:#ffb13b}
+.rnActions h4 span{font-size:11px;color:inherit;opacity:.8}
+.rnActions ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rnActions li{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:12px;background:rgba(255,255,255,.05);font-size:13.5px}
+.rnActions li button{flex:0 0 auto;border:0;background:transparent;color:#ffb13b;cursor:pointer;padding:0;display:grid;place-items:center;min-width:28px;min-height:28px}
+.rnActions li small{display:block;opacity:.7;font-size:11.5px}
+.rnActions li.done span{text-decoration:line-through;opacity:.6}
+
+/* Controls on the dark panels follow the panel, not the page theme. */
+.rhCard .iconButton,.rnCard .glassButton,.rnRoot .glassButton{background:rgba(255,255,255,.08)!important;color:#f5f7fa!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px}
