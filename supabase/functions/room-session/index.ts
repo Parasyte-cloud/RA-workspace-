@@ -504,9 +504,12 @@ serve(async req => {
 
       if (participantId) {
         await kickExistingPeers(config, room.cloudflare_meeting_id, participantId)
-        if (profile.role === "admin" && role !== "host") {
-          await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
-        }
+        // Always re-assert the preset the person should have NOW, so a
+        // revoked admin loses moderator controls on rejoin instead of keeping
+        // a stale provider-side preset (sweep RA-014). Fails closed: if the
+        // provider cannot apply it, the join fails rather than leaving the
+        // old privileges in place.
+        await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
         participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
       } else {
         const participant = await addParticipant(config, room.cloudflare_meeting_id, {
@@ -601,21 +604,38 @@ serve(async req => {
     if (room.created_by !== employeeId && profile.role !== "admin") {
       return json(req, { error: "Only the ROOM 7 host or an administrator can end this meeting." }, 403)
     }
-    if (room.status === "ended") return json(req, { ended: true })
+    // End is DB first, then provider (sweep RA-013). The old order closed the
+    // media provider and then failed to update the database, leaving a dead
+    // meeting that the workspace still showed as live. Now the workspace state
+    // is the source of truth and the provider close is idempotent: pressing End
+    // again on an already-ended room retries the provider close.
+    const alreadyEnded = room.status === "ended"
 
     try {
-      await kickEveryone(config, room.cloudflare_meeting_id).catch(error => console.warn("ROOM 7 kick-all skipped:", error))
-      await deactivateMeeting(config, room.cloudflare_meeting_id)
+      if (!alreadyEnded) {
+        const now = new Date().toISOString()
+        const { error: updateError } = await admin
+          .from("workspace_rooms")
+          .update({ status: "ended", ended_at: now })
+          .eq("id", room.id)
 
-      const now = new Date().toISOString()
-      const { error: updateError } = await admin
-        .from("workspace_rooms")
-        .update({ status: "ended", ended_at: now })
-        .eq("id", room.id)
+        if (updateError) {
+          console.error("ROOM 7 end persistence failed:", updateError)
+          return json(req, { error: "Unable to end ROOM 7. Nothing was changed, please try again." }, 500)
+        }
+      }
 
-      if (updateError) {
-        console.error("ROOM 7 end persistence failed:", updateError)
-        return json(req, { error: "ROOM 7 ended at the media provider but could not be finalised in the workspace." }, 500)
+      let providerClosed = true
+      try {
+        await kickEveryone(config, room.cloudflare_meeting_id).catch(error => console.warn("ROOM 7 kick-all skipped:", error))
+        await deactivateMeeting(config, room.cloudflare_meeting_id)
+      } catch (providerError) {
+        providerClosed = false
+        console.error("ROOM 7 provider close failed, room is ended in the workspace:", providerError)
+      }
+
+      if (alreadyEnded) {
+        return json(req, { ended: true, provider_closed: providerClosed })
       }
 
       const audit = await admin.from("workspace_room_events").insert({
@@ -633,7 +653,7 @@ serve(async req => {
         .in("event_state", ["draft", "pre_event", "doors_open", "live", "intermission"])
       if (eventEnd.error) console.warn("ROOM 7 event state end:", eventEnd.error.message)
 
-      return json(req, { ended: true })
+      return json(req, { ended: true, provider_closed: providerClosed })
     } catch (error) {
       console.error("ROOM 7 end failed:", error)
       return json(req, { error: "Unable to end ROOM 7." }, 502)

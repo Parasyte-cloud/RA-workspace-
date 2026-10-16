@@ -30,6 +30,32 @@ jobs:
       - name: Dependency audit (production)
         run: npm audit --omit=dev --audit-level=high
 
+  # The six Supabase suites cover RLS and security-definer functions. They are
+  # left out of `npm test` because they need a local stack, so they get their
+  # own job here (sweep RA-001). Migrations are applied from scratch by
+  # `supabase start`, which also proves the migration chain replays.
+  supabase:
+    name: Supabase security suites
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase (applies every migration)
+        run: supabase start -x studio,imgproxy,vector,logflare
+      - name: Run the security suites
+        run: npm run test:supabase
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   gateway:
     name: Gateway tests
     runs-on: ubuntu-24.04

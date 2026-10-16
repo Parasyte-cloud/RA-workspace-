@@ -132,6 +132,56 @@ export default function InvestorEnquiriesPanel() {
   const [message, setMessage] =
     useState('')
 
+  // Older pages are fetched on request (sweep RA-011: the list used to stop
+  // silently at 200 records).
+  const [nextBefore, setNextBefore] =
+    useState<string | null>(null)
+
+  const [loadingMore, setLoadingMore] =
+    useState(false)
+
+  async function loadMore() {
+    if (!nextBefore) return
+    setLoadingMore(true)
+    setError('')
+
+    try {
+      const result =
+        await callForms({
+          action:
+            'staff_list_investor_interest',
+          before: nextBefore,
+        })
+
+      const more =
+        Array.isArray(result?.records)
+          ? (result.records as InvestorInterest[])
+          : []
+
+      setRecords(current => {
+        const seen = new Set(current.map(item => item.id))
+        return [...current, ...more.filter(item => !seen.has(item.id))]
+      })
+
+      setNotes(current => ({
+        ...Object.fromEntries(
+          more.map(record => [record.id, record.internal_notes || '']),
+        ),
+        ...current,
+      }))
+
+      setNextBefore(result?.next_before || null)
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Unable to load more enquiries.',
+      )
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   const load =
     useCallback(async () => {
       setLoading(true)
@@ -143,6 +193,8 @@ export default function InvestorEnquiriesPanel() {
             action:
               'staff_list_investor_interest',
           })
+
+        setNextBefore(result?.next_before || null)
 
         const next =
           Array.isArray(
@@ -454,6 +506,17 @@ export default function InvestorEnquiriesPanel() {
           ),
         )}
       </div>
+
+      {nextBefore && (
+        <button
+          type="button"
+          className="investorSupportMore"
+          disabled={loadingMore}
+          onClick={() => void loadMore()}
+        >
+          {loadingMore ? 'Loading...' : 'Load older enquiries'}
+        </button>
+      )}
     </section>
   )
 }

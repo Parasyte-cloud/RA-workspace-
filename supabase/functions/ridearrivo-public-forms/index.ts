@@ -4,6 +4,15 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 const launchSlug =
   "ridearrivo-launch-2026"
 
+const MAX_BODY_BYTES = 32 * 1024
+
+// Public submission budget (sweep RA-005). The same-email 60 second throttle
+// stays, but a script can rotate addresses, so these count by network address
+// and across the whole form. Counters live in room7_rate_limits.
+const INVESTOR_IP_LIMIT = 8
+const INVESTOR_GLOBAL_LIMIT = 300
+const INVESTOR_WINDOW_SECONDS = 3600
+
 const interestTypes =
   new Set([
     "investment",
@@ -312,9 +321,36 @@ serve(async req => {
   }
 
   try {
-    const body =
-      await req.json()
-        .catch(() => ({}))
+    // Size gate before parsing (sweep RA-005). Real submissions are a few KB.
+    const declared =
+      Number(req.headers.get("content-length") || 0)
+
+    if (declared > MAX_BODY_BYTES) {
+      return json(
+        req,
+        413,
+        { error: "That request is too large." },
+      )
+    }
+
+    const rawBody =
+      await req.text()
+
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return json(
+        req,
+        413,
+        { error: "That request is too large." },
+      )
+    }
+
+    let body: any = {}
+
+    try {
+      body = JSON.parse(rawBody || "{}")
+    } catch {
+      body = {}
+    }
 
     const action =
       text(
@@ -364,6 +400,60 @@ serve(async req => {
             received: true,
           },
         )
+      }
+
+      // Network and global limits. If the counter cannot be read we allow the
+      // request: a limiter outage must not take the form down.
+      {
+        const ip =
+          req.headers.get("cf-connecting-ip") ||
+          (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+          "unknown"
+
+        const digest =
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(ip),
+          )
+
+        const ipKey =
+          Array.from(new Uint8Array(digest))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("")
+            .slice(0, 32)
+
+        const hit =
+          async (key: string) => {
+            try {
+              const { data, error } =
+                await admin.rpc(
+                  "room7_rate_count",
+                  {
+                    p_key: key,
+                    p_window_seconds: INVESTOR_WINDOW_SECONDS,
+                    p_increment: true,
+                  },
+                )
+
+              return error ? 0 : Number(data) || 0
+            } catch {
+              return 0
+            }
+          }
+
+        if (
+          (await hit(`inv:${ipKey}`)) > INVESTOR_IP_LIMIT ||
+          (await hit("inv:all")) > INVESTOR_GLOBAL_LIMIT
+        ) {
+          return json(
+            req,
+            429,
+            {
+              error:
+                "Too many submissions. Please try again later.",
+            },
+          )
+        }
       }
 
       const displayName =
@@ -694,11 +784,14 @@ serve(async req => {
         admin,
       )
 
-      const {
-        data,
-        error,
-      } =
-        await admin
+      // Newest first, 100 per page, with a cursor (sweep RA-011).
+      const PAGE = 100
+
+      const before =
+        text(body?.before, 40)
+
+      let listQuery =
+        admin
           .from(
             "room7_investor_interest",
           )
@@ -712,18 +805,46 @@ serve(async req => {
                 false,
             },
           )
-          .limit(200)
+          .limit(PAGE)
+
+      if (before) {
+        if (Number.isNaN(Date.parse(before))) {
+          return json(
+            req,
+            400,
+            { error: "Invalid cursor." },
+          )
+        }
+
+        listQuery =
+          listQuery.lt(
+            "last_submitted_at",
+            before,
+          )
+      }
+
+      const {
+        data,
+        error,
+      } =
+        await listQuery
 
       if (error) {
         throw error
       }
+
+      const rows = data || []
 
       return json(
         req,
         200,
         {
           records:
-            data || [],
+            rows,
+          next_before:
+            rows.length === PAGE
+              ? rows[rows.length - 1].last_submitted_at
+              : null,
         },
       )
     }

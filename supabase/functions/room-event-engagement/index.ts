@@ -1,6 +1,7 @@
 import {
   createClient,
 } from "npm:@supabase/supabase-js@2"
+import { guardPasscodeAttempt } from "../_shared/room7Limit.ts"
 
 const encoder =
   new TextEncoder()
@@ -1158,11 +1159,22 @@ Deno.serve(
         }
 
         const identity =
-          await requireGuestAccess(
+          await guardPasscodeAttempt(
             admin,
-            room,
-            external,
-            body,
+            req,
+            room.id,
+            () =>
+              requireGuestAccess(
+                admin,
+                room,
+                external,
+                body,
+              ),
+            () =>
+              new HttpError(
+                429,
+                "Too many wrong attempts. Please wait ten minutes and try again.",
+              ),
           )
 
         const question =
@@ -1315,11 +1327,22 @@ Deno.serve(
         }
 
         const identity =
-          await requireGuestAccess(
+          await guardPasscodeAttempt(
             admin,
-            room,
-            external,
-            body,
+            req,
+            room.id,
+            () =>
+              requireGuestAccess(
+                admin,
+                room,
+                external,
+                body,
+              ),
+            () =>
+              new HttpError(
+                429,
+                "Too many wrong attempts. Please wait ten minutes and try again.",
+              ),
           )
 
         if (
