@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
+import { cleanLobbyBody, shapeLobby } from "../_shared/lobbyChat.ts"
 
-type RoomAction = "resolve" | "join" | "status"
+type RoomAction = "resolve" | "join" | "status" | "lobby_chat_list" | "lobby_chat_send"
 
 type MediaConfig = {
   accountId: string
@@ -1060,7 +1061,9 @@ serve(async req => {
   if (
     action !== "resolve" &&
     action !== "join" &&
-    action !== "status"
+    action !== "status" &&
+    action !== "lobby_chat_list" &&
+    action !== "lobby_chat_send"
   ) {
     return json(
       req,
@@ -1171,6 +1174,65 @@ serve(async req => {
           request_status: status,
         },
       )
+    }
+
+    if (action === "lobby_chat_list" || action === "lobby_chat_send") {
+      // Only a guest who is in the host's queue may use the waiting room chat.
+      if (guestSettings.admission !== "host") {
+        throw new HttpError(409, "The waiting room is not in use for this event.")
+      }
+
+      const key = cleanText(body?.request_key, 100)
+
+      if (key.length < 16) {
+        throw new HttpError(400, "Your browser did not send a valid request key. Refresh the page and try again.")
+      }
+
+      const { data: mine, error: mineError } = await admin
+        .from("room7_join_requests")
+        .select("id,display_name,status")
+        .eq("room_id", resolved.room.id)
+        .eq("key_hash", await sha256Hex(key))
+        .maybeSingle()
+
+      if (mineError) throw mineError
+
+      if (!mine || mine.status === "denied") {
+        throw new HttpError(403, "Ask to join first, then you can chat while you wait.")
+      }
+
+      if (action === "lobby_chat_send") {
+        await enforceLimit(admin, `lc:${mine.id}`, 20, 60)
+
+        const text = cleanLobbyBody(body?.body)
+
+        if (!text) throw new HttpError(400, "Type a message first.")
+
+        const { error: insertError } = await admin
+          .from("room7_lobby_messages")
+          .insert({
+            room_id: resolved.room.id,
+            author_kind: "guest",
+            author_name: String(mine.display_name).slice(0, 80),
+            request_id: mine.id,
+            body: text,
+          })
+
+        if (insertError) {
+          throw new HttpError(503, "Waiting room chat is not ready yet. Ask the host to run the ROOM 7 lobby chat migration.")
+        }
+      }
+
+      const { data: rows, error: listError } = await admin
+        .from("room7_lobby_messages")
+        .select("id,author_kind,author_name,request_id,body,created_at")
+        .eq("room_id", resolved.room.id)
+        .order("created_at", { ascending: false })
+        .limit(100)
+
+      if (listError) throw new HttpError(503, "Waiting room chat is not ready yet.")
+
+      return json(req, { messages: shapeLobby(rows || [], mine.id), request_status: mine.status })
     }
 
     if (metadata.past_scheduled_end) {

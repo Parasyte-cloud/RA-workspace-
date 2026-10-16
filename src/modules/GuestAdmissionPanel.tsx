@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, UserRound, X } from 'lucide-react'
+import { Check, MessageCircle, UserRound, X } from 'lucide-react'
+import Room7LobbyChat from '../room7-shared/Room7LobbyChat'
+import '../room7-shared/room7-lobby-chat.css'
 import type { Invoke } from '../lib/room7Share'
 
 type Waiting = { id: string; display_name: string; email: string; room_id: string }
@@ -21,6 +23,7 @@ export default function GuestAdmissionPanel({
   const [waiting, setWaiting] = useState<Waiting[]>([])
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [chatOpen, setChatOpen] = useState(false)
   // Rooms this person may not control (a plain participant): never ask again.
   const skip = useRef(new Set<string>())
   const approvalOn = useRef(false)
@@ -96,6 +99,15 @@ export default function GuestAdmissionPanel({
     }
   }
 
+  const chatRoom = waiting[0]?.room_id || ''
+  const lobbyTransport = useCallback(
+    (action: 'lobby_chat_list' | 'lobby_chat_send', text?: string) =>
+      invoke({ action, room_id: chatRoom, ...(text ? { body: text } : {}) }) as unknown as Promise<{
+        messages?: import('../room7-shared/Room7LobbyChat').LobbyMessage[]
+      }>,
+    [invoke, chatRoom],
+  )
+
   if (!waiting.length) return null
 
   return createPortal(
@@ -104,6 +116,14 @@ export default function GuestAdmissionPanel({
         <strong>
           {waiting.length === 1 ? '1 guest is waiting' : `${waiting.length} guests are waiting`}
         </strong>
+        <button
+          type="button"
+          className="roomAdmitChatToggle"
+          aria-expanded={chatOpen}
+          onClick={() => setChatOpen(open => !open)}
+        >
+          <MessageCircle size={14} />Chat
+        </button>
         {waiting.length > 1 && (
           <button type="button" disabled={!!busy} onClick={() => void decide('admit', 'all')}>
             Admit all
@@ -138,6 +158,10 @@ export default function GuestAdmissionPanel({
           </button>
         </div>
       ))}
+
+      {chatOpen && chatRoom && (
+        <Room7LobbyChat transport={lobbyTransport} hostView title="Chat with waiting guests" />
+      )}
 
       {error && <p className="roomAdmitError" role="alert">{error}</p>}
     </div>,

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4"
+import { cleanLobbyBody, shapeLobby } from "../_shared/lobbyChat.ts"
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { HttpError, publicRoom7Origin, roomKinds, accessModes, guestRoles, eventStates, normalTransitions, cors, json, cleanText, normalizeCode, uuid, normalizeSlug, hasOwn, parseDateField, validTimezone, hmacSha256Hex, cleanEmail, sha256Hex, randomInviteToken } from "./lib.ts"
 import type { RoomAction, EventState, EmployeeProfile } from "./lib.ts"
@@ -2074,6 +2075,8 @@ serve(async req => {
       | "engagement_update_interest"
       | "join_requests"
       | "decide_request"
+      | "lobby_chat_list"
+      | "lobby_chat_send"
 
 
   if (
@@ -2088,7 +2091,9 @@ serve(async req => {
     action !== "engagement_moderate_question" &&
     action !== "engagement_update_interest" &&
     action !== "join_requests" &&
-    action !== "decide_request"
+    action !== "decide_request" &&
+    action !== "lobby_chat_list" &&
+    action !== "lobby_chat_send"
   ) {
     return json(
       req,
@@ -2194,6 +2199,36 @@ serve(async req => {
           admission: settings.admission,
         },
       )
+    }
+
+    if (action === "lobby_chat_list" || action === "lobby_chat_send") {
+      if (action === "lobby_chat_send") {
+        const text = cleanLobbyBody(body?.body)
+
+        if (!text) throw new HttpError(400, "Type a message first.")
+
+        const { error: insertError } = await admin
+          .from("room7_lobby_messages")
+          .insert({
+            room_id: room.id,
+            author_kind: "host",
+            author_name: "Host",
+            body: text,
+          })
+
+        if (insertError) {
+          throw new HttpError(503, "Waiting room chat is not ready yet. Run the ROOM 7 lobby chat migration.")
+        }
+      }
+
+      const { data: rows } = await admin
+        .from("room7_lobby_messages")
+        .select("id,author_kind,author_name,request_id,body,created_at")
+        .eq("room_id", room.id)
+        .order("created_at", { ascending: false })
+        .limit(100)
+
+      return json(req, { messages: shapeLobby(rows || [], null) })
     }
 
     if (action === "decide_request") {

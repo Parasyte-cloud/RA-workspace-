@@ -1,3 +1,4 @@
+import { useMeetingIsland } from './useMeetingIsland'
 import {
   useCallback,
   useEffect,
@@ -943,6 +944,8 @@ export default function ExternalRoom7Meeting({
       [],
     )
 
+  const island = useMeetingIsland(shellRef, { menuOpen: settingsOpen, active: !!meeting })
+
   if (error) {
     return (
       <div className="room7PublicMeetingError">
@@ -1001,6 +1004,7 @@ export default function ExternalRoom7Meeting({
       data-room7-theme={
         effectiveTheme
       }
+      data-island={island}
     >
       <header className="room7ExperienceChrome">
         <div className="room7ExperienceIdentity">
