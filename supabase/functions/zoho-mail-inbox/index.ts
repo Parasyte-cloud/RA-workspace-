@@ -103,6 +103,9 @@ serve(async (req) => {
       email: connection.email,
       folderId: inbox.folderId,
       messages: messagesData?.data || [],
+      hasMore:
+        Array.isArray(messagesData?.data) &&
+        messagesData.data.length >= 50,
     })
   } catch (error) {
     console.error(error)

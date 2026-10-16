@@ -63,7 +63,12 @@ serve(async (req) => {
     const params =
       new URLSearchParams()
 
-    params.set("limit", "50")
+    const PAGE_SIZE = 50
+    // Zoho counts from 1. The client asks for the next page with start = loaded + 1.
+    const start = Math.max(1, Math.floor(Number(payload?.start) || 1))
+
+    params.set("limit", String(PAGE_SIZE))
+    params.set("start", String(start))
 
     if (folderId) {
       params.set("folderId", folderId)
@@ -160,6 +165,10 @@ serve(async (req) => {
         Array.isArray(data?.data)
           ? data.data
           : [],
+      start,
+      hasMore:
+        Array.isArray(data?.data) &&
+        data.data.length >= PAGE_SIZE,
     })
 
   } catch (error) {
