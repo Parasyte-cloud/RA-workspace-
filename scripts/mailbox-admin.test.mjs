@@ -33,3 +33,13 @@ test('the sign-in screen and Settings both offer keep me signed in', () => {
   assert.match(read('src/modules/NotificationSettings.tsx'), /moveSession\(/)
   assert.match(read('src/lib/supabase.ts'), /createAuthStorage\(window\.localStorage, window\.sessionStorage\)/)
 })
+
+test('admins can connect another mailbox, and the return from Zoho lands on Mail with a notice', () => {
+  assert.match(read('src/components/MailboxAdmin.tsx'), /Connect another mailbox/)
+  assert.match(read('src/modules/MailModule.tsx'), /Mailbox connected\./)
+  assert.match(read('src/App.tsx'), /query\.has\('mail'\) \? 'mail'/)
+})
+
+test('a request that never reaches a mail function names the function', () => {
+  assert.match(read('src/modules/MailModule.tsx'), /did not respond\. Try Refresh/)
+})

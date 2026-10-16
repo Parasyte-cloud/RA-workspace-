@@ -76,3 +76,5 @@
 .mailboxAdminTable td small{display:block;color:var(--muted,#6b7280)}
 .mailboxAdminTable input{width:20px;height:20px}
 .mailboxAdminNote{display:block;margin-top:8px}
+.mailboxAdminBar{display:flex;gap:10px;flex-wrap:wrap}
+.mailboxAdminHelp{margin:10px 0 0;font-size:.85rem;color:var(--muted,#6b7280)}
