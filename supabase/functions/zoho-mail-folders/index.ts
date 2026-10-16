@@ -16,11 +16,11 @@ serve(async (req) => {
   }
 
   try {
-    const payload =
+    const requestBody =
       await req.json().catch(() => ({}))
 
     const mailboxId =
-      String(payload?.mailboxId || "").trim() ||
+      String(requestBody?.mailboxId || "").trim() ||
       null
 
     const { user, admin } =
