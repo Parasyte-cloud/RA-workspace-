@@ -47,3 +47,6 @@
   button, .iconButton, .phoneTabs { -webkit-user-select: none; user-select: none; }
 }
 * { -webkit-tap-highlight-color: transparent; }
+
+.settingsToggle{display:flex;align-items:center;gap:10px;font-size:.95rem;cursor:pointer;min-height:36px}
+.settingsToggle input{width:20px;height:20px;accent-color:#f4a300}

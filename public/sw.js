@@ -130,7 +130,8 @@ self.addEventListener('push', event => {
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       requireInteraction: Boolean(data.urgent),
-      vibrate: data.urgent ? [400, 200, 400, 200, 400] : undefined,
+      // A ring buzzes long. A chat message gives two short buzzes, like WhatsApp.
+      vibrate: data.urgent ? [400, 200, 400, 200, 400] : (data.type === 'chat_message' || data.type === 'chat_mention') ? [180, 90, 180] : undefined,
       data: { url: data.url || '/' }
     })
   })())
