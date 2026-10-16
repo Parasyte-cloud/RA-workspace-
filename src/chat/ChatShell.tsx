@@ -1,3 +1,4 @@
+import { explainWriteError } from '../modules/adminChatAccessModel'
 import {
   Archive,
   ArchiveRestore,
@@ -1385,7 +1386,7 @@ export function ChatShell(){
         setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
       }catch(error){
         setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
-        setNotice(error instanceof Error ? error.message : 'Unable to send message.')
+        setNotice(explainWriteError(error instanceof Error ? error.message : 'Unable to send message.'))
       }
       return
     }
@@ -1432,7 +1433,7 @@ export function ChatShell(){
         retryFilesRef.current.set(id,file)
       }
       setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
-      setNotice(error?.message || 'Unable to send message.')
+      setNotice(explainWriteError(error?.message || 'Unable to send message.'))
       return
     }
     if(mentionedUserIds.length){

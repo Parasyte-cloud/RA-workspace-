@@ -12,7 +12,7 @@ const managerPath =
   'src/modules/ChatAdminManager.tsx'
 
 const accessManagerPath =
-  'src/modules/AdminAccessManager.tsx'
+  'src/modules/AdminChatAccess.tsx'
 
 function source(relativePath) {
   const fullPath = path.join(root, relativePath)
@@ -200,7 +200,7 @@ test('Chat admin list distinguishes built-in and delegated authority', () => {
   )
 })
 
-test('Administration Access mounts a dedicated Chat admin manager', () => {
+test('Administration Chat tab mounts the Chat admin manager', () => {
   const manager = source(managerPath)
   const accessManager = source(accessManagerPath)
 
@@ -231,7 +231,7 @@ test('Administration Access mounts a dedicated Chat admin manager', () => {
   assert.match(
     accessManager,
     /ChatAdminManager/,
-    'Administration Access must mount ChatAdminManager',
+    'Administration, Chat must mount ChatAdminManager',
   )
 })
 

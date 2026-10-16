@@ -866,3 +866,56 @@
     justify-content:center;
   }
 }
+
+/* Administration > Chat */
+.acaRoot{display:grid;gap:16px}
+.acaCard{padding:20px;display:grid;gap:14px}
+.acaHead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.acaHead h3{margin:2px 0 4px}
+.acaHead p{margin:0;max-width:60ch;opacity:.75;font-size:.9rem}
+.acaHeadActions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.acaHow{font-size:.88rem;border:1px solid rgba(127,127,127,.25);border-radius:14px;padding:10px 14px}
+.acaHow summary{cursor:pointer;font-weight:700}
+.acaHow ul{margin:8px 0 0;padding-left:18px;display:grid;gap:6px}
+.acaStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.acaStats>div{padding:12px 14px;border-radius:14px;border:1px solid rgba(127,127,127,.22);display:grid}
+.acaStats strong{font-size:1.5rem}
+.acaStats span{font-size:.78rem;opacity:.7}
+.acaStats .warn{border-color:#d92d20;background:rgba(217,45,32,.08)}
+.acaCreate{display:grid;grid-template-columns:1.3fr .8fr 1.6fr auto;gap:8px}
+.acaTools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.acaTools input[type=text],.acaTools input:not([type]){flex:1;min-width:180px}
+.acaCreate input,.acaCreate select,.acaTools input:not([type=checkbox]),.acaAdd select,.acaMembers select{min-height:38px;padding:0 10px;border-radius:10px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit}
+.acaMuted{opacity:.65;font-size:.9rem}
+.acaRooms{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.acaRooms>li{border:1px solid rgba(127,127,127,.22);border-radius:16px;overflow:hidden}
+.acaRooms>li.open{border-color:#f6a11a}
+.acaRoomRow{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.acaRoomName{flex:1;min-width:0;display:grid}
+.acaRoomName small{opacity:.65}
+.acaChevron{transition:transform .2s}
+.open .acaChevron{transform:rotate(90deg)}
+.acaCount{font-size:.82rem;opacity:.7;white-space:nowrap}
+.acaPill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:.74rem;font-weight:700}
+.acaPill.ok{background:rgba(18,183,106,.14);color:#0b7a46}
+.acaPill.bad{background:rgba(217,45,32,.12);color:#b42318}
+.acaDetail{padding:4px 14px 14px;display:grid;gap:12px;border-top:1px solid rgba(127,127,127,.18)}
+.acaProblem{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:rgba(217,45,32,.08);border:1px solid rgba(217,45,32,.35);margin-top:10px;flex-wrap:wrap}
+.acaProblem>div{flex:1;min-width:200px;display:grid;font-size:.88rem}
+.acaProblem span{opacity:.75}
+.acaMembers{width:100%;border-collapse:collapse;font-size:.88rem}
+.acaMembers th{text-align:left;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.6;padding:6px 8px}
+.acaMembers td{padding:8px;border-top:1px solid rgba(127,127,127,.15);vertical-align:middle}
+.acaMembers td small{display:block;opacity:.6}
+.acaMembers tr.gone{opacity:.6}
+.acaRowActions{text-align:right}
+.acaAdd{display:flex;gap:8px;flex-wrap:wrap}
+.acaAdd select{flex:1;min-width:180px}
+.glassButton.danger{color:#b42318}
+@media(max-width:700px){
+  .acaCreate{grid-template-columns:1fr}
+  .acaMembers thead{display:none}
+  .acaMembers tr{display:grid;gap:4px;padding:8px 0;border-top:1px solid rgba(127,127,127,.15)}
+  .acaMembers td{border:0;padding:2px 0}
+  .acaRowActions{text-align:left}
+}
