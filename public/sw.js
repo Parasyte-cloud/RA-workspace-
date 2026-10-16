@@ -119,7 +119,12 @@ self.addEventListener('push', event => {
     if (!iphone && windows.some(client => client.visibilityState === 'visible')) return
 
     // Little count on the app icon, like other apps (where the device supports it).
-    try { if (self.navigator.setAppBadge) await self.navigator.setAppBadge() } catch (_) {}
+    // (The server sends the unread count; without it the icon just shows a dot.)
+    try {
+      if (self.navigator.setAppBadge) {
+        await (Number(data.badge) > 0 ? self.navigator.setAppBadge(Number(data.badge)) : self.navigator.setAppBadge())
+      }
+    } catch (_) {}
 
     await self.registration.showNotification(data.title || 'RideArrivo', {
       body: data.body || '',
@@ -131,7 +136,7 @@ self.addEventListener('push', event => {
       badge: '/icons/icon-192.png',
       requireInteraction: Boolean(data.urgent),
       // A ring buzzes long. A chat message gives two short buzzes, like WhatsApp.
-      vibrate: data.urgent ? [400, 200, 400, 200, 400] : (data.type === 'chat_message' || data.type === 'chat_mention') ? [180, 90, 180] : undefined,
+      vibrate: data.urgent ? [400, 200, 400, 200, 400] : (data.type === 'chat_message' || data.type === 'chat_mention' || data.type === 'room_join_request') ? [180, 90, 180] : undefined,
       data: { url: data.url || '/' }
     })
   })())

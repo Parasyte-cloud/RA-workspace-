@@ -50,3 +50,13 @@
 
 .settingsToggle{display:flex;align-items:center;gap:10px;font-size:.95rem;cursor:pointer;min-height:36px}
 .settingsToggle input{width:20px;height:20px;accent-color:#f4a300}
+
+/* Alert preferences: times, hints and the device list */
+.alertHint{color:var(--muted,#6b7280);font-size:.8rem}
+.alertTimes{display:flex;gap:16px;flex-wrap:wrap;margin:6px 0}
+.alertTimes label{display:flex;flex-direction:column;gap:4px;font-size:.85rem}
+.alertTimes input{min-height:40px;padding:6px 10px;border-radius:10px;border:1px solid var(--border,#d6d3d1);background:transparent;color:inherit}
+.alertTimes input:disabled{opacity:.5}
+.alertDevices{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.alertDevices li{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
+.alertDevices small{color:var(--muted,#6b7280)}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BellRing, LogOut, MessageCircle, Play, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
+import AlertPreferences from '../components/AlertPreferences'
 import {
   RINGTONES,
   previewRingtone,
@@ -137,6 +138,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           {note && <small className="settingsNote">{note}</small>}
         </article>
 
+        <AlertPreferences />
         <article className="appearanceSettingCard">
           <div className="appearanceSettingCopy">
             <span className="appearanceSettingNumber"><MessageCircle size={16} /></span>
