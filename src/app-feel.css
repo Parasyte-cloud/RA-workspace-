@@ -78,3 +78,7 @@
 .mailboxAdminNote{display:block;margin-top:8px}
 .mailboxAdminBar{display:flex;gap:10px;flex-wrap:wrap}
 .mailboxAdminHelp{margin:10px 0 0;font-size:.85rem;color:var(--muted,#6b7280)}
+
+/* Older mail, loaded 50 at a time */
+.mailLoadMore{display:block;width:calc(100% - 28px);margin:14px;padding:12px;border-radius:12px;border:1px solid var(--border,#d6d3d1);background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
+.mailLoadMore:disabled{opacity:.6;cursor:default}

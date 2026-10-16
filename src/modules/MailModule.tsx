@@ -106,6 +106,11 @@ export function MailModule(){
   const mailboxRef=useRef('')
   const flashRef=useRef('')
 
+  // What the list on screen was loaded from, so "older" asks for the next page of the same thing.
+  const sourceRef=useRef<{folderId?:string;view?:string}>({})
+  const [hasMore,setHasMore]=useState(false)
+  const [loadingMore,setLoadingMore]=useState(false)
+
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
   const [subject,setSubject]=useState('')
@@ -310,6 +315,8 @@ export function MailModule(){
     setSelected(null)
     setActiveFolder(null)
     setActiveFolderKey(key)
+    sourceRef.current={view:key}
+    setHasMore(false)
 
     try{
       const data=
@@ -319,6 +326,8 @@ export function MailModule(){
             view:key
           }
         )
+
+      setHasMore(Boolean(data?.hasMore))
 
       const raw=
         Array.isArray(data?.messages)
@@ -436,6 +445,8 @@ export function MailModule(){
     setMessage('')
     setSelected(null)
     setActiveFolder(folder)
+    sourceRef.current={folderId:folder.folderId}
+    setHasMore(false)
 
     try{
       const data=
@@ -445,6 +456,8 @@ export function MailModule(){
             folderId:folder.folderId
           }
         )
+
+      setHasMore(Boolean(data?.hasMore))
 
       const raw=
         Array.isArray(data?.messages)
@@ -495,6 +508,9 @@ export function MailModule(){
           ? String(data.folderId)
           : ''
 
+      sourceRef.current=defaultFolderId ? {folderId:defaultFolderId} : {}
+      setHasMore(Boolean(data?.hasMore) && Boolean(defaultFolderId))
+
       setMessages(
         raw.map((item:any)=>({
           ...item,
@@ -536,6 +552,47 @@ export function MailModule(){
         'Unable to connect Zoho Mail.'
       )
       setLoading(false)
+    }
+  }
+
+  const loadMore=async()=>{
+    if(loadingMore || !hasMore) return
+    const source=sourceRef.current
+    if(!source.folderId && !source.view) return
+
+    setLoadingMore(true)
+
+    try{
+      const data=
+        await invoke(
+          'zoho-mail-folder-messages',
+          {
+            ...source,
+            start:messages.length+1
+          }
+        )
+
+      const raw=
+        Array.isArray(data?.messages)
+          ? data.messages
+          : []
+
+      setMessages(current=>{
+        const seen=new Set(current.map(item=>item.messageId))
+        const fresh=raw
+          .filter((item:any)=>item?.messageId && !seen.has(String(item.messageId)))
+          .map((item:any)=>({
+            ...item,
+            folderId:item?.folderId || source.folderId || undefined
+          }))
+        return [...current,...fresh]
+      })
+
+      setHasMore(Boolean(data?.hasMore) && raw.length>0)
+    }catch(error:any){
+      setMessage(error?.message || 'Unable to load older messages.')
+    }finally{
+      setLoadingMore(false)
     }
   }
 
@@ -1114,7 +1171,15 @@ export function MailModule(){
             </div>
           </div>
 
-          <div className="mailListScroller">
+          <div
+            className="mailListScroller"
+            onScroll={event=>{
+              const box=event.currentTarget
+              if(box.scrollHeight-box.scrollTop-box.clientHeight<240){
+                void loadMore()
+              }
+            }}
+          >
 
             {loading &&
               <div className="mailLoadingState">
@@ -1171,6 +1236,17 @@ export function MailModule(){
 
                 </button>
               ))
+            }
+
+            {!loading && !search.trim() && (hasMore || loadingMore) &&
+              <button
+                type="button"
+                className="mailLoadMore"
+                onClick={()=>void loadMore()}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading older messages…' : 'Load older messages'}
+              </button>
             }
 
           </div>

@@ -43,3 +43,13 @@ test('admins can connect another mailbox, and the return from Zoho lands on Mail
 test('a request that never reaches a mail function names the function', () => {
   assert.match(read('src/modules/MailModule.tsx'), /did not respond\. Try Refresh/)
 })
+
+test('mail loads older pages: functions take a start and say if there is more, the list has a button', () => {
+  const fn = read('supabase/functions/zoho-mail-folder-messages/index.ts')
+  assert.match(fn, /params\.set\("start", String\(start\)\)/)
+  assert.match(fn, /hasMore:/)
+  assert.match(read('supabase/functions/zoho-mail-inbox/index.ts'), /hasMore:/)
+  const ui = read('src/modules/MailModule.tsx')
+  assert.match(ui, /Load older messages/)
+  assert.match(ui, /start:messages\.length\+1/)
+})
