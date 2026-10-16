@@ -68,3 +68,43 @@ Until step 6 is done the Phone alerts row is hidden, so nothing half-working is 
 - iPhone and iPad: push works only for the app added to the Home Screen
   (iOS 16.4 or newer). Laptops: the browser must be running in the background.
 - Redeploy after merging: `supabase functions deploy push-dispatch --no-verify-jwt --project-ref fkkxcivxnwshahnbatnp`
+
+## Alerts for chat, calls, email and ROOM 7 (added Oct 2026)
+
+- Tapping an alert opens the exact place: `/?section=chat&conversation=<id>`,
+  `/?section=room&room=<id>` or `/?section=mail`. Bad ids fall back to the section.
+- The app icon badge shows the real unread count, worked out on the server.
+- Settings > Notifications now has: what alerts you (chat, calls, email, ROOM 7,
+  everything else), lock-screen previews on or off, quiet hours (calls can ring through),
+  a "Send a test alert" button that goes through the server, the registered devices
+  and the last delivery results (`push_delivery_log`).
+- ROOM 7: the host gets an alert when a guest is waiting (`room7_join_requests` trigger).
+- Email: `mail-notify-poll` checks each connected Zoho inbox every two minutes (pg_cron)
+  and sends one alert per batch of new mail. Not instant: it is polling, not a live feed.
+  Mail alerts are never emailed back (`email_status = 'skipped'`).
+- Alerts you turn off still appear in the bell inside the workspace.
+
+Setup after merging:
+1. Run `supabase/migrations/20261016270000_push_everywhere.sql`.
+2. Once, in the SQL editor: `select vault.create_secret('https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1/mail-notify-poll', 'mail_notify_url');`
+3. `supabase functions deploy push-dispatch --no-verify-jwt --project-ref fkkxcivxnwshahnbatnp`
+4. `supabase functions deploy mail-notify-poll --no-verify-jwt --project-ref fkkxcivxnwshahnbatnp`
+
+Limits: a web app cannot take over the whole screen like a native call. iPhone needs the
+app on the Home Screen.
+
+## Keep me signed in, mailboxes and mailbox access (added Oct 2026)
+
+- **Keep me signed in** is a tick box on the sign-in screen (ticked by default on phones,
+  unticked on desktop browsers) and a switch in Settings. It is per device. Ticked keeps the
+  session in local storage; unticked keeps it in session storage, so closing the browser or app
+  signs out. Sign-out and account removal behave the same either way. Supabase session limits
+  (Authentication > Sessions) still apply on top.
+- **Mailbox switcher**: when a person has more than one mailbox, Mail shows a Mailbox menu and
+  every mail call carries that `mailboxId`. The last choice is remembered on the device.
+- **Mailbox access (admins only)**: Mail shows "Manage mailbox access". Pick a mailbox, then tick
+  Read and Send per person and choose which one opens first. A person can have up to 10.
+  Changes are written to `zoho_mail_audit_events`.
+- Connecting a new Zoho mailbox is still done by its owner (Mail > Connect Zoho Mail).
+- Setup: run `supabase/migrations/20261016280000_zoho_mailbox_admin.sql`, then redeploy
+  `mail-notify-poll` (it now checks up to 10 mailboxes per person).

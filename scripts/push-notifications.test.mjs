@@ -77,3 +77,44 @@ test('function authenticates with a shared secret and the toggle is in the bell 
   assert.match(read('supabase/config.toml'), /\[functions\.push-dispatch\][\s\S]*verify_jwt = false/)
   assert.match(read('src/components/NotificationCenter.tsx'), /<PhoneAlertsToggle\/>/)
 })
+
+const ID = '11111111-1111-4111-8111-111111111111'
+
+test('a tap opens the exact chat, room or inbox, and ignores malformed ids', () => {
+  const url = row => P.buildPushMessage({ id: 'n', title: 't', ...row }).url
+  assert.equal(url({ type: 'chat_message', entity_type: 'social_conversation', entity_id: ID }), `/?section=chat&conversation=${ID}`)
+  assert.equal(url({ type: 'call', entity_id: ID }), `/?section=chat&conversation=${ID}`)
+  assert.equal(url({ type: 'chat_message', entity_type: 'social_conversation', entity_id: '../../x' }), '/?section=chat')
+  assert.equal(url({ type: 'room_join_request', entity_id: ID }), `/?section=room&room=${ID}`)
+  assert.equal(url({ type: 'mail_message' }), '/?section=mail')
+})
+
+test('preferences decide what is pushed, and calls can ring through quiet hours', () => {
+  const prefs = { ...P.DEFAULT_PREFS, quiet_enabled: true, quiet_start: '22:00', quiet_end: '07:00', timezone: 'UTC' }
+  const night = new Date('2026-10-16T23:30:00Z')
+  const noon = new Date('2026-10-16T12:00:00Z')
+  assert.equal(P.inQuietHours(night, prefs), true)
+  assert.equal(P.inQuietHours(new Date('2026-10-16T03:00:00Z'), prefs), true)
+  assert.equal(P.inQuietHours(noon, prefs), false)
+  assert.deepEqual(P.decidePush({ type: 'chat_message' }, prefs, night), { send: false, reason: 'quiet_hours' })
+  assert.deepEqual(P.decidePush({ type: 'call' }, prefs, night), { send: true })
+  assert.deepEqual(P.decidePush({ type: 'call' }, { ...prefs, quiet_allow_calls: false }, night), { send: false, reason: 'quiet_hours' })
+  assert.deepEqual(P.decidePush({ type: 'mail_message' }, { ...prefs, push_mail: false }, noon), { send: false, reason: 'preference' })
+  assert.deepEqual(P.decidePush({ type: 'push_test' }, { ...prefs, push_chat: false }, night), { send: true })
+})
+
+test('previews off hides content but keeps the caller on a ring', () => {
+  const off = { show_previews: false }
+  const chat = P.applyPreviewSetting(P.buildPushMessage({ id: 'n', type: 'chat_message', title: 'Ada', body: 'secret' }), off)
+  assert.equal(chat.body, 'You have a new message')
+  assert.equal(chat.title, 'RideArrivo')
+  const call = P.applyPreviewSetting(P.buildPushMessage({ id: 'n', type: 'call', title: 'Ada is calling', body: 'Voice' }), off)
+  assert.equal(call.title, 'Ada is calling')
+})
+
+test('new mail, waiting guests and the Settings screen are wired up', () => {
+  assert.match(read('supabase/functions/mail-notify-poll/index.ts'), /email_status: "skipped"/)
+  assert.match(read('supabase/migrations/20261016270000_push_everywhere.sql'), /room7_join_request_notify/)
+  assert.match(read('src/modules/NotificationSettings.tsx'), /<AlertPreferences \/>/)
+  assert.match(read('src/chat/ChatShell.tsx'), /get\('conversation'\)/)
+})

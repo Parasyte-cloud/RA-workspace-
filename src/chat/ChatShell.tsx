@@ -381,6 +381,21 @@ export function ChatShell(){
   const voiceMsRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
+
+  // Tapping an alert opens that exact chat (?conversation=<id>), once.
+  const openedFromAlert=useRef(false)
+  useEffect(()=>{
+    if(openedFromAlert.current)return
+    const id=new URLSearchParams(window.location.search).get('conversation')
+    if(!id||!/^[0-9a-f-]{36}$/i.test(id))return
+    if(![...directs,...rooms].some(item=>item.id===id))return
+    openedFromAlert.current=true
+    setSelectedId(id)
+    setMobileThreadOpen(true)
+    const url=new URL(window.location.href)
+    url.searchParams.delete('conversation')
+    window.history.replaceState(window.history.state,'',`${url.pathname}${url.search}${url.hash}`)
+  },[directs,rooms])
   // Lets the notification sound know which chat is on screen, so a message in
   // the chat you are reading does not beep at you.
   useEffect(()=>{

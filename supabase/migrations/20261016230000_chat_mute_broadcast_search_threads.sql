@@ -215,13 +215,13 @@ grant execute on function public.register_chat_broadcast_mention(uuid, text) to 
 do $$
 begin
   begin
-    create extension if not exists pg_trgm;
+    create extension if not exists pg_trgm with schema extensions;
   exception when others then
     raise notice 'pg_trgm not available; search will still work, just slower';
   end;
   if exists (select 1 from pg_extension where extname = 'pg_trgm') then
     create index if not exists social_messages_body_trgm_idx
-      on public.social_messages using gin (body gin_trgm_ops);
+      on public.social_messages using gin (body extensions.gin_trgm_ops);
   end if;
 end $$;
 

@@ -5,7 +5,15 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import webpush from "npm:web-push@3.6.7"
-import { buildPushMessage, isGone, RING_GAP_MS, RING_REPEATS } from "../_shared/pushPayload.ts"
+import {
+  applyPreviewSetting,
+  buildPushMessage,
+  decidePush,
+  DEFAULT_PREFS,
+  isGone,
+  RING_GAP_MS,
+  RING_REPEATS,
+} from "../_shared/pushPayload.ts"
 
 const SECRET = Deno.env.get("PUSH_DISPATCH_SECRET") || ""
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") || ""
@@ -54,12 +62,50 @@ Deno.serve(async (request) => {
     .eq("user_id", row.user_id)
   if (!subs?.length) return json({ sent: 0 })
 
+  // What this person asked to be pushed, and when. Anything skipped here is
+  // still in the bell inside the workspace.
+  const { data: savedPrefs } = await admin
+    .from("notification_preferences")
+    .select("push_chat,push_calls,push_mail,push_room,push_other,show_previews,quiet_enabled,quiet_start,quiet_end,quiet_allow_calls,timezone")
+    .eq("user_id", row.user_id)
+    .maybeSingle()
+  const prefs = { ...DEFAULT_PREFS, ...(savedPrefs || {}) }
+
+  const log = async (outcome: string, subscriptionId: string | null, httpStatus: number | null) => {
+    try {
+      await admin.from("push_delivery_log").insert({
+        notification_id: row.id,
+        user_id: row.user_id,
+        subscription_id: subscriptionId,
+        outcome,
+        http_status: httpStatus,
+      })
+    } catch (_) { /* logging never blocks delivery */ }
+  }
+
+  const decision = decidePush(row, prefs)
+  if (!decision.send) {
+    await log(decision.reason === "quiet_hours" ? "skipped_quiet_hours" : "skipped_preference", null, null)
+    return json({ sent: 0, skipped: decision.reason })
+  }
+
+  // The number shown on the app icon: everything still unread.
+  let unread = 0
+  try {
+    const { count } = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", row.user_id)
+      .is("read_at", null)
+    unread = Math.min(count || 0, 99)
+  } catch (_) { /* the icon falls back to a plain dot */ }
+
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
-  const message = buildPushMessage(row)
+  const message = { ...applyPreviewSetting(buildPushMessage(row), prefs), badge: unread || undefined }
   const payload = JSON.stringify(message)
   const topic = message.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32) || undefined
 
-  const sendAll = async (body: string) => {
+  const sendAll = async (body: string, isRepeat = false) => {
     let delivered = 0
     await Promise.all(subs.map(async (sub) => {
       try {
@@ -70,8 +116,10 @@ Deno.serve(async (request) => {
         )
         delivered++
         await admin.from("push_subscriptions").update({ last_success_at: new Date().toISOString(), failure_count: 0 }).eq("id", sub.id)
+        if (!isRepeat) await log("sent", sub.id, 201)
       } catch (error) {
         const status = Number((error as { statusCode?: number })?.statusCode || 0)
+        if (!isRepeat) await log(isGone(status) ? "gone" : "failed", sub.id, status || null)
         if (isGone(status) || sub.failure_count + 1 >= MAX_FAILURES) {
           await admin.from("push_subscriptions").delete().eq("id", sub.id)
         } else {
@@ -83,6 +131,11 @@ Deno.serve(async (request) => {
   }
 
   const sent = await sendAll(payload)
+
+  // Keep the log to two weeks. Cheap, and only now and then.
+  if (Math.random() < 0.02) {
+    await admin.from("push_delivery_log").delete().lt("created_at", new Date(Date.now() - 14 * 86400_000).toISOString())
+  }
 
   // Keep ringing: while the call is still unanswered, send it again every few
   // seconds. Runs after the response so the database trigger is not held up.
@@ -99,7 +152,7 @@ Deno.serve(async (request) => {
           .gte("created_at", new Date(Date.now() - 60_000).toISOString())
           .limit(1)
         if (!ringing?.length) return
-        await sendAll(JSON.stringify({ ...message, repeat: n }))
+        await sendAll(JSON.stringify({ ...message, repeat: n }), true)
       }
     }
     const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime
