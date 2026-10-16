@@ -82,3 +82,66 @@
 /* Older mail, loaded 50 at a time */
 .mailLoadMore{display:block;width:calc(100% - 28px);margin:14px;padding:12px;border-radius:12px;border:1px solid var(--border,#d6d3d1);background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
 .mailLoadMore:disabled{opacity:.6;cursor:default}
+
+/* Mail on a computer: the screen stays put and only the message list (and the
+   open message) scroll. The mail area is sized to the window, minus the top bar. */
+@media (min-width: 901px) {
+  .mailModule.responsiveModule {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: calc(100vh - 176px);
+    height: calc(100dvh - 176px);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .mailModule.responsiveModule > * { flex: 0 0 auto; }
+  .mailModule.responsiveModule .sectionTitle { margin: 0; align-items: center; }
+  .mailModule.responsiveModule .sectionTitle .eyebrow,
+  .mailModule.responsiveModule .sectionTitle p { display: none; }
+  .mailModule.responsiveModule .sectionTitle h2 { margin: 0; font-size: 22px; }
+  .mailModule.responsiveModule .mailboxAdmin { margin: 0; padding: 6px 10px; }
+  .mailModule.responsiveModule .mailboxSwitch { margin: 0; }
+  .mailModule.responsiveModule .mailNotice { padding: 8px 14px; }
+  .mailModule.responsiveModule .mailWorkspace {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 320px;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .mailModule.responsiveModule .mailFolders { min-height: 0; overflow-y: auto; }
+  .mailModule.responsiveModule .mailListPane { min-height: 0; overflow: hidden; }
+  .mailModule.responsiveModule .mailListScroller { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .mailModule.responsiveModule .mailReader { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+}
+
+/* Mail on a phone: same idea. The height is measured on the device (see mailFit.ts). */
+@media (max-width: 900px) {
+  .mailModule.responsiveModule {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: var(--mail-h, calc(100dvh - 300px));
+    min-height: 0;
+    overflow: hidden;
+  }
+  .mailModule.responsiveModule > * { flex: 0 0 auto; }
+  .mailModule.responsiveModule .sectionTitle { margin: 0; gap: 8px; }
+  /* The top bar already says Mail, and Compose is in the folder strip. Tap Inbox to refresh. */
+  .mailModule.responsiveModule .sectionTitle { display: none; }
+  .mailModule.responsiveModule .mailboxAdmin { margin: 0; padding: 6px 8px; }
+  .mailModule.responsiveModule .mailboxAdminBar { flex-wrap: nowrap; overflow-x: auto; }
+  .mailModule.responsiveModule .mailboxAdminBar button { flex: 0 0 auto; white-space: nowrap; }
+  .mailModule.responsiveModule .mailboxSwitch { margin: 0; }
+  .mailModule.responsiveModule .mailNotice { padding: 8px 12px; }
+  .mailModule.responsiveModule .mailWorkspace {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .mailModule.responsiveModule .mailListPane { min-height: 0; overflow: hidden; }
+  .mailModule.responsiveModule .mailListScroller { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+}

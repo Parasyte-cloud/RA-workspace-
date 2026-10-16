@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MailboxAdmin } from '../components/MailboxAdmin'
+import { bottomBarReserve, mailAreaHeight } from '../lib/mailFit'
 import {
   Archive,
   ArrowLeft,
@@ -105,6 +106,7 @@ export function MailModule(){
   const [mailboxId,setMailboxId]=useState('')
   const mailboxRef=useRef('')
   const flashRef=useRef('')
+  const moduleRef=useRef<HTMLElement|null>(null)
 
   // What the list on screen was loaded from, so "older" asks for the next page of the same thing.
   const sourceRef=useRef<{folderId?:string;view?:string}>({})
@@ -749,6 +751,36 @@ export function MailModule(){
     }
   }
 
+  // On a phone, size the mail area to the space between the top bar and the bottom menu,
+  // so the page stays still and only the message list scrolls.
+  useEffect(()=>{
+    const fit=()=>{
+      const node=moduleRef.current
+      if(!node) return
+      if(window.innerWidth>900){
+        node.style.removeProperty('--mail-h')
+        return
+      }
+      const reserve=bottomBarReserve(document,window.innerWidth,window.innerHeight)
+      const height=mailAreaHeight({
+        top:node.getBoundingClientRect().top,
+        scrollY:window.scrollY,
+        viewportHeight:window.innerHeight,
+        bottomReserve:reserve
+      })
+      node.style.setProperty('--mail-h',`${height}px`)
+    }
+    fit()
+    const timer=window.setTimeout(fit,400)
+    window.addEventListener('resize',fit)
+    window.addEventListener('orientationchange',fit)
+    return ()=>{
+      window.clearTimeout(timer)
+      window.removeEventListener('resize',fit)
+      window.removeEventListener('orientationchange',fit)
+    }
+  },[connected])
+
   const switchMailbox=(id:string)=>{
     if(!id || id===mailboxRef.current) return
     mailboxRef.current=id
@@ -887,7 +919,7 @@ export function MailModule(){
     })
 
   return (
-    <section className="mailModule responsiveModule">
+    <section className="mailModule responsiveModule" ref={moduleRef}>
       <div className="sectionTitle">
         <div>
           <span className="eyebrow">
