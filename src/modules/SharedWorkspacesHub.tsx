@@ -303,7 +303,7 @@ export default function SharedWorkspacesHub({
         .from('collaboration_messages')
         .select('id,space_id,author_id,body,created_at,updated_at')
         .eq('space_id',spaceId)
-        .order('created_at',{ascending:true})
+        .order('created_at',{ascending:false})
         .limit(300)
     ])
 
@@ -322,7 +322,8 @@ export default function SharedWorkspacesHub({
     }
 
     setMembers((memberResult.data || []) as Member[])
-    setMessages((messageResult.data || []) as Message[])
+    // Newest 300, oldest-first (Sweep RA-007).
+    setMessages([...((messageResult.data || []) as Message[])].reverse())
   },[])
 
   useEffect(()=>{

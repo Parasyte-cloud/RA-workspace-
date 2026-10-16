@@ -53,10 +53,15 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
   const loadRequestRef=useRef(0)
 
-  const unreadCount=useMemo(
+  // The list only holds the newest 30 rows, so the real unread total is asked
+  // of the database separately. Until that answer arrives we fall back to
+  // what is on screen. (Sweep RA-009.)
+  const [serverUnread,setServerUnread]=useState<number|null>(null)
+  const loadedUnread=useMemo(
     ()=>items.filter(item=>!item.read_at).length,
     [items]
   )
+  const unreadCount=serverUnread===null?loadedUnread:Math.max(serverUnread,loadedUnread)
 
   // Count on the app icon (installed app, where the device supports it).
   useEffect(()=>{
@@ -96,6 +101,12 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
     setItems((data||[]) as NotificationItem[])
     setLoading(false)
+
+    const {count}=await client
+      .from('notifications')
+      .select('id',{count:'exact',head:true})
+      .is('read_at',null)
+    if(requestSequence===loadRequestRef.current && typeof count==='number') setServerUnread(count)
   },[])
 
   useEffect(()=>{
@@ -153,6 +164,7 @@ export function NotificationsProvider({children}:{children:ReactNode}){
       return
     }
 
+    setServerUnread(n=>n===null?n:Math.max(0,n-1))
     setItems(current=>current.map(notification=>
       notification.id===item.id
         ? {...notification,read_at:new Date().toISOString()}
@@ -162,25 +174,26 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
   const markAllRead=useCallback(async()=>{
     if(!supabase) return
-    const unreadIds=items.filter(item=>!item.read_at).map(item=>item.id)
-    if(!unreadIds.length) return
+    if(unreadCount<=0) return
 
     const now=new Date().toISOString()
 
+    // Every unread row the person owns, not only the 30 on screen.
     const {error}=await supabase
       .from('notifications')
       .update({read_at:now})
-      .in('id',unreadIds)
+      .is('read_at',null)
 
     if(error){
       console.error('[RideArrivo Notifications]',error)
       return
     }
 
+    setServerUnread(0)
     setItems(current=>current.map(item=>
-      unreadIds.includes(item.id) ? {...item,read_at:now} : item
+      item.read_at ? item : {...item,read_at:now}
     ))
-  },[items])
+  },[unreadCount])
 
   // Removes notifications for good. Rows are only dropped from the screen once
   // the database confirms it deleted them, so a blocked delete never looks done.

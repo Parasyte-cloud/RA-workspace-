@@ -2200,6 +2200,15 @@ export function ChatShell(){
         p_room_code:room.room.room_code
       })
       if(error)throw error
+      // The database answers null when the other person is already on a call
+      // (sweep RA-012). Close the room we opened and say so; they see a
+      // missed call and can ring back.
+      if(callId===null||callId===undefined){
+        if(createdRoomId)void endCallRoom(createdRoomId)
+        createdRoomId=''
+        setCallNotice(`${displayName(selected.other)} is on another call. They will see a missed call from you.`)
+        return
+      }
       createdRoomId=''
       // Stay in Chat: the call opens as a small window over the conversation.
       requestJoinRoom({

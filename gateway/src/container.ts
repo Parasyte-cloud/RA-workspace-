@@ -479,25 +479,42 @@ export class EngineerContainerManager{
       throw error
     }
 
-    const execution=await container.exec({
-      AttachStdin:true,
-      AttachStdout:true,
-      AttachStderr:true,
-      Tty:true,
-      User:'10001:10001',
-      WorkingDir:'/workspace',
-      Cmd:['/bin/bash','--login']
-    })
+    // Everything between marking the user active and handing back close()
+    // must release the marker on failure, or scheduleStop would refuse to ever
+    // stop this container (sweep RA-017).
+    let execution:Docker.Exec
+    let stream:Duplex
 
-    const stream=await execution.start({
-      hijack:true,
-      stdin:true
-    }) as Duplex
+    try{
+      execution=await container.exec({
+        AttachStdin:true,
+        AttachStdout:true,
+        AttachStderr:true,
+        Tty:true,
+        User:'10001:10001',
+        WorkingDir:'/workspace',
+        Cmd:['/bin/bash','--login']
+      })
 
-    await execution.resize({
-      w:cols,
-      h:rows
-    })
+      stream=await execution.start({
+        hijack:true,
+        stdin:true
+      }) as Duplex
+
+      try{
+        await execution.resize({
+          w:cols,
+          h:rows
+        })
+      }catch(error){
+        stream.destroy()
+        throw error
+      }
+    }catch(error){
+      this.activeShellUsers.delete(userId)
+      this.scheduleStop(userId,container)
+      throw error
+    }
 
     let closed=false
 

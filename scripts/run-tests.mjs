@@ -1,7 +1,8 @@
 // Runs every contract and unit test that needs nothing but Node.
-// Two suites are skipped here because they drive a local Supabase stack and
-// need the Supabase CLI: run them with `npm run test:supabase` when it is
-// installed.
+// The suites in NEEDS_SUPABASE (listed below) are skipped here because they
+// drive a local Supabase stack and need the Supabase CLI. Run them with
+// `npm run test:supabase`. CI runs them in the separate "Supabase security
+// suites" job, so they are still a merge gate.
 import { readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 

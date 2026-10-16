@@ -76,7 +76,7 @@ export default function DepartmentDiscussionPanel(){
         )
         .order(
           'created_at',
-          {ascending:true}
+          {ascending:false}
         )
         .limit(500)
 
@@ -84,8 +84,10 @@ export default function DepartmentDiscussionPanel(){
         throw result.error
       }
 
+      // Newest 500, shown oldest-first. (Sweep RA-007: ascending + limit
+      // froze the room on its first 500 messages.)
       setMessages(
-        (result.data || []) as DiscussionMessage[]
+        [...((result.data || []) as DiscussionMessage[])].reverse()
       )
     },
     []
