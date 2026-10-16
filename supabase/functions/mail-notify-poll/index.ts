@@ -15,7 +15,7 @@ import { getZohoAccessToken } from "../_shared/zoho.ts"
 
 const SECRET = Deno.env.get("PUSH_DISPATCH_SECRET") || ""
 const MAX_PEOPLE = 200
-const MAX_MAILBOXES_PER_PERSON = 5
+const MAX_MAILBOXES_PER_PERSON = 10
 const DEADLINE_MS = 100_000
 
 function json(body: unknown, status = 200) {

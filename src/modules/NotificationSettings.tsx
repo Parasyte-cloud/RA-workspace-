@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { BellRing, LogOut, MessageCircle, Play, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
+import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
+import { AUTH_STORAGE_KEY } from '../lib/supabase'
 import {
   RINGTONES,
   previewRingtone,
@@ -23,6 +25,11 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
   const [testNote, setTestNote] = useState('')
   const [chat, setChat] = useState<ChatSoundPrefs>(() => readChatPrefs())
   const [chatNote, setChatNote] = useState('')
+  const [keep, setKeep] = useState(() => readKeepSignedIn(window.localStorage))
+  const changeKeep = (next: boolean) => {
+    setKeep(next)
+    moveSession(window.localStorage, window.sessionStorage, AUTH_STORAGE_KEY, next)
+  }
 
   const updateChat = (patch: Partial<ChatSoundPrefs>) => {
     const next = { ...chat, ...patch }
@@ -138,6 +145,19 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           {note && <small className="settingsNote">{note}</small>}
         </article>
 
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><LogOut size={16} /></span>
+            <div>
+              <h3>Keep me signed in</h3>
+              <p>On: this device stays signed in after you close the app. Off: you are signed out when the browser or app is closed. Turn it off on any shared device. This setting is per device.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={keep} onChange={event => changeKeep(event.target.checked)} />
+            <span>Keep me signed in on this device</span>
+          </label>
+        </article>
         <AlertPreferences />
         <article className="appearanceSettingCard">
           <div className="appearanceSettingCopy">

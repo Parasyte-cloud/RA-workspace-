@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseAuthLink } from './authLink'
+import { createAuthStorage } from './keepSignedIn'
+
+export const AUTH_STORAGE_KEY = 'ridearrivo-workspace-auth'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -22,11 +25,12 @@ export const supabase: SupabaseClient | null =
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
+          // Follows the "Keep me signed in" choice for this device.
           storage:
             typeof window !== 'undefined'
-              ? window.localStorage
+              ? createAuthStorage(window.localStorage, window.sessionStorage)
               : undefined,
-          storageKey: 'ridearrivo-workspace-auth',
+          storageKey: AUTH_STORAGE_KEY,
         },
       })
     : null

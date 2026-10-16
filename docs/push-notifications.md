@@ -92,3 +92,19 @@ Setup after merging:
 
 Limits: a web app cannot take over the whole screen like a native call. iPhone needs the
 app on the Home Screen.
+
+## Keep me signed in, mailboxes and mailbox access (added Oct 2026)
+
+- **Keep me signed in** is a tick box on the sign-in screen (ticked by default on phones,
+  unticked on desktop browsers) and a switch in Settings. It is per device. Ticked keeps the
+  session in local storage; unticked keeps it in session storage, so closing the browser or app
+  signs out. Sign-out and account removal behave the same either way. Supabase session limits
+  (Authentication > Sessions) still apply on top.
+- **Mailbox switcher**: when a person has more than one mailbox, Mail shows a Mailbox menu and
+  every mail call carries that `mailboxId`. The last choice is remembered on the device.
+- **Mailbox access (admins only)**: Mail shows "Manage mailbox access". Pick a mailbox, then tick
+  Read and Send per person and choose which one opens first. A person can have up to 10.
+  Changes are written to `zoho_mail_audit_events`.
+- Connecting a new Zoho mailbox is still done by its owner (Mail > Connect Zoho Mail).
+- Setup: run `supabase/migrations/20261016280000_zoho_mailbox_admin.sql`, then redeploy
+  `mail-notify-poll` (it now checks up to 10 mailboxes per person).

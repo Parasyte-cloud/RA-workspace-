@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { MailboxAdmin } from '../components/MailboxAdmin'
 import {
   Archive,
   ArrowLeft,
@@ -84,6 +85,12 @@ export function MailModule(){
   const [activeFolderKey,setActiveFolderKey]=
     useState<MailFolderKey>('inbox')
 
+  // Every mailbox this person may open (up to 10) and the one on screen.
+  const [mailboxes,setMailboxes]=
+    useState<{mailboxId:string;email:string|null;displayName:string|null;isDefault:boolean;permissions?:{send?:boolean}}[]>([])
+  const [mailboxId,setMailboxId]=useState('')
+  const mailboxRef=useRef('')
+
   const [compose,setCompose]=useState(false)
   const [to,setTo]=useState('')
   const [subject,setSubject]=useState('')
@@ -109,11 +116,17 @@ export function MailModule(){
       )
     }
 
+    // Every mail call is scoped to the mailbox on screen.
+    const scoped=
+      name!=='zoho-mail-auth-url' && name!=='zoho-mail-status' && mailboxRef.current
+        ? {...(body||{}),mailboxId:mailboxRef.current}
+        : (body||{})
+
     const {data,error}=
       await supabase.functions.invoke(
         name,
         {
-          body:body || {},
+          body:scoped,
           headers:{
             Authorization:
               `Bearer ${session.access_token}`
@@ -161,6 +174,18 @@ export function MailModule(){
       const data=
         await invoke('zoho-mail-status')
 
+      const list=Array.isArray(data?.mailboxes) ? data.mailboxes : []
+      setMailboxes(list)
+      if(list.length>0 && !mailboxRef.current){
+        let saved=''
+        try{ saved=window.localStorage.getItem('ridearrivo-mailbox')||'' }catch{ /* ignore */ }
+        const pick=
+          list.find((m:any)=>m.mailboxId===saved) ||
+          list.find((m:any)=>m.isDefault) ||
+          list[0]
+        mailboxRef.current=pick.mailboxId
+        setMailboxId(pick.mailboxId)
+      }
       setConnected(Boolean(data?.connected))
     }catch(error:any){
       setConnected(false)
@@ -644,6 +669,23 @@ export function MailModule(){
     }
   }
 
+  const switchMailbox=(id:string)=>{
+    if(!id || id===mailboxRef.current) return
+    mailboxRef.current=id
+    setMailboxId(id)
+    try{ window.localStorage.setItem('ridearrivo-mailbox',id) }catch{ /* ignore */ }
+    setMessages([])
+    setSelected(null)
+    setFolders([])
+    setActiveFolder(null)
+    setActiveFolderKey('inbox')
+    setSearch('')
+    setCompose(false)
+    setMessage('')
+    void loadInbox()
+    void loadFolders()
+  }
+
   useEffect(()=>{
     void checkConnection()
   },[])
@@ -683,6 +725,8 @@ export function MailModule(){
             </p>
           </div>
         </div>
+
+        <MailboxAdmin/>
 
         <div className="mailConnect glassCard">
           <Mail size={34}/>
@@ -791,6 +835,25 @@ export function MailModule(){
           </button>
         </div>
       </div>
+
+      <MailboxAdmin/>
+
+      {mailboxes.length>1 &&
+        <div className="mailboxSwitch" role="group" aria-label="Choose mailbox">
+          <label>
+            <span>Mailbox</span>
+            <select value={mailboxId} onChange={event=>switchMailbox(event.target.value)}>
+              {mailboxes.map(box=>(
+                <option key={box.mailboxId} value={box.mailboxId}>
+                  {box.displayName && box.displayName!==box.email
+                    ? `${box.displayName} (${box.email})`
+                    : (box.email||box.mailboxId)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      }
 
       {message &&
         <div className="mailNotice">

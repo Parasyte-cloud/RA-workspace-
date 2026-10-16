@@ -60,3 +60,19 @@
 .alertDevices{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .alertDevices li{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
 .alertDevices small{color:var(--muted,#6b7280)}
+
+/* Mailbox switcher at the top of Mail */
+.mailboxSwitch{margin:0 0 12px}
+.mailboxSwitch label{display:flex;align-items:center;gap:10px;font-size:.85rem}
+.mailboxSwitch select{min-height:40px;max-width:100%;padding:6px 10px;border-radius:10px;border:1px solid var(--border,#d6d3d1);background:transparent;color:inherit}
+
+/* Mailbox access (admins) */
+.mailboxAdmin{margin:0 0 12px;padding:12px}
+.mailboxAdminBody{margin-top:12px;overflow-x:auto}
+.mailboxAdminPick{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:.85rem}
+.mailboxAdminPick select{min-height:40px;max-width:100%;padding:6px 10px;border-radius:10px;border:1px solid var(--border,#d6d3d1);background:transparent;color:inherit}
+.mailboxAdminTable{width:100%;border-collapse:collapse;font-size:.88rem}
+.mailboxAdminTable th,.mailboxAdminTable td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--border,#e7e5e4);vertical-align:middle}
+.mailboxAdminTable td small{display:block;color:var(--muted,#6b7280)}
+.mailboxAdminTable input{width:20px;height:20px}
+.mailboxAdminNote{display:block;margin-top:8px}

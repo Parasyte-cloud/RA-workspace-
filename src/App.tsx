@@ -67,6 +67,7 @@ import {
 } from 'lucide-react'
 import PhoneNav from './modules/PhoneNav'
 import { NotificationSettings } from './modules/NotificationSettings'
+import { defaultKeepForDevice, readKeepSignedIn, writeKeepSignedIn } from './lib/keepSignedIn'
 import { supabase,
   supabaseConfigured,
   initialAuthLink } from './lib/supabase'
@@ -1604,6 +1605,12 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
   const [password,setPassword]=useState('')
   const [message,setMessage]=useState(linkProblem)
   const [reveal,setReveal]=useState(false)
+  const [keepSignedIn,setKeepSignedIn]=useState(()=>{
+    try{
+      if(window.localStorage.getItem('ridearrivo-keep-signed-in')!==null) return readKeepSignedIn(window.localStorage)
+      return defaultKeepForDevice(navigator.userAgent,window.matchMedia?.('(pointer: coarse)').matches===true)
+    }catch{ return true }
+  })
   const [busy,setBusy]=useState(false)
 
   const cleanEmail=email.trim().toLowerCase()
@@ -1675,6 +1682,8 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
     setBusy(true)
 
     try{
+      // Decide where the session is stored before it is created.
+      writeKeepSignedIn(window.localStorage,keepSignedIn)
       let {error}=await supabase.auth.signInWithPassword({
         email:cleanEmail,
         password
@@ -1774,6 +1783,12 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
             <input type="checkbox" checked={reveal} onChange={e=>setReveal(e.target.checked)} style={{width:'auto'}}/>
             Show password
           </label>
+
+          <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'12px',margin:'-4px 0 8px'}}>
+            <input type="checkbox" checked={keepSignedIn} onChange={e=>setKeepSignedIn(e.target.checked)} style={{width:'auto'}}/>
+            Keep me signed in on this device
+          </label>
+          {!keepSignedIn&&<small className="authMessage" style={{display:'block',marginBottom:8}}>You will be signed out when you close the browser or app. Do not tick this on a shared device.</small>}
 
           {notice&&!message&&<div className="authMessage" role="status">{notice}</div>}
 
