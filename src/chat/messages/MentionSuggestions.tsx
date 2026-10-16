@@ -43,7 +43,7 @@ export function MentionSuggestions({
             onSelect(member)
           }}
         >
-          <span className="cmMentionAvatar">
+          <span className={`cmMentionAvatar${member.userId.startsWith('*') ? ' broadcast' : ''}`}>
             {member.name
               .trim()
               .split(/\s+/)

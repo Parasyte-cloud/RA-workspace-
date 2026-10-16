@@ -2,6 +2,8 @@ import { explainWriteError } from '../modules/adminChatAccessModel'
 import {
   Archive,
   ArchiveRestore,
+  Bell,
+  BellOff,
   ArrowLeft,
   Check,
   CheckCheck,
@@ -9,6 +11,7 @@ import {
   FileDown,
   FileText,
   MessageSquareText,
+  MessagesSquare,
   Mic,
   Paperclip,
   Phone,
@@ -41,6 +44,17 @@ import { ChatAvatar } from './ui/ChatAvatar'
 import { EmojiPicker } from './ui/EmojiPicker'
 import { MessageToolbar, ReactionChips } from './ui/ReactionBar'
 import { PinnedBar } from './ui/PinnedBar'
+import ThreadPanel from './ui/ThreadPanel'
+import MessageSearchResults from './ui/MessageSearchResults'
+import { addTyper, liveTypers, typingSentence, TYPING_TTL_MS } from './typingPeople'
+import type { Typer } from './typingPeople'
+import { loadDraft, saveDraft, listDrafts, draftPreview } from './drafts'
+import { MUTE_CHOICES, isMuted, muteLabel } from './mutes'
+import { broadcastSuggestions, detectBroadcast } from './broadcast'
+import { searchable } from './messageSearch'
+import type { SearchHit } from './messageSearch'
+import { replyCounts, threadView, repliesLabel } from './threads'
+import './chat-batch2.css'
 import { InChatSearch } from './ui/InChatSearch'
 import { MyChatProfile, PersonCard } from './ui/ProfileDialogs'
 import '../chat-extras.css'
@@ -118,14 +132,12 @@ import {
 } from '../lib/chatAttachments'
 import {
   OLDER_PAGE,
-  TYPING_SHOW_MS,
   canDelete,
   canEdit,
   isDeleted,
   keepOlderThan,
   mergeOlder,
-  shouldSendTyping,
-  typingLine
+  shouldSendTyping
 } from '../lib/chatEdit'
 
 type Person = {
@@ -301,7 +313,16 @@ export function ChatShell(){
   const [editingId,setEditingId]=useState('')
   const [editText,setEditText]=useState('')
   const [editBusy,setEditBusy]=useState(false)
-  const [otherTyping,setOtherTyping]=useState(false)
+  const [typers,setTypers]=useState<Typer[]>([])
+  const [drafts,setDrafts]=useState<Record<string,string>>({})
+  const [mutes,setMutes]=useState<Record<string,string|null>>({})
+  const [muteOpen,setMuteOpen]=useState(false)
+  const [searchHits,setSearchHits]=useState<SearchHit[]>([])
+  const [searchLoading,setSearchLoading]=useState(false)
+  const pendingJumpRef=useRef('')
+  const [threadRootId,setThreadRootId]=useState('')
+  const [threadFetched,setThreadFetched]=useState<Message[]>([])
+  const [repliesLoading,setRepliesLoading]=useState(false)
   const [hasOlder,setHasOlder]=useState(false)
   const [loadingOlder,setLoadingOlder]=useState(false)
   const baseTimerRef=useRef(0)
@@ -347,17 +368,19 @@ export function ChatShell(){
   // Typing indicator: a broadcast channel per open chat. Nothing is stored.
   useEffect(()=>{
     const client=supabase
-    setOtherTyping(false)
+    setTypers([])
     typingChannelRef.current=null
     if(!client || !selectedId || !userId)return
     const channel=client.channel(`typing-${selectedId}`)
     channel
       .on('broadcast',{event:'typing'},payload=>{
-        const from=(payload.payload as {userId?:string}|undefined)?.userId
+        const info=payload.payload as {userId?:string;name?:string}|undefined
+        const from=info?.userId
         if(!from || from===userId)return
-        setOtherTyping(true)
+        const now=Date.now()
+        setTypers(current=>addTyper(liveTypers(current,now),from,info?.name || '',now))
         window.clearTimeout(typingTimerRef.current)
-        typingTimerRef.current=window.setTimeout(()=>setOtherTyping(false),TYPING_SHOW_MS)
+        typingTimerRef.current=window.setTimeout(()=>setTypers(current=>liveTypers(current,Date.now())),TYPING_TTL_MS+100)
       })
       .subscribe()
     typingChannelRef.current=channel as unknown as {send:(payload:unknown)=>unknown}
@@ -368,12 +391,94 @@ export function ChatShell(){
     }
   },[selectedId,userId])
 
+  // Drafts: what was typed and not sent comes back when the chat is reopened.
+  useEffect(()=>{
+    if(!userId)return
+    setDrafts(listDrafts(userId))
+  },[userId])
+  useEffect(()=>{
+    if(!userId || !selectedId)return
+    setMessageText(loadDraft(userId,selectedId))
+    setSelectedMentions([])
+    setThreadRootId('')
+    setMuteOpen(false)
+    requestAnimationFrame(()=>resizeComposer())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selectedId,userId])
+  const rememberDraft=(conversationId:string,text:string)=>{
+    if(!userId || !conversationId)return
+    saveDraft(userId,conversationId,text)
+    setDrafts(current=>{
+      const next={...current}
+      if(text.trim())next[conversationId]=text
+      else delete next[conversationId]
+      return next
+    })
+  }
+
+  // Muted chats for this person.
+  useEffect(()=>{
+    const client=supabase
+    if(!client || !userId)return
+    void client.from('chat_conversation_prefs').select('conversation_id,muted_until').eq('user_id',userId).then(({data,error})=>{
+      if(error || !data)return
+      const next:Record<string,string|null>={}
+      for(const row of data as Array<{conversation_id:string;muted_until:string|null}>)next[row.conversation_id]=row.muted_until
+      setMutes(next)
+    })
+  },[userId])
+  const chooseMute=async(duration:string)=>{
+    const client=supabase
+    if(!client || !selectedId)return
+    setMuteOpen(false)
+    const {data,error}=await client.rpc('set_chat_mute',{p_conversation_id:selectedId,p_duration:duration})
+    if(error){setNotice(error.message)
+      return}
+    setMutes(current=>({...current,[selectedId]:(data as string|null) ?? null}))
+  }
+
+  // Search across every chat, once at least three characters are typed.
+  useEffect(()=>{
+    const client=supabase
+    const text=query.trim()
+    if(!client || newChatOpen || !searchable(text)){
+      setSearchHits([])
+      setSearchLoading(false)
+      return
+    }
+    setSearchLoading(true)
+    let live=true
+    const timer=window.setTimeout(()=>{
+      void client.rpc('search_chat_messages',{p_query:text,p_limit:30}).then(({data,error})=>{
+        if(!live)return
+        setSearchHits(error || !data ? [] : data as SearchHit[])
+        setSearchLoading(false)
+      })
+    },300)
+    return()=>{live=false;window.clearTimeout(timer)}
+  },[query,newChatOpen])
+
+  // Threads: fetch the replies of the open thread, including ones not loaded in the chat.
+  useEffect(()=>{
+    const client=supabase
+    setThreadFetched([])
+    if(!client || !threadRootId)return
+    let live=true
+    setRepliesLoading(true)
+    void client.rpc('get_chat_thread',{p_root:threadRootId}).then(({data,error})=>{
+      if(!live)return
+      setThreadFetched(error || !data ? [] : data as Message[])
+      setRepliesLoading(false)
+    })
+    return()=>{live=false}
+  },[threadRootId])
+
   const pingTyping=()=>{
     const channel=typingChannelRef.current
     const now=Date.now()
     if(!channel || !shouldSendTyping(typingSentRef.current,now))return
     typingSentRef.current=now
-    void channel.send({type:'broadcast',event:'typing',payload:{userId}})
+    void channel.send({type:'broadcast',event:'typing',payload:{userId,name:displayName(peopleRef.current.get(userId||''))}})
   }
   useEffect(()=>{directsRef.current=directs},[directs])
   useEffect(()=>{userRef.current=userId},[userId])
@@ -389,8 +494,13 @@ export function ChatShell(){
     if(mentionQuery===null || !selectedRoom)return []
 
     const normalized=mentionQuery.trim().toLowerCase()
+    const broadcast=broadcastSuggestions(mentionQuery,true).map(item=>({
+      userId:`*${item.kind}`,
+      name:item.title,
+      email:item.hint
+    }))
 
-    return roomMembers
+    return [...broadcast,...roomMembers
       .filter(member=>member.userId!==userId)
       .filter(member=>{
         if(!normalized)return true
@@ -402,7 +512,7 @@ export function ChatShell(){
         userId:member.userId,
         name:member.name,
         email:member.email
-      }))
+      }))].slice(0,10)
   },[mentionQuery,roomMembers,selectedRoom,userId])
 
   const closeMentionSuggestions=()=>{
@@ -1451,6 +1561,14 @@ export function ChatShell(){
       }
     }
 
+    const broadcastKind=detectBroadcast(body,rooms.some(room=>room.id===conversationId))
+    if(broadcastKind){
+      const {error:broadcastError}=await client.rpc('register_chat_broadcast_mention',{p_message_id:(data as Message).id,p_kind:broadcastKind})
+      if(broadcastError){
+        setNotice(`Message sent, but @${broadcastKind} did not notify anyone: ${broadcastError.message}`)
+      }
+    }
+
     retryFilesRef.current.delete(id)
     const saved={...(data as Message),localUrl:optimistic.localUrl}
     setNotice('')
@@ -1667,10 +1785,11 @@ export function ChatShell(){
     const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
     const files=staged
     const mentionedUserIds=selectedMentions
-      .filter(item=>body.includes(item.token))
+      .filter(item=>body.includes(item.token) && !item.userId.startsWith('*'))
       .map(item=>item.userId)
 
     setMessageText('')
+    if(selectedId)rememberDraft(selectedId,'')
     setSelectedMentions([])
     closeMentionSuggestions()
     setReplyTo(null)
@@ -1853,6 +1972,25 @@ export function ChatShell(){
     element.classList.add('flash')
     window.setTimeout(()=>element.classList.remove('flash'),1200)
   }
+
+  // After opening a chat from a search hit, scroll to the message once it is on screen.
+  useEffect(()=>{
+    const target=pendingJumpRef.current
+    if(!target)return
+    const timer=window.setTimeout(()=>{
+      pendingJumpRef.current=''
+      jumpToMessage(target)
+    },500)
+    return()=>window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selectedId,messages.length])
+
+  const replyStats=useMemo(()=>replyCounts(messages),[messages])
+  const thread=useMemo(()=>{
+    if(!threadRootId)return null
+    const loaded=messages.filter(m=>m.conversation_id===selectedId)
+    return threadView(threadRootId,loaded,threadFetched)
+  },[threadRootId,messages,threadFetched,selectedId])
 
   // On a phone the open chat follows the visible area, so the on screen
   // keyboard never hides the message box.
@@ -2038,12 +2176,30 @@ export function ChatShell(){
               </div>
             )}
 
+            {!newChatOpen&&searchable(query.trim())&&(
+              <MessageSearchResults
+                hits={searchHits}
+                query={query.trim()}
+                loading={searchLoading}
+                titleOf={id=>rooms.find(room=>room.id===id)?.title || displayName(directs.find(row=>row.conversation.id===id)?.other) || 'Chat'}
+                senderOf={id=>id===userId?'You':displayName(peopleMap.get(id))}
+                formatWhen={formatListTime}
+                onOpen={hit=>{
+                  pendingJumpRef.current=hit.message_id
+                  setQuery('')
+                  openConversation(hit.conversation_id)
+                }}
+              />
+            )}
+
             {!newChatOpen&&filter!=='calls'&&rooms.length>0&&(
               <div className="cmGroup">
                 <div className="cmGroupLabel">Rooms</div>
                 <RoomList
                   rooms={rooms}
                   selectedId={selectedId}
+                  mutedIds={new Set(Object.entries(mutes).filter(([,until])=>isMuted(until)).map(([id])=>id))}
+                  drafts={Object.fromEntries(Object.entries(drafts).map(([id,text])=>[id,draftPreview(text)]))}
                   onSelect={conversationId=>{
                     setSelectedId(conversationId)
                     setMobileThreadOpen(true)
@@ -2117,12 +2273,15 @@ export function ChatShell(){
                       {avatarFor(row.other)}
                       <span className="cmRowCopy">
                         <span className="cmRowTop">
-                          <strong>{displayName(row.other)}</strong>
+                          <strong>{displayName(row.other)}{isMuted(mutes[row.conversation.id])&&<BellOff size={13} className="cmMutedIcon" aria-label="Muted"/>}</strong>
                           <small className={badge>0?'unread':''}>{formatListTime((callIsLatest&&lastCall?lastCall.created_at:row.latest?.created_at) || row.conversation.created_at)}</small>
                         </span>
                         <span className="cmRowBottom">
                           <small className={missedNew>0?'cmMissedText':''}>
-                            {callIsLatest&&lastCall
+                            {drafts[row.conversation.id]&&selectedId!==row.conversation.id&&<span className="cmDraft">Draft:</span>}
+                            {drafts[row.conversation.id]&&selectedId!==row.conversation.id
+                              ? draftPreview(drafts[row.conversation.id])
+                              : callIsLatest&&lastCall
                               ? callPreview(lastCall,userId)
                               : row.latest?`${mine?'You: ':''}${messagePreview(row.latest)}`:secondary(row.other)}
                           </small>
@@ -2286,6 +2445,33 @@ export function ChatShell(){
                   >
                     <MoreHorizontal size={18}/>
                   </button>
+                  <div className="cmMuteWrap">
+                    <button
+                      type="button"
+                      className="cmRound cmSecondary"
+                      title={isMuted(mutes[selectedId])?muteLabel(mutes[selectedId]):'Mute notifications'}
+                      aria-label="Mute notifications"
+                      aria-expanded={muteOpen}
+                      onClick={event=>{event.stopPropagation();setMuteOpen(open=>!open)}}
+                    >
+                      {isMuted(mutes[selectedId])?<BellOff size={18}/>:<Bell size={18}/>}
+                    </button>
+                    {muteOpen&&(
+                      <div className="cmMenu" role="menu" onClick={event=>event.stopPropagation()}>
+                        <div className="cmMenuHead">{isMuted(mutes[selectedId])?muteLabel(mutes[selectedId]):'Mute for'}</div>
+                        {MUTE_CHOICES.map(choice=>(
+                          <button key={choice.id} type="button" role="menuitem" onClick={()=>void chooseMute(choice.id)}>
+                            <strong>{choice.label}</strong>
+                          </button>
+                        ))}
+                        {isMuted(mutes[selectedId])&&(
+                          <button type="button" role="menuitem" onClick={()=>void chooseMute('off')}>
+                            <strong>Turn sound back on</strong>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     className="cmRound cmSecondary"
@@ -2675,6 +2861,11 @@ export function ChatShell(){
                           )}
                         </span>
                       </div>
+                      {replyStats.get(message.id)&&(
+                        <button type="button" className="cmReplyChip" onClick={()=>setThreadRootId(message.id)}>
+                          <MessagesSquare size={13}/>{repliesLabel(replyStats.get(message.id)!.count)}
+                        </button>
+                      )}
                       <div className="cmActions">
                         {!deleted&&!message.pending&&!message.failed&&!editing&&(
                           <MessageToolbar
@@ -2684,6 +2875,17 @@ export function ChatShell(){
                             onReact={emoji=>void extras.react(message.id,emoji)}
                             onTogglePin={()=>void extras.setPinned(message.id,!extras.isPinned(message.id))}
                           />
+                        )}
+                        {canReply&&(
+                          <button
+                            type="button"
+                            className="cmReplyBtn"
+                            aria-label="Open thread"
+                            title="Thread"
+                            onClick={()=>setThreadRootId(message.id)}
+                          >
+                            <MessagesSquare size={14}/>
+                          </button>
                         )}
                         {canReply&&(
                           <button
@@ -2776,7 +2978,7 @@ export function ChatShell(){
                   ))}
                 </div>
               )}
-              {otherTyping&&<div className="cmTyping" role="status">{typingLine(displayName(selected.other))}</div>}
+              {typers.length>0&&<div className="cmTyping" role="status">{typingSentence(typers.map(item=>item.name))}</div>}
               <MessageComposer
                 sendState={composerSendState}
                 onRetry={()=>{
@@ -2865,6 +3067,7 @@ export function ChatShell(){
                     )
 
                     setMessageText(next)
+                    if(selectedId)rememberDraft(selectedId,next)
                     setSelectedMentions(current=>
                       current.filter(item=>
                         next.includes(item.token)
@@ -2981,6 +3184,17 @@ export function ChatShell(){
           title={secondary(peopleMap.get(cardId))}
           status={extras.statusOf(cardId)}
           onClose={()=>setCardId('')}
+        />
+      )}
+      {thread&&(
+        <ThreadPanel
+          root={thread.root?{...thread.root,body:thread.root.body || messagePreview(thread.root)}:null}
+          replies={thread.replies.map(item=>({...item,body:item.body || messagePreview(item)}))}
+          loading={repliesLoading}
+          nameOf={id=>id===userId?'You':displayName(peopleMap.get(id))}
+          formatWhen={formatListTime}
+          onSend={text=>void sendMessage({body:text,replyId:threadRootId})}
+          onClose={()=>setThreadRootId('')}
         />
       )}
     </section>

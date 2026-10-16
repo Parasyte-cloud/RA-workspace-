@@ -1,3 +1,4 @@
+import { BellOff } from 'lucide-react'
 import type {
   ConversationSummary,
 } from '../types'
@@ -6,6 +7,8 @@ type RoomListProps = {
   rooms: ConversationSummary[]
   selectedId?: string
   onSelect?: (conversationId: string) => void
+  mutedIds?: Set<string>
+  drafts?: Record<string, string>
 }
 
 function roomKindLabel(
@@ -29,6 +32,8 @@ export function RoomList({
   rooms,
   selectedId,
   onSelect,
+  mutedIds,
+  drafts,
 }: RoomListProps) {
   if (!rooms.length) {
     return (
@@ -66,10 +71,13 @@ export function RoomList({
             <span className="cmRoomRowCopy">
               <strong>
                 {room.title || 'Room'}
+                {mutedIds?.has(room.id) && <BellOff size={13} className="cmMutedIcon" aria-label="Muted" />}
               </strong>
 
               <small>
-                {roomKindLabel(room)}
+                {drafts?.[room.id] && !active
+                  ? <><span className="cmDraft">Draft:</span> {drafts[room.id]}</>
+                  : roomKindLabel(room)}
               </small>
             </span>
 

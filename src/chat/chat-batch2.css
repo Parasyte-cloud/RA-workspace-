@@ -1,0 +1,40 @@
+/* Typing line, mute, drafts, thread panel and message search results. */
+.cmSpin{animation:cmSpinKf .8s linear infinite}
+@keyframes cmSpinKf{to{transform:rotate(360deg)}}
+
+.cmTyping{padding:2px 18px 6px;font-size:.78rem;color:var(--cm-muted,#667085);display:flex;align-items:center;gap:6px}
+.cmTyping::before{content:'';display:inline-block;width:18px;height:6px;background:radial-gradient(circle,currentColor 2px,transparent 2.5px) 0 50%/6px 6px repeat-x;animation:cmDots 1s steps(3) infinite}
+@keyframes cmDots{0%{clip-path:inset(0 100% 0 0)}33%{clip-path:inset(0 66% 0 0)}66%{clip-path:inset(0 33% 0 0)}100%{clip-path:inset(0 0 0 0)}}
+
+.cmDraft{color:#d92d20;font-weight:700;margin-right:4px}
+.cmMutedIcon{opacity:.55;margin-left:4px;vertical-align:-2px}
+
+.cmMuteWrap{position:relative}
+.cmMenu .cmMenuHead{padding:8px 14px 4px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+
+.cmReplyChip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:3px 10px;border:0;border-radius:999px;background:rgba(246,161,26,.16);color:inherit;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}
+.cmReplyChip:hover{background:rgba(246,161,26,.3)}
+
+.cmThreadPanel{position:fixed;top:0;right:0;bottom:0;z-index:2000;width:min(420px,100vw);display:grid;grid-template-rows:auto 1fr auto;background:var(--cm-surface,#fff);color:var(--cm-ink,#101828);border-left:1px solid rgba(127,127,127,.25);box-shadow:-18px 0 50px rgba(0,0,0,.2);animation:cmThreadIn .25s ease-out}
+@keyframes cmThreadIn{from{opacity:0}}
+.cmThreadPanel>header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(127,127,127,.2)}
+.cmThreadPanel>header button{width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(127,127,127,.15);color:inherit;cursor:pointer}
+.cmThreadBody{overflow-y:auto;padding:14px 16px;display:grid;align-content:start;gap:10px;overscroll-behavior:contain}
+.cmThreadMsg{padding:10px 12px;border-radius:14px;background:rgba(127,127,127,.1)}
+.cmThreadMsg.root{background:rgba(246,161,26,.14);border:1px solid rgba(246,161,26,.4)}
+.cmThreadMsg.failed{border:1px solid #d92d20}
+.cmThreadMeta{display:flex;gap:8px;align-items:baseline;font-size:.74rem;opacity:.8}
+.cmThreadMeta em{color:#d92d20;font-style:normal}
+.cmThreadMsg p{margin:3px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem;line-height:1.4}
+.cmThreadDivider{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;opacity:.6;display:flex;align-items:center;gap:10px}
+.cmThreadDivider::after{content:'';flex:1;height:1px;background:rgba(127,127,127,.3)}
+.cmThreadEmpty{display:flex;align-items:center;gap:8px;opacity:.7;font-size:.88rem;padding:6px 0}
+.cmThreadPanel form{display:flex;gap:8px;padding:12px 14px;border-top:1px solid rgba(127,127,127,.2);padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.cmThreadPanel input{flex:1;min-width:0;min-height:42px;padding:0 14px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;font-size:16px;outline:none}
+.cmThreadPanel input:focus{border-color:#f6a11a}
+.cmThreadPanel form button{flex:0 0 auto;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:50%;background:#f6a11a;color:#160e03;cursor:pointer}
+.cmThreadPanel form button:disabled{opacity:.45;cursor:default}
+
+.cmHit .cmHitIcon{flex:0 0 auto;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:rgba(127,127,127,.15)}
+.cmHit mark{background:rgba(246,161,26,.35);color:inherit;border-radius:3px;padding:0 1px}
+.cmMentionSuggestions .cmMentionAvatar.broadcast{background:#f6a11a;color:#160e03}
