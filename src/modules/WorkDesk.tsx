@@ -906,6 +906,7 @@ export function WorkDesk(){
                   itemId={item.id}
                   status={item.status}
                   rx={rx}
+                  recipients={[item.created_by,...assignees.map(a=>a.assignee_id)]}
                 />
 
                 <button
@@ -976,7 +977,7 @@ export function WorkDesk(){
 
       <WorkCelebration
         ribbon={rx.celebration}
-        giverName={rx.celebration?rx.nameOf(rx.celebration.given_by):''}
+        giverName={rx.celebration?`from ${rx.nameOf(rx.celebration.given_by)}`:''}
         task={rx.celebration?items.find(item=>item.id===rx.celebration?.work_item_id)?.title:''}
         onClose={()=>rx.celebrate(null)}
       />

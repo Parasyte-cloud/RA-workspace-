@@ -45,6 +45,8 @@ import type { RoomLeaveReason } from './RoomModule'
 import RoomChat from '../room7-shared/RoomChat'
 import { useRoomChat } from '../room7-shared/useRoomChat'
 import '../room7-shared/room7-chat.css'
+import { supabase } from '../lib/supabase'
+import { useCanGiveRibbon } from '../components/Recognition'
 
 type RoomStatus='active'|'ended'
 
@@ -360,13 +362,21 @@ export default function RoomMeeting({
     onLeftRef.current('schedule')
   },[meeting])
 
+  const ribbonRights=useCanGiveRibbon()
   const extras=useRoom7MeetingExtras({
     meeting,
     role:session.role==='host'?'host':'member',
     scheduledEnd:session.event?.scheduled_end||null,
     onAutoEnd:session.role==='host'?onEnded:undefined,
     onExtend:session.role==='host'?onExtend:undefined,
-    onScheduleLeave:scheduleLeave
+    onScheduleLeave:scheduleLeave,
+    buzzer:session.role==='host'&&ribbonRights.canGive?{
+      onBuzz:async(honoree,message)=>{
+        if(!supabase)return 'Not connected.'
+        const {error}=await supabase.rpc('give_room_buzzer',{p_honoree:honoree,p_message:message,p_ref:session.room.id})
+        return error?error.message:null
+      }
+    }:undefined
   })
 
   // The saved team chat of this meeting (not for one-to-one calls). It is

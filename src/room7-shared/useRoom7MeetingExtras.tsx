@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react'
 import {
+  Award,
   Clock3,
   Hand,
   MessageSquare,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { useRealtimeKitClient } from '@cloudflare/realtimekit-react'
 import './room7-meeting-extras.css'
+import { WorkCelebration } from '../components/RibbonCelebration'
 
 /*
  * ROOM 7 meeting extras: raise hand, reactions and scheduled-end control.
@@ -58,6 +60,9 @@ const REACTIONS = ['👍', '👏', '❤️', '😂', '🎉', '😮', '🙏']
 const MSG_HAND = 'r7:hand'
 const MSG_LOWER = 'r7:hand-lower'
 const MSG_REACT = 'r7:react'
+const MSG_BUZZ = 'r7:buzzer'
+
+type Buzz = { key: number; name: string; from: string; message: string }
 const MSG_SYNC = 'r7:sync'
 const MSG_SCHEDULE = 'r7:schedule'
 
@@ -99,6 +104,7 @@ export function useRoom7MeetingExtras({
   onAutoEnd,
   onExtend,
   onScheduleLeave,
+  buzzer,
 }: {
   meeting: Meeting | null | undefined
   role: Room7ExtrasRole
@@ -106,8 +112,14 @@ export function useRoom7MeetingExtras({
   onAutoEnd?: () => Promise<void>
   onExtend?: (endIso: string) => Promise<void>
   onScheduleLeave?: () => void
+  /** Staff hosts who may give ribbons pass this. It returns an error message, or null when allowed. */
+  buzzer?: { onBuzz: (honoree: string, message: string) => Promise<string | null> }
 }) {
   const isHost = role === 'host'
+  const [buzz, setBuzz] = useState<Buzz | null>(null)
+  const [buzzOpen, setBuzzOpen] = useState(false)
+  const [buzzError, setBuzzError] = useState('')
+  const [buzzBusy, setBuzzBusy] = useState(false)
   const [hands, setHands] = useState<RaisedHand[]>([])
   const [reactions, setReactions] = useState<Reaction[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -230,6 +242,18 @@ export function useRoom7MeetingExtras({
           removeHand(peer)
           if (peer === meeting.self.id) pushToast('The host lowered your hand')
         }
+        return
+      }
+
+      if (type === MSG_BUZZ && typeof payload.honoree === 'string') {
+        // A celebration only: it grants nothing, so a forged one is harmless.
+        if (peer === meeting.self.id) return
+        setBuzz({
+          key: Date.now(),
+          name: String(payload.honoree).slice(0, 80) || 'The team',
+          from: name,
+          message: typeof payload.message === 'string' ? payload.message.slice(0, 280) : '',
+        })
         return
       }
 
@@ -397,6 +421,28 @@ export function useRoom7MeetingExtras({
     void broadcast(MSG_LOWER, { peer: '', all: true, fromHost: true })
   }, [broadcast, isHost])
 
+  const participantNames = useCallback((): string[] => {
+    if (!meeting) return []
+    try {
+      const list = meeting.participants.joined.toArray() as Array<{ name?: string; id: string }>
+      return list.map(item => item.name || '').filter(Boolean).filter(n => n !== meeting.self.name)
+    } catch {
+      return []
+    }
+  }, [meeting])
+
+  const sendBuzzer = useCallback(async (honoree: string, message: string) => {
+    if (!meeting || !isHost || !buzzer) return
+    setBuzzBusy(true)
+    setBuzzError('')
+    const problem = await buzzer.onBuzz(honoree, message)
+    setBuzzBusy(false)
+    if (problem) { setBuzzError(problem); return }
+    setBuzzOpen(false)
+    setBuzz({ key: Date.now(), name: honoree || 'The team', from: 'You', message })
+    void broadcast(MSG_BUZZ, { honoree: honoree || 'The team', message, peer: meeting.self.id, name: selfName })
+  }, [meeting, isHost, buzzer, broadcast, selfName])
+
   const react = useCallback((emoji: string) => {
     if (!meeting || !REACTIONS.includes(emoji)) return
     const time = Date.now()
@@ -533,11 +579,20 @@ export function useRoom7MeetingExtras({
     canExtend: Boolean(onExtend),
     endNow,
     extend,
+    canBuzz: Boolean(buzzer) && isHost,
+    buzz,
+    dismissBuzz: () => setBuzz(null),
+    buzzOpen,
+    setBuzzOpen,
+    buzzError,
+    buzzBusy,
+    sendBuzzer,
+    participantNames,
   }), [
     meeting, chatAvailable, chatOpen, unreadChat, toggleChat, isHost, hands, myHandRaised, reactions, toasts, pickerOpen,
     toggleHand, lowerHand, lowerAllHands, react, endAt, remainingMs,
     endPromptOpen, promptRemaining, scheduleBusy, scheduleError, onExtend,
-    endNow, extend,
+    endNow, extend, buzzer, buzz, buzzOpen, buzzError, buzzBusy, sendBuzzer, participantNames,
   ])
 }
 
@@ -611,6 +666,8 @@ export function Room7ExtrasControls({
         )}
       </div>
 
+      {extras.canBuzz && <BuzzerButton extras={extras} />}
+
       {extras.remainingMs !== null && extras.remainingMs <= 15 * 60 * 1000 && (
         <span
           className={`r7xTimer ${extras.remainingMs <= 60 * 1000 ? 'urgent' : ''}`}
@@ -620,6 +677,48 @@ export function Room7ExtrasControls({
           <Clock3 size={14} />
           {extras.remainingMs > 0 ? formatRemaining(extras.remainingMs) : 'Time up'}
         </span>
+      )}
+    </div>
+  )
+}
+
+function BuzzerButton({ extras }: { extras: Room7MeetingExtras }) {
+  const [who, setWho] = useState('')
+  const [note, setNote] = useState('')
+  const names = extras.buzzOpen ? extras.participantNames() : []
+  return (
+    <div className="r7xReactWrap">
+      <button
+        type="button"
+        className={`r7xButton r7xGolden ${extras.buzzOpen ? 'active' : ''}`}
+        aria-haspopup="true"
+        aria-expanded={extras.buzzOpen}
+        onClick={() => extras.setBuzzOpen(!extras.buzzOpen)}
+        title="Hit the golden buzzer for someone"
+      >
+        <Award size={16} />
+        <span>Golden buzzer</span>
+      </button>
+      {extras.buzzOpen && (
+        <div className="r7xBuzzPanel">
+          <label>
+            Who is it for?
+            <select value={who} onChange={event => setWho(event.target.value)}>
+              <option value="">Everyone in the room</option>
+              {names.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
+          <input
+            maxLength={140}
+            value={note}
+            placeholder="Say why (optional)"
+            onChange={event => setNote(event.target.value)}
+          />
+          {extras.buzzError && <p className="r7xError">{extras.buzzError}</p>}
+          <button type="button" className="r7xPrimary" disabled={extras.buzzBusy} onClick={() => void extras.sendBuzzer(who, note.trim())}>
+            {extras.buzzBusy ? 'Sending...' : 'Hit the buzzer'}
+          </button>
+        </div>
       )}
     </div>
   )
@@ -671,6 +770,17 @@ export function Room7ExtrasOverlay({
           </span>
         ))}
       </div>
+
+      {extras.buzz && (
+        <WorkCelebration
+          ribbon={{ id: String(extras.buzz.key), kind: 'golden', message: extras.buzz.message }}
+          giverName={`from ${extras.buzz.from}`}
+          kicker="Golden buzzer"
+          title={extras.buzz.name}
+          holdMs={6500}
+          onClose={extras.dismissBuzz}
+        />
+      )}
 
       <div className="r7xToasts">
         {extras.toasts.map(toast => (

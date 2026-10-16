@@ -1,3 +1,4 @@
+import { HallOfFameCard } from '../components/Recognition'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, Clock3, Gauge, Laptop, Smartphone, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -201,6 +202,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
       </div>
 
       <DashboardNotificationsTeaser onOpenWork={()=>onNavigate('tasks')}/>
+
+      <HallOfFameCard/>
 
       <div className="todayRow">
         <article className="glassCard todayAttention">

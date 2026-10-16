@@ -1,5 +1,6 @@
 import App from './App'
 import {RibbonGiftHost} from './components/WorkReactions'
+import {RecognitionHost} from './components/Recognition'
 import './styles.css'
 import './brand.css'
 import './workspace-shell.css'
@@ -27,5 +28,5 @@ import {startIslandBar} from './lib/islandBar'
 
 export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
-  return <><App/><RibbonGiftHost/></>
+  return <><App/><RibbonGiftHost/><RecognitionHost/></>
 }

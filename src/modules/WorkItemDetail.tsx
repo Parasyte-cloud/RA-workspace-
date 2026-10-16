@@ -982,12 +982,13 @@ export function WorkItemDetail({
             itemId={item.id}
             status={item.status}
             rx={rx}
+            recipients={[item.created_by,...(item.work_item_assignees||[]).map(a=>a.assignee_id)]}
           />
         </div>
 
         <WorkCelebration
           ribbon={rx.celebration}
-          giverName={rx.celebration?rx.nameOf(rx.celebration.given_by):''}
+          giverName={rx.celebration?`from ${rx.nameOf(rx.celebration.given_by)}`:''}
           task={item.title}
           onClose={()=>rx.celebrate(null)}
         />

@@ -7,6 +7,9 @@ import {
 } from '../lib/workReactions'
 import type { ReactionRow, RibbonKind, RibbonRow, UnseenRibbon } from '../lib/workReactions'
 import '../work-reactions.css'
+import { WorkCelebration } from './RibbonCelebration'
+
+export { WorkCelebration }
 
 // The client is missing only when the app is not configured; every entry point below checks first.
 const supabase = maybeSupabase as NonNullable<typeof maybeSupabase>
@@ -23,7 +26,12 @@ export type WorkReactionsApi = {
   remove: (ribbonId: string) => Promise<void>
   celebration: RibbonRow | null
   celebrate: (row: RibbonRow | null) => void
+  thanks: Array<{ ribbon_id: string; user_id: string }>
+  thank: (ribbonId: string) => Promise<void>
+  budget: RibbonBudget | null
 }
+
+export type RibbonBudget = { golden_limit: number; golden_used: number; unlimited: boolean }
 
 // Loads reactions and ribbons for a set of tasks and keeps them live.
 // announceIncoming: show the celebration when someone else gives a ribbon.
@@ -35,6 +43,8 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
   const [ribbons, setRibbons] = useState<RibbonRow[]>([])
   const [names, setNames] = useState<Record<string, string>>({})
   const [celebration, setCelebration] = useState<RibbonRow | null>(null)
+  const [thanks, setThanks] = useState<Array<{ ribbon_id: string; user_id: string }>>([])
+  const [budget, setBudget] = useState<RibbonBudget | null>(null)
   const key = useMemo(() => [...ids].sort().join(','), [ids])
   const idsRef = useRef<string[]>([])
   const meRef = useRef<string | null>(null)
@@ -58,6 +68,11 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
       if (!live) return
       setIsAdmin(String(profile.data?.role || '').toLowerCase() === 'admin')
       setCanGive(give.data === true)
+      if (give.data === true) {
+        const spent = await supabase.rpc('my_ribbon_budget')
+        const row = Array.isArray(spent.data) ? spent.data[0] : spent.data
+        if (live && row) setBudget(row as RibbonBudget)
+      }
     })()
     return () => { live = false }
   }, [])
@@ -82,7 +97,15 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
       }
       rows.forEach(row => seen.current.add(row.id))
     }
+    const ribbonIds = ((b.data || []) as RibbonRow[]).map(row => row.id)
+    let thanked: Array<{ ribbon_id: string; user_id: string }> = []
+    if (ribbonIds.length) {
+      const t = await supabase.from('ribbon_thanks').select('ribbon_id,user_id').in('ribbon_id', ribbonIds)
+      if (!t.error) thanked = (t.data || []) as Array<{ ribbon_id: string; user_id: string }>
+    }
+    setThanks(thanked)
     const need = new Set<string>()
+    thanked.forEach(row => need.add(row.user_id))
     ;((r.data || []) as ReactionRow[]).forEach(row => need.add(row.user_id))
     ;((b.data || []) as RibbonRow[]).forEach(row => need.add(row.given_by))
     if (need.size) {
@@ -112,6 +135,7 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
       .channel(`work-reactions-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_item_reactions' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_ribbons' }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ribbon_thanks' }, reload)
       .subscribe()
     return () => {
       if (timer.current) window.clearTimeout(timer.current)
@@ -137,6 +161,10 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
     seen.current.add(row.id)
     setCelebration(row)
     void load()
+    void supabase.rpc('my_ribbon_budget').then(spent => {
+      const first = Array.isArray(spent.data) ? spent.data[0] : spent.data
+      if (first) setBudget(first as RibbonBudget)
+    })
     return null
   }, [load])
 
@@ -146,15 +174,24 @@ export function useWorkReactions(ids: string[], announceIncoming = false): WorkR
     if (error) void load()
   }, [load])
 
+  const thank = useCallback(async (ribbonId: string) => {
+    const who = meRef.current
+    if (!who) return
+    setThanks(rows => (rows.some(row => row.ribbon_id === ribbonId && row.user_id === who)
+      ? rows : [...rows, { ribbon_id: ribbonId, user_id: who }]))
+    const { error } = await supabase.rpc('thank_ribbon', { p_ribbon: ribbonId })
+    if (error) void load()
+  }, [load])
+
   const nameOf = useCallback((id: string) => (id === meRef.current ? 'You' : names[id] || 'Teammate'), [names])
 
-  return { me, isAdmin, canGive, reactions, ribbons, nameOf, toggle, give, remove, celebration, celebrate: setCelebration }
+  return { me, isAdmin, canGive, reactions, ribbons, nameOf, toggle, give, remove, celebration, celebrate: setCelebration, thanks, thank, budget }
 }
 
-type BarProps = { itemId: string; status: string; rx: WorkReactionsApi }
+type BarProps = { itemId: string; status: string; rx: WorkReactionsApi; recipients?: string[] }
 
 // Ribbons on the task, the reaction chips, and the buttons to add more.
-export function WorkReactionBar({ itemId, status, rx }: BarProps) {
+export function WorkReactionBar({ itemId, status, rx, recipients }: BarProps) {
   const [palette, setPalette] = useState(false)
   const [ribbonOpen, setRibbonOpen] = useState(false)
   const [kind, setKind] = useState<RibbonKind>('golden')
@@ -171,6 +208,10 @@ export function WorkReactionBar({ itemId, status, rx }: BarProps) {
       .sort((a, b) => (a.kind === 'golden' ? -1 : 0) - (b.kind === 'golden' ? -1 : 0) || a.created_at.localeCompare(b.created_at)),
     [rx.ribbons, itemId],
   )
+  const thanksFor = (ribbonId: string) => rx.thanks.filter(row => row.ribbon_id === ribbonId).map(row => row.user_id)
+  const canThank = (ribbon: RibbonRow) =>
+    Boolean(rx.me && recipients?.includes(rx.me) && ribbon.given_by !== rx.me && !thanksFor(ribbon.id).includes(rx.me))
+  const goldenLeft = rx.budget && !rx.budget.unlimited ? Math.max(0, rx.budget.golden_limit - rx.budget.golden_used) : null
   const ribbonAllowed = rx.canGive && status !== 'draft' && status !== 'cancelled'
 
   useEffect(() => {
@@ -209,7 +250,15 @@ export function WorkReactionBar({ itemId, status, rx }: BarProps) {
                   <b>{style.label}</b>
                   <em>from {rx.nameOf(ribbon.given_by)}</em>
                   {ribbon.message && <span>{ribbon.message}</span>}
+                  {thanksFor(ribbon.id).length > 0 && (
+                    <span className="wrxThanked">🙏 Thanks from {thanksFor(ribbon.id).map(rx.nameOf).join(', ')}</span>
+                  )}
                 </span>
+                {canThank(ribbon) && (
+                  <button type="button" className="wrxThankBtn" onClick={() => void rx.thank(ribbon.id)}>
+                    Say thanks 🙏
+                  </button>
+                )}
                 {canRemove && (
                   <button
                     type="button"
@@ -290,6 +339,7 @@ export function WorkReactionBar({ itemId, status, rx }: BarProps) {
                       type="button"
                       className={`wrxKind ${r.kind}${kind === r.kind ? ' on' : ''}`}
                       aria-pressed={kind === r.kind}
+                      disabled={r.kind === 'golden' && goldenLeft === 0}
                       onClick={() => setKind(r.kind)}
                     >
                       <span aria-hidden="true">{r.emoji}</span>
@@ -298,6 +348,14 @@ export function WorkReactionBar({ itemId, status, rx }: BarProps) {
                     </button>
                   ))}
                 </div>
+                {goldenLeft !== null && (
+                  <p className="wrxBudget">
+                    {goldenLeft === 0
+                      ? 'No golden ribbons left this month. The others are still open.'
+                      : `${goldenLeft} golden ribbon${goldenLeft === 1 ? '' : 's'} left this month`}
+                  </p>
+                )}
+                <p className="wrxBudget">Ribbons show on the Hall of Fame.</p>
                 <input
                   className="wrxNote"
                   maxLength={280}
@@ -319,90 +377,6 @@ export function WorkReactionBar({ itemId, status, rx }: BarProps) {
   )
 }
 
-const CONFETTI = 64
-
-type CelebrationProps = {
-  ribbon: { id: string; kind: RibbonKind; message: string } | null
-  giverName: string
-  task?: string
-  onClose: () => void
-}
-
-// Full screen celebration. Golden gets the full show; the others are lighter.
-export function WorkCelebration({ ribbon, giverName, task, onClose }: CelebrationProps) {
-  useEffect(() => {
-    if (!ribbon) return
-    const timer = window.setTimeout(onClose, ribbon.kind === 'golden' ? 6500 : 4200)
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => { window.clearTimeout(timer); window.removeEventListener('keydown', onKey) }
-  }, [ribbon, onClose])
-
-  const pieces = useMemo(() => {
-    if (!ribbon) return []
-    const count = ribbon.kind === 'golden' || ribbon.kind === 'rainbow' ? CONFETTI : 32
-    return Array.from({ length: count }, (_, i) => ({
-      left: Math.round(Math.random() * 100),
-      delay: Math.round(Math.random() * 1400) / 1000,
-      dur: 2200 + Math.round(Math.random() * 2000),
-      size: 6 + Math.round(Math.random() * 8),
-      spin: Math.round(Math.random() * 720 - 360),
-      tone: i % 5,
-      round: i % 3 === 0,
-    }))
-  }, [ribbon])
-
-  if (!ribbon) return null
-  const style = ribbonStyle(ribbon.kind)
-
-  return (
-    <div className={`wrxStage ${ribbon.kind}`} role="alertdialog" aria-label={`${style.label} received`} onClick={onClose}>
-      <div className="wrxBurst" aria-hidden="true" />
-      <div className="wrxConfetti" aria-hidden="true">
-        {pieces.map((p, i) => (
-          <i
-            key={i}
-            className={`t${p.tone}${p.round ? ' round' : ''}`}
-            style={{
-              left: `${p.left}%`, width: p.size, height: p.round ? p.size : p.size * 1.6,
-              animationDelay: `${p.delay}s`, animationDuration: `${p.dur}ms`,
-              ['--spin' as string]: `${p.spin}deg`,
-            }}
-          />
-        ))}
-      </div>
-      <div className="wrxStreamer left" aria-hidden="true" />
-      <div className="wrxStreamer right" aria-hidden="true" />
-      <div className="wrxCard">
-        <div className="wrxMedal" aria-hidden="true">
-          <svg viewBox="0 0 120 150" width="132" height="165">
-            <defs>
-              <linearGradient id="wrxGold" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="var(--wrx-a)" />
-                <stop offset=".5" stopColor="var(--wrx-b)" />
-                <stop offset="1" stopColor="var(--wrx-c)" />
-              </linearGradient>
-            </defs>
-            <path d="M34 70 L16 146 L42 132 L52 150 L66 78 Z" fill="var(--wrx-tail)" />
-            <path d="M86 70 L104 146 L78 132 L68 150 L54 78 Z" fill="var(--wrx-tail2)" />
-            <circle cx="60" cy="52" r="44" fill="url(#wrxGold)" />
-            <circle cx="60" cy="52" r="35" fill="none" stroke="rgba(255,255,255,.65)" strokeWidth="2" />
-            <circle cx="60" cy="52" r="30" fill="rgba(255,255,255,.14)" />
-          </svg>
-          <span className="wrxMedalEmoji">{style.emoji}</span>
-          <span className="wrxShine" />
-        </div>
-        <p className="wrxKicker">{ribbon.kind === 'golden' ? 'Golden buzzer' : 'Shout-out'}</p>
-        <h2>{style.label}</h2>
-        <p className="wrxFrom">from {giverName}</p>
-        {task && <p className="wrxTask">{task}</p>}
-        {ribbon.message && <p className="wrxMessage">{ribbon.message}</p>}
-        <small className="wrxHint">Tap anywhere to close</small>
-      </div>
-    </div>
-  )
-}
-
 // Sits in the app shell. When ribbons are waiting it buzzes once, shows a
 // wrapped gift, and unwraps into the celebration when the person taps it.
 export function RibbonGiftHost() {
@@ -410,6 +384,7 @@ export function RibbonGiftHost() {
   const [waiting, setWaiting] = useState<UnseenRibbon[]>([])
   const [opening, setOpening] = useState<UnseenRibbon | null>(null)
   const [showing, setShowing] = useState<UnseenRibbon | null>(null)
+  const [thanked, setThanked] = useState<Set<string>>(new Set())
   const buzzed = useRef<Set<string>>(new Set())
   const timer = useRef<number | null>(null)
 
@@ -489,9 +464,14 @@ export function RibbonGiftHost() {
       )}
       <WorkCelebration
         ribbon={showing}
-        giverName={showing?.giver_name || ''}
+        giverName={showing ? `from ${showing.giver_name}` : ''}
         task={showing?.task_title}
         onClose={closeShow}
+        onThanks={showing ? () => {
+          setThanked(prev => new Set(prev).add(showing.id))
+          void supabase.rpc('thank_ribbon', { p_ribbon: showing.id })
+        } : undefined}
+        thanked={showing ? thanked.has(showing.id) : false}
       />
     </>
   )
@@ -526,6 +506,7 @@ type GrantPerson = { id: string; full_name: string; email: string; role: string;
 export function RibbonPermissions({ onClose }: { onClose: () => void }) {
   const [people, setPeople] = useState<GrantPerson[]>([])
   const [granted, setGranted] = useState<Set<string>>(new Set())
+  const [limits, setLimits] = useState<Record<string, number>>({})
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -536,12 +517,14 @@ export function RibbonPermissions({ onClose }: { onClose: () => void }) {
     void (async () => {
       const [p, g] = await Promise.all([
         supabase.from('employee_profiles').select('id,full_name,email,role,department').eq('active', true).order('full_name'),
-        supabase.from('work_ribbon_grants').select('user_id'),
+        supabase.from('work_ribbon_grants').select('user_id,golden_monthly_limit'),
       ])
       if (!live) return
       if (p.error || g.error) setError('Could not load people.')
       setPeople((p.data || []) as GrantPerson[])
-      setGranted(new Set(((g.data || []) as Array<{ user_id: string }>).map(row => row.user_id)))
+      const rows = (g.data || []) as Array<{ user_id: string; golden_monthly_limit: number }>
+      setGranted(new Set(rows.map(row => row.user_id)))
+      setLimits(Object.fromEntries(rows.map(row => [row.user_id, row.golden_monthly_limit])))
       setLoading(false)
     })()
     return () => { live = false }
@@ -554,6 +537,7 @@ export function RibbonPermissions({ onClose }: { onClose: () => void }) {
       if (allowed) next.add(id); else next.delete(id)
       return next
     })
+    if (allowed) setLimits(prev => ({ ...prev, [id]: prev[id] ?? 3 }))
     const { error: problem } = await supabase.rpc('set_work_ribbon_grant', { p_user: id, p_allowed: allowed })
     if (problem) {
       setError(problem.message)
@@ -563,6 +547,13 @@ export function RibbonPermissions({ onClose }: { onClose: () => void }) {
         return next
       })
     }
+  }
+
+  async function setLimit(id: string, value: number) {
+    const clean = Math.max(0, Math.min(50, Math.round(value) || 0))
+    setLimits(prev => ({ ...prev, [id]: clean }))
+    const { error: problem } = await supabase.rpc('set_work_ribbon_grant', { p_user: id, p_allowed: true, p_limit: clean })
+    if (problem) setError(problem.message)
   }
 
   const shown = people.filter(p => {
@@ -576,7 +567,7 @@ export function RibbonPermissions({ onClose }: { onClose: () => void }) {
         <header>
           <div>
             <h3>Who can give ribbons</h3>
-            <p>Admins always can. Everyone can still react with emoji.</p>
+            <p>Admins always can, with no limit. Everyone can still react with emoji. Set how many golden ribbons each person can give per month.</p>
           </div>
           <button type="button" aria-label="Close" onClick={onClose}><X size={18} /></button>
         </header>
@@ -588,19 +579,35 @@ export function RibbonPermissions({ onClose }: { onClose: () => void }) {
             const always = person.role.toLowerCase() === 'admin'
             const on = always || granted.has(person.id)
             return (
-              <label key={person.id} className="wrxPerson">
+              <div key={person.id} className="wrxPerson">
                 <span>
                   <b>{person.full_name || person.email}</b>
                   <small>{[person.department, always ? 'Admin' : ''].filter(Boolean).join(' · ') || person.email}</small>
                 </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={on}
-                  disabled={always}
-                  onChange={event => void set(person.id, event.target.checked)}
-                />
-              </label>
+                <span className="wrxPersonCtl">
+                  {on && !always && (
+                    <span className="wrxLimitBox">
+                      <small>golden / month</small>
+                      <input
+                        className="wrxLimit"
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={limits[person.id] ?? 3}
+                                                onChange={event => void setLimit(person.id, Number(event.target.value))}
+                      />
+                    </span>
+                  )}
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label={`Ribbons for ${person.full_name || person.email}`}
+                    checked={on}
+                    disabled={always}
+                    onChange={event => void set(person.id, event.target.checked)}
+                  />
+                </span>
+              </div>
             )
           })}
         </div>
