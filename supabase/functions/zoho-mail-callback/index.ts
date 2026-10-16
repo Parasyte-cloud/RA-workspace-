@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { sealToken } from "../_shared/tokenCrypto.ts"
 
 const WORKSPACE_URL =
   "https://intranet.ridearrivo.com"
@@ -206,7 +207,7 @@ serve(async (req) => {
             String(account.accountId),
 
           p_refresh_token:
-            String(tokenData.refresh_token),
+            await sealToken(String(tokenData.refresh_token)),
 
           p_accounts_domain:
             "https://accounts.zoho.com",

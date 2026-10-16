@@ -145,7 +145,12 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close()
   try { if (self.navigator.clearAppBadge) self.navigator.clearAppBadge() } catch (_) {}
-  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
+  // Only ever open pages on our own origin, whatever the payload says.
+  let target = new URL('/', self.location.origin).href
+  try {
+    const wanted = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin)
+    if (wanted.origin === self.location.origin) target = wanted.href
+  } catch (_) {}
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })

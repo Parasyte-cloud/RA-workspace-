@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { openToken } from "./tokenCrypto.ts"
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "https://intranet.ridearrivo.com",
@@ -29,6 +30,17 @@ export async function getAuthenticatedUser(req: Request) {
   } = await admin.auth.getUser(token)
 
   if (error || !user) {
+    throw new Error("Unauthorized")
+  }
+
+  // A valid token is not enough: pending or deactivated accounts get nothing.
+  const { data: profile } = await admin
+    .from("employee_profiles")
+    .select("active")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (!profile?.active) {
     throw new Error("Unauthorized")
   }
 
@@ -138,7 +150,7 @@ export async function getZohoAccessToken(
           "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        refresh_token: connection.refresh_token,
+        refresh_token: await openToken(String(connection.refresh_token)),
         client_id: clientId,
         client_secret: clientSecret,
         grant_type: "refresh_token",

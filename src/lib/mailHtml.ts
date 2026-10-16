@@ -14,6 +14,10 @@ function installHooks() {
       node.setAttribute('target', '_blank')
       node.setAttribute('rel', 'noopener noreferrer nofollow')
     }
+    // Other attributes that make the browser fetch a remote file on open.
+    for (const attr of ['background', 'srcset', 'poster', 'data-src', 'lowsrc', 'dynsrc']) {
+      if (node.hasAttribute(attr)) node.removeAttribute(attr)
+    }
     if (node.tagName === 'IMG') {
       const src = node.getAttribute('src') || ''
       if (/^(https?:)?\/\//i.test(src)) {
@@ -27,7 +31,7 @@ function installHooks() {
 export function safeMailHtml(html: string): string {
   installHooks()
   return DOMPurify.sanitize(html || '', {
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'iframe', 'object', 'embed'],
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'iframe', 'object', 'embed', 'video', 'audio', 'source', 'link', 'meta', 'base'],
     FORBID_ATTR: ['style'],
   })
 }
