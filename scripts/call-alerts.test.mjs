@@ -19,7 +19,7 @@ test('call alerts stay on screen until answered', () => {
 
 test('new notifications and chat message updates raise an alert', () => {
   assert.match(ctx, /payload\.eventType==='INSERT'/)
-  assert.match(ctx, /row\?\.type==='chat_message' && !row\?\.read_at/)
+  assert.match(ctx, /isChatRow && !row\?\.read_at/)
 })
 
 test('clicking an alert focuses the tab and opens the right section', () => {

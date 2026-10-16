@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import PhoneAlertsToggle from './PhoneAlertsToggle'
 import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
 
@@ -37,6 +38,35 @@ export function NotificationCenter({
   const readCount=items.filter(item=>item.read_at).length
 
   const rootRef=useRef<HTMLDivElement|null>(null)
+  const menuRef=useRef<HTMLDivElement|null>(null)
+  const bellRef=useRef<HTMLButtonElement|null>(null)
+
+  // On phones the top bar is frosted glass. A panel inside it cannot blur the
+  // page behind it (a blur only sees what is inside the nearest blurred parent),
+  // so it showed the page sharply through a pale film. On phones the panel is
+  // moved out to the page itself, where it can be real glass.
+  const [phone,setPhone]=useState(()=>typeof window!=='undefined' && typeof window.matchMedia==='function' && window.matchMedia('(max-width: 599px)').matches)
+  const [menuTop,setMenuTop]=useState(66)
+  useEffect(()=>{
+    if(typeof window.matchMedia!=='function')return
+    const query=window.matchMedia('(max-width: 599px)')
+    const sync=()=>setPhone(query.matches)
+    query.addEventListener('change',sync)
+    return()=>query.removeEventListener('change',sync)
+  },[])
+  useEffect(()=>{
+    if(!open || !phone)return
+    const place=()=>{
+      const bell=bellRef.current
+      if(bell)setMenuTop(Math.round(bell.getBoundingClientRect().bottom+12))
+    }
+    place()
+    const watcher=new MutationObserver(place)
+    watcher.observe(document.documentElement,{attributes:true,attributeFilter:['data-ra-island']})
+    window.addEventListener('resize',place)
+    const settle=window.setTimeout(place,650)
+    return()=>{watcher.disconnect();window.removeEventListener('resize',place);window.clearTimeout(settle)}
+  },[open,phone])
 
 // RA_WHATSAPP_NOTIFICATION_TOAST_STATE_START
 
@@ -195,7 +225,8 @@ useEffect(
       if(
         target instanceof Node &&
         rootRef.current &&
-        !rootRef.current.contains(target)
+        !rootRef.current.contains(target) &&
+        !(menuRef.current && menuRef.current.contains(target))
       ){
         setOpen(false)
       }
@@ -310,6 +341,7 @@ useEffect(
     >
       <button
         type="button"
+        ref={bellRef}
         className="iconButton notificationButton"
         aria-label="Notifications"
         aria-expanded={open}
@@ -405,8 +437,15 @@ useEffect(
 
 {/* RA_WHATSAPP_NOTIFICATION_TOAST_VIEW_END */}
 
-{open&&
-        <div className="notificationMenu glassPanel">
+{open&&(()=>{
+        const menu=(
+        <div
+          className="notificationMenu glassPanel"
+          ref={menuRef}
+          style={phone?{top:menuTop}:undefined}
+          role="dialog"
+          aria-label="Notifications"
+        >
           <div className="notificationHeader">
             <div>
               <span className="eyebrow">
@@ -511,7 +550,9 @@ useEffect(
             }
           </div>
         </div>
-      }
+        )
+        return phone ? createPortal(menu,document.body) : menu
+      })()}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { LoaderCircle, Send, X } from 'lucide-react'
+import LinkedText from '../LinkedText'
 
 type ThreadItem = {
   id: string
@@ -58,7 +59,7 @@ export default function ThreadPanel({
         {item.pending && <em>Sending...</em>}
         {item.failed && <em>Not sent</em>}
       </span>
-      <p>{item.body}</p>
+      <p><LinkedText text={item.body} /></p>
     </div>
   )
 

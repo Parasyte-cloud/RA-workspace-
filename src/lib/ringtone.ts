@@ -303,6 +303,21 @@ export function startTone(
   }
 }
 
+// Plays a pattern once (a message sound). Returns false when the browser is
+// still keeping sound off, so the caller can fall back to a buzz.
+export function playPatternOnce(pattern: Pattern, volume: number): boolean {
+  const ctx = context()
+  if (!ctx) return false
+  if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined)
+  if (ctx.state !== 'running') return false
+  try {
+    playCycle(ctx, pattern, clampVolume(volume))
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const hasBeenPrimed = () => primed
 
 // Plays one round of a ringtone so it can be heard before it is chosen.

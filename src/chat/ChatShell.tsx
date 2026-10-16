@@ -48,6 +48,7 @@ import { EmojiPicker } from './ui/EmojiPicker'
 import { MessageToolbar, ReactionChips } from './ui/ReactionBar'
 import { PinnedBar } from './ui/PinnedBar'
 import ThreadPanel from './ui/ThreadPanel'
+import LinkedText from './LinkedText'
 import ForwardDialog from './ui/ForwardDialog'
 import { buildForwardTargets, canForward, cleanNote, forwardSummary, forwardedLabel } from './forward'
 import type { ForwardResult } from './forward'
@@ -69,6 +70,7 @@ import '../chat-extras.css'
 import '../chat-dark.css'
 import '../chat-ios.css'
 import './chat-room-remove.css'
+import './chat-links.css'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
@@ -379,6 +381,12 @@ export function ChatShell(){
   const voiceMsRef=useRef(0)
 
   useEffect(()=>{selectedRef.current=selectedId},[selectedId])
+  // Lets the notification sound know which chat is on screen, so a message in
+  // the chat you are reading does not beep at you.
+  useEffect(()=>{
+    document.documentElement.dataset.raOpenChat=selectedId
+    return()=>{delete document.documentElement.dataset.raOpenChat}
+  },[selectedId])
 
   // Typing indicator: a broadcast channel per open chat. Nothing is stored.
   useEffect(()=>{
@@ -2946,7 +2954,7 @@ export function ChatShell(){
                                 </span>
                               </div>
                             )
-                            : message.body&&<p>{message.body}</p>}
+                            : message.body&&<p><LinkedText text={message.body}/></p>}
                         <span className="cmMeta">
                           {formatTime(message.created_at)}
                           {message.edited_at&&!deleted?' edited':''}

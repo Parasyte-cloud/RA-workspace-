@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BellRing, LogOut, Play, Volume2 } from 'lucide-react'
+import { BellRing, LogOut, MessageCircle, Play, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import {
   RINGTONES,
@@ -10,6 +10,8 @@ import {
   saveVolume,
 } from '../lib/ringtone'
 import type { RingtoneId } from '../lib/ringtone'
+import { CHAT_SOUNDS, previewChatSound, readChatPrefs, saveChatPrefs } from '../lib/chatSound'
+import type { ChatSoundId, ChatSoundPrefs } from '../lib/chatSound'
 
 // Settings card for sounds and alerts. The ringtone is kept on this device, so
 // a phone and a laptop can ring differently.
@@ -18,6 +20,19 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
   const [volume, setVolume] = useState(() => readVolume())
   const [note, setNote] = useState('')
   const [testNote, setTestNote] = useState('')
+  const [chat, setChat] = useState<ChatSoundPrefs>(() => readChatPrefs())
+  const [chatNote, setChatNote] = useState('')
+
+  const updateChat = (patch: Partial<ChatSoundPrefs>) => {
+    const next = { ...chat, ...patch }
+    setChat(next)
+    saveChatPrefs(next)
+  }
+  const pickChat = (id: ChatSoundId) => {
+    updateChat({ sound: id, enabled: true })
+    const played = previewChatSound(id, chat.volume)
+    setChatNote(played ? '' : 'Your browser is keeping sound off. Tap the page once, check the volume and silent switch, then try again.')
+  }
 
   const pick = async (id: RingtoneId) => {
     setTone(id)
@@ -120,6 +135,55 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
             />
           </label>
           {note && <small className="settingsNote">{note}</small>}
+        </article>
+
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><MessageCircle size={16} /></span>
+            <div>
+              <h3>Chat messages</h3>
+              <p>A short sound and buzz for each new message while the app is open. Separate from the call ringtone.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={chat.enabled} onChange={event => updateChat({ enabled: event.target.checked })} />
+            <span>Play a sound for new messages</span>
+          </label>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={chat.vibrate} onChange={event => updateChat({ vibrate: event.target.checked })} />
+            <span>Buzz on phones</span>
+          </label>
+          <div className="ringtoneList" role="radiogroup" aria-label="Message sound">
+            {CHAT_SOUNDS.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                role="radio"
+                aria-checked={chat.sound === item.id}
+                className={`ringtoneOption${chat.sound === item.id ? ' active' : ''}`}
+                onClick={() => pickChat(item.id)}
+              >
+                <Play size={14} />
+                <span><strong>{item.label}</strong><small>{item.hint}</small></span>
+              </button>
+            ))}
+          </div>
+          <label className="ringtoneVolume">
+            <span>Volume</span>
+            <input
+              type="range"
+              min={0.2}
+              max={1}
+              step={0.05}
+              value={chat.volume}
+              onChange={event => updateChat({ volume: Number(event.target.value) })}
+              onPointerUp={() => previewChatSound(chat.sound, chat.volume)}
+            />
+          </label>
+          {chatNote && <small className="settingsNote">{chatNote}</small>}
+          <small className="settingsNote">
+            A chat you have muted stays silent. You are not beeped about the chat you are reading. With the app closed or the screen asleep, your phone plays its own notification sound for every message.
+          </small>
         </article>
 
         {onSignOut && (

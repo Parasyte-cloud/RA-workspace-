@@ -16,6 +16,8 @@ export type PushMessage = {
   tag: string
   url: string
   urgent: boolean
+  // Delivered straight away even when the phone is asleep, but not a ring.
+  highPriority: boolean
   ttl: number
   type: string
 }
@@ -36,13 +38,19 @@ export function buildPushMessage(row: NotificationRow): PushMessage {
   const isMissed = row.type === 'call_missed'
   // A ring and the missed call that follows share a tag, so the missed-call
   // notice replaces the ring on the phone instead of stacking under it.
-  const tag = isCall || isMissed ? `call-${row.entity_id || row.id}` : `n-${row.id}`
+  const isChat = row.type === 'chat_message' || row.type === 'chat_mention'
+  const tag = isCall || isMissed
+    ? `call-${row.entity_id || row.id}`
+    // One notification per chat, replaced by each new message, but the phone
+    // still sounds and buzzes again every time (renotify in the service worker).
+    : isChat && row.entity_id ? `chat-${row.entity_id}` : `n-${row.id}`
   return {
     title: clip(row.title, 120) || 'RideArrivo',
     body: clip(row.body, 200),
     tag,
     url: targetUrl(row),
     urgent: isCall,
+    highPriority: isCall || isChat,
     // A ring is worthless after the phone stops ringing; everything else can wait.
     ttl: isCall ? 45 : 24 * 3600,
     type: row.type,
