@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CheckCircle2, Circle, ClipboardCopy, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react'
+import { CheckCircle2, Circle, ClipboardCheck, ClipboardCopy, ListPlus, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type Minutes = {
@@ -22,6 +22,7 @@ type ActionItem = {
   owner_name: string | null
   due_text: string | null
   done: boolean
+  work_item_id: string | null
 }
 
 // Bold text only. Everything else is plain text, so nothing from the summary
@@ -82,7 +83,7 @@ export default function RoomNotes({ roomId, aiEnabled }: { roomId: string; aiEna
     const [{ data, error: minutesError }, { data: actionRows }] = await Promise.all([
       client.rpc('my_room_minutes', { p_room: roomId }),
       client.from('workspace_room_action_items')
-        .select('id,minutes_id,position,body,owner_name,due_text,done')
+        .select('id,minutes_id,position,body,owner_name,due_text,done,work_item_id')
         .eq('room_id', roomId)
         .order('position', { ascending: true })
     ])
@@ -104,6 +105,18 @@ export default function RoomNotes({ roomId, aiEnabled }: { roomId: string; aiEna
       setItems(current => current.map(row => row.id === item.id ? { ...row, done: item.done } : row))
       setError(toggleError.message)
     }
+  }
+
+  const [making, setMaking] = useState('')
+  const makeTask = async (item: ActionItem) => {
+    const client = supabase
+    if (!client || making) return
+    setMaking(item.id)
+    const { data, error: taskError } = await client.rpc('room_action_to_task', { p_id: item.id })
+    setMaking('')
+    if (taskError) { setError(taskError.message); return }
+    setError('')
+    setItems(current => current.map(row => row.id === item.id ? { ...row, work_item_id: String(data) } : row))
   }
 
   const copy = async (key: string, text: string) => {
@@ -160,6 +173,11 @@ export default function RoomNotes({ roomId, aiEnabled }: { roomId: string; aiEna
                           <small>{[item.owner_name, item.due_text ? `due ${item.due_text}` : ''].filter(Boolean).join(' · ')}</small>
                         )}
                       </span>
+                      {item.work_item_id
+                        ? <span className="rnTaskMade" title="Already in Work Desk"><ClipboardCheck size={14} /> Task</span>
+                        : <button type="button" className="rnToTask" disabled={making === item.id} onClick={() => void makeTask(item)} title="Create a task in Work Desk">
+                            {making === item.id ? <LoaderCircle size={14} className="roomSpin" /> : <ListPlus size={14} />} Task
+                          </button>}
                     </li>
                   ))}
                 </ul>
