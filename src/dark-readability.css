@@ -1,0 +1,105 @@
+/* Dark mode readability pass.
+ *
+ * Why this file exists: many panels were styled with a hard-coded white or
+ * translucent-white background and were never given a dark counterpart. In dark
+ * mode the page text is light, so light text landed on a light surface and
+ * became unreadable (for example the Letterhead access lists in Administration).
+ *
+ * How it was found: every rule in the stylesheets was instantiated in dark mode
+ * in a real browser and the text colour was measured against the surface behind
+ * it. Anything under 3:1, or any light surface carrying light text, is below.
+ *
+ * Rules here only apply in dark mode and use the theme colours, so light mode is
+ * untouched. They are prefixed with #root so they win over older, more specific
+ * layout rules without needing !important.
+ */
+
+/* Variables that older stylesheets read with a hard-coded fallback and that were
+   never defined in dark mode, so the light fallback was always used. */
+html[data-ra-theme='dark'] {
+  --muted: var(--ra-muted);
+  --text-muted: var(--ra-muted);
+  --text: var(--ra-text);
+  --border: var(--ra-border);
+  --border-subtle: var(--ra-border);
+  --panel: var(--ra-surface);
+  --surface: var(--ra-surface);
+  --card-bg: var(--ra-surface);
+  --input-bg: var(--ra-control, #101f32);
+}
+
+/* Rows, cards, panels and tab strips that sat on a light surface. */
+html[data-ra-theme='dark'] #root :is(
+  .lhAdminResults li, .lhAdminList li,
+  .commandPanel, .deviceInventoryPanel, .deviceRegistryPanel, .deviceFormGrid, .deviceInventoryRow,
+  .investorSupportRecord, .investorSupportActions,
+  .departmentStationIntro, .departmentTabs, .departmentTool,
+  .marketingCapabilityGrid article, .marketingMessage, .marketingMessages, .marketingToolCard,
+  .marketingProjectCard, .marketingStrategySteps > div, .marketingWorkspaceTabs,
+  .marketingCollaborator, .marketingInvite, .marketingProjectCreator, .marketingDiscussion,
+  .mailListPane, .mailReader, .mailComposer,
+  .profileInfo, .workDeskTabs, .headshotCard,
+  .fs-toolbar, .fs-menu, .fs-drop, .fs-colheads, .fs-corner, .fs-rowheads
+) {
+  background: var(--ra-surface-muted);
+  border-color: var(--ra-border);
+  color: var(--ra-text);
+}
+
+/* Fields and search boxes. */
+html[data-ra-theme='dark'] #root :is(.lhAdminAdd label, .mailSearchBarInner) {
+  background: var(--ra-control, #101f32);
+  border-color: var(--ra-border);
+  color: var(--ra-text);
+}
+html[data-ra-theme='dark'] #root :is(.lhAdminAdd input, .mailSearchBarInner input) { color: var(--ra-text); }
+
+/* Text inside those surfaces. */
+html[data-ra-theme='dark'] #root :is(
+  .departmentStationIntro p, .fs-drop p, .marketingMessage p, .marketingProjectCard p,
+  .marketingToolCard p, .marketingGeneratedUrl
+) { color: var(--ra-muted); }
+html[data-ra-theme='dark'] #root :is(.profileInfo strong, .departmentStationIntro h3, .headshotCard h3) { color: var(--ra-text); }
+html[data-ra-theme='dark'] #root .marketingMessage.mine { background: rgba(255,153,0,.14); }
+html[data-ra-theme='dark'] #root .marketingGeneratedUrl { background: var(--ra-surface-muted); }
+html[data-ra-theme='dark'] #root .headshotCardActions button.danger { color: var(--ra-danger, #ff8c8c); }
+
+/* Status text that was dark green or red on a dark surface. */
+html[data-ra-theme='dark'] #root :is(.acaPill.ok, .adminBackupNotice.ok, .adminBackupCoverage span, .adminBackupSecurity > svg) {
+  color: var(--ra-positive, #72d69d);
+}
+html[data-ra-theme='dark'] #root .acaPill.bad { color: var(--ra-danger, #ff8c8c); }
+
+/* The birthday pop-up is a white card on purpose: keep its text dark. */
+html[data-ra-theme='dark'] #root .bdCard :is(h1, h2, h3, p) { color: #071a38; }
+html[data-ra-theme='dark'] #root .bdWishes { color: #3a2a14; }
+html[data-ra-theme='dark'] #root .bdWishes strong { color: #8a4b00; }
+
+/* Buttons and labels that kept dark navy text (the light-mode value) in dark mode. */
+html[data-ra-theme='dark'] #root :is(
+  .fs-template, .fs-link, .fs-title, .fs-tool, .fs-drop button, .fs-menu button,
+  .marketingGeneratedUrl button, .mailRow, .mailRow.unread,
+  .mailFolders button.active, .marketingDiscussionScope, .workDeskTabs button
+) { color: var(--ra-text); }
+html[data-ra-theme='dark'] #root :is(.fs-tool, .fs-template, .fs-drop button, .fs-menu button, .marketingGeneratedUrl button) {
+  background: var(--ra-control, #101f32);
+  border-color: var(--ra-border);
+}
+html[data-ra-theme='dark'] #root .mailRow.unread { background: rgba(255,153,0,.10); }
+html[data-ra-theme='dark'] #root .mailFolders button.active { background: rgba(255,153,0,.16); color: #ffc66d; }
+html[data-ra-theme='dark'] #root .workDeskTabs button { background: transparent; }
+
+/* Muted text that was too faint on dark surfaces. */
+html[data-ra-theme='dark'] #root :is(
+  .fs-colhead, .fs-rowhead, .departmentTabs button, .marketingWorkspaceTabs button,
+  .marketingPerson span, .marketingProjectCreator label, .marketingGeneratedUrl span,
+  .profileIdentityEmail, .mailSearchBarInner svg
+) { color: var(--ra-muted); }
+html[data-ra-theme='dark'] #root :is(.departmentTabs button.active, .marketingWorkspaceTabs button.active) { color: #ffc66d; }
+html[data-ra-theme='dark'] #root .fs-cell.err { color: var(--ra-danger, #ff8c8c); }
+
+html[data-ra-theme='dark'] #root :is(.profileField, .profileTextareaField, .profileField label) { color: var(--ra-muted); }
+html[data-ra-theme='dark'] #root :is(.fs-colhead.on, .fs-rowhead.on) { background: rgba(255,153,0,.18); color: #ffc66d; }
+html[data-ra-theme='dark'] #root .profileMessage { color: var(--ra-positive, #72d69d); }
+
+html[data-ra-theme='dark'] #root .lhRoleBadge { color: var(--ra-text); background: rgba(255,255,255,.08); border: 1px solid var(--ra-border); }
