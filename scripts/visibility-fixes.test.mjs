@@ -26,3 +26,14 @@ test('first-run sound prompt unlocks audio from a tap and is mounted once', () =
   assert.match(prompt, /ra-sound-prompt-v1/)
   assert.equal((shell.match(/<SoundOnPrompt\/>/g) || []).length, 1)
 })
+
+test('chat and archive buckets accept the same extra document types', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261017110000_chat_archive_more_mime_types.sql', import.meta.url), 'utf8')
+  assert.match(sql, /'chat-attachments', 'archive'/)
+  assert.ok(sql.includes('x-iwork-numbers-sffnumbers'))
+  assert.doesNotMatch(sql, /public\s*=\s*true/)
+})
+test('short-window and uncapped dialog fixes exist', () => {
+  assert.match(css, /max-height: 760px/)
+  assert.match(css, /\.replyModal\s*\{[^}]*overflow-y:\s*auto/)
+})
