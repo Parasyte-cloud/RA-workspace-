@@ -60,3 +60,12 @@ test('a broken storage never throws', () => {
   assert.equal(auth.getItem('s'), null)
   auth.setItem('s', 'v'); auth.removeItem('s')
 })
+
+test('the 30 minute idle sign-out respects "Keep me signed in"', () => {
+  const idle = readFileSync('src/lib/useIdleSignOut.ts', 'utf8')
+  assert.match(idle, /import \{ readKeepSignedIn \} from '\.\/keepSignedIn'/)
+  const check = idle.slice(idle.indexOf('const checkIdle'), idle.indexOf('const activityEvents'))
+  const keepAt = check.indexOf('readKeepSignedIn(window.localStorage)')
+  assert.ok(keepAt > -1, 'checkIdle reads the flag live')
+  assert.ok(keepAt < check.indexOf('client.auth.signOut'), 'flag is checked before signing out')
+})

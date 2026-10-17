@@ -3,6 +3,7 @@ import type {
   Session,
   SupabaseClient,
 } from '@supabase/supabase-js'
+import { readKeepSignedIn } from './keepSignedIn'
 
 const IDLE_LIMIT_MS =
   30 * 60 * 1000
@@ -101,6 +102,13 @@ export function useIdleSignOut(
 
     const checkIdle = async () => {
       if (signingOut) {
+        return
+      }
+
+      // "Keep me signed in" on this device means exactly that: the idle timer
+      // only applies when the box is unticked (shared or borrowed computers).
+      // Read live so ticking or unticking in Settings takes effect at once.
+      if (readKeepSignedIn(window.localStorage)) {
         return
       }
 

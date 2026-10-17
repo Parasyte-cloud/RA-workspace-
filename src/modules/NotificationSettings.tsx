@@ -150,7 +150,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
             <span className="appearanceSettingNumber"><LogOut size={16} /></span>
             <div>
               <h3>Keep me signed in</h3>
-              <p>On: this device stays signed in after you close the app. Off: you are signed out when the browser or app is closed. Turn it off on any shared device. This setting is per device.</p>
+              <p>On: this device stays signed in, even after you close the app or leave it idle. Off: you are signed out when the browser or app is closed, and after 30 minutes without activity. Turn it off on any shared device. This setting is per device.</p>
             </div>
           </div>
           <label className="settingsToggle">
