@@ -18,18 +18,36 @@ from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 VERSION = '3.0'
-NAVY = colors.HexColor('#0b2342'); AMBER = colors.HexColor('#ff9900'); INK = colors.HexColor('#1d2b3c')
-MUTE = colors.HexColor('#5b6b7e'); SOFT = colors.HexColor('#f3f6fa'); LINE = colors.HexColor('#d9e1ea')
+AMBER = colors.HexColor('#ff9900')
 W, H = A4
-base = ParagraphStyle('b', fontName='Helvetica', fontSize=10, leading=15, textColor=INK, spaceAfter=6)
-h1 = ParagraphStyle('h1', parent=base, fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=NAVY, spaceBefore=12, spaceAfter=5)
-h2 = ParagraphStyle('h2', parent=base, fontName='Helvetica-Bold', fontSize=10.5, leading=14, textColor=NAVY, spaceBefore=6, spaceAfter=2)
-small = ParagraphStyle('s', parent=base, fontSize=8.5, leading=12, textColor=MUTE)
-cell = ParagraphStyle('c', parent=base, fontSize=9, leading=12.5, spaceAfter=0)
-cellb = ParagraphStyle('cb', parent=cell, fontName='Helvetica-Bold', textColor=NAVY)
+PALETTES = {
+    'light': dict(bg=None, navy='#0b2342', ink='#1d2b3c', mute='#5b6b7e', soft='#f3f6fa', line='#d9e1ea', eyebrow='#b66e00', band='#0b2342'),
+    'dark': dict(bg='#0b1626', navy='#f4f7fb', ink='#dbe5f1', mute='#9fb0c4', soft='#142238', line='#2a3d57', eyebrow='#ffb347', band='#071426'),
+}
+THEME = 'light'
+NAVY = INK = MUTE = SOFT = LINE = BG = BAND = EYEBROW = None
+base = h1 = h2 = small = cell = cellb = None
+
+def setup(theme):
+    """Pick the palette and rebuild every text style. The helpers below read these
+    module globals when they are called, so call setup() before building a guide."""
+    global THEME, NAVY, INK, MUTE, SOFT, LINE, BG, BAND, EYEBROW, base, h1, h2, small, cell, cellb
+    pal = PALETTES[theme]; THEME = theme
+    NAVY, INK, MUTE = colors.HexColor(pal['navy']), colors.HexColor(pal['ink']), colors.HexColor(pal['mute'])
+    SOFT, LINE = colors.HexColor(pal['soft']), colors.HexColor(pal['line'])
+    BG = colors.HexColor(pal['bg']) if pal['bg'] else None
+    BAND, EYEBROW = colors.HexColor(pal['band']), colors.HexColor(pal['eyebrow'])
+    base = ParagraphStyle('b', fontName='Helvetica', fontSize=10, leading=15, textColor=INK, spaceAfter=6)
+    h1 = ParagraphStyle('h1', parent=base, fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=NAVY, spaceBefore=12, spaceAfter=5)
+    h2 = ParagraphStyle('h2', parent=base, fontName='Helvetica-Bold', fontSize=10.5, leading=14, textColor=NAVY, spaceBefore=6, spaceAfter=2)
+    small = ParagraphStyle('s', parent=base, fontSize=8.5, leading=12, textColor=MUTE)
+    cell = ParagraphStyle('c', parent=base, fontSize=9, leading=12.5, spaceAfter=0)
+    cellb = ParagraphStyle('cb', parent=cell, fontName='Helvetica-Bold', textColor=NAVY)
+
+setup('light')
 
 def esc(t): return t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-def P(t, s=base): return Paragraph(t, s)
+def P(t, s=None): return Paragraph(t, s if s is not None else base)
 def bullets(items):
     return ListFlowable([ListItem(P(i), leftIndent=14, bulletColor=AMBER) for i in items], bulletType='bullet', start='•', leftIndent=14, bulletFontSize=10)
 def table(rows, widths, head=True):
@@ -154,19 +172,22 @@ GUIDES_EXTRA = {
 for slug, g in GUIDES_EXTRA.items(): g['slug'] = slug
 
 # ------------------------------------------------------------------ rendering
-def render(g, out):
+def render(g, out, theme='light'):
+    setup(theme)
     def page(c, d):
         c.saveState()
-        c.setFillColor(NAVY); c.rect(0, H - 14 * mm, W, 14 * mm, fill=1, stroke=0)
+        if BG is not None:
+            c.setFillColor(BG); c.rect(0, 0, W, H, fill=1, stroke=0)
+        c.setFillColor(BAND); c.rect(0, H - 14 * mm, W, 14 * mm, fill=1, stroke=0)
         c.setFillColor(AMBER); c.rect(0, H - 14 * mm, W, 1.2, fill=1, stroke=0)
         c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 8.5); c.drawString(22 * mm, H - 9 * mm, 'RIDEARRIVO INTERNAL')
         c.setFont('Helvetica', 8.5); c.drawRightString(W - 22 * mm, H - 9 * mm, f'Workstation README  |  Version {VERSION}  |  Internal use only')
         c.setFillColor(MUTE); c.setFont('Helvetica', 8); c.drawRightString(W - 22 * mm, 11 * mm, f'Page {d.page}')
         c.restoreState()
-    doc = BaseDocTemplate(out, pagesize=A4, leftMargin=22 * mm, rightMargin=22 * mm, topMargin=22 * mm, bottomMargin=18 * mm, title=g['title'], author='RideArrivo', subject='Workstation README')
+    doc = BaseDocTemplate(out, pagesize=A4, leftMargin=22 * mm, rightMargin=22 * mm, topMargin=22 * mm, bottomMargin=18 * mm, title=g['title'], author='RideArrivo', subject=f'Workstation README ({theme} theme)')
     doc.addPageTemplates([PageTemplate(id='p', frames=[Frame(22 * mm, 18 * mm, W - 44 * mm, H - 40 * mm)], onPage=page)])
     S = []
-    S.append(P(g['eyebrow'], ParagraphStyle('e', parent=small, textColor=colors.HexColor('#b66e00'), fontName='Helvetica-Bold', spaceBefore=4)))
+    S.append(P(g['eyebrow'], ParagraphStyle('e', parent=small, textColor=EYEBROW, fontName='Helvetica-Bold', spaceBefore=4)))
     S.append(P(esc(g['title']), ParagraphStyle('t', parent=h1, fontSize=22, leading=26, spaceBefore=0)))
     S.append(P(f"<b>Who this is for:</b> {esc(g['who'])}", base))
     S.append(P(esc(g['intro'])))
@@ -205,6 +226,7 @@ def main():
     guides.update(GUIDES_EXTRA)
     for slug, g in guides.items():
         d = os.path.join(ROOT, 'supabase', 'guides', slug); os.makedirs(d, exist_ok=True)
-        out = os.path.join(d, 'readme.pdf'); render(g, out)
-        print('wrote', os.path.relpath(out, ROOT))
+        for theme, name in (('light', 'readme.pdf'), ('dark', 'readme-dark.pdf')):
+            out = os.path.join(d, name); render(g, out, theme)
+            print('wrote', os.path.relpath(out, ROOT))
 if __name__ == '__main__': main()

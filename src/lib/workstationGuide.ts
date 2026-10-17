@@ -6,10 +6,19 @@ export const DEFAULT_WORKSTATION_GUIDE_SLUG = 'canonical'
 
 export const WORKSTATION_GUIDE_VERSION = '3.0'
 
+export type WorkstationGuideTheme = 'light' | 'dark'
+
+// The theme the workspace is showing right now (html[data-ra-theme]).
+export function currentGuideTheme(): WorkstationGuideTheme {
+  if (typeof document === 'undefined') return 'light'
+  return document.documentElement.dataset.raTheme === 'dark' ? 'dark' : 'light'
+}
+
 export function workstationGuidePath(
-  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG,
+  theme: WorkstationGuideTheme = 'light'
 ): string {
-  return `${slug}/readme.pdf`
+  return theme === 'dark' ? `${slug}/readme-dark.pdf` : `${slug}/readme.pdf`
 }
 
 /**
@@ -19,7 +28,8 @@ export function workstationGuidePath(
  * The caller must URL.revokeObjectURL() the result when the viewer closes.
  */
 export async function loadWorkstationGuideBlobUrl(
-  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG,
+  theme: WorkstationGuideTheme = currentGuideTheme()
 ): Promise<string> {
   const client = supabase
 
@@ -40,9 +50,13 @@ export async function loadWorkstationGuideBlobUrl(
     throw new Error('Your workspace session has expired.')
   }
 
-  const { data, error } = await client.storage
-    .from(WORKSTATION_GUIDE_BUCKET)
-    .download(workstationGuidePath(slug))
+  const bucket = client.storage.from(WORKSTATION_GUIDE_BUCKET)
+  let { data, error } = await bucket.download(workstationGuidePath(slug, theme))
+
+  // The dark file may not be uploaded yet: fall back to the light one rather than fail.
+  if (error && theme === 'dark') {
+    ;({ data, error } = await bucket.download(workstationGuidePath(slug, 'light')))
+  }
 
   if (error) {
     throw error

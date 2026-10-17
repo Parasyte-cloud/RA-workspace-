@@ -27,6 +27,7 @@ begin
  -- admin sees all
  if pg_temp.can('00000000-0000-0000-0000-0000000000b4','administration/readme.pdf') and pg_temp.can('00000000-0000-0000-0000-0000000000b4','legal/readme.pdf') and pg_temp.can('00000000-0000-0000-0000-0000000000b4','driver-guide/readme.pdf') then ok:=ok+1; else raise exception 'FAIL admin'; end if;
  -- plain employee: general guide only; inactive assignment gives nothing
+ if pg_temp.can('00000000-0000-0000-0000-0000000000b1','support/readme-dark.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b1','finance/readme-dark.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4','support/readme-light.pdf') then ok:=ok+1; else raise exception 'FAIL dark'; end if;
  if pg_temp.can('00000000-0000-0000-0000-0000000000b5','canonical/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b5','support/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b5','legal/readme.pdf') then ok:=ok+1; else raise exception 'FAIL plain'; end if;
  -- inactive employee: nothing, not even canonical
  if not pg_temp.can('00000000-0000-0000-0000-0000000000b6','canonical/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b6','support/readme.pdf') then ok:=ok+1; else raise exception 'FAIL inactive'; end if;
@@ -34,7 +35,7 @@ begin
  if pg_temp.can('00000000-0000-0000-0000-0000000000b7','finance/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b7','people/readme.pdf') then ok:=ok+1; else raise exception 'FAIL assignment'; end if;
  -- signed out, odd names, unknown slugs
  if not pg_temp.can('','canonical/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4','../support/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4','support/x/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4','nothing/readme.pdf') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4','support/readme.pdf.bak') and not pg_temp.can('00000000-0000-0000-0000-0000000000b4',null) then ok:=ok+1; else raise exception 'FAIL odd'; end if;
- raise notice 'guide access checks passed: % of 8', ok;
+ raise notice 'guide access checks passed: % of 9', ok;
 end $$;
 -- the policy is in place and the old broad one is gone
 do $$ begin

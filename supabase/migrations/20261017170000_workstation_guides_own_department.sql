@@ -35,8 +35,8 @@ begin
     return false;
   end if;
 
-  -- Only '<slug>/readme.pdf', one folder deep.
-  if p_object_name !~ '^[a-z][a-z0-9-]{1,40}/readme\.pdf$' then
+  -- Only '<slug>/readme.pdf' or '<slug>/readme-dark.pdf', one folder deep.
+  if p_object_name !~ '^[a-z][a-z0-9-]{1,40}/readme(-dark)?\.pdf$' then
     return false;
   end if;
   slug := split_part(p_object_name, '/', 1);

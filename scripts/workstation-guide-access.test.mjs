@@ -68,7 +68,7 @@ test('the dashboard shows the signed-in person\'s own README', async () => {
     platform: 'node', outfile: out, logLevel: 'silent',
     plugins: [{ name: 'stub', setup(b) { b.onResolve({ filter: /\/supabase$/ }, () => ({ path: stub })) } }],
   })
-  const { guideForUser } = await import(out)
+  const { guideForUser, workstationGuidePath } = await import(out)
   assert.equal(guideForUser('support', []).slug, 'support')
   assert.equal(guideForUser('hr', []).slug, 'people')
   assert.equal(guideForUser('engineer', []).slug, 'engineering')
@@ -88,6 +88,11 @@ test('the dashboard shows the signed-in person\'s own README', async () => {
   for (const role of ['support', 'operations', 'hr', 'engineer', 'cto', 'finance', 'marketing', 'partnerships', 'legal', 'manager', 'admin', 'employee']) {
     const { slug } = guideForUser(role, [])
     assert.ok(fs.existsSync(new URL(`../supabase/guides/${slug}/readme.pdf`, import.meta.url)), slug)
+    assert.ok(fs.existsSync(new URL(`../supabase/guides/${slug}/readme-dark.pdf`, import.meta.url)), `${slug} dark`)
   }
+  // theme picks the file; the migration allows both names
+  assert.equal(workstationGuidePath('support'), 'support/readme.pdf')
+  assert.equal(workstationGuidePath('support', 'dark'), 'support/readme-dark.pdf')
+  assert.match(read('../supabase/migrations/20261017170000_workstation_guides_own_department.sql'), /readme\(-dark\)\?\\\.pdf/)
   assert.match(read('../src/modules/PersonalDashboard.tsx'), /slug=\{ownGuide\.slug\}/)
 })
