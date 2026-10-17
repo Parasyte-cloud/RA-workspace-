@@ -11,6 +11,7 @@ import {
 } from '../lib/letterhead'
 import type { ClosingKind, DocKind, LetterheadInput } from '../lib/letterhead'
 import { canUseLetterhead } from '../lib/letterheadAccess'
+import CompanyContactCard from '../components/CompanyContactCard'
 
 import '../letterhead.css'
 
@@ -197,6 +198,8 @@ export default function LetterheadStudio({ role, fullName, jobTitle, email, gran
           )}
         </div>
       </header>
+
+      <CompanyContactCard />
 
       {logState === 'recorded' && <p className="lhNote lhOk" role="status">Recorded in the issue log.</p>}
       {logState === 'unavailable' && (
