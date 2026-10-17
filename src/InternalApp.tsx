@@ -22,6 +22,7 @@ import './nav-liquid.css'
 import './theme-fixes.css'
 import './island.css'
 import './glass-clear.css'
+import './visibility-fixes.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
 

@@ -1,0 +1,105 @@
+/* Visibility fixes (2026-10-17)
+   1. The floating bottom tab bar must never sit on top of an open dialog.
+   2. Dialog action rows stay inside the visible area and clear of the bar.
+   3. Secondary / outline buttons stay readable in both themes. */
+
+/* 1. Hide the phone tab bar while any modal is open (iOS 16+, all evergreen browsers). */
+@media (max-width: 599px) {
+  body:has([aria-modal='true']) nav.phoneTabs,
+  body:has(.downloadAccessOverlay) nav.phoneTabs,
+  body:has(.formsSheetOverlay) nav.phoneTabs,
+  body:has(.arcModalBack) nav.phoneTabs,
+  body:has(.wrxModal) nav.phoneTabs,
+  body:has(.wcalModalBack) nav.phoneTabs,
+  body:has(.cmModalBack) nav.phoneTabs,
+  body:has(.virtualCardOverlay) nav.phoneTabs,
+  body:has(.lateDlgOverlay) nav.phoneTabs,
+  body:has(.workDetailBackdrop) nav.phoneTabs,
+  body:has(.intakeDetailBackdrop) nav.phoneTabs,
+  body:has(.roomDocumentOverlay) nav.phoneTabs,
+  body:has(.rhOverlay) nav.phoneTabs {
+    transform: translateY(130%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .18s ease, opacity .18s ease;
+  }
+}
+
+/* 2. Modal sheets: scroll inside, keep the action row visible at the bottom. */
+.downloadAccessOverlay {
+  align-items: center;
+  overflow-y: auto;
+  padding-bottom: max(18px, var(--ra-safe-bottom, 0px));
+}
+
+.downloadAccessModal {
+  max-height: calc(100dvh - 36px - var(--ra-safe-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.downloadAccessModalActions {
+  position: sticky;
+  bottom: -22px;
+  z-index: 2;
+  margin-inline: -22px;
+  margin-bottom: -22px;
+  padding: 14px 22px max(16px, var(--ra-safe-bottom, 0px));
+  background: var(--ra-surface, #fff);
+  border-top: 1px solid var(--ra-border, rgba(7,26,56,.12));
+  border-radius: 0 0 22px 22px;
+}
+
+@media (max-width: 599px) {
+  .downloadAccessOverlay {
+    align-items: end;
+    padding: 0;
+  }
+  .downloadAccessModal,
+  .downloadAccessModal.responsiveModalSheet {
+    width: 100%;
+    max-height: calc(100dvh - var(--ra-safe-top, 0px) - 12px);
+    border-radius: 22px 22px 0 0 !important;
+  }
+}
+
+/* 3. Contrast for secondary buttons, light and dark. */
+.downloadAccessModal .glassButton,
+.downloadAccessModal button:not(.primaryButton) {
+  color: #14233a !important;
+  background: #eef2f7 !important;
+  border: 1px solid rgba(7,26,56,.22) !important;
+  font-weight: 600;
+}
+
+html[data-ra-theme='dark'] .downloadAccessModal .glassButton,
+html[data-ra-theme='dark'] .downloadAccessModal button:not(.primaryButton) {
+  color: #f4f7fb !important;
+  background: #22344f !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+}
+
+html[data-ra-theme='dark'] .glassButton:not(:disabled),
+html[data-ra-theme='dark'] .iconButton:not(:disabled) {
+  color: #f4f7fb !important;
+  border-color: rgba(255,255,255,.28) !important;
+}
+
+html[data-ra-theme='dark'] .glassButton:disabled {
+  color: #b9c5d6 !important;
+  opacity: .7;
+}
+
+.primaryButton:not(:disabled) {
+  color: #1a1000 !important;
+}
+.primaryButton:disabled {
+  opacity: .62;
+}
+
+/* The mobile layout sets the action row to width:100%; with the negative side
+   margins that left it short on the right. Make it span the sheet exactly. */
+.downloadAccessModal .downloadAccessModalActions {
+  width: calc(100% + 44px) !important;
+  box-sizing: border-box;
+}

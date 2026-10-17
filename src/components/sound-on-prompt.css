@@ -1,0 +1,13 @@
+.soundPrompt{position:fixed;z-index:1400;left:50%;transform:translateX(-50%);bottom:max(18px,calc(var(--ra-safe-bottom,0px) + 18px));width:min(440px,calc(100vw - 24px));padding:16px;border-radius:22px;background:var(--ra-surface,#fff);color:var(--ra-text,#071a38);border:1px solid var(--ra-border,rgba(7,26,56,.14));box-shadow:0 24px 70px rgba(0,0,0,.4)}
+@media(max-width:599px){.soundPrompt{bottom:max(84px,calc(var(--ra-safe-bottom,0px) + 84px))}}
+.soundPromptHead{display:flex;gap:12px;align-items:flex-start;padding-right:26px}
+.soundPromptHead svg{flex:0 0 auto;color:var(--amber,#ff9900);margin-top:2px}
+.soundPromptHead strong{display:block;font-size:1rem}
+.soundPromptHead p{margin:4px 0 0;font-size:.86rem;line-height:1.45;color:var(--ra-muted,#5a6a80)}
+.soundPromptClose{position:absolute;top:8px;right:8px;width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:inherit;cursor:pointer}
+.soundPromptActions{display:flex;gap:8px;margin-top:14px}
+.soundPromptActions .primaryButton{flex:1;justify-content:center;min-height:44px}
+.soundPromptActions .glassButton{min-height:44px;color:inherit !important;border:1px solid var(--ra-border,rgba(7,26,56,.25)) !important}
+.soundPromptOk{margin:10px 0 0;font-size:.84rem;color:#1c8a52}
+.soundPromptWarn{margin:10px 0 0;font-size:.84rem;color:#d97706}
+.soundPromptAlerts{margin-top:12px;padding-top:12px;border-top:1px solid var(--ra-border,rgba(7,26,56,.12))}
