@@ -1,0 +1,38 @@
+/* .secondaryButton is used across ROOM 7, the R7 AI screens and Archive, but it
+   never had a style of its own. It fell back to the browser's default grey button,
+   which showed up as flat grey blocks in dark mode. This gives it the same look as
+   the glass buttons in both themes. Single-class selectors, so any component rule
+   that is more specific still wins. */
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #dfe5ec;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0b2342;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 3px 10px rgba(7, 26, 56, .04);
+}
+.secondaryButton:hover:not(:disabled) { border-color: #c4cfdb; background: #f6f9fc; }
+.secondaryButton:disabled { opacity: .55; cursor: not-allowed; }
+.secondaryButton:focus-visible { outline: 2px solid #ff9900; outline-offset: 2px; }
+
+html[data-ra-theme='dark'] .secondaryButton {
+  border-color: rgba(255, 255, 255, .10);
+  background: #152338;
+  color: #f4f7fb;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .06);
+}
+html[data-ra-theme='dark'] .secondaryButton:hover:not(:disabled) {
+  border-color: rgba(255, 153, 0, .45);
+  background: #1b2d47;
+}
+
+.roomRecentDelete { color: #b42318; }
+html[data-ra-theme='dark'] .roomRecentDelete { color: #ff9a9a; }
+html[data-ra-theme='dark'] .roomRecentDelete:hover:not(:disabled) { border-color: rgba(255, 120, 120, .55); background: #2a1c26; }
