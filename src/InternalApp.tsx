@@ -23,6 +23,7 @@ import './theme-fixes.css'
 import './island.css'
 import './glass-clear.css'
 import './visibility-fixes.css'
+import './dark-readability.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
 
