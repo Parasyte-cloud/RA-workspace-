@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, Clock3, Gauge, Laptop, Smartphone, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
+import { guideForUser } from '../lib/workstationGuide'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
 import DashboardNotificationsTeaser from '../components/DashboardNotificationsTeaser'
 import '../personal-dashboard.css'
@@ -168,6 +169,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
 
   const name=firstName(profile.full_name,profile.email)
   const primary=assignments.find(item=>item.active && item.is_primary)
+  const ownGuide=useMemo(()=>guideForUser(profile.role,assignments),[profile.role,assignments])
   const primaryLabel=primary ? workstationLabels[primary.workstation] || primary.workstation : ''
   const primaryTarget=primary ? workstationSection[primary.workstation] : ''
 
@@ -223,7 +225,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
         defaultOpen={!guideSeenAtLoad}
         onToggleOpen={open=>{ if(!open) markGuideSeen() }}
       >
-        <WorkstationGuideCard workstationLabel="Your Workspace" />
+        <WorkstationGuideCard slug={ownGuide.slug} workstationLabel={ownGuide.label} />
       </Disclosure>
 
       <div className="todayMore" aria-label="More about you">
