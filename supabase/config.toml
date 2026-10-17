@@ -437,6 +437,26 @@ entrypoint = "./functions/whatsapp-send/index.ts"
 [functions.room-ai-webhook]
 verify_jwt = false
 
+[functions.room-ai-upload]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/room-ai-upload/index.ts"
+
+[functions.room-ai-transcribe]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/room-ai-transcribe/index.ts"
+
+[functions.room-ai-finalize]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/room-ai-finalize/index.ts"
+
+[functions.room-ai-retention]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/room-ai-retention/index.ts"
+
 [functions.zoho-mail-auth-url]
 enabled = true
 verify_jwt = true

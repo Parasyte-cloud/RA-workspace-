@@ -23,6 +23,7 @@ import {
   Share2,
   ShieldCheck,
   Users,
+  Mic,
   Video,
   X
 } from 'lucide-react'
@@ -47,6 +48,11 @@ import Room7EventControlCenter from './Room7EventControlCenter'
 import GuestAdmissionPanel from './GuestAdmissionPanel'
 import RoomHub from './RoomHub'
 import '../room.css'
+import '../room7-ai/room7-ai.css'
+import PhysicalMeetingSetup, { type StartedMeeting } from '../room7-ai/PhysicalMeetingSetup'
+import PhysicalMeetingRecorder from '../room7-ai/PhysicalMeetingRecorder'
+import Room7AiMeetingRecord from '../room7-ai/Room7AiMeetingRecord'
+import Room7AiRecordsList from '../room7-ai/Room7AiRecordsList'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
@@ -153,6 +159,8 @@ export default function RoomModule({
   const [guestBusy,setGuestBusy]=useState('')
   const [guestError,setGuestError]=useState('')
   const [copied,setCopied]=useState('')
+  const [ai,setAi]=useState<null|{view:'setup'}|{view:'rec';meeting:StartedMeeting}|{view:'record';id:string}>(null)
+  const [aiRefresh,setAiRefresh]=useState(0)
   const [calStart,setCalStart]=useState(()=>toLocalInput(nextQuarterHour()))
   const [calMinutes,setCalMinutes]=useState(60)
 
@@ -559,6 +567,19 @@ export default function RoomModule({
     }
   }
 
+  if(ai){
+    const closeAi=()=>{setAi(null);setAiRefresh(n=>n+1)}
+    return (
+      <>
+      {callNode}
+      {admissionNode}
+      {ai.view==='setup'&&<PhysicalMeetingSetup onCancel={closeAi} onStarted={meeting=>setAi({view:'rec',meeting})} onOpenRecord={id=>setAi({view:'record',id})}/>}
+      {ai.view==='rec'&&<PhysicalMeetingRecorder meeting={ai.meeting} onExit={closeAi} onOpenRecord={id=>setAi({view:'record',id})}/>}
+      {ai.view==='record'&&<Room7AiMeetingRecord sessionId={ai.id} myId={myId} onBack={closeAi}/>}
+      </>
+    )
+  }
+
   return (
     <>
     {callNode}
@@ -639,7 +660,7 @@ export default function RoomModule({
         </div>
       }
 
-      <div className="roomActionGrid">
+      <div className="roomActionGrid roomActionGrid3">
         <article className="roomActionCard glassCard">
           <div className="roomActionIcon primary"><Plus size={22}/></div>
           <div>
@@ -683,6 +704,18 @@ export default function RoomModule({
           >
             {creating?<LoaderCircle size={17} className="roomSpin"/>:<Video size={17}/>}
             {creating?'Creating ROOM 7...':'Create ROOM 7'}
+          </button>
+        </article>
+
+        <article className="roomActionCard glassCard">
+          <div className="roomActionIcon"><Mic size={22}/></div>
+          <div>
+            <span className="eyebrow">IN THE ROOM</span>
+            <h3>Physical meeting</h3>
+            <p>Record a meeting held in person from this laptop, phone or iPad. R7 AI turns it into a transcript and meeting record.</p>
+          </div>
+          <button type="button" className="glassButton roomWideButton" onClick={()=>setAi({view:'setup'})}>
+            <Mic size={17}/>Start physical meeting
           </button>
         </article>
 
@@ -966,6 +999,8 @@ export default function RoomModule({
           )}
         </div>
       }
+
+      <Room7AiRecordsList refreshKey={aiRefresh} onOpen={id=>setAi({view:'record',id})}/>
     </section>
     </>
   )
