@@ -22,6 +22,7 @@ import {
   Send,
   Share2,
   ShieldCheck,
+  Trash2,
   Users,
   Mic,
   Video,
@@ -137,6 +138,9 @@ export default function RoomModule({
   const [callRoomCodes,setCallRoomCodes]=useState<Set<string>>(new Set())
   const [myId,setMyId]=useState('')
   const [endingId,setEndingId]=useState('')
+  const [deletingId,setDeletingId]=useState('')
+  const [isAdmin,setIsAdmin]=useState(false)
+  const [historyNotice,setHistoryNotice]=useState('')
   const [roomTitle,setRoomTitle]=useState('')
   const [joinCode,setJoinCode]=useState(initialCode)
   const [aiNotesEnabled,setAiNotesEnabled]=useState(true)
@@ -204,7 +208,14 @@ export default function RoomModule({
         client.auth.getUser()
       ])
       setCallRoomCodes(new Set((calls||[]).map((row:{room_code:string})=>row.room_code)))
-      setMyId(auth?.user?.id||'')
+      const uid=auth?.user?.id||''
+      setMyId(uid)
+      // Only used to decide whether to show the Delete button; the database
+      // function makes the real decision.
+      if(uid){
+        const {data:me}=await client.from('employee_profiles').select('role').eq('id',uid).maybeSingle()
+        setIsAdmin((me as {role?:string}|null)?.role==='admin')
+      }
     }catch(error){
       console.error('ROOM 7 history load failed:',error)
       setNotice(error instanceof Error?error.message:'Unable to load ROOM 7 history.')
@@ -564,6 +575,25 @@ export default function RoomModule({
       setNotice(error instanceof Error?error.message:'Unable to end this ROOM 7.')
     }finally{
       setEndingId('')
+    }
+  }
+
+  const deleteFromList=async(room:{id:string;title:string})=>{
+    if(deletingId||!client)return
+    if(!window.confirm(`Delete "${room.title}" permanently? Its chat, notes and attendance are removed for everyone. AI recordings of this meeting are kept. This cannot be undone.`))return
+    setDeletingId(room.id)
+    setHistoryNotice('')
+    try{
+      const {error}=await client.rpc('delete_workspace_room',{p_id:room.id})
+      if(error)throw error
+      setRooms(current=>current.filter(item=>item.id!==room.id))
+      setHub(current=>current&&current.room.id===room.id?null:current)
+      setHistoryNotice(`${room.title} deleted.`)
+    }catch(error){
+      console.error('ROOM 7 delete failed:',error)
+      setHistoryNotice(error instanceof Error?error.message:'Unable to delete this meeting.')
+    }finally{
+      setDeletingId('')
     }
   }
 
@@ -981,6 +1011,8 @@ export default function RoomModule({
         </div>
       </div>
 
+      {historyNotice&&<div className="roomNotice" role="status">{historyNotice}</div>}
+
       {recentRooms.length===0
         ?<div className="roomRecentEmpty">Ended ROOM 7 meetings will appear here.</div>
         :<div className="roomRecentGrid">
@@ -994,6 +1026,7 @@ export default function RoomModule({
               <div className="roomRecentActions">
                 <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'chat'})}><MessageSquare size={14}/>Chat</button>
                 <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'notes'})}><NotebookPen size={14}/>Notes</button>
+                {(isAdmin||room.created_by===myId)&&<button type="button" className="secondaryButton roomRecentDelete" disabled={deletingId===room.id} aria-label={`Delete ${room.title}`} onClick={()=>void deleteFromList(room)}>{deletingId===room.id?<LoaderCircle size={14} className="roomSpin"/>:<Trash2 size={14}/>}Delete</button>}
               </div>
             </article>
           )}
