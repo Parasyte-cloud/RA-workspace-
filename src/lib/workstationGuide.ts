@@ -6,10 +6,19 @@ export const DEFAULT_WORKSTATION_GUIDE_SLUG = 'canonical'
 
 export const WORKSTATION_GUIDE_VERSION = '3.0'
 
+export type WorkstationGuideTheme = 'light' | 'dark'
+
+// The theme the workspace is showing right now (html[data-ra-theme]).
+export function currentGuideTheme(): WorkstationGuideTheme {
+  if (typeof document === 'undefined') return 'light'
+  return document.documentElement.dataset.raTheme === 'dark' ? 'dark' : 'light'
+}
+
 export function workstationGuidePath(
-  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG,
+  theme: WorkstationGuideTheme = 'light'
 ): string {
-  return `${slug}/readme.pdf`
+  return theme === 'dark' ? `${slug}/readme-dark.pdf` : `${slug}/readme.pdf`
 }
 
 /**
@@ -19,7 +28,8 @@ export function workstationGuidePath(
  * The caller must URL.revokeObjectURL() the result when the viewer closes.
  */
 export async function loadWorkstationGuideBlobUrl(
-  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG
+  slug: string = DEFAULT_WORKSTATION_GUIDE_SLUG,
+  theme: WorkstationGuideTheme = currentGuideTheme()
 ): Promise<string> {
   const client = supabase
 
@@ -40,9 +50,13 @@ export async function loadWorkstationGuideBlobUrl(
     throw new Error('Your workspace session has expired.')
   }
 
-  const { data, error } = await client.storage
-    .from(WORKSTATION_GUIDE_BUCKET)
-    .download(workstationGuidePath(slug))
+  const bucket = client.storage.from(WORKSTATION_GUIDE_BUCKET)
+  let { data, error } = await bucket.download(workstationGuidePath(slug, theme))
+
+  // The dark file may not be uploaded yet: fall back to the light one rather than fail.
+  if (error && theme === 'dark') {
+    ;({ data, error } = await bucket.download(workstationGuidePath(slug, 'light')))
+  }
 
   if (error) {
     throw error
@@ -55,4 +69,51 @@ export async function loadWorkstationGuideBlobUrl(
   return URL.createObjectURL(
     new Blob([data], { type: 'application/pdf' })
   )
+}
+
+// Which README a person sees on their dashboard: their own workstation's.
+// Order matches how the workspace decides which workstation is theirs: an active
+// primary assignment first, then their role. Anyone with neither gets the general
+// workspace guide. Keep the role table in step with sectionAccess in App.tsx
+// (scripts/workstation-guide-access.test.mjs fails if they drift apart).
+const WORKSTATION_GUIDE_LABELS: Record<string, string> = {
+  support: 'Customer Support',
+  operations: 'Mobility Operations',
+  people: 'People Operations',
+  engineering: 'Engineering',
+  finance: 'Finance & Accounting',
+  marketing: 'Marketing',
+  partnerships: 'Partnerships',
+  legal: 'Legal & Compliance',
+  executive: 'Executive',
+  administration: 'Administration',
+}
+
+const ROLE_TO_WORKSTATION: Record<string, string> = {
+  support: 'support',
+  operations: 'operations',
+  hr: 'people',
+  engineer: 'engineering',
+  cto: 'engineering',
+  finance: 'finance',
+  marketing: 'marketing',
+  partnerships: 'partnerships',
+  legal: 'legal',
+  manager: 'executive',
+  admin: 'administration',
+}
+
+export function guideForUser(
+  role: string,
+  assignments: { workstation: string; is_primary: boolean; active: boolean }[] = []
+): { slug: string; label: string } {
+  const primary = assignments.find((item) => item.active && item.is_primary)
+  const workstation =
+    (primary && WORKSTATION_GUIDE_LABELS[primary.workstation] ? primary.workstation : '') ||
+    ROLE_TO_WORKSTATION[String(role || '').toLowerCase()] ||
+    ''
+  if (!workstation) {
+    return { slug: DEFAULT_WORKSTATION_GUIDE_SLUG, label: 'Your Workspace' }
+  }
+  return { slug: workstation, label: WORKSTATION_GUIDE_LABELS[workstation] }
 }

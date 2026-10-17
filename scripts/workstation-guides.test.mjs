@@ -15,7 +15,8 @@ assert.ok(!/UploadCloud|type="file"/.test(card))
 assert.ok(!/window\.open/.test(card), 'must not open a new window')
 assert.match(card, /<iframe/)
 assert.match(card, /createPortal/)
-assert.match(lib, /\.download\(workstationGuidePath\(slug\)\)/)
+assert.match(lib, /\.download\(workstationGuidePath\(slug, theme\)\)/)
+assert.match(lib, /readme-dark\.pdf/)
 assert.match(lib, /type: 'application\/pdf'/)
 assert.match(card, /revokeObjectURL/)
 
@@ -28,7 +29,7 @@ assert.ok(!/create policy/i.test(mig), 'migration must only drop write policies'
 // Every workstation slug has a README to publish.
 const slugs = new Set([...dept.matchAll(/workstationSlug="([a-z-]+)"/g)].map((m) => m[1]))
 for (const extra of ['canonical', 'administration', 'marketing', 'linux']) slugs.add(extra)
-for (const slug of slugs) assert.ok(existsSync(new URL(`../supabase/guides/${slug}/readme.pdf`, import.meta.url)), `missing README for ${slug}`)
+for (const slug of slugs) for (const f of ['readme.pdf', 'readme-dark.pdf']) assert.ok(existsSync(new URL(`../supabase/guides/${slug}/${f}`, import.meta.url)), `missing ${f} for ${slug}`)
 
 const builder = readFileSync(new URL('./guides/build-workstation-guides.py', import.meta.url), 'utf8')
 assert.ok(!builder.includes('—') && !card.includes('—'), 'no em dash')
