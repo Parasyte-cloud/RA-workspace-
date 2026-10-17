@@ -103,3 +103,19 @@ html[data-ra-theme='dark'] .glassButton:disabled {
   width: calc(100% + 44px) !important;
   box-sizing: border-box;
 }
+
+/* Short windows (small laptops, landscape phones): compact the upload form so
+   Description and Folder are reachable without hunting for the scroll. */
+@media (max-height: 760px) {
+  .companyFileUploadModal textarea { min-height: 64px; }
+  .companyFileUploadModal label { margin-top: 12px; }
+  .companyFilePicker { margin-top: 12px; }
+}
+
+/* Dialogs that had no height cap: they grew past the screen and could not scroll. */
+.socialModal { overflow-y: auto; align-items: start; }
+.replyModal { max-height: calc(100dvh - 40px); overflow-y: auto; margin-block: auto; }
+.roomDocumentOverlay { overflow-y: auto; }
+.virtualCardOverlay { overflow-y: auto; }
+.virtualCardModal { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.workDetailPanel { max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain; }
