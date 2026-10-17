@@ -20,6 +20,9 @@
     var fav = document.querySelector('link[rel="icon"]'); if (fav) fav.href = '/icons/chauffeur-192.png'
     var apple = document.querySelector('link[rel="apple-touch-icon"]'); if (apple) apple.href = '/icons/chauffeur-apple-180.png'
   }
+  // Each customer site gets its own small worker (offline page only). It is not
+  // the workspace worker, so the two never share a cache or push handling.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-sw.js').catch(function () {})
   var meta = document.createElement('meta'); meta.name = 'apple-mobile-web-app-title'; meta.content = hit[2]
   document.head.appendChild(meta)
 })()

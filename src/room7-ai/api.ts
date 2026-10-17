@@ -72,6 +72,11 @@ export async function callFunction<T = Record<string, unknown>>(name: string, bo
   return data as T
 }
 
+// The wording the host confirms in the setup screen. The database keeps the exact
+// text for each version, so the audit trail shows what was actually agreed to.
+export const PHYSICAL_CONSENT_VERSION = 'physical-v1'
+export const PHYSICAL_CONSENT_TEXT = 'I confirm everyone in this room has been told this meeting is being recorded and transcribed, and agrees.'
+
 export async function startPhysical(args: {
   title: string
   attendees: { name: string; user_id?: string }[]
@@ -86,6 +91,7 @@ export async function startPhysical(args: {
     p_live: args.live,
     p_attested: true,
     p_device: args.device,
+    p_statement_version: PHYSICAL_CONSENT_VERSION,
   })
   if (error) throw new Error(error.message)
   return data as string
@@ -111,19 +117,35 @@ export async function loadSession(id: string): Promise<AiSession | null> {
   return (data as unknown as AiSession) ?? null
 }
 
+// PostgREST answers at most 1000 rows per request on Supabase (its max-rows
+// setting), whatever .limit() says, so a long meeting was silently cut off. Read
+// the transcript in pages of 1000 until a short page arrives. The ordering has a
+// tie-breaker (id) so rows with the same start time never repeat or vanish
+// between pages.
+const TRANSCRIPT_PAGE = 1000
+const TRANSCRIPT_MAX_PAGES = 200
+
 export async function loadTranscript(session: AiSession): Promise<AiSegment[]> {
   // The finished record shows the latest final revision. During the meeting it
   // shows the provisional live text (revision 0).
   const revision = session.state === 'ready' || session.processing_revision > 0 ? session.processing_revision : 0
-  const { data, error } = await client()
-    .from('workspace_room_transcript_segments')
-    .select('id,revision,is_final,speaker_key,start_ms,end_ms,text')
-    .eq('ai_session_id', session.id)
-    .eq('revision', revision)
-    .order('start_ms', { ascending: true })
-    .limit(5000)
-  if (error) throw new Error(error.message)
-  return (data ?? []) as AiSegment[]
+  const out: AiSegment[] = []
+  for (let page = 0; page < TRANSCRIPT_MAX_PAGES; page++) {
+    const from = page * TRANSCRIPT_PAGE
+    const { data, error } = await client()
+      .from('workspace_room_transcript_segments')
+      .select('id,revision,is_final,speaker_key,start_ms,end_ms,text')
+      .eq('ai_session_id', session.id)
+      .eq('revision', revision)
+      .order('start_ms', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + TRANSCRIPT_PAGE - 1)
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []) as AiSegment[]
+    out.push(...rows)
+    if (rows.length < TRANSCRIPT_PAGE) break
+  }
+  return out
 }
 
 export async function loadExtras(id: string) {

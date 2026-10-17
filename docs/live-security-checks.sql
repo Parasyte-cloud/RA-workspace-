@@ -54,3 +54,9 @@ join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public' and c.relkind = 'v'
   and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'
 order by 1;
+
+-- R7 AI hardening. Cron jobs that must authenticate with the Vault secret.
+-- Every row should say 'ok'. 'needs_repair' means the job still sends the old key and answers 401:
+-- create the Vault secret named cron_dispatch_secret (same value as the CRON_DISPATCH_SECRET function secret),
+-- then run: select * from public.repair_cron_authentication();
+select * from public.cron_authentication_status();

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, LoaderCircle, Mic, Plus, ShieldCheck, X } from 'lucide-react'
-import { listActiveEmployees, startPhysical, RETENTION_LABEL, type RetentionMode } from './api'
+import { listActiveEmployees, startPhysical, PHYSICAL_CONSENT_TEXT, RETENTION_LABEL, type RetentionMode } from './api'
 import { listMicrophones, pickMime } from './usePhysicalRecorder'
 import { recoverable } from './recorderStore'
 import RecoverMeeting from './RecoverMeeting'
@@ -189,7 +189,7 @@ export default function PhysicalMeetingSetup({ onStarted, onCancel, onOpenRecord
 
         <label className="r7aiConsent">
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
-          <span><ShieldCheck size={15} />I confirm everyone in this room has been told this meeting is being recorded and transcribed, and agrees.</span>
+          <span><ShieldCheck size={15} />{PHYSICAL_CONSENT_TEXT}</span>
         </label>
 
         <div className="r7aiKeepOpen"><AlertTriangle size={15} />Keep ROOM 7 open and the screen on while recording. Locking a phone or switching apps can stop the microphone.</div>

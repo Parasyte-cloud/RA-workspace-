@@ -84,6 +84,7 @@ export default function PhysicalMeetingRecorder({ meeting, onOpenRecord, onExit 
       {r.problem === 'lost' && <div className="r7aiWarn"><AlertTriangle size={17} />The microphone was disconnected. Recording is paused. Reconnect it and tap Resume.</div>}
       {!r.online && (recording || paused) && <div className="r7aiWarn"><WifiOff size={17} />Recording locally. Reconnecting. Nothing is lost; audio uploads when you are back online.</div>}
       {r.online && r.pendingUploads > 3 && (recording || paused) && <div className="r7aiNote"><CloudOff size={16} />Upload is {r.pendingUploads} parts behind. Recording continues.</div>}
+      {r.bufferProblem && (recording || paused || r.phase === 'stopping' || r.phase === 'uploading') && <div className="r7aiNote">This device could not save a backup copy of the audio, so the recording is only safe while this page stays open. Keep ROOM 7 open until it says the upload is done.</div>}
       {meeting.live && !r.liveHealthy && (recording || paused) && <div className="r7aiNote">Live transcript is reconnecting. The recording is fine; the full transcript will be made after the meeting.</div>}
 
       {(recording || paused || r.phase === 'starting') && (

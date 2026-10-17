@@ -91,6 +91,8 @@ export function usePhysicalRecorder(opts: { sessionId: string; title: string; li
   const [liveHealthy, setLiveHealthy] = useState(true)
   const [message, setMessage] = useState('')
   const [finalState, setFinalState] = useState('')
+  // True when this device could not keep its own backup copy of the audio.
+  const [bufferProblem, setBufferProblem] = useState(false)
 
   const stream = useRef<MediaStream | null>(null)
   const recorder = useRef<MediaRecorder | null>(null)
@@ -211,8 +213,10 @@ export function usePhysicalRecorder(opts: { sessionId: string; title: string; li
       if (e.data.size === 0) return
       const n = seq.current++
       const type = bare(mimeRef.current || e.data.type || 'audio/webm')
+      // putChunk keeps the chunk in memory even when the on-device backup fails,
+      // so a failed write no longer drops audio. We tell the person instead.
       void putChunk({ sessionId, seq: n, mime: type, blob: e.data, bytes: e.data.size, uploaded: false })
-        .catch(() => undefined)
+        .catch(() => setBufferProblem(true))
         .finally(() => { void persistMeta(); kickUploads() })
     }
     s.getAudioTracks()[0].onended = () => {
@@ -317,7 +321,7 @@ export function usePhysicalRecorder(opts: { sessionId: string; title: string; li
     void wake.current?.release().catch(() => undefined)
   }, [])
 
-  return { phase, problem, level, elapsed, pendingUploads, online, liveHealthy, message, finalState, start, pause, resume, end, retryFinish, addMarker }
+  return { phase, problem, level, elapsed, pendingUploads, online, liveHealthy, message, finalState, bufferProblem, start, pause, resume, end, retryFinish, addMarker }
 }
 
 // Microphone check for the setup screen: opens the mic briefly and reports a level.
