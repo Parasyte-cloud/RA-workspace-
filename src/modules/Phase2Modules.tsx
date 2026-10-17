@@ -566,7 +566,12 @@ export function CompanyFilesModule() {
           cacheControl: '3600',
         })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        if (/mime type .* is not supported/i.test(uploadError.message || '')) {
+          throw new Error(`${selectedFile.name} is a file type Company Files does not accept yet. Export it as PDF, Word, Excel or an image and upload that.`)
+        }
+        throw uploadError
+      }
 
       if (previewBlob && previewPath) {
         const { error: previewError } = await supabase.storage
