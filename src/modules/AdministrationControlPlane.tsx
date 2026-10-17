@@ -546,7 +546,7 @@ export default function AdministrationControlPlane(){
   const [tab,setTab]=useState<AdminTab>('overview')
 
   return <section className="administrationControlPlane">
-      <WorkstationGuideCard />
+      <WorkstationGuideCard slug="administration" workstationLabel="Administration" />
     <div className="adminControlTitle"><div><span className="eyebrow">ADMINISTRATION</span><h2>Administration Workstation</h2><p>Authoritative, audited control of RideArrivo identity, people, security, workstations, performance, equipment and access.</p></div><span className="adminAuthorityBadge"><ShieldCheck size={14}/>Admin-only</span></div>
 
     <nav className="adminControlTabs" aria-label="Administration sections">

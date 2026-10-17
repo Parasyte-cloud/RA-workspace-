@@ -134,37 +134,49 @@
   }
 }
 
-.workstationGuideAdminRow{
+
+/* In-workspace PDF viewer. The guide opens here instead of in a new tab. */
+.workstationGuideViewerBackdrop{
+  position:fixed;
+  inset:0;
+  z-index:2000;
+  display:grid;
+  place-items:center;
+  padding:clamp(10px,2.5vw,28px);
+  background:rgba(4,12,24,.62);
+  backdrop-filter:blur(6px);
+}
+.workstationGuideViewer{
+  display:flex;
+  flex-direction:column;
+  width:min(1100px,100%);
+  height:100%;
+  overflow:hidden;
+  border-radius:20px;
+  border:1px solid #dfe5ec;
+  background:#ffffff;
+  box-shadow:0 30px 80px rgba(0,0,0,.35);
+}
+.workstationGuideViewer header{
   display:flex;
   align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:10px;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid #dfe5ec;
+  color:#0b2342;
 }
-
-.workstationGuideAdminButton{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 10px;
-  border-radius:9px;
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.02em;
-  color:#745019;
-  background:rgba(255,153,0,.1);
-  border:1px solid rgba(255,153,0,.22);
-  cursor:pointer;
-  white-space:nowrap;
+.workstationGuideViewer header>div{display:grid;gap:2px;min-width:0}
+.workstationGuideViewer header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.workstationGuideViewerClose{
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:36px;padding:0 14px;
+  border:1px solid #dfe5ec;border-radius:12px;
+  background:#ffffff;color:#0b2342;font:inherit;font-weight:700;cursor:pointer;
 }
-
-.workstationGuideAdminButtonDisabled{
-  cursor:wait;
-  opacity:.72;
-}
-
-.workstationGuideAdminNotice{
-  font-size:10px;
-  line-height:1.4;
-  color:#167849;
-}
+.workstationGuideViewerClose:hover{background:#f6f9fc}
+.workstationGuideFrame{flex:1;width:100%;border:0;background:#525659}
+html[data-ra-theme='dark'] .workstationGuideViewer{background:#0f1c2e;border-color:rgba(255,255,255,.12)}
+html[data-ra-theme='dark'] .workstationGuideViewer header{border-color:rgba(255,255,255,.12);color:#f4f7fb}
+html[data-ra-theme='dark'] .workstationGuideViewerClose{background:#152338;border-color:rgba(255,255,255,.12);color:#f4f7fb}
+html[data-ra-theme='dark'] .workstationGuideViewerClose:hover{background:#1b2d47}
