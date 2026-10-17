@@ -29,3 +29,20 @@
 .room7Public[data-theme="light"] .lcRoot input{background:#fff}
 .room7Public[data-theme="light"] .lcRoot button{color:#fff}
 .room7Public[data-theme="light"] .lcError{color:#b42318}
+
+/* ROOM 7 front-door light treatment. */
+.room7Public[data-theme="light"] .room7LandingKicker{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.1);color:#425269}
+.room7Public[data-theme="light"] .room7LandingHero h1{background:linear-gradient(180deg,#0f1b2d 20%,#344762 100%);-webkit-background-clip:text;background-clip:text}
+.room7Public[data-theme="light"] .room7LandingHero>p{color:#566478}
+.room7Public[data-theme="light"] .room7LandingPromises span{background:rgba(255,255,255,.62);border-color:rgba(15,23,42,.1);color:#566478}
+.room7Public[data-theme="light"] .room7LandingPreview{background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(238,243,248,.85));border-color:rgba(15,23,42,.11);box-shadow:0 22px 60px rgba(15,23,42,.1)}
+.room7Public[data-theme="light"] .room7LandingJoinCard{background:radial-gradient(circle at 100% 0,rgba(246,161,26,.12),transparent 34%),linear-gradient(150deg,rgba(255,255,255,.96),rgba(246,248,251,.88));border-color:rgba(15,23,42,.12);box-shadow:0 28px 75px rgba(15,23,42,.13),inset 0 1px rgba(255,255,255,.8)}
+.room7Public[data-theme="light"] .room7LandingJoinHeading p{color:#566478}
+.room7Public[data-theme="light"] .room7LandingForm label{color:#566478}
+.room7Public[data-theme="light"] .room7LandingField{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.14);box-shadow:inset 0 1px rgba(255,255,255,.9),0 12px 26px rgba(15,23,42,.06)}
+.room7Public[data-theme="light"] .room7LandingField:focus-within{background:#fff;box-shadow:0 0 0 4px rgba(246,161,26,.11),0 16px 35px rgba(15,23,42,.09)}
+.room7Public[data-theme="light"] .room7LandingField input::placeholder{color:#8794a6}
+.room7Public[data-theme="light"] .room7LandingTrust{border-top-color:rgba(15,23,42,.09);color:#66768a}
+.room7Public[data-theme="light"] .room7LandingSteps li{background:rgba(255,255,255,.7);border-color:rgba(15,23,42,.1)}
+.room7Public[data-theme="light"] .room7LandingSteps strong{color:#0f1b2d}
+.room7Public[data-theme="light"] .room7LandingSteps li>span:last-child{color:#566478}

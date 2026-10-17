@@ -8,7 +8,7 @@
   var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = '/room7.webmanifest'
   var a = document.querySelector('link[rel="apple-touch-icon"]'); if (a) a.href = '/icons/room7-apple-180.png'
   var t = document.querySelector('meta[name="theme-color"]'); if (t) t.content = '#071A38'
-  document.title = 'RideArrivo ROOM 7'
+  document.title = 'ROOM 7'
   var meta = document.createElement('meta'); meta.name = 'apple-mobile-web-app-title'; meta.content = 'ROOM 7'
   document.head.appendChild(meta)
 })()

@@ -6,7 +6,7 @@ const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
 
 test('ROOM 7 manifest is installable and separate from the intranet one', () => {
   const m = JSON.parse(read('public/room7.webmanifest'))
-  assert.equal(m.name, 'RideArrivo ROOM 7')
+  assert.equal(m.name, 'ROOM 7')
   assert.equal(m.display, 'standalone')
   assert.equal(m.start_url, '/')
   const sizes = m.icons.map(i => i.sizes)

@@ -5,7 +5,9 @@
 // from a cache: the network always goes first, and the cache is only used when
 // the network fails. Calls to the ROOM 7 service live on another origin
 // (Supabase), which this worker does not touch at all.
-const CACHE = 'room7-shell-v1'
+// Bump this number whenever the icons or the offline page change. The new name
+// makes the browser fetch them again and delete the old cache on activate.
+const CACHE = 'room7-shell-v2'
 const OFFLINE = '/room7-offline.html'
 const SHELL = [OFFLINE, '/icons/room7-192.png', '/icons/room7-512.png']
 
