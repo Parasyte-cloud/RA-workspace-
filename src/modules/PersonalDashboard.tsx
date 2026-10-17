@@ -223,7 +223,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
         defaultOpen={!guideSeenAtLoad}
         onToggleOpen={open=>{ if(!open) markGuideSeen() }}
       >
-        <WorkstationGuideCard />
+        <WorkstationGuideCard workstationLabel="Your Workspace" />
       </Disclosure>
 
       <div className="todayMore" aria-label="More about you">

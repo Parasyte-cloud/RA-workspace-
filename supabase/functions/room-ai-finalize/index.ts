@@ -9,7 +9,7 @@
 // "delete after finalize" only loses audio after this function succeeded.
 import { adminClient, authenticate, handle, json, loadManagedSession, HttpError } from "../_shared/roomAiAuth.ts"
 import {
-  baseMime, deepgramQuery, finalPath, isUuid, MAX_ASSEMBLED_BYTES, missingChunks,
+  baseMime, deepgramQuery, finalPath, isUuid, MAX_ASSEMBLED_BYTES, MAX_CHUNKS, missingChunks,
   normalizeUtterances, summaryFrom, topicsFrom,
 } from "../_shared/roomAiCore.ts"
 
@@ -65,9 +65,12 @@ Deno.serve(handle(async (req) => {
   // 1. Every chunk present?
   const expected = session.expected_chunks ?? 0
   const { data: chunks, error: cErr } = await admin.from("workspace_room_ai_chunks")
-    .select("seq,storage_path,bytes,mime").eq("ai_session_id", sessionId).order("seq")
+    .select("seq,storage_path,bytes,mime,sha256").eq("ai_session_id", sessionId).order("seq")
   if (cErr) return await fail("failed", "chunk_lookup", "Could not read the uploaded audio.")
   if (expected === 0 || !chunks?.length) return await fail("failed", "no_audio", "No audio was uploaded for this meeting.")
+  // end_ai_session already refuses more than this; check again so an old or
+  // hand-edited row can never make us loop over an enormous range.
+  if (expected > MAX_CHUNKS) return await fail("failed", "too_many_chunks", "That recording is longer than ROOM 7 can process.")
   const missing = missingChunks(expected, chunks.map((c) => c.seq))
   if (missing.length) {
     return await fail("incomplete_upload", "missing_chunks", `${missing.length} audio part(s) have not arrived yet.`, { missing: missing.slice(0, 50) })
@@ -84,6 +87,10 @@ Deno.serve(handle(async (req) => {
     if (error || !data) return await fail("incomplete_upload", "chunk_unreadable", `Audio part ${c.seq} could not be read.`, { missing: [c.seq] })
     const part = new Uint8Array(await data.arrayBuffer())
     if (part.byteLength !== c.bytes) return await fail("incomplete_upload", "chunk_size_mismatch", `Audio part ${c.seq} is damaged.`, { missing: [c.seq] })
+    // The browser sent the SHA-256 of each chunk when it confirmed the upload.
+    // Check the bytes we just read really are those bytes, so a truncated,
+    // swapped or tampered object is caught before it is joined and transcribed.
+    if ((await sha256Hex(part)) !== c.sha256) return await fail("incomplete_upload", "chunk_checksum_mismatch", `Audio part ${c.seq} does not match what was recorded.`, { missing: [c.seq] })
     joined.set(part, at)
     at += part.byteLength
   }
