@@ -85,6 +85,7 @@ import CallModule from './modules/CallModule'
 import EventReminders from './modules/EventReminders'
 import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
+import SoundOnPrompt from './components/SoundOnPrompt'
 import { GlobalSearch } from './components/GlobalSearch'
 import {
   buildSidebar,
@@ -1255,7 +1256,7 @@ function App(){
     </div>
   }
 
-  return <NotificationsProvider><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
+  return <NotificationsProvider><SoundOnPrompt/><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
     <aside className="sidebar glassPanel glassNav">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
