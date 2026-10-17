@@ -20,6 +20,10 @@ export const LETTERHEAD = {
   website: 'www.ridearrivo.com',
   email: 'info@ridearrivo.com',
   phone: '0816 270 6078',
+  // Shown on the Letterhead page with copy buttons. The PDF footer above keeps
+  // the official template wording (phone and "Lagos, Nigeria").
+  phoneIntl: '+234 816 270 6078',
+  address: 'Babajide Sanwo-Olu International Market, Ikosi, Lagos, Nigeria',
   location: 'Lagos, Nigeria',
   ink: [0.094, 0.165, 0.251] as const,   // #182A40, body text
   navy: [0, 0.106, 0.243] as const,      // #001B3E, names, labels, subject
