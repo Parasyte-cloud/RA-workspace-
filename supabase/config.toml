@@ -517,3 +517,8 @@ verify_jwt = false
 [functions.mail-notify-poll]
 enabled = true
 verify_jwt = false
+
+[functions.knowledge-ai]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/knowledge-ai/index.ts"
