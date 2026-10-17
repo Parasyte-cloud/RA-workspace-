@@ -74,6 +74,21 @@
     0 0 14px rgba(255,153,0,.35) !important;
 }
 
+/* The shared .uiFocusRing rule draws a thick 3px outline on :focus-visible and
+   on :focus-within. Inside the sidebar that made the Company row look boxed in
+   (thick gold ring) on some devices. Keep only the thin glow above, whatever
+   layout the sidebar is in (wide, medium, or the expanded medium nav). */
+.sidebar nav.sidebarNav .uiFocusRing:focus-visible,
+.sidebar nav.sidebarNav .uiFocusRing:focus-within,
+.sidebar nav.sidebarNav .sidebarNavGroup:focus-within,
+.sidebar nav.sidebarNav button:focus {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+}
+.sidebar nav.sidebarNav button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem.active::before,
   .shell.glassFrame > .sidebar nav.sidebarNav button.sidebarNavItem.active::after,

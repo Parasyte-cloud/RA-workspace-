@@ -69,3 +69,9 @@ test('the 30 minute idle sign-out respects "Keep me signed in"', () => {
   assert.ok(keepAt > -1, 'checkIdle reads the flag live')
   assert.ok(keepAt < check.indexOf('client.auth.signOut'), 'flag is checked before signing out')
 })
+
+test('sidebar focus keeps only the thin glow, never the thick ring', () => {
+  const css = readFileSync('src/nav-liquid.css', 'utf8')
+  assert.match(css, /\.sidebar nav\.sidebarNav \.uiFocusRing:focus-within/)
+  assert.match(css, /outline: 0 !important/)
+})
