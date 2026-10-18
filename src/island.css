@@ -41,11 +41,16 @@
   }
 
   html[data-ra-island='compact'] .shell.glassFrame .topbar.glassPanel {
-    width: min(calc(100% - 64px), 296px) !important;
+    width: min(calc(100% - 40px), 340px) !important;
     height: 44px !important;
     margin-top: 2px !important;
     padding: 0 5px 0 22px !important;
   }
+
+  /* Shrunk bar: the signature pill gets smaller and sits a little right of centre, so the page name fits on its left. */
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteCrestBar { left: calc(50% + 16px); }
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteSignature { padding: 3px 7px; }
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteCrestBar img { height: 9px; }
 
   .shell.glassFrame .topbar .topbarTitle { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .shell.glassFrame .topbar h1 {
@@ -56,7 +61,7 @@
     transition: font-size .45s cubic-bezier(.34,1.45,.5,1), letter-spacing .45s ease;
   }
   .shell.glassFrame .topbar h1 { padding: 0 3px 0 2px; transform-origin: left center; }
-  html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: 1rem; letter-spacing: -.01em; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: .86rem; letter-spacing: -.015em; }
 
   /* A small amber light that wakes up when the bar is compact, like a live activity. */
   .shell.glassFrame .topbar .topbarTitle::before {
@@ -70,7 +75,7 @@
     opacity: 0;
     transition: width .4s cubic-bezier(.34,1.45,.5,1), opacity .3s ease;
   }
-  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { width: 8px; opacity: 1; animation: raIslandPulse 2.4s ease-in-out infinite; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { width: 6px; height: 6px; opacity: 1; animation: raIslandPulse 2.4s ease-in-out infinite; }
 
   .shell.glassFrame .topbar .headerActions { gap: 6px; flex: 0 0 auto; }
   .shell.glassFrame .topbar .headerActions > .iconButton,
@@ -80,8 +85,10 @@
   }
   html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions > .iconButton,
   html[data-ra-island='compact'] .shell.glassFrame .topbar .notificationButton {
-    flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; min-height: 34px !important;
+    flex-basis: 30px !important; width: 30px !important; min-width: 30px !important; height: 30px !important; min-height: 30px !important; padding: 0 !important;
   }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions { gap: 4px; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions > * svg { width: 16px !important; height: 16px !important; }
 
   /* Soft fade behind the status bar so content never collides with the clock. */
   body::before {
