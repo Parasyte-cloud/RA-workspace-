@@ -21,7 +21,7 @@ import type { ChatSoundId, ChatSoundPrefs } from '../lib/chatSound'
 
 // Settings card for sounds and alerts. The ringtone is kept on this device, so
 // a phone and a laptop can ring differently.
-export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) {
+export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSignOut?: () => void; onSignOutEverywhere?: () => void }) {
   const [tone, setTone] = useState<RingtoneId>(() => readRingtone())
   const [volume, setVolume] = useState(() => readVolume())
   const [note, setNote] = useState('')
@@ -282,10 +282,15 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
               <span className="appearanceSettingNumber"><LogOut size={16} /></span>
               <div>
                 <h3>Account</h3>
-                <p>Sign out of this device.</p>
+                <p>Signing out only ends the session on this device. Your other devices stay signed in. To end every session at once (for example after losing a phone), use Sign out of all devices.</p>
               </div>
             </div>
-            <button type="button" className="glassButton" onClick={onSignOut}>Sign out</button>
+            <div className="authActions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button type="button" className="glassButton" onClick={onSignOut}>Sign out</button>
+              {onSignOutEverywhere && (
+                <button type="button" className="glassButton" onClick={() => { if (window.confirm('Sign out of every device you are signed in on?')) onSignOutEverywhere() }}>Sign out of all devices</button>
+              )}
+            </div>
           </article>
         )}
       </div>

@@ -488,7 +488,10 @@ export function ProfileModule({
                 </div>
 
                 <button
+                  type="button"
                   className="iconButton"
+                  aria-label="Close editor"
+                  title="Close"
                   onClick={()=>
                     setEditing(false)
                   }

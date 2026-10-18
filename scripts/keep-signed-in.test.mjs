@@ -67,7 +67,7 @@ test('the 30 minute idle sign-out respects "Keep me signed in"', () => {
   const check = idle.slice(idle.indexOf('const checkIdle'), idle.indexOf('const activityEvents'))
   const keepAt = check.indexOf('readKeepSignedIn(window.localStorage)')
   assert.ok(keepAt > -1, 'checkIdle reads the flag live')
-  assert.ok(keepAt < check.indexOf('client.auth.signOut'), 'flag is checked before signing out')
+  assert.ok(keepAt < check.indexOf('signOutThisDevice(client'), 'flag is checked before signing out')
 })
 
 test('sidebar focus keeps only the thin glow, never the thick ring', () => {

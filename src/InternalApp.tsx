@@ -30,10 +30,12 @@ import './parasyte-crest.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
 import {startIslandMotion} from './lib/islandMotion'
+import {startPushBridge} from './lib/pushBridge'
 
 
 export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
   useEffect(()=>startIslandMotion(),[])
+  useEffect(()=>startPushBridge(),[])
   return <><App/><RibbonGiftHost/><RecognitionHost/><ParasyteCrestBar/><ParasyteSplash/></>
 }

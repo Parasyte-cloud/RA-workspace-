@@ -971,6 +971,8 @@ export function WorkItemDetail({
           <button
             type="button"
             className="iconButton"
+            aria-label="Close"
+            title="Close"
             onClick={onClose}
           >
             <X size={18}/>

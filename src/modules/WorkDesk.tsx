@@ -1036,6 +1036,8 @@ export function WorkDesk(){
               <button
                 type="button"
                 className="iconButton"
+                aria-label="Close"
+                title="Close"
                 onClick={()=>
                   setCreateOpen(false)
                 }

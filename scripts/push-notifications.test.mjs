@@ -118,3 +118,29 @@ test('new mail, waiting guests and the Settings screen are wired up', () => {
   assert.match(read('src/modules/NotificationSettings.tsx'), /<AlertPreferences \/>/)
   assert.match(read('src/chat/ChatShell.tsx'), /get\('conversation'\)/)
 })
+
+test('notification tap asks the open app to navigate instead of reloading it, and messages are counted', async () => {
+  const sw = read('public/sw.js')
+  assert.match(sw, /type: 'ra-open'/)
+  assert.match(sw, /MessageChannel/)
+  assert.match(sw, /getNotifications\(\{ tag: data\.tag \}\)/)
+  assert.match(sw, /new messages/)
+  const bridge = read('src/lib/pushBridge.ts')
+  assert.match(bridge, /ra-open/)
+  assert.match(bridge, /clearTray/)
+  assert.match(read('src/InternalApp.tsx'), /startPushBridge/)
+})
+
+test('parseOpenUrl routes chat links in the app and leaves room links to a normal navigation', async () => {
+  const js = transformSync(read('src/lib/pushBridge.ts'), { loader: 'ts', format: 'esm' }).code
+    .replace(/import .*desktopAlerts.*\n/, '')
+  const mod = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
+  const o = 'https://app.test'
+  const id = '123e4567-e89b-12d3-a456-426614174000'
+  assert.deepEqual(mod.parseOpenUrl(`/?section=chat&conversation=${id}`, o), { section: 'chat', conversationId: id })
+  assert.deepEqual(mod.parseOpenUrl('/?section=mail', o), { section: 'mail', conversationId: null })
+  assert.equal(mod.parseOpenUrl(`/?section=room&room=${id}`, o), null)
+  assert.equal(mod.parseOpenUrl('https://evil.test/?section=chat', o), null)
+  assert.deepEqual(mod.parseOpenUrl('/', o), { section: 'overview' })
+  assert.equal(mod.parseOpenUrl('/?section=chat&conversation=not-a-uuid', o).conversationId, null)
+})
