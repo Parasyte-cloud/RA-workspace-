@@ -12,7 +12,7 @@
     height: 58px !important;
     min-height: 0 !important;
     margin: 6px auto 4px !important;
-    padding: 0 8px 0 22px !important;
+    padding: 0 8px 0 30px !important;
     border: 1px solid rgba(255,255,255,.16) !important;
     border-radius: 999px !important;
     background:
@@ -44,7 +44,7 @@
     width: min(calc(100% - 64px), 296px) !important;
     height: 44px !important;
     margin-top: 2px !important;
-    padding: 0 5px 0 16px !important;
+    padding: 0 5px 0 22px !important;
   }
 
   .shell.glassFrame .topbar .topbarTitle { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -55,6 +55,7 @@
     white-space: nowrap;
     transition: font-size .45s cubic-bezier(.34,1.45,.5,1), letter-spacing .45s ease;
   }
+  .shell.glassFrame .topbar h1 { padding: 0 3px 0 2px; transform-origin: left center; }
   html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: 1rem; letter-spacing: -.01em; }
 
   /* A small amber light that wakes up when the bar is compact, like a live activity. */
