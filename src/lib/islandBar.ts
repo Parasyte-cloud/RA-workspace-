@@ -12,6 +12,15 @@ export function nextIslandState(current:'full'|'compact',scrollTop:number):'full
   return y<ISLAND_OFF?'full':'compact'
 }
 
+// Called when the screen changes (Chat, Tasks, Mail...). Every screen starts with the full bar and
+// the bar and dock take a fresh bounce, so each screen feels like the same island. The two pulse
+// values alternate so CSS can restart the same animation each time.
+export const ISLAND_RESET_EVENT='ra-island-reset'
+export function pulseIsland(root:HTMLElement=document.documentElement){
+  root.setAttribute('data-ra-pulse',root.getAttribute('data-ra-pulse')==='a'?'b':'a')
+  window.dispatchEvent(new Event(ISLAND_RESET_EVENT))
+}
+
 export function startIslandBar(root:HTMLElement=document.documentElement):()=>void{
   let state:'full'|'compact'='full'
   let frame=0
@@ -22,6 +31,8 @@ export function startIslandBar(root:HTMLElement=document.documentElement):()=>vo
     const el=target as HTMLElement
     // Only the page and the main content scroll the bar. Inner lists (chat, tables) do not.
     if(!el.classList)return null
+    // The chat list (not an open thread, which hides the bar) drives the bar like any other screen.
+    if(el.closest && el.closest('.cmShell.listOpen'))return el.scrollTop
     const bar=document.querySelector('.topbar')
     // The page scroller is whichever element holds the bar (or the content under it).
     if((bar && el.contains(bar)) || el.classList.contains('content') || el.classList.contains('workspaceContent'))return el.scrollTop
@@ -45,12 +56,19 @@ export function startIslandBar(root:HTMLElement=document.documentElement):()=>vo
     if(!hit || !hit.closest || !hit.closest('.topbarTitle'))return
     window.scrollTo({top:0,behavior:'smooth'})
   }
+  const onReset=()=>{
+    state='full'
+    root.setAttribute('data-ra-island',state)
+  }
+  window.addEventListener(ISLAND_RESET_EVENT,onReset)
   document.addEventListener('scroll',onScroll,{capture:true,passive:true})
   document.addEventListener('click',onTitle)
   return()=>{
     document.removeEventListener('scroll',onScroll,true)
     document.removeEventListener('click',onTitle)
+    window.removeEventListener(ISLAND_RESET_EVENT,onReset)
     if(frame)window.cancelAnimationFrame(frame)
     root.removeAttribute('data-ra-island')
+    root.removeAttribute('data-ra-pulse')
   }
 }
