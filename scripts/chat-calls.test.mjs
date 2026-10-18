@@ -133,7 +133,7 @@ test('chat shows calls in the thread, the list, and a Calls tab, and keeps the c
   assert.match(chat, /filter==='calls'/)
   assert.match(chat, /callPreview\(lastCall,userId\)/)
   assert.match(chat, /inPlace:true/)
-  assert.match(chat, /callId:typeof callId==='string'\?callId:undefined/)
+  assert.match(chat, /callId:typeof placed==='string'\?placed:undefined/)
 })
 
 test('the ringer rings, plays ringback, and closes calls that rang out', () => {

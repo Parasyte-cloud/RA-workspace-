@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
+import { endStaleCalls } from '../lib/callCleanup'
 import { startTone, wireAudioUnlock } from '../lib/ringtone'
 import {
   alertPermission,
@@ -111,6 +112,7 @@ export default function CallRinger() {
     let channel: ReturnType<typeof client.channel> | null = null
     let pollTimer = 0
     let removePollListener = () => {}
+    let removeStaleListener = () => {}
 
     void (async () => {
       const { data } = await client.auth.getSession()
@@ -118,6 +120,14 @@ export default function CallRinger() {
       if (!id || cancelled) return
       meRef.current = id
       setMe(id)
+
+      // A call left over from before the app was closed would make everyone
+      // "busy" and stop new calls ringing. Clear it now, and whenever the app
+      // comes back to the front.
+      void endStaleCalls(client, id)
+      const onShow = () => { if (document.visibilityState === 'visible') void endStaleCalls(client, id) }
+      document.addEventListener('visibilitychange', onShow)
+      removeStaleListener = () => document.removeEventListener('visibilitychange', onShow)
 
       const since = new Date(Date.now() - RING_WINDOW_MS).toISOString()
       const { data: pending } = await client
@@ -165,6 +175,7 @@ export default function CallRinger() {
       clearTimer()
       if (pollTimer) window.clearInterval(pollTimer)
       removePollListener()
+      removeStaleListener()
       if (channel) void client.removeChannel(channel)
     }
   }, [handle])
