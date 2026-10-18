@@ -7,6 +7,7 @@ import '../parasyte-crest.css'
 
 export const PARASYTE_CREST_SRC = '/parasyte-crest.png'
 export const PARASYTE_CREDIT = 'Major controller and engineering'
+export const PARASYTE_URL = 'https://www.parasyte.cloud'
 
 const SPLASH_KEY = 'ra-parasyte-splash-seen'
 
@@ -26,7 +27,8 @@ function rememberSplash() {
   }
 }
 
-// Slim strip pinned to the bottom of every screen. It never takes clicks, so it cannot
+// Signature at the base of every screen: the PArAsYtE wordmark, centered and alone, linking to
+// parasyte.cloud with a gentle swell. Only the wordmark itself takes clicks, so the bar can never
 // get in the way of the app underneath it.
 export function ParasyteCrestBar() {
   useEffect(() => {
@@ -36,23 +38,36 @@ export function ParasyteCrestBar() {
 
   return (
     <footer className="parasyteCrestBar" aria-label="Engineered and controlled by PArAsYtE">
-      <span className="parasyteCrestCredit">Engineered and controlled by</span>
-      <img src={PARASYTE_CREST_SRC} alt="PArAsYtE" width={764} height={132} decoding="async" />
+      <a
+        className="parasyteSignature"
+        href={PARASYTE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="PArAsYtE: major controller and engineering. parasyte.cloud"
+      >
+        <img src={PARASYTE_CREST_SRC} alt="PArAsYtE" width={900} height={168} decoding="async" />
+      </a>
     </footer>
   )
 }
 
-// Full-screen opening splash, once per browser session. Tap, click or press any key to skip.
+// Opening sequence, once per browser session: PArAsYtE first, then the familiar RideArrivo
+// load-up (logo and spinner) before the workspace appears. Tap, click or press any key to skip.
 export function ParasyteSplash() {
   const [visible, setVisible] = useState(() => typeof window !== 'undefined' && !splashAlreadySeen())
+  const [stage, setStage] = useState<'parasyte' | 'ridearrivo'>('parasyte')
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     if (!visible) return
     rememberSplash()
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const showFor = window.setTimeout(() => setLeaving(true), reduced ? 1200 : 2600)
-    return () => window.clearTimeout(showFor)
+    const toLoadUp = window.setTimeout(() => setStage('ridearrivo'), reduced ? 1100 : 2000)
+    const leave = window.setTimeout(() => setLeaving(true), reduced ? 1900 : 3400)
+    return () => {
+      window.clearTimeout(toLoadUp)
+      window.clearTimeout(leave)
+    }
   }, [visible])
 
   useEffect(() => {
@@ -75,15 +90,22 @@ export function ParasyteSplash() {
       className={`parasyteSplash${leaving ? ' leaving' : ''}`}
       role="dialog"
       aria-modal="true"
-      aria-label="PArAsYtE"
+      aria-label={stage === 'parasyte' ? 'PArAsYtE' : 'Opening RideArrivo Workspace'}
       onClick={() => setLeaving(true)}
     >
-      <div className="parasyteSplashInner">
-        <img className="parasyteSplashCrest" src={PARASYTE_CREST_SRC} alt="PArAsYtE" width={764} height={132} />
-        <span className="parasyteSplashRule" aria-hidden="true" />
-        <p className="parasyteSplashRole">{PARASYTE_CREDIT}</p>
-        <p className="parasyteSplashProduct">RideArrivo Workspace</p>
-      </div>
+      {stage === 'parasyte' ? (
+        <div className="parasyteSplashInner" key="parasyte">
+          <img className="parasyteSplashCrest" src={PARASYTE_CREST_SRC} alt="PArAsYtE" width={900} height={168} />
+          <span className="parasyteSplashRule" aria-hidden="true" />
+          <p className="parasyteSplashRole">{PARASYTE_CREDIT}</p>
+          <p className="parasyteSplashProduct">RideArrivo Workspace</p>
+        </div>
+      ) : (
+        <div className="parasyteSplashInner parasyteLoadUp" key="ridearrivo">
+          <img className="parasyteLoadUpLogo" src="/ridearrivo-wordmark-workspace.png" alt="RideArrivo" draggable={false} />
+          <div className="parasyteLoadUpSpinner" aria-hidden="true" />
+        </div>
+      )}
       <span className="parasyteSplashSkip">Tap to continue</span>
     </div>
   )
