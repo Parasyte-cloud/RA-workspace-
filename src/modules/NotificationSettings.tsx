@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { BellRing, LogOut, MessageCircle, Play, Volume2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LOCATION_REQUEST_EVENT, LOCATION_STATE_EVENT } from '../components/DevicePresence'
+import { BellRing, LogOut, MapPin, MessageCircle, Play, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
 import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
@@ -25,6 +26,16 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
   const [testNote, setTestNote] = useState('')
   const [chat, setChat] = useState<ChatSoundPrefs>(() => readChatPrefs())
   const [chatNote, setChatNote] = useState('')
+  const [locShared, setLocShared] = useState(() => (window.localStorage.getItem('ridearrivo-location-sharing') ?? '').startsWith('granted:'))
+  useEffect(() => {
+    const onState = (event: Event) => setLocShared(Boolean((event as CustomEvent<{ shared: boolean }>).detail?.shared))
+    window.addEventListener(LOCATION_STATE_EVENT, onState)
+    return () => window.removeEventListener(LOCATION_STATE_EVENT, onState)
+  }, [])
+  const changeLocation = (next: boolean) => {
+    setLocShared(next)
+    window.dispatchEvent(new CustomEvent(LOCATION_REQUEST_EVENT, { detail: next }))
+  }
   const [keep, setKeep] = useState(() => readKeepSignedIn(window.localStorage))
   const changeKeep = (next: boolean) => {
     setKeep(next)
@@ -156,6 +167,19 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           <label className="settingsToggle">
             <input type="checkbox" checked={keep} onChange={event => changeKeep(event.target.checked)} />
             <span>Keep me signed in on this device</span>
+          </label>
+        </article>
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><MapPin size={16} /></span>
+            <div>
+              <h3>Work location sharing</h3>
+              <p>On: your precise sign-in location is sent to RideArrivo for account security and workplace administration. Off: only your device and time zone are recorded. You can turn it back on from the sidebar. To remove the browser permission too, use the site settings of your browser.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={locShared} onChange={event => changeLocation(event.target.checked)} />
+            <span>Share my work location from this device</span>
           </label>
         </article>
         <AlertPreferences />

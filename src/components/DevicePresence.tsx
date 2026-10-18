@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapPin, ShieldCheck } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import '../device-presence.css'
 
@@ -16,6 +16,10 @@ type LocationState={
 
 const CONSENT_VERSION='2026-08-admin-location-v1'
 const CONSENT_KEY='ridearrivo-location-sharing'
+// Settings talks to this component through two window events, so the sidebar
+// only needs to offer "Share work location" and the off switch lives in Settings.
+export const LOCATION_REQUEST_EVENT='ra-location-request'
+export const LOCATION_STATE_EVENT='ra-location-state'
 
 function getBrowserDeviceId(){
   const key='ridearrivo-browser-device-id'
@@ -104,7 +108,7 @@ export default function DevicePresence({profileId}:Props){
     if(storedConsent!==`granted:${CONSENT_VERSION}`){
       const accepted=window.confirm(
         'Share your precise work sign-in location with RideArrivo?\n\n'+
-        'If you continue, your browser will ask for location permission. RideArrivo will record the sign-in coordinates and, when configured, the nearest full address for account security, device support and workplace administration. The location is visible to you and authorised RideArrivo administrators. Sign-in location history is retained for 90 days. You can stop sharing from the workspace sidebar.'
+        'If you continue, your browser will ask for location permission. RideArrivo will record the sign-in coordinates and, when configured, the nearest full address for account security, device support and workplace administration. The location is visible to you and authorised RideArrivo administrators. Sign-in location history is retained for 90 days. You can stop sharing any time in Settings.'
       )
       if(!accepted) return
     }
@@ -166,6 +170,20 @@ export default function DevicePresence({profileId}:Props){
     }
   },[profileId,register,shareLocation])
 
+  useEffect(()=>{
+    window.dispatchEvent(new CustomEvent(LOCATION_STATE_EVENT,{detail:{shared:location.shared,locating}}))
+  },[location.shared,locating])
+
+  useEffect(()=>{
+    const onRequest=(event:Event)=>{
+      const wanted=(event as CustomEvent<boolean>).detail
+      if(wanted) shareLocation()
+      else stopSharing()
+    }
+    window.addEventListener(LOCATION_REQUEST_EVENT,onRequest)
+    return ()=>window.removeEventListener(LOCATION_REQUEST_EVENT,onRequest)
+  },[shareLocation,stopSharing])
+
   const [expanded,setExpanded]=useState(false)
   const label=address
     || (location.shared && location.latitude!==null && location.longitude!==null
@@ -196,13 +214,9 @@ export default function DevicePresence({profileId}:Props){
         </span>
       </div>
 
-      {!location.shared ? (
+      {!location.shared && (
         <button type="button" onClick={shareLocation} disabled={locating}>
           {locating?'Locating...':'Share work location'}
-        </button>
-      ) : (
-        <button type="button" onClick={stopSharing} title="Stop sending precise location to RideArrivo">
-          <ShieldCheck size={11}/> Stop sharing
         </button>
       )}
     </div>
