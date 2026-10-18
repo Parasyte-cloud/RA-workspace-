@@ -14,6 +14,8 @@
 --  5. Reading: marking a chat read no longer rewrites the row when nothing is
 --     newer. Every rewrite was a realtime event that made every member's app
 --     reload its whole chat list.
+--  6. Deleted messages show as "This message was deleted" for everyone, live,
+--     and an unread alert quoting the deleted text is scrubbed.
 --
 -- Safe to run twice. Run BEFORE the matching app release.
 
@@ -395,5 +397,72 @@ from public;
 grant execute
 on function public.mark_social_conversation_read(uuid)
 to authenticated;
+
+-- 6. Deleted messages show as "This message was deleted" -----------------
+-- The app is built for it (the row stays, the text and file are wiped, replies
+-- and ordering keep working). 20261013130300 added "deleted_at is null" to the
+-- read rule, which made a deleted message vanish instead, and kept the other
+-- person's screen on the old text until its next refresh because realtime
+-- checks the changed row against this rule. Nothing is exposed: delete_social_message
+-- has already replaced the text and cleared the file details.
+drop policy if exists "social messages member read" on public.social_messages;
+create policy "social messages member read"
+on public.social_messages
+for select
+to authenticated
+using (
+  public.can_read_message(
+    conversation_id,
+    created_at
+  )
+);
+
+create or replace function public.delete_social_message(p_id uuid)
+returns text
+language plpgsql
+volatile
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  me uuid := auth.uid();
+  msg public.social_messages%rowtype;
+begin
+  if me is null then
+    raise exception 'Not signed in';
+  end if;
+
+  select * into msg from public.social_messages where id = p_id for update;
+  if not found or msg.sender_id <> me then
+    raise exception 'Message not found';
+  end if;
+  if msg.deleted_at is not null then
+    return null;
+  end if;
+
+  update public.social_messages
+  set deleted_at = now(),
+      body = 'This message was deleted',
+      attachment_path = null,
+      attachment_name = null,
+      attachment_mime = null,
+      attachment_size = null,
+      attachment_duration_ms = null
+  where id = p_id;
+
+  -- An unread alert that quotes the text must not keep showing it.
+  update public.notifications
+  set body = 'This message was deleted'
+  where type in ('chat_message', 'chat_mention')
+    and entity_id = msg.conversation_id
+    and read_at is null
+    and body = left(regexp_replace(coalesce(msg.body, ''), '\s+', ' ', 'g'), 140);
+
+  return msg.attachment_path;
+end;
+$$;
+
+revoke all on function public.delete_social_message(uuid) from public, anon;
+grant execute on function public.delete_social_message(uuid) to authenticated;
 
 commit;

@@ -117,11 +117,66 @@ test('file and voice sends carry a client id and a retry finds the first copy', 
   assert.match(src, /\.eq\('client_message_id',clientMessageId\)/)
 })
 
+test('deleted messages stay readable as a tombstone, and alerts that quote them are scrubbed', () => {
+  const policy = sql.slice(sql.indexOf('create policy "social messages member read"'))
+  const using = policy.slice(0, policy.indexOf(');') + 2)
+  assert.match(using, /can_read_message\(/)
+  assert.doesNotMatch(using, /deleted_at/)
+  // The row it replaced hid deleted messages (20261013130300).
+  const old = read('supabase/migrations/20261013130300_chat_message_authorization.sql')
+  assert.match(old.slice(old.indexOf('create policy "social messages member read"')), /deleted_at is null/)
+  assert.match(sql, /set body = 'This message was deleted'/)
+  assert.match(sql, /read_at is null/)
+  const chat = read('src/chat/ChatShell.tsx')
+  assert.match(chat, /!message\.deleted_at &&/)
+  assert.match(chat, /\.is\('deleted_at',null\)\s*\.gt\('created_at',membership\.last_read_at\)/)
+  assert.match(chat, /if\(row\.deleted_at\)scheduleBase\(\)/)
+})
+
+test('a call room is private to the two people on it; admins get in and both people are told', () => {
+  const fn = read('supabase/functions/room-session/index.ts')
+  const join = fn.slice(fn.indexOf('if (action === "join")'), fn.indexOf('if (action === "end")'))
+  assert.match(join, /from\("chat_calls"\)[\s\S]*\.eq\("room_code", code\)/)
+  assert.match(join, /isCallRoom && !onTheCall && profile\.role !== "admin"/)
+  assert.match(join, /This call is private\./)
+  // Admin entry: notice goes to caller and callee for a call, and never when the admin is one of them.
+  assert.match(join, /!existing && profile\.role === "admin" && role !== "host" && !onTheCall/)
+  assert.match(join, /flatMap\(\(call\) => \[call\.caller_id, call\.callee_id\]\)/)
+  assert.match(join, /An administrator joined your call/)
+  assert.match(join, /An administrator joined your ROOM 7/)
+  // The privacy check runs before any participant or provider work.
+  assert.ok(join.indexOf('This call is private.') < join.indexOf('kickExistingPeers'))
+})
+
+test('no-show: the caller waits 30 seconds after Accept, no longer', async () => {
+  const { NO_SHOW_MS, noShowDelay } = await load('src/lib/callTimers.ts')
+  assert.equal(NO_SHOW_MS, 30_000)
+  assert.equal(noShowDelay(1_000, 1_000), 30_000)
+  assert.equal(noShowDelay(1_000, 11_000), 20_000)
+  assert.equal(noShowDelay(1_000, 60_000), 0)
+  assert.equal(noShowDelay(5_000, 1_000), 30_000, 'a clock that runs backwards never waits longer')
+})
+
+test('no-show wiring: announced once, caller only, never fires if anyone is on the call, reset between calls', () => {
+  const ringer = read('src/modules/CallRinger.tsx')
+  assert.match(ringer, /row\.caller_id === mine && row\.status === 'accepted' && !acceptedRef\.current\.has\(row\.id\)/)
+  const module = read('src/modules/CallModule.tsx')
+  assert.match(module, /detail\.callId === callIdRef\.current\) setAcceptedAt\(Date\.now\(\)\)/)
+  assert.match(module, /if \(!session\) setAcceptedAt\(0\)/)
+  assert.match(module, /callIdRef\.current = detail\.callId\s*setAcceptedAt\(0\)/)
+  assert.match(module, /They could not connect\. Try calling again\./)
+  const meeting = read('src/modules/RoomMeeting.tsx')
+  assert.match(meeting, /session\.role!=='host'\)return/)
+  assert.match(meeting, /noShowDelay\(acceptedAt\)/)
+  assert.match(meeting, /!answeredAtRef\.current&&!someoneHere/)
+})
+
 test('no em dash in anything this round touched', () => {
   const dash = String.fromCharCode(0x2014)
   for (const f of [
     'supabase/migrations/20261018190000_chat_call_audit_round3.sql',
     'src/lib/callCleanup.ts', 'src/modules/CallModule.tsx', 'src/modules/CallRinger.tsx',
     'src/modules/RoomMeeting.tsx', 'src/modules/FaceTimeStage.tsx', 'src/facetime-call.css',
+    'src/lib/callTimers.ts', 'src/lib/roomApi.ts', 'supabase/functions/room-session/index.ts',
   ]) assert.ok(!read(f).includes(dash), f)
 })

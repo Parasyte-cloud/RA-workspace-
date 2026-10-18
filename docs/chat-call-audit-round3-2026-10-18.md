@@ -8,7 +8,7 @@ database (message and call functions, row level rules, triggers, receipts, notif
 How it was checked. The database changes were run against a real Postgres engine (PGlite) with a stub schema:
 the attachment rule refuses a path outside the chat, previews appear for voice, photo and file, a read with
 nothing new does not write, an abandoned call ends at its last heartbeat, and a second live call is refused.
-Putting the old behaviour back makes those checks fail. The app side has contract and behaviour tests in
+Putting the old behaviour back makes those checks fail. The deleted message, alert scrub and read rule checks were added in the follow up. The app side has contract and behaviour tests in
 `scripts/chat-call-audit-round3.test.mjs`. Nothing here was run on a phone: items marked **device check** need one.
 
 ## Fixed in this pull request
@@ -26,17 +26,24 @@ Putting the old behaviour back makes those checks fail. The app side has contrac
 | 9 | Medium | A file or voice note posted twice after a bad connection | Text sends use an idempotent function, file and voice sends inserted directly with no client id, so a retry after a lost answer made a second message and a second upload. | The insert carries the client id. A retry that hits the unique key finds the first copy, uses it, and removes the duplicate upload. |
 | 10 | Medium | A third person in a one to one call was heard but never shown | The call screen shows the first other person but plays everyone's audio. An administrator can join any room (by design, the host gets a notice) and the callee is told nothing. | The header shows "N other people on this call". |
 
-Run `20261018190000_chat_call_audit_round3.sql` before the app release. It is safe to run twice.
+Run `20261018190000_chat_call_audit_round3.sql` before the app release, and deploy the `room-session` edge function with it (items 12 and 13). The migration is safe to run twice.
 
-## Found, not changed (needs a decision or is bigger than a fix)
+## Decided and fixed in the same pull request
+
+You answered the four open items. All four are done and included.
+
+| # | Decision | What changed |
+|---|----------|--------------|
+| 11 | Show deleted messages | The read rule no longer hides them (`20261013130300` had added `deleted_at is null`). A deleted message stays as "This message was deleted" for both people, live, because realtime now passes the changed row. Deleted messages are not counted as unread, and an unread alert that quoted the text is scrubbed to "This message was deleted". Search and thread lookups already skip them. |
+| 12 | Notify both people when an administrator joins a call | `room-session` now tells the caller and the callee ("An administrator joined your call"). Before, only the room creator was told. An administrator who is one of the two on the call, just answering it, tells nobody (before, that sent the caller a false "administrator joined" notice). |
+| 13 | Lock call rooms to the two people on them | A room that belongs to a chat call can only be joined by the caller, the callee or an administrator. Anyone else gets "This call is private." Checked before any participant or provider work, and it counts as a wrong guess for the rate limit. |
+| 14 | 30 second no-show | After the callee answers, the caller waits 30 seconds for them to arrive. If nobody is in the call by then, the call ends and the caller sees "They could not connect. Try calling again." The header reads "Connecting..." instead of "Calling..." while waiting. It never fires if anyone is on the call, and the timer is reset between calls. |
+
+## Found, not changed
 
 | # | Severity | Finding | Why it was left, and what I recommend |
 |---|----------|---------|--------------------------------------|
-| A | Medium | Deleted messages disappear instead of showing "This message was deleted" | The read policy added `deleted_at is null` (`20261013130300`) but the screen is built for a tombstone (`delete_social_message` keeps the row and wipes the text). Realtime checks the new row against the read policy, so the other person's screen only changes at the next refresh, with no tombstone. Decide: tombstone (iMessage style "unsent", remove the `deleted_at is null` clause and filter tombstones from unread counts and exports) or vanish (then remove the dead tombstone code). |
-| B | Medium | An administrator can join any one to one call room, and the callee is not told | `room-session` lets an admin into any active room and only notifies the host. For a private call this is a privacy decision. Recommend refusing admin entry to chat call rooms, or at least notifying both people. The new header chip makes it visible, not impossible. |
-| C | Medium | Anyone signed in who learns an 8 character room code can join that room, including a call room | The code is the only gate (10 wrong tries a minute per person). For a call room the membership check should be "you are the caller or callee in `chat_calls`". |
-| D | Medium | Caller sits on "Calling..." for ever if the other person accepts and never arrives | The caller's own heartbeat keeps the call alive. Needs a "no one joined" timeout (about 60 seconds after accept) that cancels and says so. |
-| E | Medium | A call can use any active ROOM 7 room the caller owns, and ends it when the call ends | `start_chat_call` only checks "created by me and active". Ending a call ends that meeting. Recommend a marker on call rooms. |
+| E | Medium | A call can use any active ROOM 7 room the caller owns, and ends it when the call ends | `start_chat_call` only checks "created by me and active". Ending a call ends that meeting. Recommend a marker on call rooms. (Item 13 means that meeting is then private to the two people, so the exposure is the caller's own meeting only.) |
 | F | Low | The people list is loaded once per page load | A new employee is missing, and a deactivated one stays, until reload. |
 | G | Low | A background refresh clears any error banner | `loadBase` ends with `setNotice('')`. |
 | H | Low | The open chat is only marked read while the window has focus | Side by side windows never mark it read. |
@@ -61,3 +68,6 @@ devices are product work.
    voice note", "Sent a file: name".
 5. Turn the network off while sending a file, then back on, press Retry: one message, not two.
 6. Open a busy room: the chat list does not flicker or reload while people read.
+7. Delete a message while the other person has the chat open: it turns into "This message was deleted" on their screen within a second.
+8. An administrator joins someone else's call: both people get "An administrator joined your call". A signed in person who is not on the call and not an administrator is refused.
+9. Accept a call, then close the callee's app straight away: the caller sees "Connecting..." and after 30 seconds the call ends with "They could not connect".

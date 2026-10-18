@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import {
+  CALL_ACCEPTED_EVENT,
   CALL_FINISHED_EVENT,
   JOIN_ROOM_EVENT,
   endCallRoom,
@@ -68,6 +69,7 @@ export default function CallModule() {
   const [audioOnly, setAudioOnly] = useState(false)
   const [minimized, setMinimized] = useState(false)
   const [notice, setNotice] = useState('')
+  const [acceptedAt, setAcceptedAt] = useState(0)
   const callIdRef = useRef('')
   const sessionRef = useRef<CallSession | null>(null)
   sessionRef.current = session
@@ -91,6 +93,7 @@ export default function CallModule() {
     if (callId && hangUp) serverHangUp(callId, sessionRef.current?.role ?? 'unknown')
     setSession(null)
     setMinimized(false)
+    setAcceptedAt(0)
     setNotice(message)
   }, [])
 
@@ -107,6 +110,7 @@ export default function CallModule() {
         return
       }
       callIdRef.current = detail.callId
+      setAcceptedAt(0)
       // Counted as in a call from the moment it is accepted, not once the room opens.
       setActiveCallId(detail.callId)
       setNotice('')
@@ -127,6 +131,24 @@ export default function CallModule() {
     window.addEventListener(JOIN_ROOM_EVENT, onJoin)
     return () => window.removeEventListener(JOIN_ROOM_EVENT, onJoin)
   }, [])
+
+  // The other person answered: start the clock on how long to wait for them to arrive.
+  useEffect(() => {
+    const onAccepted = (event: Event) => {
+      const detail = (event as CustomEvent<{ callId: string }>).detail
+      if (detail?.callId && detail.callId === callIdRef.current) setAcceptedAt(Date.now())
+    }
+    window.addEventListener(CALL_ACCEPTED_EVENT, onAccepted)
+    return () => window.removeEventListener(CALL_ACCEPTED_EVENT, onAccepted)
+  }, [])
+
+  // Whatever way a call ends, the next one starts without a stale "answered" time.
+  useEffect(() => { if (!session) setAcceptedAt(0) }, [session])
+
+  // Answered but never arrived (app closed or no signal right after Accept).
+  const onNoShow = useCallback(() => {
+    finish('They could not connect. Try calling again.')
+  }, [finish])
 
   // The other person declined, did not answer or hung up: close this screen.
   useEffect(() => {
@@ -164,6 +186,8 @@ export default function CallModule() {
       const { data, error } = await client.rpc('chat_call_heartbeat', { p_call: callId })
       // Before the SQL migration is run the function does not exist: carry on.
       if (error || typeof data !== 'string') return
+      // Backup for a missed "answered" event: the heartbeat also says so.
+      if (data === 'accepted') setAcceptedAt(current => current || Date.now())
       if (['ended', 'declined', 'missed', 'cancelled'].includes(data) && callIdRef.current === callId) {
         const current = sessionRef.current
         callIdRef.current = ''
@@ -253,6 +277,8 @@ export default function CallModule() {
             onRejoin={rejoin}
             audioOnly={audioOnly}
             chatCall
+            acceptedAt={acceptedAt}
+            onNoShow={onNoShow}
           />
         </Suspense>
       )}

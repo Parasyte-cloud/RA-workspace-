@@ -1035,6 +1035,7 @@ export function ChatShell(){
         if(
           membership &&
           message.sender_id!==me &&
+          !message.deleted_at &&
           new Date(message.created_at).getTime()>new Date(membership.last_read_at).getTime()
         ){
           unreadMap.set(message.conversation_id,(unreadMap.get(message.conversation_id) || 0)+1)
@@ -1054,6 +1055,7 @@ export function ChatShell(){
             client.from('social_messages').select('id',{count:'exact',head:true})
               .eq('conversation_id',conversation.id)
               .neq('sender_id',me)
+              .is('deleted_at',null)
               .gt('created_at',membership.last_read_at)
           ])
           const first=lastResult && !lastResult.error ? ((lastResult.data || [])[0] as Message|undefined) : undefined
@@ -1486,6 +1488,8 @@ export function ChatShell(){
         payload=>{
           // The other person edited or deleted a message.
           const row=payload.new as Message
+          // A deleted message no longer counts as unread: refresh the counts.
+          if(row.deleted_at)scheduleBase()
           setMessages(current=>current.some(m=>m.id===row.id)?current.map(m=>m.id===row.id?{...m,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at,attachment_path:row.attachment_path,attachment_name:row.attachment_name,attachment_mime:row.attachment_mime,attachment_size:row.attachment_size,attachment_duration_ms:row.attachment_duration_ms}:m):current)
           setDirects(rows=>rows.map(item=>item.latest?.id===row.id?{...item,latest:{...item.latest,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at}}:item))
         }
