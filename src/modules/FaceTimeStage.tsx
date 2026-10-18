@@ -72,7 +72,8 @@ export default function FaceTimeStage({
   onHangUp,
   onMinimize,
   onRestore,
-  onJoinError
+  onJoinError,
+  onRemoteGone
 }: {
   meeting: Meeting
   audioOnly: boolean
@@ -83,6 +84,8 @@ export default function FaceTimeStage({
   onMinimize: () => void
   onRestore: () => void
   onJoinError: (message: string) => void
+  /** The other person has been gone for a while (app closed, signal lost): end the call. */
+  onRemoteGone?: () => void
 }) {
   const [, bump] = useReducer((n: number) => n + 1, 0)
   const [corner, setCorner] = useState<Corner>('br')
@@ -95,6 +98,9 @@ export default function FaceTimeStage({
   const hideTimer = useRef(0)
   const joinError = useRef(onJoinError)
   joinError.current = onJoinError
+  const remoteGone = useRef(onRemoteGone)
+  remoteGone.current = onRemoteGone
+  const hadRemote = useRef(false)
 
   // Join as soon as the connection is ready. The classic screen waits for a
   // set-up page; a call goes straight in.
@@ -131,6 +137,16 @@ export default function FaceTimeStage({
   const remotes = meeting.participants.joined.toArray() as unknown as Remote[]
   const remote = remotes[0]
   const remoteKey = remote?.id || ''
+
+  // One-to-one call: once the other person has been in it and then vanishes for
+  // 15 seconds (they swiped the app away, or lost signal for good), the call is
+  // over. A short drop that comes back inside that time keeps the call.
+  useEffect(() => {
+    if (remote) { hadRemote.current = true; return }
+    if (!hadRemote.current) return
+    const timer = window.setTimeout(() => remoteGone.current?.(), 15_000)
+    return () => window.clearTimeout(timer)
+  }, [remote, remoteKey])
   useEffect(() => {
     if (!remote) return
     const redraw = () => bump()
