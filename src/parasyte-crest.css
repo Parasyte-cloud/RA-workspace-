@@ -38,8 +38,11 @@
 
 /* Room for the bar so it never covers the last line of a page. */
 html.hasParasyteCrest body{padding-bottom:36px}
+/* Desktop: the signature bar owns the bottom 36px, so the whole app frame stops above it. The
+   workspace frame, the sidebar inside it and the address at the foot of the sidebar all follow. */
 @media(min-width:701px){
-  html.hasParasyteCrest .sidebar{height:calc(100vh - 28px - 36px)}
+  html.hasParasyteCrest .appBackground{height:calc(100dvh - 36px) !important;min-height:0 !important;padding-bottom:12px !important}
+  html.hasParasyteCrest .shell.glassFrame{height:calc(100dvh - 36px - 28px) !important;max-height:calc(100dvh - 36px - 28px) !important}
 }
 /* On phones the app has its own floating bottom navigation, whose height changes with the device.
    Rather than guess it, the signature stops floating there and becomes the last thing on the page,
