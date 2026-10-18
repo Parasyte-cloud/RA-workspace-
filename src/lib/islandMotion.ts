@@ -5,30 +5,52 @@
 //     and the dock tabs take a small staggered spring. It is played with the Web Animations API, so
 //     it restarts every time and no CSS rule elsewhere can switch it off by accident.
 //  2. The liquid glow. A small element is added inside the bar and the dock; island.css animates it
-//     while <html data-ra-fun="on">.
+//     while <html data-ra-fun="on">. The same file keeps data-ra-beat, which switches the pulse of the
+//     names and icons.
 //
-// Both respect the phone's Reduce Motion setting. A person can opt in to the motion anyway from
-// Settings; that choice is theirs and is stored on the device.
+// Everything here respects the phone's Reduce Motion setting by default. Settings lets a person turn
+// the motion on or off for this device whatever the phone says, and turn the pulse of names and
+// icons off on its own.
 
 export const FUN_KEY='ra-island-fun'
+export const BEAT_KEY='ra-island-beat'
 export const FUN_EVENT='ra-island-fun-change'
 const SPRING='cubic-bezier(.3,1.9,.5,1)'
 
 export function reduceMotion():boolean{
   try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch{return false}
 }
-export function funOverride():boolean{
-  try{return window.localStorage.getItem(FUN_KEY)==='always'}catch{return false}
-}
-export function setFunOverride(on:boolean){
+// 'auto' follows the phone's Reduce Motion setting; 'always' and 'off' are the person's own choice.
+export type FunChoice='auto'|'always'|'off'
+export function funChoice():FunChoice{
   try{
-    if(on)window.localStorage.setItem(FUN_KEY,'always')
-    else window.localStorage.removeItem(FUN_KEY)
+    const v=window.localStorage.getItem(FUN_KEY)
+    return v==='always'||v==='off'?v:'auto'
+  }catch{return 'auto'}
+}
+export function setFunChoice(choice:FunChoice){
+  try{
+    if(choice==='auto')window.localStorage.removeItem(FUN_KEY)
+    else window.localStorage.setItem(FUN_KEY,choice)
   }catch{/* storage blocked: the setting just does not stick */}
   window.dispatchEvent(new Event(FUN_EVENT))
 }
+// Pulse of the names and icons. On by default, switched off in Settings.
+export function beatEnabled():boolean{
+  try{return window.localStorage.getItem(BEAT_KEY)!=='off'}catch{return true}
+}
+export function setBeatEnabled(on:boolean){
+  try{
+    if(on)window.localStorage.removeItem(BEAT_KEY)
+    else window.localStorage.setItem(BEAT_KEY,'off')
+  }catch{/* storage blocked */}
+  window.dispatchEvent(new Event(FUN_EVENT))
+}
 export function funAllowed():boolean{
-  return !reduceMotion() || funOverride()
+  const choice=funChoice()
+  if(choice==='always')return true
+  if(choice==='off')return false
+  return !reduceMotion()
 }
 function onPhone():boolean{
   try{return window.matchMedia('(max-width: 599px)').matches}catch{return false}
@@ -80,7 +102,10 @@ function ensureGlow(doc:Document){
 export function startIslandMotion(root:HTMLElement=document.documentElement):()=>void{
   const doc=root.ownerDocument
   let frame=0
-  const syncFun=()=>root.setAttribute('data-ra-fun',funAllowed()?'on':'off')
+  const syncFun=()=>{
+    root.setAttribute('data-ra-fun',funAllowed()?'on':'off')
+    root.setAttribute('data-ra-beat',funAllowed()&&beatEnabled()?'on':'off')
+  }
   syncFun()
   ensureGlow(doc)
 
@@ -121,6 +146,7 @@ export function startIslandMotion(root:HTMLElement=document.documentElement):()=
     motion?.removeEventListener?.('change',syncFun)
     window.removeEventListener(FUN_EVENT,syncFun)
     root.removeAttribute('data-ra-fun')
+    root.removeAttribute('data-ra-beat')
     doc.querySelectorAll('.raGlow').forEach(el=>el.remove())
   }
 }

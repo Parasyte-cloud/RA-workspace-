@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { LOCATION_REQUEST_EVENT, LOCATION_STATE_EVENT } from '../components/DevicePresence'
-import { funOverride, reduceMotion, setFunOverride } from '../lib/islandMotion'
+import { beatEnabled, funAllowed, reduceMotion, setBeatEnabled, setFunChoice } from '../lib/islandMotion'
 import { BellRing, LogOut, MapPin, MessageCircle, Play, Sparkles, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
@@ -37,11 +37,16 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
     setLocShared(next)
     window.dispatchEvent(new CustomEvent(LOCATION_REQUEST_EVENT, { detail: next }))
   }
-  const [fun, setFun] = useState(() => funOverride())
+  const [fun, setFun] = useState(() => funAllowed())
+  const [beat, setBeat] = useState(() => beatEnabled())
   const [systemReduce] = useState(() => reduceMotion())
   const changeFun = (next: boolean) => {
     setFun(next)
-    setFunOverride(next)
+    setFunChoice(next ? 'always' : 'off')
+  }
+  const changeBeat = (next: boolean) => {
+    setBeat(next)
+    setBeatEnabled(next)
   }
   const [keep, setKeep] = useState(() => readKeepSignedIn(window.localStorage))
   const changeKeep = (next: boolean) => {
@@ -194,12 +199,16 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
             <span className="appearanceSettingNumber"><Sparkles size={16} /></span>
             <div>
               <h3>Playful island motion</h3>
-              <p>On a phone, the top bar and the bottom dock bounce when they shrink and grow, and a soft liquid glow drifts behind them. {systemReduce ? 'This phone has Reduce Motion turned on, so the motion is off unless you switch it on here.' : 'It follows your phone setting for Reduce Motion, which is currently off.'} This setting is per device.</p>
+              <p>On a phone, the top bar and the bottom dock bounce when they shrink and grow, a soft liquid glow drifts behind them, and the names and icons pulse gently. {systemReduce ? 'This phone has Reduce Motion turned on, so the motion starts off. You can switch it on here.' : 'You can switch any of it off here.'} These settings are per device.</p>
             </div>
           </div>
           <label className="settingsToggle">
-            <input type="checkbox" checked={fun || !systemReduce} disabled={!systemReduce} onChange={event => changeFun(event.target.checked)} />
-            <span>{systemReduce ? 'Play the island motion on this device' : 'Island motion is on'}</span>
+            <input type="checkbox" checked={fun} onChange={event => changeFun(event.target.checked)} />
+            <span>Bounce and liquid glow</span>
+          </label>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={beat} disabled={!fun} onChange={event => changeBeat(event.target.checked)} />
+            <span>Pulse the names and icons{fun ? '' : ' (needs the motion above)'}</span>
           </label>
         </article>
         <AlertPreferences />
