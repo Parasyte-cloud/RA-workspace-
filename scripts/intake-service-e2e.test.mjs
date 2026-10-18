@@ -66,7 +66,6 @@ async function responseJson(label, response, expectedStatus) {
 function headers(token = null, extra = {}) {
   return {
     'Content-Type': 'application/json',
-    Origin: 'http://localhost:5173',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   }
@@ -226,7 +225,7 @@ test('intake Edge Function public/internal service matrix', { timeout: 120000 },
     })
 
     const publicSchema = await responseJson('public schema', await fetch(`${functionUrl}?slug=${encodeURIComponent(publicSlug)}`, {
-      headers: { Origin: 'http://localhost:5173' },
+      headers: {},
     }), 200)
     assert.equal(publicSchema.form.slug, publicSlug)
     assert.equal(publicSchema.form.title, 'Public Intake E2E')
@@ -239,7 +238,7 @@ test('intake Edge Function public/internal service matrix', { timeout: 120000 },
     }), 403)
 
     await responseJson('internal schema without token', await fetch(`${functionUrl}?scope=internal&slug=${encodeURIComponent(internalSlug)}`, {
-      headers: { Origin: 'http://localhost:5173' },
+      headers: {},
     }), 401)
 
     await responseJson('finance internal schema isolation', await fetch(`${functionUrl}?scope=internal&slug=${encodeURIComponent(internalSlug)}`, {
