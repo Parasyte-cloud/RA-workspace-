@@ -117,6 +117,70 @@ export default function CallModule() {
     return () => window.clearTimeout(timer)
   }, [notice])
 
+  // Keeps the call alive on the server. If the app is swiped away or the phone
+  // loses signal for good, the beat stops and the database ends the call after
+  // a minute, so nobody stays "on another call". The answer also tells this
+  // screen when the call was ended from the other side.
+  const inCallRoomId = session?.room.id || ''
+  useEffect(() => {
+    if (!inCallRoomId) return
+    const beat = async () => {
+      const callId = callIdRef.current
+      const client = supabase
+      if (!callId || !client) return
+      const { data, error } = await client.rpc('chat_call_heartbeat', { p_call: callId })
+      // Before the SQL migration is run the function does not exist: carry on.
+      if (error || typeof data !== 'string') return
+      if (['ended', 'declined', 'missed', 'cancelled'].includes(data) && callIdRef.current === callId) {
+        const current = sessionRef.current
+        callIdRef.current = ''
+        if (current?.role === 'host') void endCallRoom(current.room.id).catch(() => {})
+        setSession(null)
+        setMinimized(false)
+        setNotice('Call ended.')
+      }
+    }
+    void beat()
+    const timer = window.setInterval(() => void beat(), 15_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') void beat() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [inCallRoomId])
+
+  // Closing the tab or the app: hang up as the page goes, with a request the
+  // browser is allowed to finish after the page is gone. (A swipe-away on some
+  // phones skips this, which is what the heartbeat above is for.)
+  const tokenRef = useRef('')
+  useEffect(() => {
+    const client = supabase
+    if (!client) return
+    void client.auth.getSession().then(({ data }) => { tokenRef.current = data.session?.access_token || '' })
+    const { data } = client.auth.onAuthStateChange((_event, next) => { tokenRef.current = next?.access_token || '' })
+    return () => data.subscription.unsubscribe()
+  }, [])
+  useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+    const leaveNow = (event: PageTransitionEvent) => {
+      if (event.persisted) return
+      const callId = callIdRef.current
+      if (!callId || !sessionRef.current || !tokenRef.current || !url || !anon) return
+      try {
+        void fetch(`${url}/rest/v1/rpc/respond_chat_call`, {
+          method: 'POST',
+          keepalive: true,
+          headers: { apikey: anon, Authorization: `Bearer ${tokenRef.current}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_call: callId, p_status: 'ended' })
+        }).catch(() => {})
+      } catch { /* nothing more can be done as the page closes */ }
+    }
+    window.addEventListener('pagehide', leaveNow)
+    return () => window.removeEventListener('pagehide', leaveNow)
+  }, [])
+
   const rejoin = useCallback(async () => {
     const code = sessionRef.current?.room.room_code
     if (!code) return false
