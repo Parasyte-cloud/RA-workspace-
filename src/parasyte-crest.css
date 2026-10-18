@@ -114,3 +114,25 @@ html.hasParasyteCrest body{padding-bottom:36px}
   .parasyteSplash{transition:none}
 }
 @media print{.parasyteCrestBar,.parasyteSplash{display:none}}
+
+/* Movable on phones: double tap the pill, drag it, double tap to lock. The place is kept per device.
+   It beats the rules that tie the pill to the top bar, so it stays where it was put. */
+@media(max-width:599px){
+  html.hasParasyteCrest.hasParasyteCrest:has(.sidebar) .parasyteCrestBar.parasyteMoved{
+    position:fixed !important;left:clamp(56px,var(--pp-x),calc(100vw - 56px)) !important;right:auto !important;bottom:auto !important;
+    top:clamp(calc(env(safe-area-inset-top,0px) + 14px),var(--pp-y),calc(100dvh - 22px)) !important;
+    transform:translate(-50%,-50%) !important;transition:none !important;margin:0 !important;z-index:2147483000;
+  }
+  /* A pill the person placed stays visible even over an open chat. */
+  html.hasParasyteCrest.hasParasyteCrest:has(.sidebar) .parasyteCrestBar.parasyteMoved{display:flex !important}
+  .parasyteCrestBar.parasyteMoving .parasyteSignature{
+    touch-action:none;cursor:grab;animation:none;transform:scale(1.12);
+    outline:2px dashed #ffb13b;outline-offset:4px;border-radius:999px;
+  }
+  .parasyteMoveHint{
+    position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:auto;
+    display:inline-flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;border-radius:999px;font-size:13px;color:#fff;
+    background:rgba(20,26,38,.92);border:1px solid rgba(255,255,255,.18);box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .parasyteMoveHint button{border:0;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#111;background:#ffb13b;cursor:pointer}
+}
