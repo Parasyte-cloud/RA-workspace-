@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { LOCATION_REQUEST_EVENT, LOCATION_STATE_EVENT } from '../components/DevicePresence'
 import { beatEnabled, funAllowed, reduceMotion, setBeatEnabled, setFunChoice } from '../lib/islandMotion'
-import { BellRing, LogOut, MapPin, MessageCircle, Play, Sparkles, Volume2 } from 'lucide-react'
+import { BellRing, LogOut, MapPin, MessageCircle, Phone, Play, Sparkles, Volume2 } from 'lucide-react'
+import { classicCall, setClassicCall } from '../lib/callStyle'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
 import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
@@ -39,6 +40,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
   }
   const [fun, setFun] = useState(() => funAllowed())
   const [beat, setBeat] = useState(() => beatEnabled())
+  const [classic, setClassic] = useState(() => classicCall())
   const [systemReduce] = useState(() => reduceMotion())
   const changeFun = (next: boolean) => {
     setFun(next)
@@ -209,6 +211,19 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           <label className="settingsToggle">
             <input type="checkbox" checked={beat} disabled={!fun} onChange={event => changeBeat(event.target.checked)} />
             <span>Pulse the names and icons{fun ? '' : ' (needs the motion above)'}</span>
+          </label>
+        </article>
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><Phone size={16} /></span>
+            <div>
+              <h3>Call screen</h3>
+              <p>Voice and video calls from Chat use a FaceTime-style screen: the other person fills the screen, your camera is a small window you can drag, and the controls float at the bottom. If it ever gives you trouble, switch back to the classic ROOM 7 screen. This applies from your next call, on this device.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={classic} onChange={event => { setClassic(event.target.checked); setClassicCall(event.target.checked) }} />
+            <span>Use the classic call screen</span>
           </label>
         </article>
         <AlertPreferences />

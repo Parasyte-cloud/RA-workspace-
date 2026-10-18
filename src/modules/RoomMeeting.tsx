@@ -30,6 +30,8 @@ import {
   useRealtimeKitClient
 } from '@cloudflare/realtimekit-react'
 import { RtkMeeting } from '@cloudflare/realtimekit-react-ui'
+import FaceTimeStage from './FaceTimeStage'
+import { classicCall } from '../lib/callStyle'
 import {
   Room7ExtrasControls,
   Room7ExtrasOverlay,
@@ -129,6 +131,8 @@ export default function RoomMeeting({
   const [teamChatOpen,setTeamChatOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
   const [elapsed,setElapsed]=useState(0)
+  // Chat calls look like FaceTime unless this device chose the classic screen.
+  const [faceTime]=useState(()=>chatCall&&!classicCall())
   useEffect(()=>{
     if(!chatCall)return
     const started=Date.now()
@@ -457,6 +461,14 @@ export default function RoomMeeting({
     window.setTimeout(()=>void reconnect(),0)
   }
 
+  const hangUp=()=>{
+    if(session.role==='host'){void endRoom();return}
+    void meeting?.leave().catch(()=>{})
+    onLeft('left')
+  }
+  const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
+  const callTitle=session.room.title.replace(/^Call with /,'')
+
   const frame=(
       <div className={chatCall?'callStage':'roomMeetingFrame'}>
         {initError&&
@@ -479,13 +491,26 @@ export default function RoomMeeting({
         }
         {!initError&&meeting&&
           <RealtimeKitProvider value={meeting}>
-            <RtkMeeting
-              key={session.auth_token}
-              meeting={meeting}
-              mode="fill"
-              showSetupScreen={!rejoiningRef.current}
-              leaveOnUnmount={false}
-            />
+            {faceTime
+              ?<FaceTimeStage
+                key={session.auth_token}
+                meeting={meeting}
+                audioOnly={audioOnly}
+                title={callTitle}
+                clock={clock}
+                minimized={minimized}
+                onHangUp={hangUp}
+                onMinimize={onMinimize}
+                onRestore={onRestore}
+                onJoinError={setInitError}
+              />
+              :<RtkMeeting
+                key={session.auth_token}
+                meeting={meeting}
+                mode="fill"
+                showSetupScreen={!rejoiningRef.current}
+                leaveOnUnmount={false}
+              />}
             <Room7ExtrasOverlay extras={extras}/>
             {!chatCall&&teamChatOpen&&!minimized&&myUserId&&
               <aside className="rcDrawer" aria-label="Team chat">
@@ -522,21 +547,13 @@ export default function RoomMeeting({
       </div>
   )
 
-  const hangUp=()=>{
-    if(session.role==='host'){void endRoom();return}
-    void meeting?.leave().catch(()=>{})
-    onLeft('left')
-  }
-  const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
-  const callTitle=session.room.title.replace(/^Call with /,'')
-
   const callScreen=(
     <section
-      className={`callScreen ${minimized?'callMini':'callFull'} ${audioOnly?'callVoice':'callVideo'}`}
+      className={`callScreen ${minimized?'callMini':'callFull'} ${audioOnly?'callVoice':'callVideo'}${faceTime?' callFT':''}`}
       role="dialog"
       aria-label={`${audioOnly?'Voice':'Video'} call with ${callTitle}`}
     >
-      <header className="callBar">
+      {!faceTime&&<header className="callBar">
         <div className="callWho">
           <span className="callPill"><i/>{audioOnly?'Voice call':'Video call'}</span>
           <strong>{callTitle}</strong>
@@ -557,7 +574,7 @@ export default function RoomMeeting({
             <span>{ending?'Ending':'End'}</span>
           </button>
         </div>
-      </header>
+      </header>}
       {frame}
     </section>
   )
