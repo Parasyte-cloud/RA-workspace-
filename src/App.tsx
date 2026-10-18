@@ -73,6 +73,7 @@ import { supabase,
   initialAuthLink } from './lib/supabase'
 import { describeSignInError, trimmedRetry } from './lib/authLink'
 import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
+import { pulseIsland } from './lib/islandBar'
 
 
 
@@ -1120,6 +1121,9 @@ function App(){
   },[section,activeGroupId])
 
   useEffect(()=>{setPhoneMenuOpen(false)},[section])
+
+  // Every screen, Chat included, opens with the full bar and a fresh bounce in the bar and dock.
+  useEffect(()=>{pulseIsland()},[section])
 
   useEffect(()=>{
     contentRef.current?.scrollTo({top:0,left:0,behavior:'auto'})
