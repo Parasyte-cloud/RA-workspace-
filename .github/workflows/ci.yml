@@ -50,6 +50,22 @@ jobs:
           version: latest
       - name: Start local Supabase (applies every migration)
         run: supabase start -x studio,imgproxy,vector,logflare
+      # The intake Edge Function refuses to run without a rate-limit secret of
+      # at least 32 characters, and `supabase start` does not pass one in, so
+      # every public submission answered 500. Serve the functions with a
+      # throwaway secret (made fresh each run, never stored) and wait until the
+      # function answers before the suites start.
+      - name: Serve Edge Functions with test secrets
+        run: |
+          printf 'INTAKE_RATE_LIMIT_SECRET=%s\n' "$(openssl rand -hex 24)" > "$RUNNER_TEMP/functions.env"
+          nohup supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/functions.log" 2>&1 &
+          api=$(supabase status -o env | sed -n 's/^API_URL="\(.*\)"$/\1/p')
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$api/functions/v1/intake?slug=probe" || true)
+            if [ "$code" -ge 100 ] && [ "$code" -lt 500 ]; then echo "intake function ready ($code)"; break; fi
+            sleep 2
+          done
+          tail -n 20 "$RUNNER_TEMP/functions.log" || true
       - name: Run the security suites
         run: npm run test:supabase
       - name: Stop local Supabase
