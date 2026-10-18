@@ -2,33 +2,44 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const css = readFileSync(new URL('../src/island.css', import.meta.url), 'utf8')
-const block = css.slice(css.indexOf('Island motion'))
+const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
+const css = read('../src/island.css')
+const motion = read('../src/lib/islandMotion.ts')
+const bar = read('../src/lib/islandBar.ts')
+const app = read('../src/App.tsx')
+const internal = read('../src/InternalApp.tsx')
+const settings = read('../src/modules/NotificationSettings.tsx')
 
-test('island motion: bar contents and dock tabs bounce when the bar shrinks and grows, phones only', () => {
-  assert.match(block, /@media \(max-width: 599px\)/)
-  for (const name of ['raIslandTitleIn', 'raIslandTitleOut', 'raIslandBtnIn', 'raIslandBtnOut', 'raDockIn', 'raDockOut']) {
-    assert.match(block, new RegExp(`@keyframes ${name}\\b`), name)
-    assert.match(block, new RegExp(`animation: ${name} `), `${name} used`)
-  }
-  assert.match(block, /data-ra-island='compact'/)
-  assert.match(block, /data-ra-island='full'/)
+test('island motion: the bounce is played from script on shrink, grow and screen change', () => {
+  assert.match(motion, /export function playIslandBounce/)
+  assert.match(motion, /\.animate\(/)
+  for (const kind of ['shrink', 'grow', 'screen']) assert.match(motion, new RegExp(`${kind}:\\{`), kind)
+  assert.match(motion, /attributeFilter:\['data-ra-island','data-ra-pulse'\]/)
+  assert.match(motion, /max-width: 599px/)
+  assert.match(internal, /useEffect\(\(\)=>startIslandMotion\(\),\[\]\)/)
 })
 
-test('island motion: respects reduced motion and never leaves a transform behind', () => {
-  assert.match(block, /prefers-reduced-motion: reduce/)
-  assert.ok(!/animation[^;]*(forwards|both)/.test(block), 'no fill mode that would keep a transform')
-})
-
-test('island motion: every screen change resets the bar and replays the bounce, chat list included', () => {
-  const bar = readFileSync(new URL('../src/lib/islandBar.ts', import.meta.url), 'utf8')
-  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+test('island motion: screen changes reset the bar and pulse, chat list drives the bar', () => {
   assert.match(bar, /export function pulseIsland/)
   assert.match(bar, /ISLAND_RESET_EVENT/)
   assert.match(bar, /cmShell\.listOpen/)
   assert.match(app, /useEffect\(\(\)=>\{pulseIsland\(\)\},\[section\]\)/)
-  assert.match(css, /data-ra-pulse='a'/)
-  assert.match(css, /data-ra-pulse='b'/)
-  assert.match(css, /raScreenTitleA/)
-  assert.match(css, /raScreenTitleB/)
+})
+
+test('island motion: respects Reduce Motion unless the person opts in, from Settings', () => {
+  assert.match(motion, /prefers-reduced-motion: reduce/)
+  assert.match(motion, /export function funAllowed/)
+  assert.match(motion, /export function setFunOverride/)
+  assert.match(settings, /Playful island motion/)
+  assert.match(settings, /setFunOverride/)
+})
+
+test('liquid glow: phones only, gated on data-ra-fun, behind the contents', () => {
+  assert.match(css, /\.raGlow \{ display: none; \}/)
+  assert.match(css, /@media \(max-width: 599px\)/)
+  assert.match(css, /html\[data-ra-fun='on'\] \.raGlow/)
+  assert.match(css, /z-index: -1/)
+  for (const name of ['raGlowDriftA', 'raGlowDriftB', 'raGlowMorph']) assert.match(css, new RegExp(`@keyframes ${name}\\b`), name)
+  assert.match(motion, /className='raGlow'/)
+  assert.ok(!/animation[^;]*(forwards|both)/.test(css.slice(css.indexOf('Liquid glow'))), 'no fill mode')
 })
