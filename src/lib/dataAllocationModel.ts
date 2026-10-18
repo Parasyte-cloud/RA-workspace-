@@ -184,3 +184,95 @@ export function usageCsv(rows: UserRow[]): string {
   }
   return lines.join('\n')
 }
+
+
+// ---- daily delivery to each person's own MTN line --------------------------------------------------
+
+export type TopupStatus = 'pending' | 'delivered' | 'failed' | 'skipped'
+
+export type TierBundle = {
+  code: DataTierCode
+  label: string
+  daily_bytes: number
+  provider_variation: string
+  price_ngn: number | null
+}
+
+export type TopupOverview = {
+  enabled: boolean
+  cap_ngn: number
+  spent_today_ngn: number
+  delivered_today: number
+  pending_today: number
+  failed_today: number
+  people_planned: number
+  people_ready: number
+  people_missing_phone: number
+  last_activity: string | null
+  tiers: TierBundle[]
+  resets_in_seconds: number
+}
+
+export type PhoneRow = {
+  employee_id: string
+  msisdn: string | null
+  today_status: TopupStatus | null
+  today_message: string | null
+}
+
+export type TopupRow = {
+  id: string
+  day: string
+  employee_id: string
+  full_name: string
+  msisdn_masked: string | null
+  tier_code: DataTierCode
+  status: TopupStatus
+  attempts: number
+  amount_ngn: number | null
+  message: string
+  request_id: string
+  updated_at: string
+}
+
+export type ProviderBundle = { code: string; name: string; price: number }
+
+export function naira(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'NGN 0'
+  return `NGN ${Math.round(value).toLocaleString('en-NG')}`
+}
+
+export function deliveryLabel(status: TopupStatus | null | undefined): string {
+  switch (status) {
+    case 'delivered': return 'Delivered'
+    case 'pending': return 'Waiting for MTN'
+    case 'failed': return 'Failed'
+    case 'skipped': return 'Not sent'
+    default: return 'Not yet today'
+  }
+}
+
+// Things that must be done before delivery can be switched on. Empty means ready.
+export function topupBlockers(o: TopupOverview | null, capInput: string): string[] {
+  if (!o) return ['Loading']
+  const out: string[] = []
+  const cap = Number(capInput.replace(/,/g, ''))
+  if (!Number.isFinite(cap) || cap <= 0) out.push('Set a daily spending limit in naira')
+  if (!o.tiers.some((t) => t.provider_variation && (t.price_ngn ?? 0) > 0)) out.push('Choose the MTN bundle for at least one plan')
+  return out
+}
+
+// Accepts pasted lines such as "ada@x.com, 0803 123 4567" (comma, tab, semicolon or spaces between them).
+export function parsePhoneLines(input: string): { email: string; phone: string }[] {
+  const rows: { email: string; phone: string }[] = []
+  for (const raw of input.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) continue
+    const at = line.indexOf('@')
+    if (at < 1) continue
+    const match = /^([^\s,;\t]+@[^\s,;\t]+)[\s,;\t]+(.+)$/.exec(line)
+    if (!match) continue
+    rows.push({ email: match[1].trim(), phone: match[2].trim() })
+  }
+  return rows
+}

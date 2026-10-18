@@ -3,6 +3,10 @@ import type {
   DataOverview,
   DataTierCode,
   HistoryPoint,
+  PhoneRow,
+  ProviderBundle,
+  TopupOverview,
+  TopupRow,
   UserRow,
 } from './dataAllocationModel'
 
@@ -189,5 +193,105 @@ export async function rotateMyNetworkPassword(): Promise<string> {
   if (error) fail(error)
   return String(data)
 }
+
+export type MyDelivery =
+  | { has_plan: false }
+  | {
+      has_plan: true
+      status: 'active' | 'suspended'
+      tier_label: string
+      daily_bytes: number
+      has_phone: boolean
+      phone_masked: string | null
+      delivery_enabled: boolean
+      today_status: 'pending' | 'delivered' | 'failed' | 'skipped' | null
+      today_message: string | null
+      today_at: string | null
+      resets_in_seconds: number
+    }
+
+export type RunSummary = {
+  env: 'sandbox' | 'live'
+  requeried: number
+  delivered: number
+  pending: number
+  failed: number
+  skipped: number
+  stopped: string | null
+}
+
+export async function loadMyDelivery(): Promise<MyDelivery> {
+  const { data, error } = await db().rpc('my_data_delivery')
+  if (error) fail(error)
+  return data as MyDelivery
+}
+
+export async function loadTopupOverview(): Promise<TopupOverview> {
+  const { data, error } = await db().rpc('admin_data_topup_overview')
+  if (error) fail(error)
+  return data as TopupOverview
+}
+
+export async function loadPhones(): Promise<PhoneRow[]> {
+  const { data, error } = await db().rpc('admin_data_phones')
+  if (error) fail(error)
+  return (data ?? []) as PhoneRow[]
+}
+
+export async function loadTopups(days = 3): Promise<TopupRow[]> {
+  const { data, error } = await db().rpc('admin_data_topups', { p_days: days })
+  if (error) fail(error)
+  return (data ?? []) as TopupRow[]
+}
+
+export async function setPhone(employeeId: string, phone: string): Promise<void> {
+  const { error } = await db().rpc('admin_data_set_phone', { p_employee: employeeId, p_phone: phone })
+  if (error) fail(error)
+}
+
+export async function importPhones(rows: { email: string; phone: string }[]): Promise<{ updated: number; errors: { email: string; error: string }[] }> {
+  const { data, error } = await db().rpc('admin_data_import_phones', { p_rows: rows })
+  if (error) fail(error)
+  return data as { updated: number; errors: { email: string; error: string }[] }
+}
+
+export async function saveTierBundle(tier: DataTierCode, variation: string, price: number | null): Promise<void> {
+  const { error } = await db().rpc('admin_data_set_tier_bundle', { p_tier_code: tier, p_variation: variation, p_price: price })
+  if (error) fail(error)
+}
+
+export async function setTopupSettings(enabled: boolean, capNgn: number): Promise<void> {
+  const { error } = await db().rpc('admin_data_set_topup', { p_enabled: enabled, p_cap: capNgn })
+  if (error) fail(error)
+}
+
+export async function resolveTopup(id: string, delivered: boolean): Promise<void> {
+  const { error } = await db().rpc('admin_data_topup_resolve', { p_id: id, p_delivered: delivered })
+  if (error) fail(error)
+}
+
+async function callTopupFunction<T>(action: 'run' | 'variations' | 'status'): Promise<T> {
+  const { data, error } = await db().functions.invoke('data-topup', { body: { action } })
+  if (error) {
+    // The function answers with a JSON error body; show its message instead of a generic one.
+    const response = (error as { context?: Response }).context
+    if (response && typeof response.json === 'function') {
+      try {
+        const body = (await response.json()) as { error?: string }
+        if (body?.error) throw new Error(body.error)
+      } catch (inner) {
+        if (inner instanceof Error && inner.message) throw inner
+      }
+    }
+    throw new Error(error.message || 'The delivery service did not answer.')
+  }
+  return data as T
+}
+
+export const runTopupNow = () => callTopupFunction<RunSummary>('run')
+export const loadProviderBundles = async (): Promise<ProviderBundle[]> =>
+  (await callTopupFunction<{ variations: ProviderBundle[] }>('variations')).variations
+export const loadProviderStatus = () =>
+  callTopupFunction<{ configured: boolean; env: 'sandbox' | 'live' | null; can_list_bundles: boolean }>('status')
 
 export const DATA_RADIUS_URL = `${(import.meta.env.VITE_SUPABASE_URL as string | undefined) || ''}/functions/v1/data-radius`

@@ -437,6 +437,10 @@ entrypoint = "./functions/whatsapp-send/index.ts"
 [functions.room-ai-webhook]
 verify_jwt = false
 
+[functions.data-topup]
+enabled = true
+verify_jwt = false
+
 [functions.data-radius]
 enabled = true
 verify_jwt = false
