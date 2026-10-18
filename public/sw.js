@@ -158,18 +158,13 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close()
-<<<<<<< HEAD
-  try { if (self.navigator.clearAppBadge) self.navigator.clearAppBadge() } catch (_) {}
+  // The icon count is the app's to set (it knows the real unread total), so a tap does not wipe it.
   // Only ever open pages on our own origin, whatever the payload says.
   let target = new URL('/', self.location.origin).href
   try {
     const wanted = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin)
     if (wanted.origin === self.location.origin) target = wanted.href
   } catch (_) {}
-=======
-  // The icon count is the app's to set (it knows the real unread total), so a tap does not wipe it.
-  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
->>>>>>> origin/main
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
