@@ -31,7 +31,7 @@ test('full height shell uses dynamic viewport and safe area fallbacks', () => {
 })
 
 test('phone navigation exposes a More affordance without horizontal scrolling', () => {
-  assert.match(phoneNav, /const TAB_IDS = \['overview', 'tasks', 'chat', 'mail'\]/)
+  assert.match(phoneNav, /const TAB_IDS = \['overview', 'tasks', 'chat', 'mail', 'notes'\]/)
   assert.match(phoneNav, /aria-controls="phone-more-sheet"/)
   assert.match(phoneNav, /<span>More<\/span>/)
   assert.match(phoneCss, /\.phoneTabs\s*\{[^}]*overflow-x:\s*clip/s)

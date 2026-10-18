@@ -1,0 +1,55 @@
+/* Floating quick-nav pill for laptops and iPads. Phones use the dock. */
+.raIsland{display:none}
+@media (min-width:600px){
+  .raIsland{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:55;
+    display:flex;gap:4px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px);
+    background:rgba(9,14,26,.78);border:1px solid rgba(255,255,255,.16);
+    -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 16px 40px rgba(0,0,0,.32);clip-path:inset(0 round 999px)}
+  html[data-ra-theme='light'] .raIsland{background:rgba(255,255,255,.8);border-color:rgba(7,26,56,.12);box-shadow:inset 0 1px 0 #fff,0 14px 34px rgba(7,26,56,.18)}
+  .raIslandBtn{display:inline-flex;align-items:center;gap:0;border:0;background:transparent;color:rgba(233,241,250,.78);
+    height:42px;min-width:42px;padding:0 12px;border-radius:999px;cursor:pointer;justify-content:center;
+    transition:background .25s ease,color .25s ease,padding .45s cubic-bezier(.34,1.45,.5,1),gap .45s cubic-bezier(.34,1.45,.5,1)}
+  html[data-ra-theme='light'] .raIslandBtn{color:#31445e}
+  .raIslandBtn span{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;font-weight:700;font-size:14px;
+    transition:max-width .45s cubic-bezier(.34,1.45,.5,1),opacity .25s ease}
+  .raIslandBtn:hover{background:rgba(255,153,0,.16)}
+  .raIslandBtn.on{background:linear-gradient(135deg,#ff9900,#ffb13b);color:#071a38;gap:8px;padding:0 16px}
+  .raIslandBtn.on span{max-width:110px;opacity:1}
+  .shell .workspaceContent{padding-bottom:84px}
+}
+@media (prefers-reduced-motion:reduce){.raIslandBtn,.raIslandBtn span{transition:none}}
+
+.raIslandLayer{display:none}
+@media (min-width:600px){
+  .raIslandEdit{opacity:.7;min-width:38px;padding:0 10px}
+  .raIslandLayer{display:block;position:fixed;inset:0;z-index:70}
+  .raIslandScrim{position:absolute;inset:0;border:0;background:rgba(3,10,24,.45);cursor:default}
+  .raIslandSheet{position:absolute;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    width:min(420px,calc(100vw - 24px));max-height:70vh;overflow:auto;display:grid;gap:8px;padding:16px;border-radius:24px;
+    background:var(--island-sheet,#0f1b30);color:#eaf0f8;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  html[data-ra-theme='light'] .raIslandSheet{--island-sheet:#fff;color:#122033;border-color:rgba(7,26,56,.12)}
+  .raIslandSheet header{display:flex;justify-content:space-between;align-items:center}
+  .raIslandSheet p{margin:0;font-size:13px;opacity:.75}
+  .raIslandList{display:grid;gap:4px}
+  .raIslandRow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+  .raIslandRow:disabled{opacity:.4;cursor:default}
+  .raIslandRow.on{background:rgba(255,153,0,.14);border-color:rgba(255,153,0,.3);cursor:default}
+  .raIslandRow span{flex:1}
+  .raIslandRow.on button{border:0;background:transparent;color:inherit;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;cursor:pointer}
+  .raIslandRow.on button:disabled{opacity:.3;cursor:default}
+  .raIslandSheet footer{display:flex;justify-content:space-between;gap:8px}
+  .raIslandReset,.raIslandDone{border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;border:1px solid rgba(127,140,160,.4);background:transparent;color:inherit}
+  .raIslandDone{background:linear-gradient(135deg,#ff9900,#ffb13b);color:#071a38;border:0}
+}
+
+@media (min-width:600px){
+  .raIsland{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .raIsland.moving{cursor:grab;touch-action:none;outline:2px dashed #ff9900;outline-offset:3px;animation:raIslandWiggle .6s ease-in-out infinite alternate}
+  .raIsland.moving:active{cursor:grabbing}
+  .raIsland.moving .raIslandBtn:not(.raIslandDoneBtn){pointer-events:none}
+  .raIsland.moving .raIslandEdit,.raIsland.moving .raIslandDoneBtn{pointer-events:auto}
+  .raIslandDoneBtn{background:linear-gradient(135deg,#ff9900,#ffb13b);color:#071a38;font-weight:800}
+  @keyframes raIslandWiggle{from{box-shadow:0 16px 40px rgba(0,0,0,.32)}to{box-shadow:0 22px 52px rgba(255,153,0,.35)}}
+}
+@media (prefers-reduced-motion:reduce){.raIsland.moving{animation:none}}

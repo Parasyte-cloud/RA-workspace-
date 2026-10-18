@@ -62,6 +62,7 @@ import {
   FileSignature,
   Globe2,
   Star,
+  NotebookPen,
   Menu as MenuIcon,
   X as CloseIcon
 } from 'lucide-react'
@@ -82,6 +83,9 @@ import { pulseIsland } from './lib/islandBar'
 
 import { NotificationCenter } from './components/NotificationCenter'
 import CallRinger from './modules/CallRinger'
+import NotesModule from './modules/NotesModule'
+import IslandNav from './modules/IslandNav'
+import './island-nav.css'
 import CallModule from './modules/CallModule'
 import EventReminders from './modules/EventReminders'
 import BirthdayCelebration from './modules/BirthdayCelebration'
@@ -116,6 +120,7 @@ import { WorkspaceClock } from './components/WorkspaceClock'
 
 
 import { applyStoredAppearance } from './lib/appearance'
+import { applyStoredFontStyle } from './lib/fontStyle'
 import { LETTERHEAD_ROLES } from './lib/letterheadAccess'
 
 import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
@@ -164,8 +169,9 @@ import {
 } from './lazy-routes'
 
 applyStoredAppearance()
+applyStoredFontStyle()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'|'blog'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'|'blog'|'notes'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -233,6 +239,7 @@ const sectionAccess:Record<Section,Role[]>={
   announcements:allWorkspaceRoles,
   calendar:allWorkspaceRoles,
   tasks:allWorkspaceRoles,
+  notes:allWorkspaceRoles,
   projects:allWorkspaceRoles,
   shared:allWorkspaceRoles,
   files:allWorkspaceRoles,
@@ -1073,7 +1080,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['notes','Notes',NotebookPen],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -1306,6 +1313,7 @@ function App(){
       </nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
+    <IslandNav nav={nav} section={section} onPick={id=>{setSection(id as Section);setWorkspace(null)}}/>
     <PhoneNav
       nav={nav}
       groups={groupedNav}
@@ -1440,6 +1448,7 @@ function App(){
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
+        {section==='notes'&&<NotesModule/>}
         {section==='projects'&&<ProjectManagementModule onNavigate={navigateToSection}/>}
         {section==='shared'&&<SharedWorkspacesHub onNavigate={navigateToSection}/>}
         {section==='announcements'&&<AnnouncementsModule/>}

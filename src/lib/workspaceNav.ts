@@ -15,7 +15,7 @@ export type NavItemLike = readonly [id: string, label: string, ...rest: unknown[
 
 // The things people open every day. Always visible. My Profile stands alone
 // here like Chat and Mail, and is also still reachable from the avatar menu.
-export const PINNED_IDS = ['overview', 'tasks', 'chat', 'mail', 'calendar', 'profile'] as const
+export const PINNED_IDS = ['overview', 'tasks', 'chat', 'mail', 'calendar', 'notes', 'profile'] as const
 
 // Shared company services. One collapsed group.
 export const COMPANY_IDS = [

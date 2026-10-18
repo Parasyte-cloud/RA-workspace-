@@ -25,7 +25,7 @@ function zones(side) {
 }
 
 test('the real navigation list was read from App.tsx', () => {
-  assert.equal(REAL.length, 34)
+  assert.equal(REAL.length, 35)
   assert.ok(ids(REAL).includes('overview') && ids(REAL).includes('admin'))
 })
 
@@ -41,7 +41,7 @@ test('first glance is short: pinned, own workstation, collapsed group headings, 
   const side = N.buildSidebar(REAL, { primarySection: 'support' })
   const firstGlance = side.pinned.length + side.mine.length + side.groups.length + side.system.length
   assert.ok(firstGlance <= 12, `first glance is ${firstGlance} lines`)
-  assert.deepEqual(ids(side.pinned), ['overview', 'tasks', 'chat', 'mail', 'calendar', 'profile'])
+  assert.deepEqual(ids(side.pinned), ['overview', 'tasks', 'chat', 'mail', 'calendar', 'notes', 'profile'])
 })
 
 test('an ordinary employee has no workstation block and keeps all shared sections', () => {

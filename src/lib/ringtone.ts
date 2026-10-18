@@ -43,7 +43,7 @@ export const INCOMING: Pattern = CLASSIC
 
 // ---- Ringtone choices -------------------------------------------------------
 // Every sound is made from plain tones (no audio files), so a new one is just
-// data. Cricket is the default.
+// data. Midnight Jazz is the default.
 
 function cricket(): Pattern {
   const tones: Tone[] = []
@@ -99,10 +99,75 @@ function digital(): Pattern {
   return { cycle: 2.4, tones }
 }
 
-export type RingtoneId = 'cricket' | 'bell' | 'telephone' | 'chime' | 'marimba' | 'digital' | 'classic'
+
+// ---- Jazz ---------------------------------------------------------------
+// Soft electric-piano chords under a lazy, swung lead line. Notes are spelled
+// out so a sound is only data.
+function chordStab(at: number, dur: number, freqs: number[], gain: number): Tone {
+  return { at, dur, freqs, gain, wave: 'triangle', decay: true }
+}
+
+function midnight(): Pattern {
+  const lead = (at: number, dur: number, f: number, gain = 0.2): Tone => ({ at, dur, freqs: [f], gain, decay: true })
+  return {
+    cycle: 4.0,
+    tones: [
+      // Dm9, then G13, then Cmaj9: the classic ii V I.
+      chordStab(0, 0.9, [293.66, 349.23, 440, 523.25], 0.09),
+      lead(0.0, 0.32, 440),
+      lead(0.4, 0.22, 523.25),
+      lead(0.66, 0.34, 587.33),
+      chordStab(1.1, 0.9, [293.66, 349.23, 493.88, 659.25], 0.09),
+      lead(1.1, 0.32, 698.46),
+      lead(1.5, 0.22, 659.25),
+      lead(1.76, 0.3, 587.33),
+      chordStab(2.2, 1.7, [329.63, 392, 493.88, 587.33], 0.09),
+      lead(2.2, 1.6, 659.25, 0.22),
+    ],
+  }
+}
+
+function blueNote(): Pattern {
+  const lead = (at: number, dur: number, f: number, gain = 0.2): Tone => ({ at, dur, freqs: [f], gain, decay: true })
+  return {
+    cycle: 3.8,
+    tones: [
+      // A bluesy climb in C minor, with the flat fifth leaning into the fifth.
+      chordStab(0, 1.2, [261.63, 311.13, 392, 466.16], 0.09),
+      lead(0.0, 0.34, 523.25),
+      lead(0.36, 0.3, 622.25),
+      lead(0.7, 0.3, 698.46),
+      lead(1.04, 0.22, 739.99),
+      lead(1.3, 1.1, 783.99, 0.22),
+      chordStab(2.5, 1.2, [233.08, 293.66, 349.23, 415.3], 0.09),
+      lead(2.6, 1.0, 932.33, 0.18),
+    ],
+  }
+}
+
+function lounge(): Pattern {
+  // A slow walking bass line with brushed chords on the off beats.
+  const walk = [196, 220, 246.94, 261.63, 246.94, 220]
+  const bass: Tone[] = walk.map((f, i) => ({ at: i * 0.5, dur: 0.42, freqs: [f, f * 2], gain: 0.13, wave: 'triangle' as const, decay: true }))
+  return {
+    cycle: 3.6,
+    tones: [
+      ...bass,
+      chordStab(0.25, 0.4, [329.63, 392, 493.88, 587.33], 0.07),
+      chordStab(1.25, 0.4, [349.23, 440, 523.25, 659.25], 0.07),
+      chordStab(2.25, 0.5, [329.63, 392, 493.88, 587.33], 0.07),
+      { at: 3.0, dur: 0.5, freqs: [523.25], gain: 0.2, decay: true },
+    ],
+  }
+}
+
+export type RingtoneId = 'midnight' | 'bluenote' | 'lounge' | 'cricket' | 'bell' | 'telephone' | 'chime' | 'marimba' | 'digital' | 'classic'
 
 export const RINGTONES: { id: RingtoneId; label: string; hint: string; pattern: Pattern }[] = [
-  { id: 'cricket', label: 'Cricket', hint: 'Soft evening chirps (default)', pattern: cricket() },
+  { id: 'midnight', label: 'Midnight Jazz', hint: 'Smoky piano chords and a lazy lead (default)', pattern: midnight() },
+  { id: 'bluenote', label: 'Blue Note', hint: 'A bluesy climb in C minor', pattern: blueNote() },
+  { id: 'lounge', label: 'Lounge', hint: 'Walking bass and soft chords', pattern: lounge() },
+  { id: 'cricket', label: 'Cricket', hint: 'Soft evening chirps', pattern: cricket() },
   { id: 'bell', label: 'Bell', hint: 'Two clear bell strikes', pattern: bell() },
   { id: 'telephone', label: 'Telephone', hint: 'An old desk phone', pattern: telephone() },
   { id: 'chime', label: 'Chime', hint: 'Four rising notes', pattern: chime() },
@@ -111,7 +176,7 @@ export const RINGTONES: { id: RingtoneId; label: string; hint: string; pattern: 
   { id: 'classic', label: 'Classic', hint: 'The original RideArrivo ring', pattern: CLASSIC },
 ]
 
-export const DEFAULT_RINGTONE: RingtoneId = 'cricket'
+export const DEFAULT_RINGTONE: RingtoneId = 'midnight'
 export const DEFAULT_VOLUME = 0.8
 
 export function isRingtoneId(value: unknown): value is RingtoneId {

@@ -13,20 +13,20 @@ const S = await load('src/lib/chatSound.ts', { "import { playPatternOnce } from 
 const P = await load('supabase/functions/_shared/pushPayload.ts')
 const read = p => readFileSync(p, 'utf8')
 
-test('defaults: sound on, buzz on, pop at 70 percent', () => {
+test('defaults: sound on, buzz on, Jazz keys at 70 percent', () => {
   const p = S.normalizeChatPrefs(undefined)
-  assert.deepEqual(p, { enabled: true, sound: 'pop', volume: 0.7, vibrate: true })
+  assert.deepEqual(p, { enabled: true, sound: 'keys', volume: 0.7, vibrate: true })
 })
 test('bad stored values fall back safely, volume is clamped', () => {
   const p = S.normalizeChatPrefs({ enabled: false, sound: 'nope', volume: 9, vibrate: false })
   assert.equal(p.enabled, false)
-  assert.equal(p.sound, 'pop')
+  assert.equal(p.sound, 'keys')
   assert.equal(p.volume, 1)
   assert.equal(S.clampChatVolume('x'), 0.7)
   assert.equal(S.clampChatVolume(0), 0.2)
 })
 test('every message sound is short and has tones', () => {
-  assert.equal(S.CHAT_SOUNDS.length, 6)
+  assert.equal(S.CHAT_SOUNDS.length, 9)
   for (const s of S.CHAT_SOUNDS) {
     assert.ok(s.pattern.tones.length > 0)
     assert.ok(s.pattern.cycle <= 1, s.id)

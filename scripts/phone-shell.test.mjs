@@ -23,8 +23,8 @@ test('tablet widths use the workspace rail instead of the compact phone bar', ()
   assert.match(css, /\.phoneTabs,\s*\.phoneMoreLayer\s*\{\s*display:\s*none !important/s)
 })
 
-test('phone nav keeps four daily destinations and a labelled More sheet', () => {
-  assert.match(nav, /const TAB_IDS = \['overview', 'tasks', 'chat', 'mail'\]/)
+test('phone nav keeps five daily destinations and a labelled More sheet', () => {
+  assert.match(nav, /const TAB_IDS = \['overview', 'tasks', 'chat', 'mail', 'notes'\]/)
   assert.match(nav, /aria-controls="phone-more-sheet"/)
   assert.match(nav, /aria-label="More sections"/)
   assert.match(nav, /role="dialog"/)
