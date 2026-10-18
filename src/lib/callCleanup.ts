@@ -5,7 +5,7 @@ type Row = { id: string; heartbeat_at?: string | null }
 
 // Another phone or computer that is genuinely on the call keeps a fresh
 // heartbeat, so a call beaten in the last 40 seconds is left alone.
-const LIVE_MS = 40_000
+const LIVE_MS = 150_000
 
 /*
  * Ends answered calls this person is in that nothing is carrying any more: the

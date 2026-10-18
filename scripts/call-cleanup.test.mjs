@@ -74,3 +74,11 @@ test('admin lists keep their buttons inside the card on phones', () => {
   assert.match(css, /\.lhAdminList li\{flex-wrap:wrap/)
   assert.match(css, /white-space:nowrap;margin-left:auto/)
 })
+
+test('phone highlights are clipped to their shape; calls survive app switching', () => {
+  const css = read('src/chat.css')
+  assert.match(css, /clip-path:inset\(0 round 999px\)/)
+  const keep = read('src/lib/callKeepAlive.ts')
+  for (const word of ['wakeLock', 'mediaSession', 'hangup', 'enterpictureinpicture', 'ra-call-live']) assert.ok(keep.includes(word), word)
+  assert.match(read('src/modules/FaceTimeStage.tsx'), /startCallKeepAlive/)
+})

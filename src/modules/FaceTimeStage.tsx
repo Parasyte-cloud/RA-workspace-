@@ -2,6 +2,9 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   ChevronDown,
+  Headphones,
+  PictureInPicture2,
+  Smartphone,
   Mic,
   MicOff,
   PhoneOff,
@@ -12,6 +15,7 @@ import {
 } from 'lucide-react'
 import { RtkParticipantsAudio } from '@cloudflare/realtimekit-react-ui'
 import type { useRealtimeKitClient } from '@cloudflare/realtimekit-react'
+import { canFloatVideo, floatVideo, startCallKeepAlive } from '../lib/callKeepAlive'
 import '../facetime-call.css'
 
 /*
@@ -53,6 +57,25 @@ function TrackVideo({ track, mirror = false, className = '' }: { track?: MediaSt
     return () => { el.srcObject = null }
   }, [track])
   return <video ref={ref} className={`ftVideo${mirror ? ' mirror' : ''} ${className}`} autoPlay playsInline muted />
+}
+
+type OutputKind = 'phone' | 'speaker' | 'headset'
+
+// What a listed output is, in the words FaceTime uses.
+function outputKind(label: string): OutputKind {
+  if (/bluetooth|airpods|headset|headphone|buds|wired|usb|hands-?free/i.test(label)) return 'headset'
+  if (/earpiece|receiver|handset|phone/i.test(label) && !/speakerphone/i.test(label)) return 'phone'
+  return 'speaker'
+}
+
+function outputName(label: string, kind: OutputKind): string {
+  if (kind === 'phone') return 'Phone'
+  if (kind === 'headset') return label.replace(/^(default|communications)\s*-\s*/i, '') || 'Headset'
+  return 'Speaker'
+}
+
+function OutputIcon({ kind }: { kind: OutputKind }) {
+  return kind === 'headset' ? <Headphones size={18} /> : kind === 'phone' ? <Smartphone size={18} /> : <Volume2 size={18} />
 }
 
 function Avatar({ name, picture, big = false }: { name: string; picture?: string; big?: boolean }) {
@@ -175,6 +198,18 @@ export default function FaceTimeStage({
     navigator.mediaDevices?.addEventListener?.('devicechange', load)
     return () => { alive = false; navigator.mediaDevices?.removeEventListener?.('devicechange', load) }
   }, [meeting])
+
+  // Lets the call carry on while the person is in another app.
+  const hangUpRef = useRef(onHangUp)
+  hangUpRef.current = onHangUp
+  useEffect(() => {
+    return startCallKeepAlive({
+      name: title,
+      video: !audioOnly,
+      onHangUp: () => hangUpRef.current(),
+      findVideo: () => stageRef.current?.querySelector<HTMLVideoElement>('video:not(.mirror)') || null
+    })
+  }, [title, audioOnly])
 
   const self = meeting.self
   const audioOn = Boolean(self.audioEnabled)
@@ -299,6 +334,11 @@ export default function FaceTimeStage({
             <RefreshCcw size={21} />
           </button>
         )}
+        {!audioOnly && canFloatVideo() && (
+          <button type="button" className="ftRound" onClick={() => void floatVideo(stageRef.current?.querySelector<HTMLVideoElement>('video:not(.mirror)') || null)} aria-label="Float the call over other apps">
+            <PictureInPicture2 size={21} />
+          </button>
+        )}
         <button type="button" className={`ftRound${speakerOpen ? ' active' : ''}`} onClick={() => setSpeakerOpen(open => !open)} aria-expanded={speakerOpen} aria-label="Speaker and sound output">
           <Volume2 size={22} />
         </button>
@@ -315,20 +355,23 @@ export default function FaceTimeStage({
           <div className="ftSheet" role="dialog" aria-label="Sound output" onClick={event => event.stopPropagation()}>
             <strong>Sound output</strong>
             {canPickOutput
-              ? speakers.map(device => (
-                <button
-                  key={device.deviceId}
-                  type="button"
-                  className={`ftChoice${device.deviceId === currentSpeaker?.deviceId ? ' on' : ''}`}
-                  onClick={() => void pickSpeaker(device)}
-                >
-                  <Volume2 size={18} />
-                  <span>{device.label || 'Speaker'}</span>
-                </button>
-              ))
+              ? speakers.map(device => {
+                const kind = outputKind(device.label || '')
+                return (
+                  <button
+                    key={device.deviceId}
+                    type="button"
+                    className={`ftChoice${device.deviceId === currentSpeaker?.deviceId ? ' on' : ''}`}
+                    onClick={() => void pickSpeaker(device)}
+                  >
+                    <OutputIcon kind={kind} />
+                    <span>{outputName(device.label || '', kind)}</span>
+                  </button>
+                )
+              })
               : (
                 <p className="ftSheetNote">
-                  This phone chooses where call sound plays. To switch between the earpiece, the loudspeaker and a headset, open Control Center (swipe down from the top right corner on iPhone), tap the audio card and pick the output. On Android, use the sound output button in the volume panel. Use the volume buttons to make the call louder.
+                  Your phone picks where call sound plays, and this browser cannot change it. A headset or Bluetooth device takes over by itself when you connect it. To change between Phone and Speaker, use the sound output button in the volume panel (Android) or the audio card in Control Center (iPhone).
                 </p>
               )}
             <button type="button" className="ftSheetClose" onClick={() => setSpeakerOpen(false)}>Done</button>
