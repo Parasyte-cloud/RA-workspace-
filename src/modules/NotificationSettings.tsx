@@ -9,6 +9,7 @@ import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
 import { AUTH_STORAGE_KEY } from '../lib/supabase'
 import {
   RINGTONES,
+  ensureAudioRunning,
   previewRingtone,
   readRingtone,
   readVolume,
@@ -17,6 +18,7 @@ import {
 } from '../lib/ringtone'
 import type { RingtoneId } from '../lib/ringtone'
 import { CHAT_SOUNDS, previewChatSound, readChatPrefs, saveChatPrefs } from '../lib/chatSound'
+import { canRoute, playOnSilentAllowed, setPlayOnSilent } from '../lib/audioRoute'
 import CallRingCheck from '../components/CallRingCheck'
 import type { ChatSoundId, ChatSoundPrefs } from '../lib/chatSound'
 
@@ -39,6 +41,7 @@ export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSig
     setLocShared(next)
     window.dispatchEvent(new CustomEvent(LOCATION_REQUEST_EVENT, { detail: next }))
   }
+  const [onSilent, setOnSilent] = useState(() => playOnSilentAllowed())
   const [fun, setFun] = useState(() => funAllowed())
   const [beat, setBeat] = useState(() => beatEnabled())
   const [classic, setClassic] = useState(() => classicCall())
@@ -62,9 +65,9 @@ export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSig
     setChat(next)
     saveChatPrefs(next)
   }
-  const pickChat = (id: ChatSoundId) => {
+  const pickChat = async (id: ChatSoundId) => {
     updateChat({ sound: id, enabled: true })
-    const played = previewChatSound(id, chat.volume)
+    const played = (await ensureAudioRunning()) && previewChatSound(id, chat.volume)
     setChatNote(played ? '' : 'Your browser is keeping sound off. Tap the page once, check the volume and silent switch, then try again.')
   }
 
@@ -169,6 +172,12 @@ export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSig
               onPointerUp={() => void previewRingtone(tone, volume)}
             />
           </label>
+          {canRoute() && (
+            <label className="settingsToggle">
+              <input type="checkbox" checked={onSilent} onChange={event => { setOnSilent(event.target.checked); setPlayOnSilent(event.target.checked) }} />
+              <span>Play sounds even when the phone is on silent</span>
+            </label>
+          )}
           {note && <small className="settingsNote">{note}</small>}
         </article>
 
@@ -253,7 +262,7 @@ export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSig
                 role="radio"
                 aria-checked={chat.sound === item.id}
                 className={`ringtoneOption${chat.sound === item.id ? ' active' : ''}`}
-                onClick={() => pickChat(item.id)}
+                onClick={() => void pickChat(item.id)}
               >
                 <Play size={14} />
                 <span><strong>{item.label}</strong><small>{item.hint}</small></span>

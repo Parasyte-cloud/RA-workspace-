@@ -1,4 +1,5 @@
 import {playChatArrival,shouldChatSound} from '../lib/chatSound'
+import {SOUND_BLOCKED_EVENT,wireAudioUnlock} from '../lib/ringtone'
 import {
   createContext,
   useCallback,
@@ -52,6 +53,10 @@ export function NotificationsProvider({children}:{children:ReactNode}){
   const [open,setOpen]=useState(false)
 
   const loadRequestRef=useRef(0)
+
+  // Message sounds need the audio engine unlocked by a tap. The call ringer
+  // does this too, but a message must not depend on that being mounted.
+  useEffect(()=>{ wireAudioUnlock() },[])
 
   // The list only holds the newest 30 rows, so the real unread total is asked
   // of the database separately. Until that answer arrives we fall back to
@@ -132,7 +137,11 @@ export function NotificationsProvider({children}:{children:ReactNode}){
             row?.entity_id,
             document.documentElement.dataset.raOpenChat||'',
             document.visibilityState==='visible'
-          )) playChatArrival()
+          )){
+            // false = the browser is still keeping sound off. Tell the app, so
+            // it can ask for the one tap that turns sound back on.
+            if(playChatArrival()===false) window.dispatchEvent(new Event(SOUND_BLOCKED_EVENT))
+          }
           if(fresh && row?.title){
             showDesktopAlert({
               title:row.title,

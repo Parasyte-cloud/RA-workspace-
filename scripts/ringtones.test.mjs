@@ -1,10 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { transformSync } from 'esbuild'
+import { buildSync } from 'esbuild'
+import { fileURLToPath } from 'node:url'
 
 const src = fs.readFileSync(new URL('../src/lib/ringtone.ts', import.meta.url), 'utf8')
-const js = transformSync(src, { loader: 'ts', format: 'esm' }).code
+// Bundled, because ringtone imports audioRoute.
+const js = buildSync({ entryPoints: [fileURLToPath(new URL('../src/lib/ringtone.ts', import.meta.url))], bundle: true, format: 'esm', write: false }).outputFiles[0].text
 const T = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'))
 
 test('there are ten ringtones and Midnight Jazz is the default', () => {
