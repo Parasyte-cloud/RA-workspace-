@@ -2393,3 +2393,23 @@ html[data-ra-theme='dark'] .cmReplyBar {
 /* A call still marked "In progress": a clear way to end it. */
 .cmCallBack.cmCallEnd{background:#d33;color:#fff}
 html[data-ra-theme='dark'] .cm .cmCallBack.cmCallEnd{background:#d33;color:#fff}
+
+/* Highlights stay inside their shape. The active chat row is a rounded card
+   rather than a square strip with a bar poking out of the panel's corners, and
+   the dock's active tab is clipped to its pill: iPhone Safari lets a blurred or
+   animated layer escape rounded corners unless the clip is explicit. */
+.cm .cmRow.active,.cm .cmRow:hover{border-radius:16px;box-shadow:none;overflow:hidden}
+.cm .cmRow.active{border-left:0;box-shadow:inset 3px 0 0 #ff9900}
+@media(max-width:599px){
+  html[data-ra-theme] nav.phoneTabs button,
+  html[data-ra-theme] nav.phoneTabs button.active,
+  html[data-ra-theme] nav.phoneTabs button:active,
+  html[data-ra-theme] nav.phoneTabs button:hover,
+  html[data-ra-theme] nav.phoneTabs button:focus-visible{
+    border-radius:999px!important;
+    clip-path:inset(0 round 999px);
+    -webkit-clip-path:inset(0 round 999px);
+    overflow:hidden;
+    outline:0
+  }
+}
