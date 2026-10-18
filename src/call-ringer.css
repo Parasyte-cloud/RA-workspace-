@@ -147,3 +147,7 @@
   }
 }
 /* RA_WHATSAPP_ALERT_CARD_END */
+
+/* Always above the chat thread, the bars and the call window. Two selectors
+   so a later, plainer .callRinger rule (chat-ios.css loads with Chat) cannot lower it. */
+html body > .callRinger.callRinger { z-index: 2147483600; }

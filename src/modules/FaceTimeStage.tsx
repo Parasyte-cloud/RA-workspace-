@@ -7,6 +7,7 @@ import {
   PhoneOff,
   RefreshCcw,
   Video,
+  Volume2,
   VideoOff
 } from 'lucide-react'
 import { RtkParticipantsAudio } from '@cloudflare/realtimekit-react-ui'
@@ -88,6 +89,8 @@ export default function FaceTimeStage({
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null)
   const [showControls, setShowControls] = useState(true)
   const [canFlip, setCanFlip] = useState(false)
+  const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([])
+  const [speakerOpen, setSpeakerOpen] = useState(false)
   const stageRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef(0)
   const joinError = useRef(onJoinError)
@@ -145,6 +148,18 @@ export default function FaceTimeStage({
     return () => { alive = false }
   }, [meeting])
 
+  // Where the sound can go. Chrome, Edge and Android list the speaker, earpiece,
+  // headset and Bluetooth; iPhone Safari does not let a page choose, iOS does.
+  useEffect(() => {
+    let alive = true
+    const load = () => {
+      void meeting.self.getSpeakerDevices().then(list => { if (alive) setSpeakers(list) }).catch(() => {})
+    }
+    load()
+    navigator.mediaDevices?.addEventListener?.('devicechange', load)
+    return () => { alive = false; navigator.mediaDevices?.removeEventListener?.('devicechange', load) }
+  }, [meeting])
+
   const self = meeting.self
   const audioOn = Boolean(self.audioEnabled)
   const videoOn = Boolean(self.videoEnabled)
@@ -154,6 +169,13 @@ export default function FaceTimeStage({
 
   const toggleAudio = () => { void (audioOn ? self.disableAudio() : self.enableAudio()).then(() => bump()).catch(() => {}) }
   const toggleVideo = () => { void (videoOn ? self.disableVideo() : self.enableVideo()).then(() => bump()).catch(() => {}) }
+  const currentSpeaker = self.getCurrentDevices().speaker
+  const canPickOutput = speakers.length > 1
+  const pickSpeaker = async (device: MediaDeviceInfo) => {
+    try { await self.setDevice(device) } catch { /* the browser refused this output */ }
+    setSpeakerOpen(false)
+    bump()
+  }
   const flip = async () => {
     try {
       const list = await self.getVideoDevices()
@@ -261,6 +283,9 @@ export default function FaceTimeStage({
             <RefreshCcw size={21} />
           </button>
         )}
+        <button type="button" className={`ftRound${speakerOpen ? ' active' : ''}`} onClick={() => setSpeakerOpen(open => !open)} aria-expanded={speakerOpen} aria-label="Speaker and sound output">
+          <Volume2 size={22} />
+        </button>
         <button type="button" className={`ftRound${audioOn ? '' : ' off'}`} onClick={toggleAudio} aria-pressed={audioOn} aria-label={audioOn ? 'Mute' : 'Unmute'}>
           {audioOn ? <Mic size={22} /> : <MicOff size={22} />}
         </button>
@@ -268,6 +293,32 @@ export default function FaceTimeStage({
           <PhoneOff size={24} />
         </button>
       </div>
+
+      {speakerOpen && (
+        <div className="ftSheetBack" onClick={event => { event.stopPropagation(); setSpeakerOpen(false) }}>
+          <div className="ftSheet" role="dialog" aria-label="Sound output" onClick={event => event.stopPropagation()}>
+            <strong>Sound output</strong>
+            {canPickOutput
+              ? speakers.map(device => (
+                <button
+                  key={device.deviceId}
+                  type="button"
+                  className={`ftChoice${device.deviceId === currentSpeaker?.deviceId ? ' on' : ''}`}
+                  onClick={() => void pickSpeaker(device)}
+                >
+                  <Volume2 size={18} />
+                  <span>{device.label || 'Speaker'}</span>
+                </button>
+              ))
+              : (
+                <p className="ftSheetNote">
+                  This phone chooses where call sound plays. To switch between the earpiece, the loudspeaker and a headset, open Control Center (swipe down from the top right corner on iPhone), tap the audio card and pick the output. On Android, use the sound output button in the volume panel. Use the volume buttons to make the call louder.
+                </p>
+              )}
+            <button type="button" className="ftSheetClose" onClick={() => setSpeakerOpen(false)}>Done</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
