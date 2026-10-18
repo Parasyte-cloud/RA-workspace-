@@ -24,7 +24,7 @@ where schemaname = 'public'
   and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
   and coalesce(qual, 'true') in ('true', '(true)')
   and coalesce(with_check, 'true') in ('true', '(true)')
-  and 'authenticated' = any(roles::text[]) or 'anon' = any(roles::text[]) or 'public' = any(roles::text[])
+  and ('authenticated' = any(roles::text[]) or 'anon' = any(roles::text[]) or 'public' = any(roles::text[]))
 order by 2;
 
 -- 4. Tables the anonymous (signed-out) role can touch.
