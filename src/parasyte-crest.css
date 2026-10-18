@@ -4,7 +4,7 @@
 .parasyteCrestBar{
   position:fixed;left:0;right:0;bottom:0;z-index:25;height:36px;
   display:flex;align-items:center;justify-content:center;gap:10px;
-  background:linear-gradient(180deg,#0a1626,#050d19);
+  background:linear-gradient(180deg,#16263c,#0b1628 55%,#08111f);
   border-top:1px solid rgba(255,255,255,.06);
   box-shadow:0 -1px 0 rgba(255,153,0,.12);
   pointer-events:none;
@@ -21,7 +21,14 @@
 }
 .parasyteSignature:hover,.parasyteSignature:focus-visible{animation-play-state:paused;transform:scale(1.14);filter:drop-shadow(0 0 10px rgba(190,210,245,.55))}
 .parasyteSignature:focus-visible{outline:2px solid #ffb13b;outline-offset:2px}
-.parasyteCrestBar img{height:18px;width:auto;display:block;opacity:.96;filter:drop-shadow(0 0 6px rgba(170,195,235,.28))}
+/* Embossed: light catches the top left edge, a soft shadow falls bottom right, as if pressed out of the bar. */
+.parasyteCrestBar img{
+  height:18px;width:auto;display:block;
+  filter:
+    drop-shadow(-.6px -.6px 0 rgba(255,255,255,.55))
+    drop-shadow(1px 1.2px .6px rgba(0,0,0,.95))
+    drop-shadow(0 0 5px rgba(170,195,235,.22));
+}
 @keyframes psSwell{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 /* Signature: the sign-off line fades out either side of the crest, like a flourish. */
 .parasyteCrestBar::after{
@@ -34,10 +41,18 @@ html.hasParasyteCrest body{padding-bottom:36px}
 @media(min-width:701px){
   html.hasParasyteCrest .sidebar{height:calc(100vh - 28px - 36px)}
 }
-/* On phones the app has its own fixed bottom navigation: sit just above it. */
+/* On phones the app has its own floating bottom navigation, whose height changes with the device.
+   Rather than guess it, the signature stops floating there and becomes the last thing on the page,
+   clear of the navigation. Pages without that navigation (ROOM 7, forms) keep it pinned to the base. */
 @media(max-width:700px){
-  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{bottom:70px}
-  html.hasParasyteCrest:has(.sidebar) body{padding-bottom:100px}
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{
+    position:relative;left:auto;right:auto;bottom:auto;z-index:1;margin:10px 0 0;height:auto;
+    padding-bottom:0;background:transparent;border:0;box-shadow:none;
+  }
+  html.hasParasyteCrest:has(.sidebar) .parasyteSignature{background:linear-gradient(180deg,#16263c,#08111f);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:7px 20px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar::before,
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar::after{display:none}
+  html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
   .parasyteCrestBar img{height:16px}
 }
 
@@ -53,7 +68,7 @@ html.hasParasyteCrest body{padding-bottom:36px}
 .parasyteSplashInner{display:grid;justify-items:center;gap:18px;text-align:center;animation:psRise .9s cubic-bezier(.2,.7,.2,1) both}
 .parasyteSplashCrest{
   width:min(560px,84vw);height:auto;display:block;
-  filter:drop-shadow(0 0 28px rgba(170,195,235,.25));
+  filter:drop-shadow(-1px -1px 0 rgba(255,255,255,.5)) drop-shadow(2px 3px 2px rgba(0,0,0,.9)) drop-shadow(0 0 26px rgba(170,195,235,.22));
   -webkit-mask-image:linear-gradient(100deg,#000 0%,#000 40%,rgba(0,0,0,.55) 50%,#000 60%,#000 100%);
   -webkit-mask-size:260% 100%;mask-size:260% 100%;
   animation:psSheen 2.4s ease-in-out .5s 1 both;
