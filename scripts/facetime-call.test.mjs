@@ -5,13 +5,14 @@ import { readFileSync } from 'node:fs'
 const stage = readFileSync(new URL('../src/modules/FaceTimeStage.tsx', import.meta.url), 'utf8')
 const meeting = readFileSync(new URL('../src/modules/RoomMeeting.tsx', import.meta.url), 'utf8')
 const css = readFileSync(new URL('../src/facetime-call.css', import.meta.url), 'utf8')
-const style = readFileSync(new URL('../src/lib/callStyle.ts', import.meta.url), 'utf8')
 const settings = readFileSync(new URL('../src/modules/NotificationSettings.tsx', import.meta.url), 'utf8')
 
 test('chat calls use the FaceTime-style stage and keep ROOM 7 on its own screen', () => {
   assert.match(meeting, /faceTime/)
   assert.match(meeting, /<FaceTimeStage/)
-  assert.match(meeting, /chatCall&&!classicCall\(\)/)
+  // One call screen for every chat call on every device: no per-device classic switch.
+  assert.match(meeting, /const faceTime=chatCall\b/)
+  assert.doesNotMatch(meeting, /classicCall/)
   // ROOM 7 meetings still use the stock meeting UI.
   assert.match(meeting, /<RtkMeeting/)
   assert.match(meeting, /roomMeetingFrame/)
@@ -28,17 +29,25 @@ test('FaceTime styling: pill controls, draggable self window, mini card', () => 
   for (const sel of ['.ftControls', '.ftSelf', '.ftMini', '.ftEnd', '.callFT']) assert.ok(css.includes(sel), sel)
 })
 
-test('Settings can switch back to the classic call screen', () => {
-  assert.match(style, /ra-call-classic/)
-  assert.match(settings, /Use the classic call screen/)
-  assert.match(settings, /setClassicCall/)
+test('there is no classic call screen option left to pick the wrong screen', () => {
+  assert.doesNotMatch(settings, /classic call screen/i)
+  assert.doesNotMatch(settings, /setClassicCall/)
+  assert.throws(() => readFileSync(new URL('../src/lib/callStyle.ts', import.meta.url)))
 })
 
-test('the call screen has a speaker control that lists outputs or explains the phone route', () => {
+test('the speaker control only shows when it can act, and never uses phone wording on desktop', () => {
   assert.match(stage, /getSpeakerDevices/)
-  assert.match(stage, /Speaker and sound output/)
-  assert.match(stage, /Control Center/)
+  assert.match(stage, /outputControl\(/)
+  assert.match(stage, /control !== 'none'/)
+  assert.match(stage, /Sound output/)
+  assert.doesNotMatch(stage, /Control Center/)
+  assert.doesNotMatch(stage, /Your phone picks where call sound plays/)
   assert.ok(css.includes('.ftSheet'))
+})
+
+test('controls stay on screen while ringing, reconnecting, in a voice call or with the sheet open', () => {
+  assert.match(stage, /holdControls = calling \|\| reconnecting \|\| speakerOpen \|\| isVoice/)
+  assert.match(stage, /if \(!holdRef\.current\) setShowControls\(false\)/)
 })
 
 test('the incoming call card always shows: drawn on body, polled as a backup, above chat', () => {
