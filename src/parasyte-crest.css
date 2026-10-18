@@ -13,7 +13,12 @@
   content:"";position:absolute;left:0;right:0;top:-1px;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,177,59,.55),transparent);
 }
-.parasyteCrestBar img{height:13px;width:auto;display:block;opacity:.92}
+.parasyteCrestBar img{height:13px;width:auto;display:block;opacity:.95;filter:drop-shadow(0 0 6px rgba(170,195,235,.28))}
+/* Signature: the sign-off line fades out either side of the crest, like a flourish. */
+.parasyteCrestBar::after{
+  content:"";position:absolute;left:12%;right:12%;bottom:6px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(159,176,196,.28) 30%,rgba(255,177,59,.35) 50%,rgba(159,176,196,.28) 70%,transparent);
+}
 .parasyteCrestCredit{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#9fb0c4;white-space:nowrap}
 
 /* Room for the bar so it never covers the last line of a page. */

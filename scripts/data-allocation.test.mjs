@@ -245,6 +245,13 @@ test('PArAsYtE crest: assets, splash and base bar mounted for every screen', () 
   assert.match(css, /prefers-reduced-motion/)
 })
 
+test('PArAsYtE crest also on ROOM 7, public forms and the navbars', () => {
+  assert.match(read('../src/room7-public/ExternalRoom7App.tsx'), /<ParasyteCrestBar\/>/)
+  assert.match(read('../src/forms-public/FormsApp.tsx'), /<ParasyteCrestBar \/>/)
+  assert.match(read('../src/App.tsx'), /src="\/parasyte-crest\.png" alt="PArAsYtE" className="brandLogo sidebarLogo"/)
+  assert.match(read('../src/room7-public/Room7TopIsland.tsx'), /src="\/parasyte-crest\.png" alt="PArAsYtE"/)
+})
+
 test('no em dash anywhere in what was added', () => {
   const files = [
     '../docs/data-allocation.md', '../src/modules/AdminDataAllocation.tsx', '../src/components/MyDataCard.tsx',

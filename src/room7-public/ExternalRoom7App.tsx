@@ -30,6 +30,7 @@ import Room7LobbyChat from '../room7-shared/Room7LobbyChat'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import { googleCalendarUrl, icsFile, outlookCalendarUrl } from '../lib/room7Share'
 import type { CalendarEvent } from '../lib/room7Share'
+import { ParasyteCrestBar } from '../components/ParasyteCrest'
 
 const loadExternalMeeting = () => import('./ExternalRoom7Meeting')
 const ExternalRoom7Meeting = lazy(loadExternalMeeting)
@@ -1085,7 +1086,8 @@ export default function ExternalRoom7App() {
   }
 
   return (
-    <main className="room7Public responsiveModule" data-theme={appearance.theme}>
+    <>
+      <main className="room7Public responsiveModule" data-theme={appearance.theme}>
       <div className="room7PublicGlow room7PublicGlowOne" />
       <div className="room7PublicGlow room7PublicGlowTwo" />
 
@@ -1579,5 +1581,7 @@ export default function ExternalRoom7App() {
         </>
       )}
     </main>
+      <ParasyteCrestBar/>
+    </>
   )
 }

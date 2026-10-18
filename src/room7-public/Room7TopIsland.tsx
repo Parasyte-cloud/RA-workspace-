@@ -43,7 +43,7 @@ export default function Room7TopIsland({
   return (
     <header className="r7Island" data-island={island} data-paused={open ? 'true' : 'false'}>
       <div className="r7IslandPill">
-        <img className="r7IslandLogo" src="/ridearrivo-wordmark-workspace.png" alt="RideArrivo" />
+        <img className="r7IslandLogo" src="/parasyte-crest.png" alt="PArAsYtE" />
 
         <div className="r7IslandTicker" role="group" aria-label="The RideArrivo family">
           <div className="r7IslandTrack">
