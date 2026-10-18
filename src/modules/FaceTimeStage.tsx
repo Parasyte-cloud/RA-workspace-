@@ -84,7 +84,8 @@ export default function FaceTimeStage({
   onHangUp,
   onMinimize,
   onRestore,
-  onJoinError
+  onJoinError,
+  answered = false
 }: {
   meeting: Meeting
   audioOnly: boolean
@@ -95,6 +96,8 @@ export default function FaceTimeStage({
   onMinimize: () => void
   onRestore: () => void
   onJoinError: (message: string) => void
+  /** The other person has answered but has not arrived yet. */
+  answered?: boolean
 }) {
   const [, bump] = useReducer((n: number) => n + 1, 0)
   const [corner, setCorner] = useState<Corner>('br')
@@ -364,8 +367,9 @@ export default function FaceTimeStage({
         </button>
         <div className="ftWho">
           <strong>{remoteName}</strong>
-          <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? 'Calling…' : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
+          <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? (answered ? 'Connecting…' : 'Calling…') : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
           {quality === 'poor' && !calling && !reconnecting && <span className="ftQuality" role="status">Poor connection</span>}
+          {remotes.length > 1 && <span className="ftQuality ftOthers" role="status">{remotes.length === 2 ? '1 other person' : `${remotes.length - 1} other people`} on this call</span>}
         </div>
         <span className="ftSpacer" aria-hidden="true" />
       </header>

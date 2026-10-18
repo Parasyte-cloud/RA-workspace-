@@ -477,6 +477,23 @@ serve(async req => {
     }
     if (room.status !== "active") return json(req, { error: "This ROOM 7 meeting has ended." }, 409)
 
+    // A room made for a chat call belongs to the two people on that call. The
+    // 8 character code used to be the only gate, so anyone signed in who learned
+    // it could join. Now only the caller, the callee and an administrator can.
+    // An administrator is let in (so a problem can be investigated) and both
+    // people are told, below.
+    const { data: callRows } = await admin
+      .from("chat_calls")
+      .select("caller_id,callee_id")
+      .eq("room_code", code)
+      .limit(5)
+    const isCallRoom = Boolean(callRows?.length)
+    const onTheCall = (callRows || []).some((call) => call.caller_id === employeeId || call.callee_id === employeeId)
+    if (isCallRoom && !onTheCall && profile.role !== "admin") {
+      await rateCount(admin, guessKey, 60, true)
+      return json(req, { error: "This call is private." }, 403)
+    }
+
     const role = room.created_by === employeeId ? "host" : "member"
     // The creator and administrators can moderate: remove people, mute
     // them, turn their video off. Only the creator can end the meeting.
@@ -545,19 +562,40 @@ serve(async req => {
       })
       if (audit.error) console.warn("ROOM 7 audit join:", audit.error.message)
 
-      // An administrator can enter any room. Tell the host the first time, so
-      // it is never silent.
-      if (!existing && profile.role === "admin" && role !== "host") {
-        const notice = await admin.from("notifications").insert({
-          user_id: room.created_by,
-          type: "room_admin_joined",
-          title: "An administrator joined your ROOM 7",
-          body: `${cleanText(profile.full_name, 160) || "An administrator"} joined "${cleanText(room.title, 120)}".`,
-          entity_type: "workspace_room",
-          entity_id: room.id,
-          email_status: "skipped",
-        })
-        if (notice.error) console.warn("ROOM 7 admin join notice:", notice.error.message)
+      // An administrator can enter any room. Tell the people in it the first
+      // time, so it is never silent. In a call that is both people, not only
+      // the one who started it. An administrator who is one of the two on the
+      // call is just answering it, so nobody is told.
+      if (!existing && profile.role === "admin" && role !== "host" && !onTheCall) {
+        const adminName = cleanText(profile.full_name, 160) || "An administrator"
+        const recipients = isCallRoom
+          ? Array.from(new Set((callRows || []).flatMap((call) => [call.caller_id, call.callee_id])))
+          : [room.created_by]
+        const notices = recipients
+          .filter((id) => id && id !== employeeId)
+          .map((id) => isCallRoom
+            ? {
+              user_id: id,
+              type: "room_admin_joined",
+              title: "An administrator joined your call",
+              body: `${adminName} joined your call.`,
+              entity_type: "workspace_room",
+              entity_id: room.id,
+              email_status: "skipped",
+            }
+            : {
+              user_id: id,
+              type: "room_admin_joined",
+              title: "An administrator joined your ROOM 7",
+              body: `${adminName} joined "${cleanText(room.title, 120)}".`,
+              entity_type: "workspace_room",
+              entity_id: room.id,
+              email_status: "skipped",
+            })
+        if (notices.length) {
+          const notice = await admin.from("notifications").insert(notices)
+          if (notice.error) console.warn("ROOM 7 admin join notice:", notice.error.message)
+        }
       }
 
       // Only the people who control the event can open it to guests.

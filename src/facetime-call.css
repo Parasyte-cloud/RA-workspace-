@@ -54,6 +54,7 @@
 .ftWho strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; max-width: 56vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ftWho span { font-size: 14px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
 .ftWho .ftQuality { margin-top: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(255,159,10,.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.ftWho .ftOthers { background: rgba(10,132,255,.82); }
 .ftSpacer { width: 38px; flex: 0 0 auto; }
 
 .ftRound {
