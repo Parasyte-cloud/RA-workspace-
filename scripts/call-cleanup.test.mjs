@@ -25,9 +25,9 @@ test('the app heartbeats, hangs up on close, and ends when the other person disa
   assert.match(mod, /pagehide/)
   assert.match(mod, /keepalive: true/)
   const stage = read('src/modules/FaceTimeStage.tsx')
-  assert.match(stage, /onRemoteGone/)
-  assert.match(stage, /hadRemote/)
-  assert.match(read('src/modules/RoomMeeting.tsx'), /onRemoteGone=\{hangUp\}/)
+  // A locked or briefly offline phone must not end the other person's call.
+  assert.doesNotMatch(stage, /onRemoteGone/)
+  assert.match(stage, /reconnecting/)
 })
 
 test('a call left behind is ended by the app itself, with or without the SQL', () => {
@@ -81,4 +81,32 @@ test('phone highlights are clipped to their shape; calls survive app switching',
   const keep = read('src/lib/callKeepAlive.ts')
   for (const word of ['wakeLock', 'mediaSession', 'hangup', 'enterpictureinpicture', 'ra-call-live']) assert.ok(keep.includes(word), word)
   assert.match(read('src/modules/FaceTimeStage.tsx'), /startCallKeepAlive/)
+})
+
+test('a locked phone keeps the call; the earpiece works; the ring check is in Settings', () => {
+  const sql = read('supabase/migrations/20261018150000_call_survives_lock.sql')
+  assert.match(sql, /heartbeat_at < now\(\) - interval '15 minutes'/)
+  assert.match(sql, /c\.heartbeat_at > now\(\) - interval '75 seconds'/)
+  const route = read('src/lib/audioRoute.ts')
+  assert.match(route, /play-and-record/)
+  assert.match(route, /'playback'/)
+  assert.match(route, /defaultRoute/)
+  assert.match(read('src/modules/FaceTimeStage.tsx'), /uniqueOutputs/)
+  assert.match(read('src/modules/NotificationSettings.tsx'), /<CallRingCheck \/>/)
+})
+
+test('audio route: voice starts at the ear, video out loud, duplicate outputs collapse (behaviour)', async () => {
+  const { buildSync } = await import('esbuild')
+  const out = buildSync({ entryPoints: ['src/lib/audioRoute.ts'], bundle: true, format: 'esm', write: false })
+  const mod = await import('data:text/javascript;base64,' + Buffer.from(out.outputFiles[0].text).toString('base64'))
+  assert.equal(mod.defaultRoute(true), 'phone')
+  assert.equal(mod.defaultRoute(false), 'speaker')
+  const list = [
+    { deviceId: 'default', label: 'Default - Speaker' },
+    { deviceId: 'a', label: 'Speaker' },
+    { deviceId: 'b', label: 'Speaker' },
+    { deviceId: 'c', label: 'AirPods' },
+  ]
+  assert.deepEqual(mod.uniqueOutputs(list).map(d => d.deviceId), ['a', 'c'])
+  assert.equal(mod.canRoute(), false) // no Audio Session in Node
 })
