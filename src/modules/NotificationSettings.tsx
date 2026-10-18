@@ -17,6 +17,7 @@ import {
 } from '../lib/ringtone'
 import type { RingtoneId } from '../lib/ringtone'
 import { CHAT_SOUNDS, previewChatSound, readChatPrefs, saveChatPrefs } from '../lib/chatSound'
+import CallRingCheck from '../components/CallRingCheck'
 import type { ChatSoundId, ChatSoundPrefs } from '../lib/chatSound'
 
 // Settings card for sounds and alerts. The ringtone is kept on this device, so
@@ -126,6 +127,7 @@ export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSig
           <PhoneAlertsToggle />
           <button type="button" className="glassButton" onClick={() => void sendTest()}>Send a test notification</button>
           {testNote && <small className="settingsNote">{testNote}</small>}
+          <CallRingCheck />
           <small className="settingsNote">
             While the app is open it plays the ringtone you pick. With the app closed, your device plays its own
             notification sound, because phones do not let a web app choose it.

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { RtkParticipantsAudio } from '@cloudflare/realtimekit-react-ui'
 import type { useRealtimeKitClient } from '@cloudflare/realtimekit-react'
+import { applyRoute, canRoute, defaultRoute, releaseRoute, uniqueOutputs, type Route } from '../lib/audioRoute'
 import { canFloatVideo, floatVideo, startCallKeepAlive } from '../lib/callKeepAlive'
 import '../facetime-call.css'
 
@@ -95,8 +96,7 @@ export default function FaceTimeStage({
   onHangUp,
   onMinimize,
   onRestore,
-  onJoinError,
-  onRemoteGone
+  onJoinError
 }: {
   meeting: Meeting
   audioOnly: boolean
@@ -107,8 +107,6 @@ export default function FaceTimeStage({
   onMinimize: () => void
   onRestore: () => void
   onJoinError: (message: string) => void
-  /** The other person has been gone for a while (app closed, signal lost): end the call. */
-  onRemoteGone?: () => void
 }) {
   const [, bump] = useReducer((n: number) => n + 1, 0)
   const [corner, setCorner] = useState<Corner>('br')
@@ -117,13 +115,13 @@ export default function FaceTimeStage({
   const [canFlip, setCanFlip] = useState(false)
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([])
   const [speakerOpen, setSpeakerOpen] = useState(false)
+  const [route, setRoute] = useState<Route>(() => defaultRoute(audioOnly))
+  const routable = canRoute()
   const stageRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef(0)
   const joinError = useRef(onJoinError)
   joinError.current = onJoinError
-  const remoteGone = useRef(onRemoteGone)
-  remoteGone.current = onRemoteGone
-  const hadRemote = useRef(false)
+  const [wasConnected, setWasConnected] = useState(false)
 
   // Join as soon as the connection is ready. The classic screen waits for a
   // set-up page; a call goes straight in.
@@ -161,15 +159,12 @@ export default function FaceTimeStage({
   const remote = remotes[0]
   const remoteKey = remote?.id || ''
 
-  // One-to-one call: once the other person has been in it and then vanishes for
-  // 15 seconds (they swiped the app away, or lost signal for good), the call is
-  // over. A short drop that comes back inside that time keeps the call.
-  useEffect(() => {
-    if (remote) { hadRemote.current = true; return }
-    if (!hadRemote.current) return
-    const timer = window.setTimeout(() => remoteGone.current?.(), 15_000)
-    return () => window.clearTimeout(timer)
-  }, [remote, remoteKey])
+  // The other person dropping out is not the end of the call: a locked phone or
+  // a tunnel looks the same as leaving. The call carries on, says so, and the
+  // database ends it only when the other phone has really gone quiet (many
+  // minutes), never this screen on a short timer.
+  useEffect(() => { if (remote) setWasConnected(true) }, [remote, remoteKey])
+  const reconnecting = wasConnected && !remote
   useEffect(() => {
     if (!remote) return
     const redraw = () => bump()
@@ -199,6 +194,13 @@ export default function FaceTimeStage({
     return () => { alive = false; navigator.mediaDevices?.removeEventListener?.('devicechange', load) }
   }, [meeting])
 
+  // Voice calls start at the ear (earpiece), video calls out loud, like FaceTime.
+  useEffect(() => {
+    if (!routable) return
+    applyRoute(route)
+  }, [route, routable])
+  useEffect(() => () => releaseRoute(), [])
+
   // Lets the call carry on while the person is in another app.
   const hangUpRef = useRef(onHangUp)
   hangUpRef.current = onHangUp
@@ -221,7 +223,8 @@ export default function FaceTimeStage({
   const toggleAudio = () => { void (audioOn ? self.disableAudio() : self.enableAudio()).then(() => bump()).catch(() => {}) }
   const toggleVideo = () => { void (videoOn ? self.disableVideo() : self.enableVideo()).then(() => bump()).catch(() => {}) }
   const currentSpeaker = self.getCurrentDevices().speaker
-  const canPickOutput = speakers.length > 1
+  const outputs = uniqueOutputs(speakers)
+  const canPickOutput = outputs.length > 1
   const pickSpeaker = async (device: MediaDeviceInfo) => {
     try { await self.setDevice(device) } catch { /* the browser refused this output */ }
     setSpeakerOpen(false)
@@ -281,7 +284,7 @@ export default function FaceTimeStage({
         {bigVideo
           ? <TrackVideo track={calling ? self.videoTrack : remote?.videoTrack} mirror={calling} />
           : <div className="ftBackdrop"><Avatar name={remoteName} picture={remote?.picture} /></div>}
-        <div className="ftMiniInfo"><strong>{remoteName}</strong><span>{calling ? 'Calling' : clock}</span></div>
+        <div className="ftMiniInfo"><strong>{remoteName}</strong><span>{reconnecting ? 'Reconnecting' : calling ? 'Calling' : clock}</span></div>
       </div>
     )
   }
@@ -305,7 +308,7 @@ export default function FaceTimeStage({
         </button>
         <div className="ftWho">
           <strong>{remoteName}</strong>
-          <span>{calling ? 'Calling…' : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
+          <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? 'Calling…' : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
         </div>
         <span className="ftSpacer" aria-hidden="true" />
       </header>
@@ -354,8 +357,19 @@ export default function FaceTimeStage({
         <div className="ftSheetBack" onClick={event => { event.stopPropagation(); setSpeakerOpen(false) }}>
           <div className="ftSheet" role="dialog" aria-label="Sound output" onClick={event => event.stopPropagation()}>
             <strong>Sound output</strong>
-            {canPickOutput
-              ? speakers.map(device => {
+            {routable && (
+              <>
+                <button type="button" className={`ftChoice${route === 'phone' ? ' on' : ''}`} onClick={() => { setRoute('phone'); setSpeakerOpen(false) }}>
+                  <Smartphone size={18} /><span>Phone</span>
+                </button>
+                <button type="button" className={`ftChoice${route === 'speaker' ? ' on' : ''}`} onClick={() => { setRoute('speaker'); setSpeakerOpen(false) }}>
+                  <Volume2 size={18} /><span>Speaker</span>
+                </button>
+                <p className="ftSheetNote">A headset or Bluetooth device takes over by itself when connected.</p>
+              </>
+            )}
+            {!routable && canPickOutput
+              ? outputs.map(device => {
                 const kind = outputKind(device.label || '')
                 return (
                   <button
@@ -369,7 +383,7 @@ export default function FaceTimeStage({
                   </button>
                 )
               })
-              : (
+              : !routable && (
                 <p className="ftSheetNote">
                   Your phone picks where call sound plays, and this browser cannot change it. A headset or Bluetooth device takes over by itself when you connect it. To change between Phone and Speaker, use the sound output button in the volume panel (Android) or the audio card in Control Center (iPhone).
                 </p>

@@ -503,7 +503,6 @@ export default function RoomMeeting({
                 onMinimize={onMinimize}
                 onRestore={onRestore}
                 onJoinError={setInitError}
-                onRemoteGone={hangUp}
               />
               :<RtkMeeting
                 key={session.auth_token}
