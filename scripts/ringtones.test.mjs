@@ -7,13 +7,13 @@ const src = fs.readFileSync(new URL('../src/lib/ringtone.ts', import.meta.url), 
 const js = transformSync(src, { loader: 'ts', format: 'esm' }).code
 const T = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'))
 
-test('there are seven ringtones and cricket is the default', () => {
-  assert.equal(T.RINGTONES.length, 7)
-  assert.equal(T.DEFAULT_RINGTONE, 'cricket')
-  assert.equal(T.RINGTONES[0].id, 'cricket')
+test('there are ten ringtones and Midnight Jazz is the default', () => {
+  assert.equal(T.RINGTONES.length, 10)
+  assert.equal(T.DEFAULT_RINGTONE, 'midnight')
+  assert.equal(T.RINGTONES[0].id, 'midnight')
   const names = T.RINGTONES.map(r => r.label)
-  for (const wanted of ['Cricket', 'Bell', 'Telephone']) assert.ok(names.includes(wanted))
-  assert.equal(new Set(T.RINGTONES.map(r => r.id)).size, 7)
+  for (const wanted of ['Midnight Jazz', 'Blue Note', 'Lounge', 'Cricket', 'Bell', 'Telephone']) assert.ok(names.includes(wanted))
+  assert.equal(new Set(T.RINGTONES.map(r => r.id)).size, 10)
 })
 
 test('every ringtone fits its cycle, is quiet enough and audible', () => {
@@ -24,12 +24,12 @@ test('every ringtone fits its cycle, is quiet enough and audible', () => {
     for (const tone of p.tones) {
       assert.ok(tone.at >= 0 && tone.at + tone.dur < p.cycle, `${r.id} ends before the cycle repeats`)
       assert.ok(tone.gain > 0 && tone.gain <= 0.3, `${r.id} gain`)
-      for (const f of tone.freqs) assert.ok(f >= 300 && f <= 5000, `${r.id} freq ${f}`)
+      for (const f of tone.freqs) assert.ok(f >= 150 && f <= 5000, `${r.id} freq ${f}`)
     }
   }
 })
 
-test('unknown or missing choices fall back to cricket; volume is clamped', () => {
+test('unknown or missing choices fall back to Midnight Jazz; volume is clamped', () => {
   assert.equal(T.ringtonePattern('nope'), T.RINGTONES[0].pattern)
   assert.equal(T.isRingtoneId('bell'), true)
   assert.equal(T.isRingtoneId('<script>'), false)

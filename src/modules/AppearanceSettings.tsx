@@ -1,3 +1,4 @@
+import FontStyleCard from '../components/FontStyleCard'
 import { useState } from 'react'
 
 import {
@@ -373,6 +374,7 @@ export function AppearanceSettings() {
           </div>
         </article>
       </div>
+      <FontStyleCard />
     </section>
   )
 }
