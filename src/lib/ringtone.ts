@@ -11,6 +11,8 @@
  * reports when sound is still blocked so the screen can say so.
  */
 
+import { holdPlayback } from './audioRoute'
+
 export type Tone = {
   at: number
   dur: number
@@ -256,35 +258,69 @@ function context(): AudioContext | null {
   }
 }
 
+// Safari reports a context it paused itself (a phone call, Siri, the screen
+// locking) as "interrupted", which the standard type list does not know. Treat
+// it like "suspended": it has to be resumed before it can make a sound.
+function notRunning(ctx: AudioContext): boolean {
+  return String(ctx.state) !== 'running'
+}
+
+function wake(ctx: AudioContext) {
+  if (notRunning(ctx) && String(ctx.state) !== 'closed') void ctx.resume().catch(() => undefined)
+}
+
 export function audioBlocked(): boolean {
   const ctx = context()
-  return !!ctx && ctx.state !== 'running'
+  return !!ctx && notRunning(ctx)
+}
+
+// One silent sample played inside a real tap. Safari only treats the audio
+// engine as unlocked once something has actually been started in a gesture.
+function playSilentSample(ctx: AudioContext) {
+  try {
+    const source = ctx.createBufferSource()
+    source.buffer = ctx.createBuffer(1, 1, 22050)
+    source.connect(ctx.destination)
+    source.start(0)
+  } catch {
+    /* the resume above is enough on other browsers */
+  }
 }
 
 // Call from a click, tap or key press. Safe to call many times.
 export function primeAudio() {
   const ctx = context()
-  if (ctx && ctx.state === 'suspended') void ctx.resume().catch(() => undefined)
+  if (ctx) {
+    wake(ctx)
+    playSilentSample(ctx)
+  }
   primed = true
 }
 
 let gestureWired = false
 
-// Unlocks sound on the first touch anywhere, so a call that arrives later can ring.
+// Unlocks sound on a touch anywhere, so a call or message that arrives later
+// can make a sound. The listeners stay for the life of the page: the phone
+// pauses sound again whenever the app is backgrounded or the screen locks, and
+// the next tap has to be able to bring it back. (They used to be removed after
+// the first success, which left the app silent until it was reloaded.)
+// "click", "touchend" and "pointerup" are the events iPhone counts as a tap;
+// "touchstart" and "pointerdown" alone do not unlock sound there.
 export function wireAudioUnlock() {
   if (gestureWired || typeof window === 'undefined') return
   gestureWired = true
-  const unlock = () => {
-    primeAudio()
-    if (!audioBlocked()) {
-      for (const name of ['pointerdown', 'keydown', 'touchstart']) {
-        window.removeEventListener(name, unlock)
-      }
-    }
+  const unlock = () => { if (audioBlocked()) primeAudio() }
+  for (const name of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(name, unlock, { passive: true, capture: true })
   }
-  for (const name of ['pointerdown', 'keydown', 'touchstart']) {
-    window.addEventListener(name, unlock, { passive: true })
+  // Coming back to the app: try to resume without waiting for a tap. Allowed
+  // when the person has tapped before; otherwise the next tap does it.
+  const refresh = () => {
+    if (document.visibilityState === 'visible') { const ctx = context(); if (ctx) wake(ctx) }
   }
+  document.addEventListener('visibilitychange', refresh)
+  window.addEventListener('pageshow', refresh)
+  window.addEventListener('focus', refresh)
 }
 
 function playCycle(ctx: AudioContext, pattern: Pattern, volume = 1) {
@@ -328,12 +364,13 @@ export function startTone(
   const volume = kind === 'incoming' ? readVolume() : 1
   let stopped = false
   let timer = 0
+  const release = holdPlayback()
 
   const tick = () => {
     if (stopped) return
     const ctx = context()
-    if (ctx && ctx.state === 'suspended') void ctx.resume().catch(() => undefined)
-    const blocked = !ctx || ctx.state !== 'running'
+    if (ctx) wake(ctx)
+    const blocked = !ctx || notRunning(ctx)
     onBlocked?.(blocked)
     if (ctx && !blocked) {
       try {
@@ -357,6 +394,7 @@ export function startTone(
   return () => {
     stopped = true
     window.clearInterval(timer)
+    release()
     if (kind === 'incoming' && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(0)
@@ -373,17 +411,48 @@ export function startTone(
 export function playPatternOnce(pattern: Pattern, volume: number): boolean {
   const ctx = context()
   if (!ctx) return false
-  if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined)
-  if (ctx.state !== 'running') return false
+  wake(ctx)
+  if (notRunning(ctx)) return false
+  const release = holdPlayback()
   try {
     playCycle(ctx, pattern, clampVolume(volume))
+    // Give the sound its full length (a bell rings past its cycle) before the
+    // phone goes back to normal.
+    const end = pattern.tones.reduce((latest, tone) => Math.max(latest, tone.at + tone.dur), 0)
+    window.setTimeout(release, (end + 0.4) * 1000)
     return true
   } catch {
+    release()
     return false
   }
 }
 
 export const hasBeenPrimed = () => primed
+
+// Resolves true once the audio engine is really running. resume() is
+// asynchronous, so a sound started in the same breath as the tap that unlocked
+// it can find the engine still waking up and wrongly report "blocked".
+export async function ensureAudioRunning(): Promise<boolean> {
+  const ctx = context()
+  if (!ctx) return false
+  primed = true
+  try {
+    if (notRunning(ctx)) await ctx.resume()
+    playSilentSample(ctx)
+  } catch {
+    /* the state check below decides */
+  }
+  return !notRunning(ctx)
+}
+
+// Raised when a sound could not play because the browser still keeps audio off.
+export const SOUND_BLOCKED_EVENT = 'ra:sound-blocked'
+
+// What the self-check in Settings shows: is sound ready on this device?
+export function soundStatus(): { supported: boolean; running: boolean; state: string } {
+  const ctx = context()
+  return { supported: !!ctx, running: !!ctx && !notRunning(ctx), state: ctx ? String(ctx.state) : 'unsupported' }
+}
 
 // Plays one round of a ringtone so it can be heard before it is chosen.
 // Call from a tap. Resolves to false when the browser still blocks sound.
@@ -392,10 +461,9 @@ export async function previewRingtone(id: RingtoneId, volume = readVolume()): Pr
   if (!ctx) return false
   primed = true
   try {
-    if (ctx.state !== 'running') await ctx.resume()
-    if (ctx.state !== 'running') return false
-    playCycle(ctx, ringtonePattern(id), clampVolume(volume))
-    return true
+    if (notRunning(ctx)) await ctx.resume()
+    if (notRunning(ctx)) return false
+    return playPatternOnce(ringtonePattern(id), volume)
   } catch {
     return false
   }

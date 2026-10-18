@@ -24,17 +24,25 @@ export async function requestAlertPermission(): Promise<NotificationPermission |
   }
 }
 
-export function alertsPromptDismissed(): boolean {
+// "Later" is a snooze, not a goodbye. It used to hide the prompt for good, so
+// one stray tap left a person without alerts for calls and messages with no way
+// back except Settings. Now it asks again after three days (until the browser
+// has been told yes or no, which ends the prompt for good).
+export const ALERT_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000
+
+export function alertsPromptDismissed(now: number = Date.now()): boolean {
   try {
-    return localStorage.getItem(DISMISSED_KEY) === '1'
+    const at = Number(localStorage.getItem(DISMISSED_KEY))
+    // The old "1" marker is not a time: treat it as long expired.
+    return Number.isFinite(at) && at > 1 && now - at < ALERT_SNOOZE_MS
   } catch {
     return false
   }
 }
 
-export function dismissAlertsPrompt(): void {
+export function dismissAlertsPrompt(now: number = Date.now()): void {
   try {
-    localStorage.setItem(DISMISSED_KEY, '1')
+    localStorage.setItem(DISMISSED_KEY, String(now))
   } catch {
     // Remembering the choice is a convenience only.
   }
@@ -54,15 +62,46 @@ function tabIsBackground(): boolean {
   return document.visibilityState === 'hidden' || !document.hasFocus()
 }
 
-export function showDesktopAlert(options: {
+export function alertUrl(section?: string | null, conversationId?: string | null): string {
+  if (!section) return '/'
+  const query = new URLSearchParams({ section })
+  if (conversationId && /^[0-9a-f-]{36}$/i.test(conversationId)) query.set('conversation', conversationId)
+  return `/?${query.toString()}`
+}
+
+type AlertOptions = {
   title: string
   body?: string
   tag?: string
   urgent?: boolean
   section?: string | null
   conversationId?: string | null
-}): void {
-  if (!alertsSupported() || Notification.permission !== 'granted' || !tabIsBackground()) return
+}
+
+// Android Chrome and the installed iPhone app refuse `new Notification()` (it
+// throws, and the old code swallowed that, so no banner ever appeared). The
+// service worker can always show one, and a tap on it comes back through the
+// push bridge, so it opens the right place without reloading the app.
+async function showViaWorker(options: AlertOptions): Promise<boolean> {
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration()
+    if (!registration) return false
+    await registration.showNotification(options.title, {
+      body: options.body || '',
+      tag: options.tag,
+      renotify: Boolean(options.tag),
+      requireInteraction: Boolean(options.urgent),
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: alertUrl(options.section, options.conversationId) },
+    } as NotificationOptions)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function showViaConstructor(options: AlertOptions): void {
   try {
     const alert = new Notification(options.title, {
       body: options.body || '',
@@ -82,6 +121,22 @@ export function showDesktopAlert(options: {
   } catch {
     // Some browsers refuse the constructor; the in-app banner still shows.
   }
+}
+
+export function showDesktopAlert(options: AlertOptions): void {
+  if (!alertsSupported() || Notification.permission !== 'granted' || !tabIsBackground()) return
+  void showViaWorker(options).then(shown => {
+    if (!shown) showViaConstructor(options)
+    else if (options.urgent) {
+      // A ring that was not answered should not sit in the tray for ever.
+      window.setTimeout(() => {
+        void navigator.serviceWorker?.getRegistration()
+          .then(registration => registration?.getNotifications({ tag: options.tag }))
+          .then(list => list?.forEach(item => item.close()))
+          .catch(() => {})
+      }, 60_000)
+    }
+  })
 }
 
 // Flashes the tab title until the returned function is called.

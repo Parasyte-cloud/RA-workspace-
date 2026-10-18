@@ -15,7 +15,8 @@ import {
 } from 'lucide-react'
 import { RtkParticipantsAudio } from '@cloudflare/realtimekit-react-ui'
 import type { useRealtimeKitClient } from '@cloudflare/realtimekit-react'
-import { applyRoute, canRoute, defaultRoute, releaseRoute, uniqueOutputs, type Route } from '../lib/audioRoute'
+import { applyRoute, canRoute, defaultRoute, reassertRoute, releaseRoute, uniqueOutputs, watchRoute, type Route } from '../lib/audioRoute'
+import { nextQuality, weakest, type CallQuality } from '../lib/callQuality'
 import { canFloatVideo, floatVideo, startCallKeepAlive } from '../lib/callKeepAlive'
 import '../facetime-call.css'
 
@@ -117,6 +118,10 @@ export default function FaceTimeStage({
   const [speakerOpen, setSpeakerOpen] = useState(false)
   const [route, setRoute] = useState<Route>(() => defaultRoute(audioOnly))
   const routable = canRoute()
+  const routeRef = useRef(route)
+  routeRef.current = route
+  const [quality, setQuality] = useState<CallQuality>('good')
+  const scores = useRef<Record<string, number>>({})
   const stageRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef(0)
   const joinError = useRef(onJoinError)
@@ -200,6 +205,50 @@ export default function FaceTimeStage({
     applyRoute(route)
   }, [route, routable])
   useEffect(() => () => releaseRoute(), [])
+
+  // iPhone puts the audio session back to its own choice whenever the
+  // microphone restarts (mute and unmute, a camera switch, someone else's call
+  // or Siri), so the chosen Phone or Speaker route is applied again then, a
+  // moment later once the phone has finished switching, when the page comes
+  // back to the front, and on a slow beat as a safety net.
+  useEffect(() => {
+    if (!routable) return
+    return watchRoute(() => routeRef.current)
+  }, [routable])
+  useEffect(() => {
+    if (!routable) return
+    const self = meeting.self
+    const timers: number[] = []
+    const again = () => {
+      reassertRoute(routeRef.current)
+      timers.push(window.setTimeout(() => reassertRoute(routeRef.current), 400))
+      timers.push(window.setTimeout(() => reassertRoute(routeRef.current), 1600))
+    }
+    const events = ['audioUpdate', 'videoUpdate', 'deviceUpdate', 'roomJoined']
+    for (const name of events) self.on(name as never, again as never)
+    meeting.participants.joined.on('participantJoined', again as never)
+    return () => {
+      for (const name of events) self.removeListener(name as never, again as never)
+      meeting.participants.joined.removeListener('participantJoined', again as never)
+      timers.forEach(id => window.clearTimeout(id))
+    }
+  }, [meeting, routable])
+
+  // "Poor connection" when the sound in either direction is struggling.
+  useEffect(() => {
+    const self = meeting.self
+    const onScore = (update: { kind?: string; isScreenshare?: boolean; score?: number; participantId?: string }) => {
+      if (update.kind !== 'audio' || update.isScreenshare || typeof update.score !== 'number') return
+      scores.current[update.participantId || 'self'] = update.score
+      setQuality(current => nextQuality(current, weakest(scores.current)))
+    }
+    self.on('mediaScoreUpdate', onScore as never)
+    meeting.participants.joined.on('mediaScoreUpdate', onScore as never)
+    return () => {
+      self.removeListener('mediaScoreUpdate', onScore as never)
+      meeting.participants.joined.removeListener('mediaScoreUpdate', onScore as never)
+    }
+  }, [meeting])
 
   // Lets the call carry on while the person is in another app.
   const hangUpRef = useRef(onHangUp)
@@ -309,6 +358,7 @@ export default function FaceTimeStage({
         <div className="ftWho">
           <strong>{remoteName}</strong>
           <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? 'Calling…' : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
+          {quality === 'poor' && !calling && !reconnecting && <span className="ftQuality" role="status">Poor connection</span>}
         </div>
         <span className="ftSpacer" aria-hidden="true" />
       </header>
