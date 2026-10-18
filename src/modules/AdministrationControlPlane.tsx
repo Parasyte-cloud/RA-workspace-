@@ -16,7 +16,9 @@ import {
   MessagesSquare,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Users,
+  Wifi,
   Workflow,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -36,6 +38,8 @@ import { DataWorkbench } from './DataWorkbench'
 import OperationsControlPanel from './OperationsControlPanel'
 import AdminBackupsPanel from './AdminBackupsPanel'
 import Room7MinutesPanel from './Room7MinutesPanel'
+import AdminKnowledgeAi from './AdminKnowledgeAi'
+import AdminDataAllocation from './AdminDataAllocation'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
@@ -56,6 +60,8 @@ type AdminTab=
 
   | 'operations'
   | 'ride-desk'
+  | 'data'
+  | 'ai-knowledge'
 
 type AuthUser={
   id:string
@@ -173,6 +179,8 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['audit','Audit',Activity],
   ['operations','Operations',BriefcaseBusiness],
   ['ride-desk','Ride Desk',Headset],
+  ['ai-knowledge','AI Management',Sparkles],
+  ['data','Data Allocation',Wifi],
 ]
 
 function when(value:string|null|undefined){
@@ -452,6 +460,8 @@ function AdminOverview({onOpenTab}:{onOpenTab:(tab:AdminTab)=>void}){
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('workstations')}><Workflow/><strong>Workstation control</strong><span>Assign and reassign each employee's primary operational workstation.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('performance')}><BarChart3/><strong>KPI governance</strong><span>Rolling and annual performance evidence plus current recognition.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('assets')}><Laptop/><strong>IT assets & support</strong><span>Company equipment, serials, IMEI, browser devices and approved support commands.</span></button>
+      <button className="glassCard adminControlCard" onClick={()=>onOpenTab('ai-knowledge')}><Sparkles/><strong>AI management</strong><span>Research RideArrivo with AI, review proposed Knowledge Base articles, and manage every article.</span></button>
+      <button className="glassCard adminControlCard" onClick={()=>onOpenTab('data')}><Wifi/><strong>Data allocation</strong><span>Company data pool, daily allowances of 500 MB to 5 GB per person, usage and the office gateway.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('audit')}><Activity/><strong>Audit & security</strong><span>Immutable workspace history for privileged administrative changes.</span></button>
       <button className="glassCard adminControlCard" onClick={()=>onOpenTab('room-minutes')}><FileText/><strong>ROOM 7 minutes</strong><span>R7 AI meeting summaries, decisions, attendance and action items delivered automatically.</span></button>
     </div>
@@ -541,7 +551,7 @@ export default function AdministrationControlPlane(){
   const [tab,setTab]=useState<AdminTab>('overview')
 
   return <section className="administrationControlPlane">
-      <WorkstationGuideCard />
+      <WorkstationGuideCard slug="administration" workstationLabel="Administration" />
     <div className="adminControlTitle"><div><span className="eyebrow">ADMINISTRATION</span><h2>Administration Workstation</h2><p>Authoritative, audited control of RideArrivo identity, people, security, workstations, performance, equipment and access.</p></div><span className="adminAuthorityBadge"><ShieldCheck size={14}/>Admin-only</span></div>
 
     <nav className="adminControlTabs" aria-label="Administration sections">
@@ -572,6 +582,8 @@ export default function AdministrationControlPlane(){
       {tab==='audit'&&<AdminAuditPanel/>}
       {tab==='operations'&&<OperationsPanel/>}
       {tab==='ride-desk'&&<RideDeskPanel/>}
+      {tab==='ai-knowledge'&&<AdminKnowledgeAi/>}
+      {tab==='data'&&<AdminDataAllocation/>}
     </div>
   </section>
 }

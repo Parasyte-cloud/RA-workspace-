@@ -129,3 +129,15 @@ html[data-theme="dark"] .lhBad,html[data-ra-theme="dark"] .lhBad{color:#ff8f7e}
   .lhKinds{grid-template-columns:repeat(2,1fr)}
 }
 @media print{.letterheadStudio{display:none}}
+
+/* Phones: name and action never fight for the row. The text takes what it
+   needs and wraps; the button keeps its own size and stays inside the card. */
+@media(max-width:700px){
+  .lhAdminResults li,.lhAdminList li{flex-wrap:wrap;align-items:flex-start;min-width:0}
+  .lhAdminResults li>div,.lhAdminList li>div{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+  .lhAdminResults li>button,.lhAdminList li>button,.lhAdminList li>.lhRoleBadge{
+    flex:0 0 auto;width:auto!important;min-width:0!important;max-width:100%;
+    padding:0 16px!important;min-height:40px;white-space:nowrap;margin-left:auto
+  }
+  .workspaceContent{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+}

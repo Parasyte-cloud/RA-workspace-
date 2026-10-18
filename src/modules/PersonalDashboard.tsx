@@ -1,9 +1,12 @@
+import { HallOfFameCard } from '../components/Recognition'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BadgeCheck, CalendarCheck2, CalendarRange, CheckCircle2, Clock3, Gauge, Laptop, Smartphone, Target, Trophy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
+import { guideForUser } from '../lib/workstationGuide'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
 import DashboardNotificationsTeaser from '../components/DashboardNotificationsTeaser'
+import MyDataCard from '../components/MyDataCard'
 import '../personal-dashboard.css'
 
 type Profile={
@@ -167,6 +170,7 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
 
   const name=firstName(profile.full_name,profile.email)
   const primary=assignments.find(item=>item.active && item.is_primary)
+  const ownGuide=useMemo(()=>guideForUser(profile.role,assignments),[profile.role,assignments])
   const primaryLabel=primary ? workstationLabels[primary.workstation] || primary.workstation : ''
   const primaryTarget=primary ? workstationSection[primary.workstation] : ''
 
@@ -202,6 +206,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
 
       <DashboardNotificationsTeaser onOpenWork={()=>onNavigate('tasks')}/>
 
+      <HallOfFameCard/>
+
       <div className="todayRow">
         <article className="glassCard todayAttention">
           <span className="eyebrow">NEEDS YOUR ATTENTION</span>
@@ -220,8 +226,10 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
         defaultOpen={!guideSeenAtLoad}
         onToggleOpen={open=>{ if(!open) markGuideSeen() }}
       >
-        <WorkstationGuideCard />
+        <WorkstationGuideCard slug={ownGuide.slug} workstationLabel={ownGuide.label} />
       </Disclosure>
+
+      <MyDataCard/>
 
       <div className="todayMore" aria-label="More about you">
         <Disclosure title="Performance details" hint="Score breakdown and how it is measured">

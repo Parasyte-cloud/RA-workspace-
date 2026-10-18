@@ -1,11 +1,14 @@
-import { useState } from 'react'
-import { BellRing, LogOut, MessageCircle, Play, Volume2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LOCATION_REQUEST_EVENT, LOCATION_STATE_EVENT } from '../components/DevicePresence'
+import { beatEnabled, funAllowed, reduceMotion, setBeatEnabled, setFunChoice } from '../lib/islandMotion'
+import { BellRing, LogOut, MapPin, MessageCircle, Phone, Play, Sparkles, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
 import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
 import { AUTH_STORAGE_KEY } from '../lib/supabase'
 import {
   RINGTONES,
+  ensureAudioRunning,
   previewRingtone,
   readRingtone,
   readVolume,
@@ -14,17 +17,41 @@ import {
 } from '../lib/ringtone'
 import type { RingtoneId } from '../lib/ringtone'
 import { CHAT_SOUNDS, previewChatSound, readChatPrefs, saveChatPrefs } from '../lib/chatSound'
+import { canRoute, playOnSilentAllowed, setPlayOnSilent } from '../lib/audioRoute'
+import CallRingCheck from '../components/CallRingCheck'
 import type { ChatSoundId, ChatSoundPrefs } from '../lib/chatSound'
 
 // Settings card for sounds and alerts. The ringtone is kept on this device, so
 // a phone and a laptop can ring differently.
-export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) {
+export function NotificationSettings({ onSignOut, onSignOutEverywhere }: { onSignOut?: () => void; onSignOutEverywhere?: () => void }) {
   const [tone, setTone] = useState<RingtoneId>(() => readRingtone())
   const [volume, setVolume] = useState(() => readVolume())
   const [note, setNote] = useState('')
   const [testNote, setTestNote] = useState('')
   const [chat, setChat] = useState<ChatSoundPrefs>(() => readChatPrefs())
   const [chatNote, setChatNote] = useState('')
+  const [locShared, setLocShared] = useState(() => (window.localStorage.getItem('ridearrivo-location-sharing') ?? '').startsWith('granted:'))
+  useEffect(() => {
+    const onState = (event: Event) => setLocShared(Boolean((event as CustomEvent<{ shared: boolean }>).detail?.shared))
+    window.addEventListener(LOCATION_STATE_EVENT, onState)
+    return () => window.removeEventListener(LOCATION_STATE_EVENT, onState)
+  }, [])
+  const changeLocation = (next: boolean) => {
+    setLocShared(next)
+    window.dispatchEvent(new CustomEvent(LOCATION_REQUEST_EVENT, { detail: next }))
+  }
+  const [onSilent, setOnSilent] = useState(() => playOnSilentAllowed())
+  const [fun, setFun] = useState(() => funAllowed())
+  const [beat, setBeat] = useState(() => beatEnabled())
+  const [systemReduce] = useState(() => reduceMotion())
+  const changeFun = (next: boolean) => {
+    setFun(next)
+    setFunChoice(next ? 'always' : 'off')
+  }
+  const changeBeat = (next: boolean) => {
+    setBeat(next)
+    setBeatEnabled(next)
+  }
   const [keep, setKeep] = useState(() => readKeepSignedIn(window.localStorage))
   const changeKeep = (next: boolean) => {
     setKeep(next)
@@ -36,9 +63,9 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
     setChat(next)
     saveChatPrefs(next)
   }
-  const pickChat = (id: ChatSoundId) => {
+  const pickChat = async (id: ChatSoundId) => {
     updateChat({ sound: id, enabled: true })
-    const played = previewChatSound(id, chat.volume)
+    const played = (await ensureAudioRunning()) && previewChatSound(id, chat.volume)
     setChatNote(played ? '' : 'Your browser is keeping sound off. Tap the page once, check the volume and silent switch, then try again.')
   }
 
@@ -101,6 +128,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           <PhoneAlertsToggle />
           <button type="button" className="glassButton" onClick={() => void sendTest()}>Send a test notification</button>
           {testNote && <small className="settingsNote">{testNote}</small>}
+          <CallRingCheck />
           <small className="settingsNote">
             While the app is open it plays the ringtone you pick. With the app closed, your device plays its own
             notification sound, because phones do not let a web app choose it.
@@ -142,6 +170,12 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
               onPointerUp={() => void previewRingtone(tone, volume)}
             />
           </label>
+          {canRoute() && (
+            <label className="settingsToggle">
+              <input type="checkbox" checked={onSilent} onChange={event => { setOnSilent(event.target.checked); setPlayOnSilent(event.target.checked) }} />
+              <span>Play sounds even when the phone is on silent</span>
+            </label>
+          )}
           {note && <small className="settingsNote">{note}</small>}
         </article>
 
@@ -150,12 +184,42 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
             <span className="appearanceSettingNumber"><LogOut size={16} /></span>
             <div>
               <h3>Keep me signed in</h3>
-              <p>On: this device stays signed in after you close the app. Off: you are signed out when the browser or app is closed. Turn it off on any shared device. This setting is per device.</p>
+              <p>On: this device stays signed in, even after you close the app or leave it idle. Off: you are signed out when the browser or app is closed, and after 30 minutes without activity. Turn it off on any shared device. This setting is per device.</p>
             </div>
           </div>
           <label className="settingsToggle">
             <input type="checkbox" checked={keep} onChange={event => changeKeep(event.target.checked)} />
             <span>Keep me signed in on this device</span>
+          </label>
+        </article>
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><MapPin size={16} /></span>
+            <div>
+              <h3>Work location sharing</h3>
+              <p>On: your precise sign-in location is sent to RideArrivo for account security and workplace administration. Off: only your device and time zone are recorded. To remove the browser permission too, use the site settings of your browser.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={locShared} onChange={event => changeLocation(event.target.checked)} />
+            <span>Share my work location from this device</span>
+          </label>
+        </article>
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><Sparkles size={16} /></span>
+            <div>
+              <h3>Playful island motion</h3>
+              <p>On a phone, the top bar and the bottom dock bounce when they shrink and grow, a soft liquid glow drifts behind them, and the names and icons pulse gently. {systemReduce ? 'This phone has Reduce Motion turned on, so the motion starts off. You can switch it on here.' : 'You can switch any of it off here.'} These settings are per device.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={fun} onChange={event => changeFun(event.target.checked)} />
+            <span>Bounce and liquid glow</span>
+          </label>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={beat} disabled={!fun} onChange={event => changeBeat(event.target.checked)} />
+            <span>Pulse the names and icons{fun ? '' : ' (needs the motion above)'}</span>
           </label>
         </article>
         <AlertPreferences />
@@ -183,7 +247,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
                 role="radio"
                 aria-checked={chat.sound === item.id}
                 className={`ringtoneOption${chat.sound === item.id ? ' active' : ''}`}
-                onClick={() => pickChat(item.id)}
+                onClick={() => void pickChat(item.id)}
               >
                 <Play size={14} />
                 <span><strong>{item.label}</strong><small>{item.hint}</small></span>
@@ -214,10 +278,15 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
               <span className="appearanceSettingNumber"><LogOut size={16} /></span>
               <div>
                 <h3>Account</h3>
-                <p>Sign out of this device.</p>
+                <p>Signing out only ends the session on this device. Your other devices stay signed in. To end every session at once (for example after losing a phone), use Sign out of all devices.</p>
               </div>
             </div>
-            <button type="button" className="glassButton" onClick={onSignOut}>Sign out</button>
+            <div className="authActions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button type="button" className="glassButton" onClick={onSignOut}>Sign out</button>
+              {onSignOutEverywhere && (
+                <button type="button" className="glassButton" onClick={() => { if (window.confirm('Sign out of every device you are signed in on?')) onSignOutEverywhere() }}>Sign out of all devices</button>
+              )}
+            </div>
           </article>
         )}
       </div>

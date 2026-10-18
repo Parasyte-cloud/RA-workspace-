@@ -62,6 +62,7 @@ import {
   FileSignature,
   Globe2,
   Star,
+  NotebookPen,
   Menu as MenuIcon,
   X as CloseIcon
 } from 'lucide-react'
@@ -73,6 +74,7 @@ import { supabase,
   initialAuthLink } from './lib/supabase'
 import { describeSignInError, trimmedRetry } from './lib/authLink'
 import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
+import { pulseIsland } from './lib/islandBar'
 
 
 
@@ -81,10 +83,14 @@ import { resolveEmployeeAvatarUrl } from './lib/employeeAvatar'
 
 import { NotificationCenter } from './components/NotificationCenter'
 import CallRinger from './modules/CallRinger'
+import NotesModule from './modules/NotesModule'
+import IslandNav from './modules/IslandNav'
+import './island-nav.css'
 import CallModule from './modules/CallModule'
 import EventReminders from './modules/EventReminders'
 import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
+import SoundOnPrompt from './components/SoundOnPrompt'
 import { GlobalSearch } from './components/GlobalSearch'
 import {
   buildSidebar,
@@ -100,6 +106,7 @@ import {
   writeList,
 } from './lib/workspaceNav'
 import { useIdleSignOut } from './lib/useIdleSignOut'
+import { protectSavedSignIn, resetDeliberateSignOut, signOutEverywhere, signOutMessage, signOutThisDevice, takeSignOutReason, wasDeliberateSignOut } from './lib/authSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
 import ControlledDownloadButton from './components/ControlledDownloadButton'
@@ -113,6 +120,7 @@ import { WorkspaceClock } from './components/WorkspaceClock'
 
 
 import { applyStoredAppearance } from './lib/appearance'
+import { applyStoredFontStyle } from './lib/fontStyle'
 import { LETTERHEAD_ROLES } from './lib/letterheadAccess'
 
 import { PARASYTE_OPEN_EVENT } from './lib/parasyte'
@@ -161,8 +169,9 @@ import {
 } from './lazy-routes'
 
 applyStoredAppearance()
+applyStoredFontStyle()
 
-type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'|'blog'
+type Section = 'profile'|'gallery'|'overview'|'social'|'chat'|'room'|'mail'|'announcements'|'calendar'|'tasks'|'projects'|'shared'|'files'|'archive'|'brand'|'knowledge'|'crm'|'support'|'engineering'|'linux'|'people'|'operations'|'finance'|'marketing'|'partnerships'|'legal'|'executive'|'admin'|'apps'|'parasyte'|'settings'|'workspace'|'vendors'|'letterhead'|'deptadmin'|'blog'|'notes'
 type Role = 'employee'|'support'|'engineer'|'cto'|'manager'|'hr'|'legal'|'operations'|'finance'|'marketing'|'partnerships'|'admin'
 type Workspace = { title:string; url:string; note?:string }
 type WorkstationAssignment = { workstation:string; is_primary:boolean; active:boolean }
@@ -230,6 +239,7 @@ const sectionAccess:Record<Section,Role[]>={
   announcements:allWorkspaceRoles,
   calendar:allWorkspaceRoles,
   tasks:allWorkspaceRoles,
+  notes:allWorkspaceRoles,
   projects:allWorkspaceRoles,
   shared:allWorkspaceRoles,
   files:allWorkspaceRoles,
@@ -491,6 +501,8 @@ function App(){
   const [passwordMode,setPasswordMode]=useState<'recovery'|'invite'>(initialAuthLink.kind==='invite' ? 'invite' : 'recovery')
   const [confirmLink,setConfirmLink]=useState(initialAuthLink.kind==='confirm' ? initialAuthLink : null)
   const [passwordSaved,setPasswordSaved]=useState(false)
+  // Why the person is on the sign-in screen, when it was not their own tap.
+  const [signedOutNote,setSignedOutNote]=useState('')
 
 
   useIdleSignOut(
@@ -636,11 +648,11 @@ function App(){
     const {data} =
       supabase.auth.onAuthStateChange(
         (event,next)=>{
+          // The event name is enough to debug with. Email addresses stay out of logs.
           console.info(
             '[RideArrivo Auth]',
             event,
-            next?.user?.email ||
-            'no session'
+            next ? 'session' : 'no session'
           )
 
           if(event==='PASSWORD_RECOVERY'){
@@ -653,9 +665,18 @@ function App(){
           }else if(
             event==='SIGNED_OUT'
           ){
+            const reason=takeSignOutReason()
+            setSignedOutNote(
+              wasDeliberateSignOut()
+                ? signOutMessage(reason)
+                : 'Your session ended. It may have expired or been ended from another device. Sign in again to continue.'
+            )
+            resetDeliberateSignOut()
             setSession(null)
             setPasswordRecovery(false)
           }
+
+          if(next)protectSavedSignIn()
 
           setAuthReady(true)
         }
@@ -1059,7 +1080,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['notes','Notes',NotebookPen],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])
@@ -1120,6 +1141,9 @@ function App(){
 
   useEffect(()=>{setPhoneMenuOpen(false)},[section])
 
+  // Every screen, Chat included, opens with the full bar and a fresh bounce in the bar and dock.
+  useEffect(()=>{pulseIsland()},[section])
+
   useEffect(()=>{
     contentRef.current?.scrollTo({top:0,left:0,behavior:'auto'})
   },[section,workspace?.url])
@@ -1131,14 +1155,14 @@ function App(){
       'ridearrivo-last-activity'
     )
 
-    return supabase?.auth.signOut()
+    return signOutThisDevice(supabase,'user')
   }
 
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
   if(confirmLink) return <ConfirmLinkGate link={confirmLink} onDone={()=>setConfirmLink(null)}/>
   if(!session) return <AuthGate
-    notice={passwordSaved ? 'Password saved. Sign in with your work email and the new password.' : ''}
+    notice={passwordSaved ? 'Password saved. Sign in with your work email and the new password.' : signedOutNote}
     linkProblem={initialAuthLink.kind==='error' ? initialAuthLink.message : ''}
   />
   if(passwordRecovery) return <PasswordRecoveryGate
@@ -1226,7 +1250,7 @@ function App(){
           <button
             className="glassButton"
             onClick={()=>
-              void supabase?.auth.signOut()
+              void signOutThisDevice(supabase,'user')
             }
           >
             Sign out
@@ -1255,7 +1279,7 @@ function App(){
     </div>
   }
 
-  return <NotificationsProvider><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
+  return <NotificationsProvider><SoundOnPrompt/><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
     <aside className="sidebar glassPanel glassNav">
       <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
@@ -1289,6 +1313,7 @@ function App(){
       </nav>
       <div className="sidebarFooter"><div className="status"><span className={online?'dot ok':'dot'}></span>{online?'Online':'Offline'}</div><small>{profile.department}</small><DevicePresence profileId={profile.id}/></div>
     </aside>
+    <IslandNav nav={nav} section={section} onPick={id=>{setSection(id as Section);setWorkspace(null)}}/>
     <PhoneNav
       nav={nav}
       groups={groupedNav}
@@ -1367,7 +1392,7 @@ function App(){
           )
 
           const {error} =
-            await supabase?.auth.signOut() ?? {}
+            await signOutThisDevice(supabase,'user')
 
           if(error){
             console.error(
@@ -1423,6 +1448,7 @@ function App(){
         {section==='mail'&&<MailModule/>}
         {section==='calendar'&&<CalendarModule/>}
         {section==='tasks'&&<WorkDesk/>}
+        {section==='notes'&&<NotesModule/>}
         {section==='projects'&&<ProjectManagementModule onNavigate={navigateToSection}/>}
         {section==='shared'&&<SharedWorkspacesHub onNavigate={navigateToSection}/>}
         {section==='announcements'&&<AnnouncementsModule/>}
@@ -1445,7 +1471,7 @@ function App(){
         {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
-        {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()}/></>}
+        {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()} onSignOutEverywhere={()=>void signOutEverywhere(supabase)}/></>}
         {section==='admin'&&<AdminModule/>}
         {section==='deptadmin'&&<DepartmentAdminView onNavigate={navigateToSection}/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
@@ -1510,7 +1536,7 @@ function PasswordRecoveryGate({onDone,mode}:{onDone:()=>void;mode:'recovery'|'in
       const {error}=await supabase.auth.updateUser({password})
       if(error) throw error
       setMessage('Password saved. Taking you to sign in...')
-      await supabase.auth.signOut()
+      await signOutThisDevice(supabase,'password')
       onDone()
     }catch(error){
       setMessage(error instanceof Error ? error.message : 'Unable to update password.')

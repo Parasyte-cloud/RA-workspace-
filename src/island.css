@@ -12,7 +12,7 @@
     height: 58px !important;
     min-height: 0 !important;
     margin: 6px auto 4px !important;
-    padding: 0 8px 0 22px !important;
+    padding: 0 8px 0 30px !important;
     border: 1px solid rgba(255,255,255,.16) !important;
     border-radius: 999px !important;
     background:
@@ -41,11 +41,16 @@
   }
 
   html[data-ra-island='compact'] .shell.glassFrame .topbar.glassPanel {
-    width: min(calc(100% - 64px), 296px) !important;
+    width: min(calc(100% - 40px), 340px) !important;
     height: 44px !important;
     margin-top: 2px !important;
-    padding: 0 5px 0 16px !important;
+    padding: 0 5px 0 22px !important;
   }
+
+  /* Shrunk bar: the signature pill gets smaller and sits a little right of centre, so the page name fits on its left. */
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteCrestBar { left: calc(50% + 16px); }
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteSignature { padding: 3px 7px; }
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteCrestBar img { height: 9px; }
 
   .shell.glassFrame .topbar .topbarTitle { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .shell.glassFrame .topbar h1 {
@@ -55,7 +60,8 @@
     white-space: nowrap;
     transition: font-size .45s cubic-bezier(.34,1.45,.5,1), letter-spacing .45s ease;
   }
-  html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: 1rem; letter-spacing: -.01em; }
+  .shell.glassFrame .topbar h1 { padding: 0 3px 0 2px; transform-origin: left center; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar h1 { font-size: .86rem; letter-spacing: -.015em; }
 
   /* A small amber light that wakes up when the bar is compact, like a live activity. */
   .shell.glassFrame .topbar .topbarTitle::before {
@@ -69,7 +75,7 @@
     opacity: 0;
     transition: width .4s cubic-bezier(.34,1.45,.5,1), opacity .3s ease;
   }
-  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { width: 8px; opacity: 1; animation: raIslandPulse 2.4s ease-in-out infinite; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { width: 6px; height: 6px; opacity: 1; animation: raIslandPulse 2.4s ease-in-out infinite; }
 
   .shell.glassFrame .topbar .headerActions { gap: 6px; flex: 0 0 auto; }
   .shell.glassFrame .topbar .headerActions > .iconButton,
@@ -79,8 +85,10 @@
   }
   html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions > .iconButton,
   html[data-ra-island='compact'] .shell.glassFrame .topbar .notificationButton {
-    flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; min-height: 34px !important;
+    flex-basis: 30px !important; width: 30px !important; min-width: 30px !important; height: 30px !important; min-height: 30px !important; padding: 0 !important;
   }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions { gap: 4px; }
+  html[data-ra-island='compact'] .shell.glassFrame .topbar .headerActions > * svg { width: 16px !important; height: 16px !important; }
 
   /* Soft fade behind the status bar so content never collides with the clock. */
   body::before {
@@ -184,3 +192,76 @@
   html[data-ra-island='compact'] .shell.glassFrame .topbar .topbarTitle::before { animation: none !important; }
   html[data-ra-theme] .shell.glassFrame .topbar.glassPanel { transition: none !important; }
 }
+
+/* ---------- Liquid glow inside the islands ----------
+   A soft amber and blue light that drifts and morphs behind the contents of the top bar and the
+   dock, like liquid under glass. The element is added by src/lib/islandMotion.ts, which also owns
+   the bounce of the bar contents (done in script so it always restarts, whatever the cascade says).
+   Phones only, and only while data-ra-fun is on (off when the phone asks for reduced motion). */
+.raGlow { display: none; }
+@media (max-width: 599px) {
+  html[data-ra-fun='on'] .raGlow {
+    display: block;
+    position: absolute;
+    inset: 0;
+    /* A true pill. Both bars use a 999px radius; the clip-path and the mask make the clip hold on iPhone
+       Safari, which ignores overflow:hidden on children that are blurred or blended. */
+    border-radius: 999px;
+    overflow: hidden;
+    clip-path: inset(0 round 999px);
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    isolation: isolate;
+    transform: translateZ(0);
+    pointer-events: none;
+    z-index: -1;
+  }
+  html[data-ra-fun='on'] .raGlow::before,
+  html[data-ra-fun='on'] .raGlow::after {
+    content: '';
+    position: absolute;
+    top: -90%;
+    height: 280%;
+    width: 62%;
+    filter: blur(16px);
+    mix-blend-mode: screen;
+    will-change: transform, border-radius;
+  }
+  html[data-ra-fun='on'] .raGlow::before {
+    left: -20%;
+    background: radial-gradient(closest-side, rgba(255,177,59,.62), rgba(255,177,59,0));
+    animation: raGlowDriftA 7.5s ease-in-out infinite alternate, raGlowMorph 5.5s ease-in-out infinite alternate;
+  }
+  html[data-ra-fun='on'] .raGlow::after {
+    right: -20%;
+    background: radial-gradient(closest-side, rgba(110,170,255,.5), rgba(110,170,255,0));
+    animation: raGlowDriftB 9.5s ease-in-out infinite alternate, raGlowMorph 6.5s ease-in-out -2s infinite alternate;
+  }
+  html[data-ra-theme='light'][data-ra-fun='on'] .raGlow::before,
+  html[data-ra-theme='light'][data-ra-fun='on'] .raGlow::after { mix-blend-mode: normal; opacity: .55; }
+}
+@keyframes raGlowDriftA { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(90%,12%) scale(1.25); } 100% { transform: translate(170%,-6%) scale(.9); } }
+@keyframes raGlowDriftB { 0% { transform: translate(0,0) scale(1.1); } 50% { transform: translate(-80%,-10%) scale(.9); } 100% { transform: translate(-160%,8%) scale(1.2); } }
+@keyframes raGlowMorph { 0% { border-radius: 42% 58% 61% 39% / 48% 41% 59% 52%; } 100% { border-radius: 63% 37% 41% 59% / 56% 62% 38% 44%; } }
+
+/* ---------- Pulse of the names and icons (phones only, off in Settings) ----------
+   A slow, soft breathing on the title, the search and bell icons and the tab icons and names.
+   Uses the individual scale property so it never fights the bounce (a transform) or the tab hop. */
+@media (max-width: 599px) {
+  html[data-ra-beat='on'] .shell.glassFrame .topbar .topbarTitle h1,
+  html[data-ra-beat='on'] .shell.glassFrame .topbar .headerActions > * svg,
+  html[data-ra-beat='on'] nav.phoneTabs button:not(.active) svg,
+  html[data-ra-beat='on'] nav.phoneTabs button span {
+    animation: raBeat 3.4s ease-in-out infinite;
+  }
+  html[data-ra-beat='on'] .shell.glassFrame .topbar .headerActions > *:nth-child(2) svg { animation-delay: .35s; }
+  html[data-ra-beat='on'] .shell.glassFrame .topbar .headerActions > *:nth-child(3) svg { animation-delay: .7s; }
+  html[data-ra-beat='on'] nav.phoneTabs button:nth-child(2) svg, html[data-ra-beat='on'] nav.phoneTabs button:nth-child(2) span { animation-delay: .3s; }
+  html[data-ra-beat='on'] nav.phoneTabs button:nth-child(3) svg, html[data-ra-beat='on'] nav.phoneTabs button:nth-child(3) span { animation-delay: .6s; }
+  html[data-ra-beat='on'] nav.phoneTabs button:nth-child(4) svg, html[data-ra-beat='on'] nav.phoneTabs button:nth-child(4) span { animation-delay: .9s; }
+  html[data-ra-beat='on'] nav.phoneTabs button:nth-child(5) svg, html[data-ra-beat='on'] nav.phoneTabs button:nth-child(5) span { animation-delay: 1.2s; }
+  /* The open tab keeps its hop, then joins the pulse. */
+  html[data-ra-beat='on'] nav.phoneTabs button.active svg {
+    animation: raIconHop .6s cubic-bezier(.34,1.7,.5,1), raBeat 3.4s ease-in-out .8s infinite;
+  }
+}
+@keyframes raBeat { 0%, 100% { scale: 1; } 50% { scale: 1.12; } }

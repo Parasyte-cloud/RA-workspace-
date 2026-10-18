@@ -11,10 +11,15 @@ import { playPatternOnce } from './ringtone'
 
 const t = (at: number, dur: number, f: number, gain = 0.2, decay = true) => ({ at, dur, freqs: [f], gain, decay })
 
-export type ChatSoundId = 'pop' | 'drop' | 'ding' | 'knock' | 'bubble' | 'whistle'
+export type ChatSoundId = 'keys' | 'vibes' | 'sax' | 'pop' | 'drop' | 'ding' | 'knock' | 'bubble' | 'whistle'
+
+const soft = (at: number, dur: number, f: number, gain = 0.2) => ({ ...t(at, dur, f, gain), wave: 'triangle' as const })
 
 export const CHAT_SOUNDS: { id: ChatSoundId; label: string; hint: string; pattern: Pattern }[] = [
-  { id: 'pop', label: 'Pop', hint: 'A quick soft pop (default)', pattern: { cycle: 0.5, tones: [t(0, 0.12, 880, 0.22), t(0.06, 0.14, 1320, 0.14)] } },
+  { id: 'keys', label: 'Jazz keys', hint: 'Two warm electric piano notes (default)', pattern: { cycle: 1, tones: [soft(0, 0.5, 659.25, 0.22), soft(0.16, 0.8, 987.77, 0.2), soft(0.16, 0.8, 783.99, 0.1)] } },
+  { id: 'vibes', label: 'Vibraphone', hint: 'A shimmering jazz vibes note', pattern: { cycle: 1, tones: [t(0, 0.9, 880, 0.2), t(0, 0.6, 1760, 0.06), t(0.2, 0.8, 1318.5, 0.16)] } },
+  { id: 'sax', label: 'Sax riff', hint: 'A short smooth sax lick', pattern: { cycle: 1, tones: [soft(0, 0.14, 587.33, 0.2), soft(0.15, 0.14, 698.46, 0.2), soft(0.3, 0.4, 880, 0.22)] } },
+  { id: 'pop', label: 'Pop', hint: 'A quick soft pop', pattern: { cycle: 0.5, tones: [t(0, 0.12, 880, 0.22), t(0.06, 0.14, 1320, 0.14)] } },
   { id: 'drop', label: 'Water drop', hint: 'A single bright drop', pattern: { cycle: 0.8, tones: [t(0, 0.35, 1175, 0.2), t(0.02, 0.5, 2350, 0.06)] } },
   { id: 'ding', label: 'Ding', hint: 'A clear two note ding', pattern: { cycle: 1, tones: [t(0, 0.45, 988, 0.2), t(0.14, 0.7, 1319, 0.18)] } },
   { id: 'knock', label: 'Knock', hint: 'Two wooden knocks', pattern: { cycle: 0.6, tones: [{ ...t(0, 0.09, 220, 0.3), wave: 'triangle' as const }, { ...t(0.16, 0.09, 196, 0.3), wave: 'triangle' as const }] } },
@@ -22,7 +27,7 @@ export const CHAT_SOUNDS: { id: ChatSoundId; label: string; hint: string; patter
   { id: 'whistle', label: 'Whistle', hint: 'A short bird whistle', pattern: { cycle: 0.9, tones: [t(0, 0.18, 1568, 0.15), t(0.2, 0.28, 2093, 0.15)] } },
 ]
 
-export const DEFAULT_CHAT_SOUND: ChatSoundId = 'pop'
+export const DEFAULT_CHAT_SOUND: ChatSoundId = 'keys'
 export const DEFAULT_CHAT_VOLUME = 0.7
 export const CHAT_VIBRATE = [180, 90, 180]
 

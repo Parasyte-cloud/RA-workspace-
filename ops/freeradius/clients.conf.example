@@ -1,0 +1,9 @@
+# One block per gateway. The secret must match the RADIUS secret configured on the gateway.
+# Generate with: openssl rand -base64 24
+client office-gateway {
+	ipaddr = 192.168.88.1
+	secret = CHANGE_ME_gateway_shared_secret
+	shortname = office-gateway
+	nas_type = other
+	# Dynamic authorisation (Disconnect-Request) is sent to the gateway's CoA port, 3799.
+}

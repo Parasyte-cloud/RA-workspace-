@@ -30,6 +30,7 @@ import {
   useRealtimeKitClient
 } from '@cloudflare/realtimekit-react'
 import { RtkMeeting } from '@cloudflare/realtimekit-react-ui'
+import FaceTimeStage from './FaceTimeStage'
 import {
   Room7ExtrasControls,
   Room7ExtrasOverlay,
@@ -45,6 +46,9 @@ import type { RoomLeaveReason } from './RoomModule'
 import RoomChat from '../room7-shared/RoomChat'
 import { useRoomChat } from '../room7-shared/useRoomChat'
 import '../room7-shared/room7-chat.css'
+import { supabase } from '../lib/supabase'
+import { useCanGiveRibbon } from '../components/Recognition'
+import { noShowDelay } from '../lib/callTimers'
 
 type RoomStatus='active'|'ended'
 
@@ -94,7 +98,9 @@ export default function RoomMeeting({
   onExtend,
   moderation,
   audioOnly=false,
-  chatCall=false
+  chatCall=false,
+  acceptedAt=0,
+  onNoShow
 }:{
   session:RoomSession
   minimized?:boolean
@@ -110,6 +116,9 @@ export default function RoomMeeting({
   audioOnly?:boolean
   /** A one-to-one call started from Chat: shown as a call, not as a ROOM 7 meeting. */
   chatCall?:boolean
+  /** When the other person answered (caller side only). Starts the "did they arrive" wait. */
+  acceptedAt?:number
+  onNoShow?:()=>void
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   useHoldIdleSignOut(Boolean(meeting))
@@ -127,10 +136,28 @@ export default function RoomMeeting({
   const [teamChatOpen,setTeamChatOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
   const [elapsed,setElapsed]=useState(0)
+  // Every chat call, on every device, uses the same FaceTime-style screen. ROOM 7 meetings keep RealtimeKit's own.
+  const faceTime=chatCall
+  // The call clock starts when the other person is actually on the call, like
+  // FaceTime, not when this screen opened (that counted the ringing time).
+  const answeredAtRef=useRef(0)
+  const onNoShowRef=useRef(onNoShow)
+  onNoShowRef.current=onNoShow
+  // The caller waits a short time after Accept for the other person to arrive.
+  useEffect(()=>{
+    if(!chatCall||!acceptedAt||session.role!=='host')return
+    const timer=window.setTimeout(()=>{
+      // Check the live participant list too, in case the join event was missed.
+      const someoneHere=(meetingRef.current?.participants.joined.toArray().length||0)>0
+      if(!answeredAtRef.current&&!someoneHere)onNoShowRef.current?.()
+    },noShowDelay(acceptedAt))
+    return()=>window.clearTimeout(timer)
+  },[chatCall,acceptedAt,session.role])
   useEffect(()=>{
     if(!chatCall)return
-    const started=Date.now()
-    const timer=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),1000)
+    const timer=window.setInterval(()=>{
+      setElapsed(answeredAtRef.current?Math.floor((Date.now()-answeredAtRef.current)/1000):0)
+    },1000)
     return()=>window.clearInterval(timer)
   },[chatCall])
 
@@ -311,11 +338,20 @@ export default function RoomMeeting({
       if(update.state==='connected')setConnection('connected')
     }
 
+    const markAnswered=()=>{
+      if(answeredAtRef.current)return
+      if(meeting.participants.joined.toArray().length>0)answeredAtRef.current=Date.now()
+    }
+
     self.on('roomJoined',handleJoined as never)
+    self.on('roomJoined',markAnswered as never)
     self.on('roomLeft',handleRoomLeft as never)
+    meeting.participants.joined.on('participantJoined',markAnswered as never)
     meeting.meta.on('socketConnectionUpdate',handleSocket as never)
     return()=>{
       self.removeListener('roomJoined',handleJoined as never)
+      self.removeListener('roomJoined',markAnswered as never)
+      meeting.participants.joined.removeListener('participantJoined',markAnswered as never)
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }
@@ -360,13 +396,21 @@ export default function RoomMeeting({
     onLeftRef.current('schedule')
   },[meeting])
 
+  const ribbonRights=useCanGiveRibbon()
   const extras=useRoom7MeetingExtras({
     meeting,
     role:session.role==='host'?'host':'member',
     scheduledEnd:session.event?.scheduled_end||null,
     onAutoEnd:session.role==='host'?onEnded:undefined,
     onExtend:session.role==='host'?onExtend:undefined,
-    onScheduleLeave:scheduleLeave
+    onScheduleLeave:scheduleLeave,
+    buzzer:session.role==='host'&&ribbonRights.canGive?{
+      onBuzz:async(honoree,message)=>{
+        if(!supabase)return 'Not connected.'
+        const {error}=await supabase.rpc('give_room_buzzer',{p_honoree:honoree,p_message:message,p_ref:session.room.id})
+        return error?error.message:null
+      }
+    }:undefined
   })
 
   // The saved team chat of this meeting (not for one-to-one calls). It is
@@ -447,6 +491,14 @@ export default function RoomMeeting({
     window.setTimeout(()=>void reconnect(),0)
   }
 
+  const hangUp=()=>{
+    if(session.role==='host'){void endRoom();return}
+    void meeting?.leave().catch(()=>{})
+    onLeft('left')
+  }
+  const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
+  const callTitle=session.room.title.replace(/^Call with /,'')
+
   const frame=(
       <div className={chatCall?'callStage':'roomMeetingFrame'}>
         {initError&&
@@ -469,13 +521,27 @@ export default function RoomMeeting({
         }
         {!initError&&meeting&&
           <RealtimeKitProvider value={meeting}>
-            <RtkMeeting
-              key={session.auth_token}
-              meeting={meeting}
-              mode="fill"
-              showSetupScreen={!rejoiningRef.current}
-              leaveOnUnmount={false}
-            />
+            {faceTime
+              ?<FaceTimeStage
+                key={session.auth_token}
+                meeting={meeting}
+                audioOnly={audioOnly}
+                title={callTitle}
+                clock={clock}
+                minimized={minimized}
+                onHangUp={hangUp}
+                onMinimize={onMinimize}
+                onRestore={onRestore}
+                onJoinError={setInitError}
+                answered={acceptedAt>0}
+              />
+              :<RtkMeeting
+                key={session.auth_token}
+                meeting={meeting}
+                mode="fill"
+                showSetupScreen={!rejoiningRef.current}
+                leaveOnUnmount={false}
+              />}
             <Room7ExtrasOverlay extras={extras}/>
             {!chatCall&&teamChatOpen&&!minimized&&myUserId&&
               <aside className="rcDrawer" aria-label="Team chat">
@@ -512,21 +578,13 @@ export default function RoomMeeting({
       </div>
   )
 
-  const hangUp=()=>{
-    if(session.role==='host'){void endRoom();return}
-    void meeting?.leave().catch(()=>{})
-    onLeft('left')
-  }
-  const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
-  const callTitle=session.room.title.replace(/^Call with /,'')
-
   const callScreen=(
     <section
-      className={`callScreen ${minimized?'callMini':'callFull'} ${audioOnly?'callVoice':'callVideo'}`}
+      className={`callScreen ${minimized?'callMini':'callFull'} ${audioOnly?'callVoice':'callVideo'}${faceTime?' callFT':''}`}
       role="dialog"
       aria-label={`${audioOnly?'Voice':'Video'} call with ${callTitle}`}
     >
-      <header className="callBar">
+      {!faceTime&&<header className="callBar">
         <div className="callWho">
           <span className="callPill"><i/>{audioOnly?'Voice call':'Video call'}</span>
           <strong>{callTitle}</strong>
@@ -547,7 +605,7 @@ export default function RoomMeeting({
             <span>{ending?'Ending':'End'}</span>
           </button>
         </div>
-      </header>
+      </header>}
       {frame}
     </section>
   )

@@ -1,4 +1,5 @@
 import {playChatArrival,shouldChatSound} from '../lib/chatSound'
+import {SOUND_BLOCKED_EVENT,wireAudioUnlock} from '../lib/ringtone'
 import {
   createContext,
   useCallback,
@@ -53,10 +54,19 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
   const loadRequestRef=useRef(0)
 
-  const unreadCount=useMemo(
+  // Message sounds need the audio engine unlocked by a tap. The call ringer
+  // does this too, but a message must not depend on that being mounted.
+  useEffect(()=>{ wireAudioUnlock() },[])
+
+  // The list only holds the newest 30 rows, so the real unread total is asked
+  // of the database separately. Until that answer arrives we fall back to
+  // what is on screen. (Sweep RA-009.)
+  const [serverUnread,setServerUnread]=useState<number|null>(null)
+  const loadedUnread=useMemo(
     ()=>items.filter(item=>!item.read_at).length,
     [items]
   )
+  const unreadCount=serverUnread===null?loadedUnread:Math.max(serverUnread,loadedUnread)
 
   // Count on the app icon (installed app, where the device supports it).
   useEffect(()=>{
@@ -96,6 +106,12 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
     setItems((data||[]) as NotificationItem[])
     setLoading(false)
+
+    const {count}=await client
+      .from('notifications')
+      .select('id',{count:'exact',head:true})
+      .is('read_at',null)
+    if(requestSequence===loadRequestRef.current && typeof count==='number') setServerUnread(count)
   },[])
 
   useEffect(()=>{
@@ -121,7 +137,11 @@ export function NotificationsProvider({children}:{children:ReactNode}){
             row?.entity_id,
             document.documentElement.dataset.raOpenChat||'',
             document.visibilityState==='visible'
-          )) playChatArrival()
+          )){
+            // false = the browser is still keeping sound off. Tell the app, so
+            // it can ask for the one tap that turns sound back on.
+            if(playChatArrival()===false) window.dispatchEvent(new Event(SOUND_BLOCKED_EVENT))
+          }
           if(fresh && row?.title){
             showDesktopAlert({
               title:row.title,
@@ -153,6 +173,7 @@ export function NotificationsProvider({children}:{children:ReactNode}){
       return
     }
 
+    setServerUnread(n=>n===null?n:Math.max(0,n-1))
     setItems(current=>current.map(notification=>
       notification.id===item.id
         ? {...notification,read_at:new Date().toISOString()}
@@ -162,25 +183,26 @@ export function NotificationsProvider({children}:{children:ReactNode}){
 
   const markAllRead=useCallback(async()=>{
     if(!supabase) return
-    const unreadIds=items.filter(item=>!item.read_at).map(item=>item.id)
-    if(!unreadIds.length) return
+    if(unreadCount<=0) return
 
     const now=new Date().toISOString()
 
+    // Every unread row the person owns, not only the 30 on screen.
     const {error}=await supabase
       .from('notifications')
       .update({read_at:now})
-      .in('id',unreadIds)
+      .is('read_at',null)
 
     if(error){
       console.error('[RideArrivo Notifications]',error)
       return
     }
 
+    setServerUnread(0)
     setItems(current=>current.map(item=>
-      unreadIds.includes(item.id) ? {...item,read_at:now} : item
+      item.read_at ? item : {...item,read_at:now}
     ))
-  },[items])
+  },[unreadCount])
 
   // Removes notifications for good. Rows are only dropped from the screen once
   // the database confirms it deleted them, so a blocked delete never looks done.

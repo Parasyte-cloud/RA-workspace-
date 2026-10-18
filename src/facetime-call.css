@@ -1,0 +1,129 @@
+/* FaceTime-style chat calls (see FaceTimeStage.tsx). */
+
+.callScreen.callFT { background: #000; }
+/* Phones and tablets: edge to edge. Desktop: a centred window, the same shape for every call (a
+   16:10 video window; the controls and name sit inside it exactly as on a phone). */
+@media (min-width: 861px) {
+  .callScreen.callFT.callFull {
+    inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(960px, 92vw, calc(88vh * 16 / 10)); height: min(600px, 88vh, calc(92vw * 10 / 16));
+    border-radius: 28px;
+  }
+}
+.callScreen.callFT .callStage { background: #000; }
+
+.callScreen.callFT.callMini {
+  width: 124px; height: 176px; border-radius: 22px; right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+}
+
+.ftStage {
+  position: relative; width: 100%; height: 100%; overflow: hidden; color: #fff; touch-action: manipulation;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #0b0d12;
+}
+.ftStage * { box-sizing: border-box; }
+.ftVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0b0d12; }
+.ftVideo.mirror { transform: scaleX(-1); }
+
+/* No video: a soft blurred backdrop with the person's avatar, like a voice call on iPhone. */
+.ftBackdrop {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px;
+  background:
+    radial-gradient(90% 60% at 50% 12%, rgba(108,142,196,.55), rgba(108,142,196,0) 70%),
+    radial-gradient(80% 60% at 50% 100%, rgba(255,153,0,.22), rgba(255,153,0,0) 65%),
+    linear-gradient(180deg, #2a3548, #141a26 60%, #0a0d14);
+}
+.ftAvatar {
+  display: grid; place-items: center; overflow: hidden; border-radius: 50%; font-weight: 700; letter-spacing: .02em;
+  width: 64px; height: 64px; font-size: 22px; color: #fff;
+  background: linear-gradient(160deg, #8c98ab, #566175); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 30px rgba(0,0,0,.35);
+}
+.ftAvatar.big { width: 132px; height: 132px; font-size: 46px; }
+.ftAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.ftNote { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; border-radius: 999px; font-size: 14px; color: rgba(255,255,255,.82); background: rgba(0,0,0,.32); }
+
+/* Name and timer, centred at the top. Fades with the controls. */
+.ftTop {
+  position: absolute; z-index: 3; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 40px;
+  background: linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,0,0,0));
+  transition: opacity .35s ease;
+}
+.ftWho { display: grid; justify-items: center; gap: 2px; min-width: 0; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+.ftWho strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; max-width: 56vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ftWho span { font-size: 14px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
+.ftWho .ftQuality { margin-top: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(255,159,10,.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.ftWho .ftOthers { background: rgba(10,132,255,.82); }
+.ftSpacer { width: 38px; flex: 0 0 auto; }
+
+.ftRound {
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: #fff; padding: 0;
+  border: 0; background: rgba(255,255,255,.2);
+  -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%);
+  transition: transform .18s cubic-bezier(.34,1.6,.5,1), background .2s ease;
+}
+.ftRound:active { transform: scale(.9); }
+.ftRound.off { background: #fff; color: #111; }
+.ftRound.active { background: rgba(255,255,255,.38); }
+.ftRound.ftSmall { width: 38px; height: 38px; }
+.ftEnd { background: #ff3b30; box-shadow: 0 8px 24px rgba(255,59,48,.45); }
+
+/* The floating control pill. */
+.ftControls {
+  position: absolute; z-index: 4; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+  display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px 16px; max-width: calc(100% - 24px);
+  border-radius: 999px; background: rgba(40,44,54,.46);
+  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 40px rgba(0,0,0,.4);
+  transition: opacity .35s ease, transform .4s cubic-bezier(.34,1.45,.5,1);
+}
+.ftStage:not(.ftShow) .ftControls { opacity: 0; transform: translate(-50%, 24px); pointer-events: none; }
+.ftStage:not(.ftShow) .ftTop { opacity: 0; pointer-events: none; }
+
+/* Your own camera: a small rounded window that snaps to a corner. */
+.ftSelf {
+  position: absolute; z-index: 2; width: 27%; max-width: 128px; min-width: 88px; aspect-ratio: 3 / 4; padding: 0; overflow: hidden; cursor: grab;
+  border: 1.5px solid rgba(255,255,255,.3); border-radius: 18px; background: #1a2030; touch-action: none; color: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  transition: top .35s cubic-bezier(.34,1.45,.5,1), bottom .35s cubic-bezier(.34,1.45,.5,1), left .35s cubic-bezier(.34,1.45,.5,1), right .35s cubic-bezier(.34,1.45,.5,1);
+}
+.ftSelf.dragging { transition: none; cursor: grabbing; transform: translate(-50%, -50%) scale(1.04); }
+.ftSelf.corner-tl { top: calc(env(safe-area-inset-top, 0px) + 84px); left: 14px; }
+.ftSelf.corner-tr { top: calc(env(safe-area-inset-top, 0px) + 84px); right: 14px; }
+.ftSelf.corner-bl { bottom: calc(env(safe-area-inset-bottom, 0px) + 122px); left: 14px; }
+.ftSelf.corner-br { bottom: calc(env(safe-area-inset-bottom, 0px) + 122px); right: 14px; }
+.ftSelfOff { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; }
+.ftSelfOff small { font-size: 11px; color: rgba(255,255,255,.7); }
+
+/* Minimised: just the other person in a small card. */
+.ftMini { cursor: pointer; }
+.ftMini .ftAvatar { width: 56px; height: 56px; font-size: 20px; }
+.ftMiniInfo {
+  position: absolute; left: 0; right: 0; bottom: 0; display: grid; gap: 1px; padding: 22px 10px 9px; text-align: center;
+  background: linear-gradient(0deg, rgba(0,0,0,.62), rgba(0,0,0,0));
+}
+.ftMiniInfo strong { font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ftMiniInfo span { font-size: 11px; color: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
+
+/* The reconnect banner sits above the pill. */
+.callScreen.callFT .roomReconnect { z-index: 5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ftRound, .ftControls, .ftSelf, .ftTop { transition: none; }
+}
+
+/* Sound output sheet. */
+.ftSheetBack { position: absolute; inset: 0; z-index: 6; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.4); }
+.ftSheet {
+  width: 100%; max-width: 420px; display: grid; gap: 10px; padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 26px 26px 0 0; background: rgba(34,38,48,.9);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.ftSheet strong { font-size: 17px; text-align: center; }
+.ftChoice { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: 16px; background: rgba(255,255,255,.1); color: #fff; font-size: 16px; text-align: left; cursor: pointer; }
+.ftChoice.on { background: #fff; color: #111; font-weight: 700; }
+.ftChoice .ftTick { margin-left: auto; }
+.ftSheetNote { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.82); }
+.ftSheetClose { min-height: 50px; border: 0; border-radius: 16px; background: rgba(255,255,255,.18); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }

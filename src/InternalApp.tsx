@@ -1,4 +1,7 @@
 import App from './App'
+import {RibbonGiftHost} from './components/WorkReactions'
+import {RecognitionHost} from './components/Recognition'
+import {ParasyteCrestBar,ParasyteSplash} from './components/ParasyteCrest'
 import './styles.css'
 import './brand.css'
 import './workspace-shell.css'
@@ -20,11 +23,19 @@ import './nav-liquid.css'
 import './theme-fixes.css'
 import './island.css'
 import './glass-clear.css'
+import './visibility-fixes.css'
+import './secondary-button.css'
+import './dark-readability.css'
+import './parasyte-crest.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
+import {startIslandMotion} from './lib/islandMotion'
+import {startPushBridge} from './lib/pushBridge'
 
 
 export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
-  return <App/>
+  useEffect(()=>startIslandMotion(),[])
+  useEffect(()=>startPushBridge(),[])
+  return <><App/><RibbonGiftHost/><RecognitionHost/><ParasyteCrestBar/><ParasyteSplash/></>
 }

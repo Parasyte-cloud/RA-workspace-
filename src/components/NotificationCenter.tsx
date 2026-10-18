@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import PhoneAlertsToggle from './PhoneAlertsToggle'
 import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
+import { pickFreshToast, rememberAll, type ToastMemory } from '../lib/toastPick'
+import { shouldChatSound } from '../lib/chatSound'
 
 import {
   Bell,
@@ -80,7 +82,7 @@ export function NotificationCenter({
  */
 const [toastItem,setToastItem]=useState<NotificationItem|null>(null)
 
-const knownToastIdsRef=useRef<Set<string>>(new Set())
+const knownToastIdsRef=useRef<ToastMemory>(new Map())
 
 const toastBootstrappedRef=useRef(false)
 
@@ -111,10 +113,7 @@ useEffect(()=>{
    */
   if(!toastBootstrappedRef.current){
 
-    knownToastIdsRef.current=
-      new Set(
-        items.map(item=>item.id)
-      )
+    rememberAll(items,knownToastIdsRef.current)
 
     toastBootstrappedRef.current=true
 
@@ -123,30 +122,22 @@ useEffect(()=>{
   }
 
   /*
-   * Realtime/load may replace the complete notification array.
-   * Detect by unseen ID rather than array position so dismissing an older
-   * notification cannot accidentally replay another old notification.
+   * A new notification, or a chat notification that was updated by another
+   * message (same row, newer created_at). See lib/toastPick.ts.
    */
-  const fresh=
-    items.find(
-      item=>
-        !knownToastIdsRef.current.has(
-          item.id
-        )
-    )
+  const fresh=pickFreshToast(items,knownToastIdsRef.current)
 
-  for(const item of items){
+  if(!fresh)return
 
-    knownToastIdsRef.current.add(
-      item.id
-    )
-
-  }
-
-  if(
-    !fresh ||
-    fresh.read_at
-  )return
+  /*
+   * Nobody needs a banner for the conversation they are reading right now.
+   */
+  const isChat=fresh.type==='chat_message'||fresh.type==='chat_mention'
+  if(isChat && !shouldChatSound(
+    fresh.entity_id,
+    document.documentElement.dataset.raOpenChat||'',
+    document.visibilityState==='visible'
+  ))return
 
   if(
     toastTimerRef.current!==undefined
@@ -291,6 +282,22 @@ useEffect(
     }
 
     if(
+      item.entity_type==='workspace_note' &&
+      onOpenSection
+    ){
+      try{
+        if(item.entity_id){
+          sessionStorage.setItem('ra.notes.open',item.entity_id)
+        }
+      }catch{
+        // Notes still opens without the remembered note.
+      }
+      setOpen(false)
+      onOpenSection('notes')
+      return
+    }
+
+    if(
       item.entity_type==='workspace_announcement' &&
       onOpenSection
     ){
@@ -392,7 +399,7 @@ useEffect(
         aria-hidden="true"
       >
 
-        {toastItem.type==='chat_message'
+        {toastItem.type==='chat_message'||toastItem.type==='chat_mention'
 
           ? <MessageCircle size={19}/>
 

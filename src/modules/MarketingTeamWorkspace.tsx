@@ -1210,7 +1210,7 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
           .order(
             'created_at',
             {
-              ascending:true
+              ascending:false
             }
           )
           .limit(150)
@@ -1222,8 +1222,9 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
         return
       }
 
+      // Newest 150, oldest-first (Sweep RA-007).
       setMessages(
-        (data || []) as Message[]
+        [...((data || []) as Message[])].reverse()
       )
 
     },[
@@ -2399,6 +2400,8 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
             <button
               type="button"
+              aria-label="Send message"
+              title="Send message"
               disabled={
                 !selectedSpaceId
                 || !messageText.trim()

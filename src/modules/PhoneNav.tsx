@@ -13,9 +13,9 @@ type Groups = {
   menu?: NavItem[]
 }
 
-const TAB_IDS = ['overview', 'tasks', 'chat', 'mail']
+const TAB_IDS = ['overview', 'tasks', 'chat', 'mail', 'notes']
 
-// Phone navigation: four daily tabs along the bottom and a "More" sheet that
+// Phone navigation: five daily tabs along the bottom and a "More" sheet that
 // lists every section the person can open, grouped like the desktop sidebar.
 // It only changes how the existing list is shown. Who may open a section is
 // still decided by the filtered list passed in from App.

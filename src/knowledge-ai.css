@@ -1,0 +1,65 @@
+/* AI Knowledge Manager (Administration) and the article body in the Knowledge
+   Base. Uses currentColor and translucent borders so it follows light and dark. */
+.kaiWrap{display:grid;gap:14px;min-width:0}
+.kaiHeader{padding:20px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start}
+.kaiHeader>svg{color:#b66e00}
+.kaiHeader h3{margin:4px 0}
+.kaiHeader p{margin:0;max-width:760px;line-height:1.55}
+.kaiCard{display:grid;gap:12px;min-width:0}
+.glassCard.kaiCard{padding:18px}
+.kaiCard h4{margin:0;font-size:15px}
+.kaiHint{margin:0;font-size:12px;opacity:.72}
+.kaiNote,.kaiWarn{padding:13px 16px;font-size:13px;line-height:1.5}
+.kaiWarn{display:grid;gap:3px;border-left:3px solid #ff9900}
+.kaiRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.kaiSpread{justify-content:space-between}
+.kaiChips{display:flex;gap:8px;flex-wrap:wrap}
+.kaiField{display:grid;gap:5px;font-size:12px;font-weight:700}
+.kaiField span{opacity:.8}
+.kaiField input,.kaiField textarea,.kaiField select{
+  font:inherit;font-weight:400;color:inherit;background:rgba(127,127,127,.1);
+  border:1px solid rgba(127,127,127,.28);border-radius:10px;padding:10px 12px;min-width:0;width:100%;resize:vertical}
+.kaiField input:focus,.kaiField textarea:focus,.kaiField select:focus{outline:0;border-color:#ff9900;box-shadow:0 0 0 3px rgba(255,153,0,.16)}
+.kaiToggle{display:inline-flex;gap:8px;align-items:center}
+.kaiSpin{animation:kaiSpin .9s linear infinite}
+@keyframes kaiSpin{to{transform:rotate(360deg)}}
+.kaiProposal{padding:16px;display:grid;gap:10px}
+.kaiProposal h5{margin:5px 0 0;font-size:15px}
+.kaiProposal p{margin:0;line-height:1.55}
+.kaiWhy{font-size:13px}
+.kaiSources{margin:0;padding-left:18px;font-size:12px;display:grid;gap:3px}
+.kaiSources a{overflow-wrap:anywhere}
+.kaiCompare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kaiCompare h6{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
+.kaiEditor{padding:16px;display:grid;gap:10px}
+.kaiEditor h5{margin:0}
+.kaiGrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kaiTableWrap{padding:0;overflow-x:auto}
+.kaiTable{min-width:760px}
+.kaiActions{white-space:nowrap}
+.kaiActions .glassButton{padding:6px 8px;margin-right:4px}
+.kaiRun{padding:12px 14px;display:grid;gap:4px}
+.kaiRun p{margin:2px 0 0;font-size:12px;line-height:1.5}
+@media (max-width:760px){
+  .kaiHeader{grid-template-columns:auto minmax(0,1fr)}
+  .kaiHeader .adminState{grid-column:1/-1;justify-self:start}
+  .kaiCompare,.kaiGrid2{grid-template-columns:1fr}
+}
+
+/* Readable article text in the Knowledge Base. */
+.kbBody{margin-top:22px;line-height:1.7}
+.kbBody h3{margin:24px 0 8px;font-size:17px}
+.kbBody h3:first-child{margin-top:0}
+.kbBody p{margin:0 0 12px;white-space:pre-line}
+.kbBody ul{margin:0 0 14px;padding-left:22px;display:grid;gap:4px}
+.kbBody a{overflow-wrap:anywhere}
+.kbSources{margin-top:22px;padding-top:14px;border-top:1px solid rgba(127,127,127,.25);font-size:13px}
+.kbSources ul{margin:6px 0 0;padding-left:20px}
+.kbAiNote{display:block;margin-top:16px;opacity:.7}
+
+.kaiCard>.glassButton,.kaiProposal>.glassButton{justify-self:start}
+.kbBody a,.kbSources a,.kaiSources a,.kaiProposal a{color:#b36200;text-decoration:underline;text-underline-offset:2px}
+html[data-ra-theme='dark'] .kbBody a,
+html[data-ra-theme='dark'] .kbSources a,
+html[data-ra-theme='dark'] .kaiSources a,
+html[data-ra-theme='dark'] .kaiProposal a{color:#ffb13b}

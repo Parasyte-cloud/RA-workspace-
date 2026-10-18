@@ -1,4 +1,5 @@
 import { peekSearchFocus, clearSearchFocus, onSearchFocus } from '../lib/searchFocus'
+import { ArticleBody } from '../lib/miniMarkdown'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
@@ -60,6 +61,9 @@ type KnowledgeArticle = {
   content: string
   category: string
   tags?: string[]
+  source?: 'manual' | 'seed' | 'ai'
+  source_links?: { url: string; title: string }[]
+  last_reviewed_at?: string | null
 }
 
 type WorkspaceFile = {
@@ -348,7 +352,25 @@ export function KnowledgeBaseModule() {
           <span className="eyebrow">{selected.category}</span>
           <h2>{selected.title}</h2>
           {selected.summary && <p>{selected.summary}</p>}
-          <div className="knowledgeContent">{selected.content}</div>
+          <ArticleBody text={selected.content} />
+          {(selected.source_links?.length ?? 0) > 0 && (
+            <div className="kbSources">
+              <strong>Sources</strong>
+              <ul>
+                {selected.source_links!.map(link => (
+                  <li key={link.url}>
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title || link.url}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {selected.source === 'ai' && (
+            <small className="kbAiNote">
+              Drafted by the AI Knowledge Manager and approved by an administrator
+              {selected.last_reviewed_at ? ` on ${new Date(selected.last_reviewed_at).toLocaleDateString()}` : ''}.
+            </small>
+          )}
         </article>
       </section>
     )
@@ -566,7 +588,12 @@ export function CompanyFilesModule() {
           cacheControl: '3600',
         })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        if (/mime type .* is not supported/i.test(uploadError.message || '')) {
+          throw new Error(`${selectedFile.name} is a file type Company Files does not accept yet. Export it as PDF, Word, Excel or an image and upload that.`)
+        }
+        throw uploadError
+      }
 
       if (previewBlob && previewPath) {
         const { error: previewError } = await supabase.storage

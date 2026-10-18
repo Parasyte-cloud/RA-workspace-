@@ -1,0 +1,2 @@
+# <gateway ip> <gateway RADIUS secret> [CoA port, default 3799]
+192.168.88.1 CHANGE_ME_gateway_shared_secret

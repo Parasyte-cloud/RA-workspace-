@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapPin, ShieldCheck } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import '../device-presence.css'
 
@@ -16,6 +16,10 @@ type LocationState={
 
 const CONSENT_VERSION='2026-08-admin-location-v1'
 const CONSENT_KEY='ridearrivo-location-sharing'
+// Settings drives this component through two window events: the sidebar only shows the address,
+// and the on/off switch for sharing lives in Settings.
+export const LOCATION_REQUEST_EVENT='ra-location-request'
+export const LOCATION_STATE_EVENT='ra-location-state'
 
 function getBrowserDeviceId(){
   const key='ridearrivo-browser-device-id'
@@ -104,7 +108,7 @@ export default function DevicePresence({profileId}:Props){
     if(storedConsent!==`granted:${CONSENT_VERSION}`){
       const accepted=window.confirm(
         'Share your precise work sign-in location with RideArrivo?\n\n'+
-        'If you continue, your browser will ask for location permission. RideArrivo will record the sign-in coordinates and, when configured, the nearest full address for account security, device support and workplace administration. The location is visible to you and authorised RideArrivo administrators. Sign-in location history is retained for 90 days. You can stop sharing from the workspace sidebar.'
+        'If you continue, your browser will ask for location permission. RideArrivo will record the sign-in coordinates and, when configured, the nearest full address for account security, device support and workplace administration. The location is visible to you and authorised RideArrivo administrators. Sign-in location history is retained for 90 days. You can stop sharing any time in Settings.'
       )
       if(!accepted) return
     }
@@ -166,29 +170,50 @@ export default function DevicePresence({profileId}:Props){
     }
   },[profileId,register,shareLocation])
 
+  useEffect(()=>{
+    window.dispatchEvent(new CustomEvent(LOCATION_STATE_EVENT,{detail:{shared:location.shared,locating}}))
+  },[location.shared,locating])
+
+  useEffect(()=>{
+    const onRequest=(event:Event)=>{
+      const wanted=(event as CustomEvent<boolean>).detail
+      if(wanted) shareLocation()
+      else stopSharing()
+    }
+    window.addEventListener(LOCATION_REQUEST_EVENT,onRequest)
+    return ()=>window.removeEventListener(LOCATION_REQUEST_EVENT,onRequest)
+  },[shareLocation,stopSharing])
+
+  const [expanded,setExpanded]=useState(false)
   const label=address
     || (location.shared && location.latitude!==null && location.longitude!==null
       ? `${coarse(location.latitude).toFixed(2)}, ${coarse(location.longitude).toFixed(2)}`
       : timezone)
 
+  // Long addresses slide left in a loop so the sidebar never has to widen. Click shows the whole address.
+  const scrolls=label.length>26
+
   return (
     <div className="devicePresence">
       <div
-        className="devicePresenceLocation"
+        className={`devicePresenceLocation${expanded?' expanded':''}${scrolls&&!expanded?' scrolls':''}`}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
         title={message || address || 'Device presence is recorded for account security. Precise location is shared only after your permission.'}
+        onClick={()=>setExpanded(value=>!value)}
+        onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setExpanded(value=>!value)}}}
       >
-        <MapPin size={12}/><span>{label}</span>
+        <MapPin size={12}/>
+        <span className="devicePresenceText">
+          {scrolls && !expanded ? (
+            <span className="devicePresenceTrack" style={{animationDuration:`${Math.max(14,label.length*0.32)}s`}}>
+              <span>{label}</span><span aria-hidden="true">{label}</span>
+            </span>
+          ) : label}
+        </span>
       </div>
 
-      {!location.shared ? (
-        <button type="button" onClick={shareLocation} disabled={locating}>
-          {locating?'Locating...':'Share work location'}
-        </button>
-      ) : (
-        <button type="button" onClick={stopSharing} title="Stop sending precise location to RideArrivo">
-          <ShieldCheck size={11}/> Stop sharing
-        </button>
-      )}
     </div>
   )
 }

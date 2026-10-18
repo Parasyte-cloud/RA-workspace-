@@ -1,0 +1,142 @@
+/* Administration > Data Allocation, and the "My data" card on the dashboard.
+   Colours come from the --ra-* theme tokens, so dark mode needs no separate rules. */
+
+.dataAllocation{display:grid;gap:14px;min-width:0}
+.dataAllocation h3,.dataAllocation h4{margin:0;color:var(--ra-text,#0b2342)}
+.dataAllocation h4{font-size:14px;display:flex;align-items:center;gap:7px}
+.dataHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:18px}
+.dataHead h3{margin:5px 0 4px;font-size:18px}
+.dataHead p{margin:0;max-width:760px;color:var(--ra-muted,#5b6b7e);line-height:1.5;font-size:12px}
+
+.dataHint{margin:6px 0 10px;color:var(--ra-muted,#5b6b7e);font-size:11px;line-height:1.5}
+.dataHint code,.dataSteps code,.dataUrl{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px}
+.dataHint code,.dataSteps code{background:var(--ra-surface-muted,#eef2f6);color:var(--ra-text,#0b2342);padding:1px 5px;border-radius:5px}
+
+.dataMessage{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;font-size:12px;border:1px solid transparent}
+.dataMessage.ok{background:var(--ra-positive-bg,#e7f8ee);color:var(--ra-positive,#197647);border-color:var(--ra-positive,#197647)}
+.dataMessage.warn{background:var(--ra-warning-bg,#fff2dc);color:var(--ra-warning,#9a5c00);border-color:var(--ra-warning,#9a5c00)}
+.dataMessage.danger{background:var(--ra-danger-bg,#ffe9e9);color:var(--ra-danger,#a92f2f);border-color:var(--ra-danger,#a92f2f)}
+
+.dataMetrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.dataMetric{padding:13px;display:grid;gap:5px;align-content:start;min-width:0}
+.dataMetric span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ra-muted,#6f7f91)}
+.dataMetric strong{font-size:19px;color:var(--ra-text,#0b2342);overflow-wrap:anywhere}
+.dataMetric small{font-size:10px;color:var(--ra-muted,#6f7f91);line-height:1.4}
+.dataGateway{display:flex;align-items:center;gap:6px;font-size:14px!important}
+.dataGateway.live{color:var(--ra-positive,#197647)!important}
+.dataGateway.quiet{color:var(--ra-warning,#9a5c00)!important}
+.dataGateway.never{color:var(--ra-muted,#6f7f91)!important}
+
+.dataTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.dataPanel{padding:16px;display:grid;gap:8px;min-width:0}
+
+.dataFormRow{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.dataFormRow label{flex:1 1 120px;min-width:0}
+.dataAllocation label{display:grid;gap:4px;font-size:10px;font-weight:700;color:var(--ra-muted,#5b6b7e)}
+.dataWide{display:grid}
+.dataAllocation input,.dataAllocation select{
+  border:1px solid var(--ra-border,rgba(90,112,137,.28));border-radius:10px;padding:8px 9px;
+  background:var(--ra-control,#fff);color:var(--ra-text,#0b2342);font-size:12px;min-width:0;width:100%
+}
+.dataAllocation input[type=checkbox]{width:auto}
+.dataAllocation input:focus-visible,.dataAllocation select:focus-visible,.dataAllocation button:focus-visible{outline:2px solid var(--amber,#ff9900);outline-offset:1px}
+.dataAlert{margin-top:6px;padding-top:10px;border-top:1px solid var(--ra-border,rgba(90,112,137,.2))}
+
+.dataList{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.dataList li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;
+  background:var(--ra-surface-muted,#eef2f6);color:var(--ra-text,#0b2342);font-size:11px}
+.dataList small{display:block;color:var(--ra-muted,#5b6b7e);font-size:10px;margin-top:2px}
+.dataEmpty{text-align:center;color:var(--ra-muted,#5b6b7e)!important;justify-content:center!important}
+
+.dataBar{height:7px;border-radius:999px;background:var(--ra-surface-muted,#e3e9f0);overflow:hidden}
+.dataBar span{display:block;height:100%;border-radius:999px;background:var(--ra-positive,#197647)}
+.dataBar.warn span{background:var(--ra-warning,#c77800)}
+.dataBar.out span{background:var(--ra-danger,#a92f2f)}
+.dataBar.none span{background:transparent}
+
+.dataChart{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;align-items:end;height:150px;padding-top:6px}
+.dataChartDay{display:grid;grid-template-rows:1fr auto;height:100%;gap:3px;text-align:center}
+.dataChartBars{position:relative;display:flex;align-items:flex-end;justify-content:center;height:100%}
+.dataChartBars span{position:absolute;bottom:0;left:15%;right:15%;border-radius:4px 4px 0 0}
+.dataChartBars .allocated{background:var(--ra-border,rgba(90,112,137,.28))}
+.dataChartBars .used{background:var(--amber,#ff9900);left:28%;right:28%}
+.dataChartDay small{font-size:9px;color:var(--ra-muted,#5b6b7e)}
+.dataLegend{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--ra-muted,#5b6b7e)}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:6px}
+.swatch.allocated{background:var(--ra-border,rgba(90,112,137,.4))}
+.swatch.used{background:var(--amber,#ff9900)}
+
+.dataTableHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.dataToolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dataSearch{min-width:220px}
+.dataBulk{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:12px;
+  background:var(--ra-warning-bg,#fff2dc);color:var(--ra-text,#0b2342);font-size:12px}
+.dataBulk select{width:auto}
+.dataBulk small{color:var(--ra-muted,#5b6b7e)}
+.dataTableWrap{overflow-x:auto}
+.dataTable{width:100%;min-width:860px;border-collapse:collapse}
+.dataTable th,.dataTable td{padding:9px 8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--ra-border,rgba(90,112,137,.15));font-size:11px;color:var(--ra-text,#0b2342)}
+.dataTable th{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--ra-muted,#6f7f91)}
+.dataTable td small{display:block;margin-top:3px;font-size:10px;color:var(--ra-muted,#5b6b7e)}
+.dataTable tr.suspended{opacity:.7}
+.dataTable select{min-width:96px}
+.dataSuspended{color:var(--ra-danger,#a92f2f)!important;font-weight:800}
+.dataActions{display:flex;gap:5px;flex-wrap:wrap}
+.dataActions .glassButton{padding:6px 8px;font-size:10.5px}
+
+.dataSteps{margin:4px 0;padding-left:18px;font-size:11px;line-height:1.7;color:var(--ra-text,#0b2342)}
+.dataUrl{display:block;padding:8px 10px;border-radius:9px;background:var(--ra-surface-muted,#eef2f6);color:var(--ra-text,#0b2342);overflow-wrap:anywhere}
+
+.dataModalBackdrop{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px;background:rgba(5,14,28,.55)}
+.dataModal{width:min(520px,100%);padding:20px;display:grid;gap:10px;background:var(--ra-surface,#fff)!important;color:var(--ra-text,#0b2342)}
+.dataModal h4{font-size:15px}
+.dataModal p{margin:0;font-size:12px;color:var(--ra-muted,#5b6b7e);line-height:1.5}
+.dataModal dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px}
+.dataModal dt{color:var(--ra-muted,#5b6b7e)}
+.dataModal dd{margin:0;overflow-wrap:anywhere}
+.dataPassword{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:800;letter-spacing:.04em;color:var(--ra-text,#0b2342)}
+
+/* My data card (personal dashboard) */
+.myData{padding:16px;display:grid;gap:10px}
+.myData h4{margin:0;font-size:14px;color:var(--ra-text,#0b2342)}
+.myDataNumbers{display:flex;gap:18px;flex-wrap:wrap}
+.myDataNumbers div{display:grid;gap:2px}
+.myDataNumbers span{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--ra-muted,#6f7f91)}
+.myDataNumbers strong{font-size:20px;color:var(--ra-text,#0b2342)}
+.myData small,.myData p{margin:0;font-size:11px;color:var(--ra-muted,#5b6b7e);line-height:1.5}
+.myData .dataBar{height:8px}
+.myDataPassword{display:grid;gap:6px;padding:10px 12px;border-radius:10px;background:var(--ra-surface-muted,#eef2f6)}
+.myDataPassword code{font-size:17px;font-weight:800;letter-spacing:.04em;color:var(--ra-text,#0b2342)}
+
+@media(max-width:1280px){.dataMetrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:980px){.dataTwo{grid-template-columns:1fr}}
+@media(max-width:640px){.dataMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.dataHead{display:grid}.dataSearch{min-width:0;width:100%}}
+
+/* Daily delivery */
+.dataAllocation h5{margin:12px 0 0;font-size:12px;color:var(--ra-text,#0b2342)}
+.dataAllocation textarea{
+  width:100%;box-sizing:border-box;padding:9px 10px;border-radius:10px;font:inherit;font-size:12px;resize:vertical;
+  border:1px solid var(--ra-border,rgba(90,112,137,.3));background:var(--ra-control,var(--ra-surface,#fff));color:var(--ra-text,#0b2342);
+}
+.dataAllocation textarea:focus-visible{outline:2px solid var(--amber,#ff9900);outline-offset:1px}
+.dataStatusRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dataChip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;border:1px solid transparent;white-space:nowrap}
+.dataChip.ok{background:var(--ra-positive-bg,#e7f8ee);color:var(--ra-positive,#197647);border-color:var(--ra-positive,#197647)}
+.dataChip.warn{background:var(--ra-warning-bg,#fff2dc);color:var(--ra-warning,#9a5c00);border-color:var(--ra-warning,#9a5c00)}
+.dataChip.danger{background:var(--ra-danger-bg,#ffe9e9);color:var(--ra-danger,#a92f2f);border-color:var(--ra-danger,#a92f2f)}
+.dataChip.muted{background:var(--ra-surface-muted,#eef2f6);color:var(--ra-muted,#5b6b7e);border-color:var(--ra-border,rgba(90,112,137,.25))}
+.dataTable td small{display:block}
+.dataPhone{min-width:140px}
+.dataDelivery .dataTable{min-width:720px}
+.myDataLine{display:flex;align-items:center;gap:6px;margin:6px 0 0;font-size:12px}
+
+/* Dark mode: the field colours must not depend on a token that is not defined everywhere. */
+html[data-ra-theme='dark'] .dataAllocation input,
+html[data-ra-theme='dark'] .dataAllocation select,
+html[data-ra-theme='dark'] .dataAllocation textarea{
+  background:#101f32;color:#e8eef7;border-color:rgba(255,255,255,.16);color-scheme:dark;
+}
+html[data-ra-theme='dark'] .dataAllocation input::placeholder,
+html[data-ra-theme='dark'] .dataAllocation textarea::placeholder{color:#7f91a8}
+html[data-ra-theme='dark'] .dataAllocation input:disabled,
+html[data-ra-theme='dark'] .dataAllocation select:disabled{background:#0c1826;color:#7f91a8}

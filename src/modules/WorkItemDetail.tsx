@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import { WorkCelebration, WorkReactionBar, useWorkReactions } from '../components/WorkReactions'
 import { formatWorkTime, isWorkOverdue } from '../lib/workTime'
 
 
@@ -150,6 +151,8 @@ export function WorkItemDetail({
   const [deadlineEvents,setDeadlineEvents]=useState<DeadlineEvent[]>([])
   const [approvalCandidates,setApprovalCandidates]=useState<Employee[]>([])
   const detailRequestRef=useRef(0)
+  const rxIds=useMemo(()=>[item.id],[item.id])
+  const rx=useWorkReactions(rxIds)
 
   const [comment,setComment]=useState('')
   const [mentionId,setMentionId]=useState('')
@@ -968,11 +971,29 @@ export function WorkItemDetail({
           <button
             type="button"
             className="iconButton"
+            aria-label="Close"
+            title="Close"
             onClick={onClose}
           >
             <X size={18}/>
           </button>
         </div>
+
+        <div className="workDetailReactions">
+          <WorkReactionBar
+            itemId={item.id}
+            status={item.status}
+            rx={rx}
+            recipients={[item.created_by,...(item.work_item_assignees||[]).map(a=>a.assignee_id)]}
+          />
+        </div>
+
+        <WorkCelebration
+          ribbon={rx.celebration}
+          giverName={rx.celebration?`from ${rx.nameOf(rx.celebration.given_by)}`:''}
+          task={item.title}
+          onClose={()=>rx.celebrate(null)}
+        />
 
 
         {message&&

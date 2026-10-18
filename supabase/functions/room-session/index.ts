@@ -477,6 +477,23 @@ serve(async req => {
     }
     if (room.status !== "active") return json(req, { error: "This ROOM 7 meeting has ended." }, 409)
 
+    // A room made for a chat call belongs to the two people on that call. The
+    // 8 character code used to be the only gate, so anyone signed in who learned
+    // it could join. Now only the caller, the callee and an administrator can.
+    // An administrator is let in (so a problem can be investigated) and both
+    // people are told, below.
+    const { data: callRows } = await admin
+      .from("chat_calls")
+      .select("caller_id,callee_id")
+      .eq("room_code", code)
+      .limit(5)
+    const isCallRoom = Boolean(callRows?.length)
+    const onTheCall = (callRows || []).some((call) => call.caller_id === employeeId || call.callee_id === employeeId)
+    if (isCallRoom && !onTheCall && profile.role !== "admin") {
+      await rateCount(admin, guessKey, 60, true)
+      return json(req, { error: "This call is private." }, 403)
+    }
+
     const role = room.created_by === employeeId ? "host" : "member"
     // The creator and administrators can moderate: remove people, mute
     // them, turn their video off. Only the creator can end the meeting.
@@ -504,9 +521,12 @@ serve(async req => {
 
       if (participantId) {
         await kickExistingPeers(config, room.cloudflare_meeting_id, participantId)
-        if (profile.role === "admin" && role !== "host") {
-          await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
-        }
+        // Always re-assert the preset the person should have NOW, so a
+        // revoked admin loses moderator controls on rejoin instead of keeping
+        // a stale provider-side preset (sweep RA-014). Fails closed: if the
+        // provider cannot apply it, the join fails rather than leaving the
+        // old privileges in place.
+        await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
         participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
       } else {
         const participant = await addParticipant(config, room.cloudflare_meeting_id, {
@@ -542,19 +562,40 @@ serve(async req => {
       })
       if (audit.error) console.warn("ROOM 7 audit join:", audit.error.message)
 
-      // An administrator can enter any room. Tell the host the first time, so
-      // it is never silent.
-      if (!existing && profile.role === "admin" && role !== "host") {
-        const notice = await admin.from("notifications").insert({
-          user_id: room.created_by,
-          type: "room_admin_joined",
-          title: "An administrator joined your ROOM 7",
-          body: `${cleanText(profile.full_name, 160) || "An administrator"} joined "${cleanText(room.title, 120)}".`,
-          entity_type: "workspace_room",
-          entity_id: room.id,
-          email_status: "skipped",
-        })
-        if (notice.error) console.warn("ROOM 7 admin join notice:", notice.error.message)
+      // An administrator can enter any room. Tell the people in it the first
+      // time, so it is never silent. In a call that is both people, not only
+      // the one who started it. An administrator who is one of the two on the
+      // call is just answering it, so nobody is told.
+      if (!existing && profile.role === "admin" && role !== "host" && !onTheCall) {
+        const adminName = cleanText(profile.full_name, 160) || "An administrator"
+        const recipients = isCallRoom
+          ? Array.from(new Set((callRows || []).flatMap((call) => [call.caller_id, call.callee_id])))
+          : [room.created_by]
+        const notices = recipients
+          .filter((id) => id && id !== employeeId)
+          .map((id) => isCallRoom
+            ? {
+              user_id: id,
+              type: "room_admin_joined",
+              title: "An administrator joined your call",
+              body: `${adminName} joined your call.`,
+              entity_type: "workspace_room",
+              entity_id: room.id,
+              email_status: "skipped",
+            }
+            : {
+              user_id: id,
+              type: "room_admin_joined",
+              title: "An administrator joined your ROOM 7",
+              body: `${adminName} joined "${cleanText(room.title, 120)}".`,
+              entity_type: "workspace_room",
+              entity_id: room.id,
+              email_status: "skipped",
+            })
+        if (notices.length) {
+          const notice = await admin.from("notifications").insert(notices)
+          if (notice.error) console.warn("ROOM 7 admin join notice:", notice.error.message)
+        }
       }
 
       // Only the people who control the event can open it to guests.
@@ -601,21 +642,38 @@ serve(async req => {
     if (room.created_by !== employeeId && profile.role !== "admin") {
       return json(req, { error: "Only the ROOM 7 host or an administrator can end this meeting." }, 403)
     }
-    if (room.status === "ended") return json(req, { ended: true })
+    // End is DB first, then provider (sweep RA-013). The old order closed the
+    // media provider and then failed to update the database, leaving a dead
+    // meeting that the workspace still showed as live. Now the workspace state
+    // is the source of truth and the provider close is idempotent: pressing End
+    // again on an already-ended room retries the provider close.
+    const alreadyEnded = room.status === "ended"
 
     try {
-      await kickEveryone(config, room.cloudflare_meeting_id).catch(error => console.warn("ROOM 7 kick-all skipped:", error))
-      await deactivateMeeting(config, room.cloudflare_meeting_id)
+      if (!alreadyEnded) {
+        const now = new Date().toISOString()
+        const { error: updateError } = await admin
+          .from("workspace_rooms")
+          .update({ status: "ended", ended_at: now })
+          .eq("id", room.id)
 
-      const now = new Date().toISOString()
-      const { error: updateError } = await admin
-        .from("workspace_rooms")
-        .update({ status: "ended", ended_at: now })
-        .eq("id", room.id)
+        if (updateError) {
+          console.error("ROOM 7 end persistence failed:", updateError)
+          return json(req, { error: "Unable to end ROOM 7. Nothing was changed, please try again." }, 500)
+        }
+      }
 
-      if (updateError) {
-        console.error("ROOM 7 end persistence failed:", updateError)
-        return json(req, { error: "ROOM 7 ended at the media provider but could not be finalised in the workspace." }, 500)
+      let providerClosed = true
+      try {
+        await kickEveryone(config, room.cloudflare_meeting_id).catch(error => console.warn("ROOM 7 kick-all skipped:", error))
+        await deactivateMeeting(config, room.cloudflare_meeting_id)
+      } catch (providerError) {
+        providerClosed = false
+        console.error("ROOM 7 provider close failed, room is ended in the workspace:", providerError)
+      }
+
+      if (alreadyEnded) {
+        return json(req, { ended: true, provider_closed: providerClosed })
       }
 
       const audit = await admin.from("workspace_room_events").insert({
@@ -633,7 +691,7 @@ serve(async req => {
         .in("event_state", ["draft", "pre_event", "doors_open", "live", "intermission"])
       if (eventEnd.error) console.warn("ROOM 7 event state end:", eventEnd.error.message)
 
-      return json(req, { ended: true })
+      return json(req, { ended: true, provider_closed: providerClosed })
     } catch (error) {
       console.error("ROOM 7 end failed:", error)
       return json(req, { error: "Unable to end ROOM 7." }, 502)

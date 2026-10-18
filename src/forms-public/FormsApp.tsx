@@ -97,6 +97,8 @@ function currentFormSlug() {
   return 'not-found'
 }
 
+import { ParasyteCrestBar } from '../components/ParasyteCrest'
+
 export default function FormsApp() {
   useEffect(() => {
     initAnalytics()
@@ -109,6 +111,7 @@ export default function FormsApp() {
         <FormsRoutes />
       </FormsErrorBoundary>
       <AnalyticsConsent />
+      <ParasyteCrestBar />
     </>
   )
 }

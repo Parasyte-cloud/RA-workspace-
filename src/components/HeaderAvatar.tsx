@@ -6,6 +6,7 @@ import {
 
 import { supabase } from '../lib/supabase'
 import { resolveEmployeeAvatarUrl } from '../lib/employeeAvatar'
+import { useIsChampion } from './Recognition'
 
 type Props={
   userId:string
@@ -39,6 +40,8 @@ export function HeaderAvatar({
 
   const [failed,setFailed]=
     useState(false)
+
+  const champion=useIsChampion(userId)
 
   const loadAvatar=
     useCallback(async()=>{
@@ -132,7 +135,7 @@ export function HeaderAvatar({
 
   return (
     <span
-      className="headerAvatar"
+      className={`headerAvatar${champion?' champFramed':''}`}
       aria-label={`${name || 'Employee'} profile photo`}
     >
       {avatarUrl && !failed

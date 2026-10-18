@@ -133,7 +133,7 @@ export default function SupportWhatsAppPanel({
         )
         .order(
           'created_at',
-          {ascending:true}
+          {ascending:false}
         )
         .limit(500)
 
@@ -141,8 +141,9 @@ export default function SupportWhatsAppPanel({
         throw result.error
       }
 
+      // Newest 500, shown oldest-first (Sweep RA-008).
       setMessages(
-        (result.data || []) as WhatsAppMessage[]
+        [...((result.data || []) as WhatsAppMessage[])].reverse()
       )
     },
     []
@@ -162,6 +163,10 @@ export default function SupportWhatsAppPanel({
       const result=await client
         .from('support_whatsapp_conversations')
         .select('*')
+        // Most recently active first, so the 250 we keep are the live ones
+        // (Sweep RA-008). The local sort below only tidies ties.
+        .order('last_message_at',{ascending:false,nullsFirst:false})
+        .order('updated_at',{ascending:false})
         .limit(250)
 
       if(result.error){

@@ -1,0 +1,196 @@
+[
+ {
+  "slug": "about-ridearrivo",
+  "title": "About RideArrivo",
+  "category": "Company",
+  "tags": [
+   "company",
+   "overview",
+   "brand"
+  ],
+  "summary": "Who RideArrivo is, what it sells, and the one-line brand promise.",
+  "content": "## Who we are\nRideArrivo Limited is a Lagos, Nigeria transport company. The brand name is written RideArrivo (one word, capital R and A). The tagline is \"Arrive Better.\"\n\nThe core product is airport pickups and drop-offs, booked ahead. Around it sits a family of services that cover city rides, removals, chauffeurs, private jets and boats (see \"The RideArrivo product family\").\n\n## Where we operate\nOur home market is Lagos. Interstate removals and charter flights reach other Nigerian cities and a short list of international hubs.\n\n## Official details\n- Legal name: RideArrivo Limited\n- Website: www.ridearrivo.com\n- Email: info@ridearrivo.com\n- Phone: +234 816 270 6078 (written 0816 270 6078 on the letterhead)\n- Address: Babajide Sanwo-Olu International Market, Ikosi, Lagos, Nigeria\n- Time zone for all bookings: Lagos time (WAT, UTC+1, no daylight saving)\n\n## Where to find more\n- Products and prices: see the product family and membership articles.\n- Brand files and the letterhead: Company, then Brand Library and Letterhead.\n- How this workspace works: see \"Using the RideArrivo Workspace\"."
+ },
+ {
+  "slug": "company-contact-details",
+  "title": "Official company contact details",
+  "category": "Company",
+  "tags": [
+   "contact",
+   "address",
+   "phone",
+   "email"
+  ],
+  "summary": "The address, phone and email to give customers and partners.",
+  "content": "## Use these, and only these\n- Address: Babajide Sanwo-Olu International Market, Ikosi, Lagos, Nigeria\n- Phone: +234 816 270 6078\n- WhatsApp: +234 816 270 6078\n- General email: info@ridearrivo.com\n- Website: www.ridearrivo.com\n\n## Copying them\nThe Letterhead page in this workspace shows the address and phone with a copy button beside each, so nobody retypes them.\n\n## In documents\nThe letterhead PDF footer prints the phone as 0816 270 6078 and the location as Lagos, Nigeria. Change the details in one place (the letterhead settings in the code) and every generated document follows.\n\n## Late or urgent booking requests\nBookings that are too close to the start time are sent to the support phone, WhatsApp and info@ridearrivo.com. See \"Booking notice and late requests\"."
+ },
+ {
+  "slug": "ridearrivo-product-family",
+  "title": "The RideArrivo product family",
+  "category": "Products",
+  "tags": [
+   "products",
+   "services",
+   "subdomains"
+  ],
+  "summary": "All six services, what each does, and where each one lives online.",
+  "content": "## The six services\n- RideArrivo: airport pickups and drop-offs, booked ahead. www.ridearrivo.com\n- ArrivoExpress: on-demand rides around the city. express.ridearrivo.com\n- ArrivoRemovals: moving and removals with a trained crew. move.ridearrivo.com (this was called Move or ArrivoMove before; the new name is ArrivoRemovals)\n- ArrivoChauffeur: a private chauffeur for events and charters. www.ridearrivo.com/charter-booking.html\n- ArrivoAir: air travel and private jet charter. air.ridearrivo.com\n- ArrivoBoat: boat and water transfers. boat.ridearrivo.com\n\n## Status\nInternally, RideArrivo and ArrivoExpress are live. ArrivoRemovals, ArrivoAir and ArrivoBoat were recorded as in development, each on its own subdomain. Check with Operations before promising a date to a customer.\n\n## Naming rules\n- Airport pickup and drop-off belongs to RideArrivo itself, not ArrivoExpress.\n- Use the new name ArrivoRemovals, not Move or ArrivoMove, in anything customer-facing.\n- The family is shown in the ROOM 7 top bar from one list in the code (room7Products), so a rename is a one-line change.\n\n## How booking differs\n- ArrivoExpress: the rider signs in, fills the form, and gets a payment link by text. The ride is confirmed when it is paid.\n- ArrivoRemovals, ArrivoAir, ArrivoBoat: the customer sends a request. A member of the team confirms the exact price before anything is booked."
+ },
+ {
+  "slug": "ridearrivo-airport-pickups",
+  "title": "RideArrivo airport pickups and drop-offs",
+  "category": "Products",
+  "tags": [
+   "airport",
+   "pickup",
+   "core"
+  ],
+  "summary": "The core RideArrivo service and the airports it connects to.",
+  "content": "## What it is\nAirport pickups and drop-offs, booked ahead, in Lagos. This is the original RideArrivo product and the one the tagline \"Arrive Better.\" describes.\n\n## Lagos airport\nMurtala Muhammed International Airport (LOS) is the home airport.\n\n## Members\nExecutive members get an airport pickup fast-track with meet and greet. See \"Membership plans\".\n\n## Booking notice\nOnline bookings need at least 12 hours notice. Sooner than that goes to support. See \"Booking notice and late requests\".\n\n## Support tools\nSupport staff work from the Support workstation: Orders Console, Live Trips, Panic Alerts, Rider Directory, Driver Directory, Refunds and Disputes."
+ },
+ {
+  "slug": "arrivoexpress",
+  "title": "ArrivoExpress: on-demand city rides",
+  "category": "Products",
+  "tags": [
+   "express",
+   "rides",
+   "payments"
+  ],
+  "summary": "How an ArrivoExpress booking works from sign-in to payment.",
+  "content": "## What it is\nOn-demand rides around the city, at express.ridearrivo.com.\n\n## The booking steps\n1. The rider signs in.\n2. The rider fills in the ride details.\n3. The system texts a payment link.\n4. The ride is confirmed as soon as it is paid.\n\n## Payment\nPayment runs through Paystack. A booking only becomes real once Paystack's webhook confirms a real payment. Until then it is a pending booking, so nobody is dispatched for an unpaid ride.\n\n## Duplicate protection\nSubmitting twice (double click or a retry after a network hiccup) must not create two bookings. Check for an existing pending booking before creating another by hand.\n\n## Not included\nAirport pickup and drop-off is a RideArrivo service, not ArrivoExpress."
+ },
+ {
+  "slug": "arrivoremovals",
+  "title": "ArrivoRemovals: moving and removals",
+  "category": "Products",
+  "tags": [
+   "removals",
+   "move",
+   "crew"
+  ],
+  "summary": "What the removals service covers and what the booking form asks.",
+  "content": "## What it is\nA truck, a careful crew and one point of contact for the whole move, from a single room to a full house or office relocation. The customer sees a starting price estimate before committing.\n\n## What is included\nOne booking covers loading, transport and unloading by a vetted removal crew.\n\n## What the form collects\n- Move date and a time window: Morning (8am to 12pm), Afternoon (12pm to 4pm) or Evening (4pm to 8pm)\n- Area: Lekki / Ajah, Victoria Island / Ikoyi, Ikeja / Mainland, Festac / Amuwo, Surulere / Yaba, Makoko, Interstate, Other\n- Property size: Single Room / Self-Contain, Studio / 1 Bedroom Flat, 2 Bedroom Flat, 3 Bedroom Flat, 4+ Bedroom / Duplex, Office / Commercial Space\n- Access: ground floor or drive-up, upper floor with elevator, upper floor walk-up\n- Special items: fragile or glass, piano or heavy furniture, large appliances, other\n- Crew: Standard crew (2 movers) or Large crew (4 movers)\n\n## After submitting\nThe booking goes in for review. The team contacts the customer and confirms. Requests under 12 hours notice follow the late booking rule."
+ },
+ {
+  "slug": "arrivoair",
+  "title": "ArrivoAir: private jet charter",
+  "category": "Products",
+  "tags": [
+   "air",
+   "jet",
+   "charter"
+  ],
+  "summary": "How private jet requests work, aircraft classes and the airport list.",
+  "content": "## What it is\nPrivate jets on request. The customer gives route, dates and party size, and the team returns aircraft options and a firm price from a network of vetted operators with licensed aircraft. A member of the team confirms the exact price before booking.\n\n## Trip types\nOne-way or round trip.\n\n## Aircraft classes shown to customers\n- Light jet: short-to-medium hops, up to 6-8 passengers\n- Midsize jet: more cabin room, medium-to-long range, up to 8-9 passengers\n- Super-midsize jet: stand-up cabin, long range, up to 9-10 passengers\n- Heavy jet: long-range and intercontinental, up to 10-16 passengers\n- No preference: matched to the trip\nThe form shows a \"Best match\" hint from the passenger count but never blocks a choice.\n\n## Airports\nThe picker is a short hand-picked list: major Nigerian airports (Lagos LOS, Abuja ABV, Port Harcourt PHC, Kano KAN, Enugu ENU, Calabar CBQ and others), West, East and Southern African hubs (Accra, Abidjan, Dakar, Nairobi, Addis Ababa and others) and the usual private-aviation gateways. Free text is always accepted, so a route that is not in the list is never blocked.\n\n## Timing\nDeparture times are Lagos time. The 12 hour minimum notice applies."
+ },
+ {
+  "slug": "arrivoboat",
+  "title": "ArrivoBoat: boat and yacht charter",
+  "category": "Products",
+  "tags": [
+   "boat",
+   "yacht",
+   "charter"
+  ],
+  "summary": "Vessel types, charter types and how a boat request is handled.",
+  "content": "## What it is\nSpeedboats, yachts and water taxis on request, with vetted captains and vessels. The team confirms the exact price before the customer books.\n\n## Charter types\n- Point-to-point transfer\n- Day charter or tour\n- Event or celebration\n- Fishing charter\n\n## Vessels\n- Speedboat: fast, open-air transfers, best for 1-8 passengers\n- Yacht: spacious, ideal for day charters and events\n- Catamaran: stable twin hull, good for larger groups and calmer rides\n- Water taxi: quick, no-frills hops for a small party\n- No preference: matched to what is available\n\n## Durations\n1-2 hours, half day (up to 4 hours), full day, multi-day.\n\n## Timing\nLagos time. The 12 hour minimum notice applies."
+ },
+ {
+  "slug": "arrivochauffeur",
+  "title": "ArrivoChauffeur: private chauffeur",
+  "category": "Products",
+  "tags": [
+   "chauffeur",
+   "events",
+   "charter"
+  ],
+  "summary": "The chauffeur product for events and charters.",
+  "content": "## What it is\nA private chauffeur for events and charters. Customers book through www.ridearrivo.com/charter-booking.html.\n\n## Naming\nThe product name is ArrivoChauffeur (the team sometimes shortens it to Chauffeur in app labels).\n\n## Confirm before promising\nPricing and fleet details for the chauffeur product are not recorded in the workspace yet. Ask Operations, then add them here."
+ },
+ {
+  "slug": "membership-plans",
+  "title": "Membership plans and prices",
+  "category": "Products",
+  "tags": [
+   "membership",
+   "pricing",
+   "plans"
+  ],
+  "summary": "All five RideArrivo membership plans with price, kilometres and benefits.",
+  "content": "Prices are per month in Naira, as shown on the membership signup page.\n\n## RideArrivo Plus: ₦120,000 per month\nFor everyday errands and short commutes.\n- 2% of every trip fare back to the RideArrivo wallet\n- 300 km per month (about 10 km a day)\n- 2-minute free cancellation window\n- Referral bonus: wallet credit for you and your friend\n- Delivery and courier at standard rates\n\n## RideArrivo Plus+: ₦250,000 per month\nReplaces the hassle of a personal driver.\n- 2% back to the wallet\n- 600 km per month (about 20 km a day)\n- Priority pickup queueing at peak times\n- 2-minute free cancellation window\n- Referral bonus\n- Delivery and courier at standard rates\n\n## RideArrivo Premium: ₦650,000 per month\nFor daily riders and busy households.\n- 5% back to the wallet\n- 1,800 km per month (about 60 km a day)\n- Verified, top-rated drivers only\n- Priority customer support queue\n- 5-minute free cancellation window\n- ₦15,000 wallet bonus in the birthday month\n- Discounted delivery and courier\n- Referral bonus\n\n## RideArrivo Executive: ₦1,050,000 per month\nStatus, security and near-unlimited mobility.\n- 5% back to the wallet\n- 3,000 km per month (about 100 km a day)\n- A 5% discount code to share with friends and family (capped use)\n- Dedicated safety desk and priority SOS line\n- Verified, top-rated drivers only\n- Airport pickup fast-track with meet and greet\n- Monthly free delivery and courier allowance\n- 10-minute free cancellation window\n- ₦50,000 wallet bonus in the birthday month\n\n## RideArrivo Corporate: ₦10,000 to ₦15,000 per seat per month\nFor offices, churches, schools and teams.\n- One consolidated monthly invoice\n- Admin dashboard to add and remove riders and set spending caps\n- Pooled 80 km per seat per month, shared flexibly across the team\n- 3% of every trip fare back to a shared organization wallet\n- Volume pricing: ₦15,000 per seat (10-24 seats), ₦12,500 (25-49), ₦10,000 (50 and over)\n- Optional verified-driver-only routing, recommended for school transport\n\n## How signup works\nThe customer gives their details, picks a plan, sees its full benefits, and confirms. Corporate signups also give the organization name and an estimated seat count. The request goes to the team, who follow up."
+ },
+ {
+  "slug": "booking-notice-and-late-requests",
+  "title": "Booking notice and late requests",
+  "category": "Policies",
+  "tags": [
+   "policy",
+   "bookings",
+   "timing"
+  ],
+  "summary": "The 12 hour notice rule, how Lagos time is handled, and who to contact for short-notice jobs.",
+  "content": "## The rule\nA standard online booking for Removals, Boat and Air needs at least 12 hours notice. Anything sooner used to be accepted silently, so support found out about a tomorrow-morning job after the fact. Now the form stops the customer and offers the support route instead.\n\n## Lagos time\nA date and time typed into the forms is a wall-clock time in Lagos (WAT, UTC+1, no daylight saving), whatever time zone the customer's device is in. This keeps bookings correct for customers abroad.\n\n## Short-notice contacts\n- Phone: +234 816 270 6078\n- WhatsApp: +234 816 270 6078\n- Email: info@ridearrivo.com\n\n## If Operations changes the number of hours\nThe 12 hour figure lives in three places and they must change together: the booking backend, the website's late-request script and this workspace's forms. If only one changes, one surface will accept what another refuses."
+ },
+ {
+  "slug": "using-the-ridearrivo-workspace",
+  "title": "Using the RideArrivo Workspace",
+  "category": "Workspace",
+  "tags": [
+   "workspace",
+   "how-to",
+   "modules"
+  ],
+  "summary": "What the internal workspace is, what is in it, and how sign-in works.",
+  "content": "## What it is\nThe RideArrivo Workspace is the internal tool for staff: Support, CRM, Engineering, People and HR, Operations, Finance and Accounting, Marketing, Partnerships, Legal and Administration in one place. It is separate from the rider and driver apps.\n\n## What you will see\nDashboard, Tasks, Chat, Mail, Calendar, My Profile, Projects, ROOM 7, Pulse, Announcements, Company Files, Archive, Brand Library, Letterhead, Blog Studio, Knowledge Base, CRM and the department workstations you have been assigned. What shows in your sidebar depends on your role and workstation assignments.\n\n## Signing in\nOnly company email addresses are allowed (the default allowed domain is ridearrivo.com).\n\n## Keep me signed in\n- Ticked: this device stays signed in, even after you close the app or leave it idle.\n- Unticked: you are signed out when the browser or app closes, and after 30 minutes without activity.\n- It is a per-device setting. Turn it off on any shared computer. You can change it in Settings.\n- A call or meeting that is open counts as activity, so the idle timer will not sign you out of it.\n\n## Installing\nThe workspace can be installed as an app on a phone or computer. On first sign-in after installing, a card offers to turn on sound for chat messages and calls.\n\n## Getting help\nAsk your department lead, or Administration for access problems."
+ },
+ {
+  "slug": "room-7-meetings",
+  "title": "ROOM 7 meetings and the AI meeting recorder",
+  "category": "Workspace",
+  "tags": [
+   "room7",
+   "meetings",
+   "recording",
+   "privacy"
+  ],
+  "summary": "How ROOM 7 works, guest events, and how the physical meeting recorder treats consent and audio.",
+  "content": "## What ROOM 7 is\nThe meeting space inside the workspace: rooms, calls, events for outside guests, documents and minutes.\n\n## External guests\nGuests open the event link (room7.ridearrivo.com/r/ followed by the 8 character event code), enter an email and, if the host set one, a passcode. Every guest gives an email in every mode, because that is how ROOM 7 knows who attended. A host can also require approval of each guest before they enter.\n\n## AI meeting recorder (physical meetings)\nA host can record an in-person meeting from ROOM 7 home. The recorder transcribes the meeting live and produces a final, speaker-labelled transcript afterwards.\n- Everyone present is asked for consent before recording starts. Consent is recorded and cannot be edited afterwards.\n- The host picks how long the audio is kept: delete after the transcript is ready (the default), 7, 30 or 90 days, or permanent. Deleting audio never deletes the written transcript.\n- Only the host manages a session. Hosts and the listed active employees can read the record. The Admin role alone is deliberately not enough to read a record.\n- Speakers can be renamed, moments can be marked, and the transcript can be exported as text.\n\n## Legal note\nRecording and transcribing people is regulated personal data processing. Counsel should confirm how the Nigeria Data Protection Act 2023 applies (notice wording, retention, cross-border transfer) before production use."
+ },
+ {
+  "slug": "support-desk-tools",
+  "title": "Support desk tools and escalation",
+  "category": "Operations",
+  "tags": [
+   "support",
+   "safety",
+   "escalation"
+  ],
+  "summary": "The tools the Support workstation uses and what each is for.",
+  "content": "## The Support workstation\n- Orders Console: incoming bookings, assignment status and rider context\n- Live Trips: active ride monitoring, driver position and exceptions\n- Panic Alerts: safety-critical alerts and escalation\n- Rider Directory: rider profile, trip history and support context\n- Driver Directory: driver verification, availability and support context\n- Refunds and Disputes: payment exceptions and the escalation workflow\n\n## Safety first\nPanic Alerts are the safety-critical queue. Members on Premium and Executive get a priority support queue, and Executive members also have a dedicated safety desk and priority SOS line.\n\n## Late bookings\nSee \"Booking notice and late requests\" for the 12 hour rule and the contacts customers are given."
+ },
+ {
+  "slug": "brand-and-letterhead-guide",
+  "title": "Brand assets and the letterhead",
+  "category": "Company",
+  "tags": [
+   "brand",
+   "letterhead",
+   "design"
+  ],
+  "summary": "Where brand files live, the brand colours, and how to produce a letter on the official letterhead.",
+  "content": "## Names\n- Company: RideArrivo Limited. Brand: RideArrivo. Tagline: Arrive Better.\n- Services: ArrivoExpress, ArrivoRemovals, ArrivoChauffeur, ArrivoAir, ArrivoBoat.\n\n## Colours used on the letterhead\n- Body text ink: #182A40\n- Navy for names, labels and subjects: #001B3E\n- Amber for header and footer rules: #FF8A00\n- Muted grey-blue for tagline and small labels: #657184\n\n## Files\nWordmarks and logos are in Company, then Brand Library. The official letterhead logo is a separate file used only by the letterhead tool.\n\n## Making a letter\nOpen Company, then Letterhead. Pick a kind (letter, email, memo or notice), type or paste the content, and download an A4 PDF. Everything is laid out in your browser and nothing you type is uploaded. The company address and phone are shown at the top with copy buttons."
+ },
+ {
+  "slug": "engineering-and-deployment-overview",
+  "title": "Engineering and deployment overview",
+  "category": "Engineering",
+  "tags": [
+   "engineering",
+   "stack",
+   "deploy"
+  ],
+  "summary": "The stack behind the workspace and how a change reaches production.",
+  "content": "## Stack\nReact and TypeScript on Vite, deployed to Cloudflare Pages. Supabase provides authentication, the Postgres database (with row level security) and edge functions. The app is a PWA.\n\n## How a change ships\n1. Work happens on a branch and goes in as a pull request.\n2. CI runs the typecheck, the tests, the build and a high-severity dependency audit on every pull request.\n3. After the pull request is approved and merged to main, Cloudflare Pages deploys automatically.\n4. Database changes are migrations in supabase/migrations, applied with supabase db push. Edge functions are deployed with supabase functions deploy.\n\n## Secrets\nSecrets are Supabase function secrets or Cloudflare variables. They never go in the repository or in chat.\n\n## More detail\nThe repository has DEPLOYMENT_GUIDE, ARCHITECTURE_AUDIT and ENGINEERING_SECURITY_AUDIT files, plus notes for push notifications and ROOM 7."
+ }
+]

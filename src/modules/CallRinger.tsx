@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
+import { announceCallAccepted, announceCallFinished, requestJoinRoom } from '../lib/roomApi'
+import { endStaleCalls } from '../lib/callCleanup'
+import { getActiveCallId, subscribeActiveCall } from '../lib/activeCall'
 import { startTone, wireAudioUnlock } from '../lib/ringtone'
 import {
   alertPermission,
@@ -37,7 +40,11 @@ export default function CallRinger() {
   const [names, setNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [soundBlocked, setSoundBlocked] = useState(false)
+  // Once the call screen is up it shows "Calling..." itself, so the card steps aside.
+  const [stageCallId, setStageCallId] = useState(getActiveCallId())
+  useEffect(() => subscribeActiveCall(setStageCallId), [])
   const namesRef = useRef<Record<string, string>>({})
+  const acceptedRef = useRef<Set<string>>(new Set())
   const timerRef = useRef<number | null>(null)
   const meRef = useRef('')
   const [permission, setPermission] = useState(alertPermission())
@@ -85,6 +92,13 @@ export default function CallRinger() {
       })
     }
 
+    // The other person answered: tell the call window once (heartbeats keep
+    // sending this same row, so remember which calls were announced).
+    if (row.caller_id === mine && row.status === 'accepted' && !acceptedRef.current.has(row.id)) {
+      acceptedRef.current.add(row.id)
+      announceCallAccepted({ callId: row.id })
+    }
+
     if (row.caller_id === mine) {
       void loadName(row.callee_id)
       if (row.status === 'ringing') {
@@ -108,6 +122,9 @@ export default function CallRinger() {
     if (!client) return
     let cancelled = false
     let channel: ReturnType<typeof client.channel> | null = null
+    let pollTimer = 0
+    let removePollListener = () => {}
+    let removeStaleListener = () => {}
 
     void (async () => {
       const { data } = await client.auth.getSession()
@@ -115,6 +132,14 @@ export default function CallRinger() {
       if (!id || cancelled) return
       meRef.current = id
       setMe(id)
+
+      // A call left over from before the app was closed would make everyone
+      // "busy" and stop new calls ringing. Clear it now, and whenever the app
+      // comes back to the front.
+      void endStaleCalls(client, id)
+      const onShow = () => { if (document.visibilityState === 'visible') void endStaleCalls(client, id) }
+      document.addEventListener('visibilitychange', onShow)
+      removeStaleListener = () => document.removeEventListener('visibilitychange', onShow)
 
       const since = new Date(Date.now() - RING_WINDOW_MS).toISOString()
       const { data: pending } = await client
@@ -132,11 +157,37 @@ export default function CallRinger() {
           if (row && row.id) handle(row)
         })
         .subscribe()
+
+      // Safety net. The live connection can drop without a sound (phone
+      // sleep, a network change, a busy socket) and a call would then never
+      // appear. Every few seconds, ask the database what is ringing for this
+      // person, so a call always shows up and a call answered or ended
+      // elsewhere goes away.
+      const poll = async () => {
+        if (cancelled || document.visibilityState === 'hidden') return
+        const { data: ringing, error } = await client
+          .from('chat_calls')
+          .select('id,conversation_id,caller_id,callee_id,room_code,kind,status,created_at')
+          .eq('status', 'ringing')
+          .eq('callee_id', id)
+          .gte('created_at', new Date(Date.now() - RING_WINDOW_MS).toISOString())
+        if (cancelled || error) return
+        const rows = (ringing || []) as CallRow[]
+        const live = new Set(rows.map(row => row.id))
+        setIncoming(current => current.filter(item => live.has(item.id)))
+        for (const row of rows) handle(row)
+      }
+      pollTimer = window.setInterval(() => void poll(), 3000)
+      document.addEventListener('visibilitychange', poll)
+      removePollListener = () => document.removeEventListener('visibilitychange', poll)
     })()
 
     return () => {
       cancelled = true
       clearTimer()
+      if (pollTimer) window.clearInterval(pollTimer)
+      removePollListener()
+      removeStaleListener()
       if (channel) void client.removeChannel(channel)
     }
   }, [handle])
@@ -217,6 +268,14 @@ export default function CallRinger() {
   const respond = async (call: CallRow, status: 'accepted' | 'declined') => {
     const client = supabase
     if (!client || busy) return
+    // Already on a call: answering would take over the screen and strand the
+    // first call. Decline this one so the caller sees it was not answered.
+    if (status === 'accepted' && getActiveCallId() && getActiveCallId() !== call.id) {
+      setIncoming(current => current.filter(item => item.id !== call.id))
+      setOutcome('You are already on a call')
+      void client.rpc('respond_chat_call', { p_call: call.id, p_status: 'declined' })
+      return
+    }
     setBusy(true)
     const { data, error } = await client.rpc('respond_chat_call', { p_call: call.id, p_status: status })
     setBusy(false)
@@ -239,9 +298,12 @@ export default function CallRinger() {
     await client.rpc('respond_chat_call', { p_call: call.id, p_status: 'cancelled' })
   }
 
-  if (!me || (!incoming.length && !outgoing && !outcome && !showPrompt)) return null
+  const showOutgoing = Boolean(outgoing) && outgoing?.id !== stageCallId
+  if (!me || (!incoming.length && !showOutgoing && !outcome && !showPrompt)) return null
 
-  return (
+  // Drawn on <body>, not inside the page: an open chat, the sticky bars and any
+  // parent with a blur or transform would otherwise cover or trap a fixed card.
+  return createPortal(
     <div className="callRinger responsiveModule" role="alert" aria-live="assertive">
       {incoming.map(call => (
         <div className="callCard incoming" key={call.id}>
@@ -258,7 +320,7 @@ export default function CallRinger() {
           </button>
         </div>
       ))}
-      {outgoing && (
+      {outgoing && outgoing.id !== stageCallId && (
         <div className="callCard outgoing">
           <span className="callPulse">{outgoing.kind === 'video' ? <Video size={20} /> : <Phone size={20} />}</span>
           <div className="callCopy">
@@ -287,6 +349,7 @@ export default function CallRinger() {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }

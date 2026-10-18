@@ -4,6 +4,7 @@ import {
 import { HttpError, BUCKET, MAX_FILE_BYTES, SIGNED_PREVIEW_SECONDS, documentCategories, documentStatuses, privilegedRoles, extensionByMime, cleanText, cleanNullableText, isUuid, corsHeaders, json, readBody, sha256Hex, integerField, publicDocument, visibilityColumn } from "./lib.ts"
 import type { JsonObject, EmployeeProfile, ResolvedRoom, InvitationAccess } from "./lib.ts"
 import { documentGuestEmail, documentHmacSha256Hex, documentConstantTimeEqual } from "./guest.ts"
+import { guardPasscodeAttempt } from "../_shared/room7Limit.ts"
 import { validateDocumentInput } from "./validate.ts"
 import { signedStoragePath } from "./storage.ts"
 
@@ -2197,10 +2198,21 @@ Deno.serve(
             body,
           )
 
-        await requireInvitation(
+        await guardPasscodeAttempt(
           admin,
-          resolved,
-          body,
+          req,
+          resolved.room.id,
+          () =>
+            requireInvitation(
+              admin,
+              resolved,
+              body,
+            ),
+          () =>
+            new HttpError(
+              429,
+              "Too many wrong attempts. Please wait ten minutes and try again.",
+            ),
         )
 
         const documents =
@@ -2242,10 +2254,21 @@ Deno.serve(
           )
 
         const access =
-          await requireInvitation(
+          await guardPasscodeAttempt(
             admin,
-            resolved,
-            body,
+            req,
+            resolved.room.id,
+            () =>
+              requireInvitation(
+                admin,
+                resolved,
+                body,
+              ),
+            () =>
+              new HttpError(
+                429,
+                "Too many wrong attempts. Please wait ten minutes and try again.",
+              ),
           )
 
         const result =

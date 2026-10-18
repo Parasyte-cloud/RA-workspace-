@@ -50,7 +50,32 @@ Deno.serve(async (request) => {
 
   // Only people who can actually be alerted are worth a call to Zoho.
   const { data: subs } = await admin.from("push_subscriptions").select("user_id")
-  const people = [...new Set((subs || []).map((row: { user_id: string }) => row.user_id))].slice(0, MAX_PEOPLE)
+  const everyone = [...new Set((subs || []).map((row: { user_id: string }) => row.user_id))] as string[]
+
+  // Least recently looked-at first, so with more than MAX_PEOPLE subscribers
+  // every run moves the window along instead of starving the same tail of
+  // users forever (sweep RA-015). If the cursor table is missing (migration
+  // not run yet) this quietly falls back to the old behaviour.
+  const lastPolled = new Map<string, number>()
+  try {
+    const { data: runs } = await admin.from("mail_poll_cursor").select("user_id,polled_at")
+    for (const row of runs || []) lastPolled.set(row.user_id, Date.parse(row.polled_at) || 0)
+  } catch {
+    /* optional */
+  }
+  const people = everyone
+    .sort((a, b) => (lastPolled.get(a) ?? 0) - (lastPolled.get(b) ?? 0))
+    .slice(0, MAX_PEOPLE)
+
+  const markPolled = async (employeeId: string) => {
+    try {
+      await admin
+        .from("mail_poll_cursor")
+        .upsert({ user_id: employeeId, polled_at: new Date().toISOString() })
+    } catch {
+      /* optional */
+    }
+  }
 
   let notified = 0
   let checked = 0
@@ -160,6 +185,8 @@ Deno.serve(async (request) => {
         console.error("mail-notify-poll mailbox failed", { message: String((error as Error)?.message || error).slice(0, 160) })
       }
     }
+
+    if (Date.now() - started <= DEADLINE_MS) await markPolled(employeeId)
   }
 
   return json({ people: people.length, checked, notified, failed })

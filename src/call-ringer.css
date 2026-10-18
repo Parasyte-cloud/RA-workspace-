@@ -147,3 +147,15 @@
   }
 }
 /* RA_WHATSAPP_ALERT_CARD_END */
+
+/* Always above the chat thread, the bars and the call window. Two selectors
+   so a later, plainer .callRinger rule (chat-ios.css loads with Chat) cannot lower it. */
+html body > .callRinger.callRinger { z-index: 2147483600; }
+
+/* Settings: the incoming call check. */
+.callRingCheck{display:grid;gap:6px;margin-top:6px}
+.callRingCheck ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.callRingCheck li{display:grid;gap:2px;font-size:14px}
+.callRingCheck li.ok{color:#1f9d55}
+.callRingCheck li.bad{color:#d97706}
+.callRingCheck li small{color:inherit;opacity:.85;font-size:12.5px}

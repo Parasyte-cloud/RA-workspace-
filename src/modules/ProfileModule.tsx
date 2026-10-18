@@ -39,6 +39,7 @@ import {
 import EmployeeAttendance from '../components/EmployeeAttendance'
 import MyLeave from '../components/MyLeave'
 import EmployeeKycDocuments from '../components/EmployeeKycDocuments'
+import { RibbonWall } from '../components/Recognition'
 import EmployeeHrDetailsForm from '../components/EmployeeHrDetailsForm'
 
 import '../virtual-card.css'
@@ -487,7 +488,10 @@ export function ProfileModule({
                 </div>
 
                 <button
+                  type="button"
                   className="iconButton"
+                  aria-label="Close editor"
+                  title="Close"
                   onClick={()=>
                     setEditing(false)
                   }
@@ -616,6 +620,8 @@ export function ProfileModule({
 
       <EmployeeAttendance/>
 
+
+      <RibbonWall userId={profile.id} isSelf/>
 
       <MySignInActivity/>
 

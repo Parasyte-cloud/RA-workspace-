@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pin, PinOff, Plus, SmilePlus } from 'lucide-react'
+import { Award, Pin, PinOff, Plus, SmilePlus } from 'lucide-react'
 import { QUICK_REACTIONS, reactionTitle } from '../../lib/chatExtras'
 import type { ReactionGroup } from '../../lib/chatExtras'
 import { EmojiPicker } from './EmojiPicker'
@@ -45,13 +45,14 @@ type ToolbarProps = {
   canPin: boolean
   onReact: (emoji: string) => void
   onTogglePin: () => void
+  onRibbon?: () => void
 }
 
 // Shown above a bubble on hover: quick reactions, more emoji, and pin.
-export function MessageToolbar({ canReact, pinned, canPin, onReact, onTogglePin }: ToolbarProps) {
+export function MessageToolbar({ canReact, pinned, canPin, onReact, onTogglePin, onRibbon }: ToolbarProps) {
   const [open, setOpen] = useState(false)
   const [more, setMore] = useState(false)
-  if (!canReact && !canPin) return null
+  if (!canReact && !canPin && !onRibbon) return null
   return (
     <div className={`cmToolbar${open || more ? ' open' : ''}`}>
       {canReact && (
@@ -64,6 +65,17 @@ export function MessageToolbar({ canReact, pinned, canPin, onReact, onTogglePin 
           onClick={() => { setOpen(o => !o); setMore(false) }}
         >
           <SmilePlus size={15} />
+        </button>
+      )}
+      {onRibbon && (
+        <button
+          type="button"
+          className="cmToolBtn cmRibbonBtn"
+          aria-label="Give a ribbon for this message"
+          title="Give a ribbon"
+          onClick={onRibbon}
+        >
+          <Award size={15} />
         </button>
       )}
       {canPin && (

@@ -1,0 +1,200 @@
+/* Task reactions and celebration ribbons */
+.wrx{display:flex;flex-direction:column;gap:8px;margin:6px 0 2px}
+.wrxRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.wrxChip{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(120,135,160,.35);background:rgba(120,135,160,.12);color:inherit;font:inherit;font-size:14px;
+  transition:transform .12s ease,background .12s ease}
+.wrxChip b{font-size:12px;font-weight:700;opacity:.8}
+.wrxChip:hover{transform:translateY(-1px)}
+.wrxChip.mine{background:rgba(245,197,24,.2);border-color:#e0a800}
+.wrxAnchor{position:relative;display:inline-flex}
+.wrxAdd{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:999px;cursor:pointer;color:inherit;
+  border:1px dashed rgba(120,135,160,.55);background:transparent}
+.wrxAdd:hover{background:rgba(120,135,160,.14)}
+.wrxPalette,.wrxGivePanel{position:absolute;left:0;bottom:38px;z-index:60;border-radius:16px;padding:10px;
+  background:#fff;color:#14213d;border:1px solid rgba(20,33,61,.12);box-shadow:0 16px 40px rgba(7,26,56,.3)}
+.wrxPalette{width:236px}
+.wrxQuick{display:flex;gap:4px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid rgba(20,33,61,.1)}
+.wrxQuick button,.wrxMore button{border:0;background:transparent;cursor:pointer;border-radius:10px;font-size:20px;line-height:1;padding:6px;
+  transition:transform .12s ease,background .12s ease}
+.wrxQuick button:hover,.wrxMore button:hover{background:rgba(20,33,61,.08);transform:scale(1.2)}
+.wrxMore{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.wrxGive{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;cursor:pointer;
+  border:0;font:inherit;font-size:13px;font-weight:700;color:#4a3200;
+  background:linear-gradient(120deg,#ffe27a,#f5c518 45%,#e0a800);box-shadow:0 2px 10px rgba(245,197,24,.45)}
+.wrxGive:hover{filter:brightness(1.05)}
+.wrxGivePanel{width:min(380px,86vw);display:flex;flex-direction:column;gap:10px}
+.wrxKinds{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.wrxKind{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:12px;cursor:pointer;
+  border:2px solid transparent;color:#14213d;font:inherit;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--wrx-b) 22%,#fff),color-mix(in srgb,var(--wrx-tail) 14%,#fff))}
+.wrxKind span{font-size:20px}
+.wrxKind b{font-size:13px}
+.wrxKind small{font-size:11px;opacity:.7;line-height:1.25}
+.wrxKind.on{border-color:var(--wrx-c);box-shadow:0 0 0 3px color-mix(in srgb,var(--wrx-b) 35%,transparent)}
+.wrxNote{height:38px;border-radius:10px;padding:0 12px;border:1px solid rgba(20,33,61,.2);font:inherit;color:#14213d;background:#fff}
+.wrxSend{height:40px;border:0;border-radius:12px;cursor:pointer;font:inherit;font-weight:800;color:#fff;
+  background:linear-gradient(120deg,var(--wrx-b),var(--wrx-c))}
+.wrxSend:disabled{opacity:.6}
+.wrxError{margin:0;color:#b3261e;font-size:13px}
+
+/* Palettes */
+.golden{--wrx-a:#fff3b0;--wrx-b:#f5c518;--wrx-c:#b8860b;--wrx-tail:#d92b3a;--wrx-tail2:#a3162a}
+.rocket{--wrx-a:#c9d8ff;--wrx-b:#5b7cfa;--wrx-c:#2a3fb5;--wrx-tail:#ff6b3d;--wrx-tail2:#c8431b}
+.crown{--wrx-a:#f3d9ff;--wrx-b:#a855f7;--wrx-c:#6b21a8;--wrx-tail:#f5c518;--wrx-tail2:#b8860b}
+.star{--wrx-a:#fff0c2;--wrx-b:#ffb020;--wrx-c:#c46a00;--wrx-tail:#ff5d8f;--wrx-tail2:#c2185b}
+.rainbow{--wrx-a:#ffd6e8;--wrx-b:#ff4f9a;--wrx-c:#7c3aed;--wrx-tail:#2dd4bf;--wrx-tail2:#3b82f6}
+.diamond{--wrx-a:#e0fbff;--wrx-b:#38d0f0;--wrx-c:#0e7490;--wrx-tail:#a78bfa;--wrx-tail2:#6d28d9}
+.fire{--wrx-a:#ffe1b0;--wrx-b:#ff7a1a;--wrx-c:#c2260c;--wrx-tail:#ffd23f;--wrx-tail2:#e68a00}
+.heart{--wrx-a:#ffd9e4;--wrx-b:#ff4d84;--wrx-c:#b0124a;--wrx-tail:#ff9ab8;--wrx-tail2:#d81b60}
+
+/* Ribbons shown on a task */
+.wrxRibbons{display:flex;flex-direction:column;gap:6px}
+.wrxRibbon{position:relative;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;overflow:hidden;color:#2b1d00;
+  background:linear-gradient(110deg,color-mix(in srgb,var(--wrx-a) 85%,#fff),var(--wrx-b) 55%,color-mix(in srgb,var(--wrx-b) 70%,var(--wrx-c)));
+  box-shadow:0 3px 14px color-mix(in srgb,var(--wrx-b) 45%,transparent)}
+.wrxRibbon::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+  transform:translateX(-120%);animation:wrxSweep 4.5s ease-in-out infinite}
+.wrxRibbon.fire,.wrxRibbon.rocket,.wrxRibbon.crown,.wrxRibbon.heart,.wrxRibbon.diamond,.wrxRibbon.rainbow{color:#fff}
+.wrxRibbon.diamond,.wrxRibbon.golden,.wrxRibbon.star{color:#2b1d00}
+.wrxRibbon.rainbow{background:linear-gradient(110deg,#ff4f9a,#ffb020 25%,#2dd4bf 55%,#3b82f6 80%,#a855f7)}
+.wrxRibbonIcon{font-size:24px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+.wrxRibbonText{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
+.wrxRibbonText b{font-size:14px}
+.wrxRibbonText em{font-size:12px;font-style:normal;opacity:.85}
+.wrxRibbonText span{font-size:13px;overflow-wrap:anywhere}
+.wrxRibbonX{position:relative;z-index:1;border:0;border-radius:999px;width:24px;height:24px;display:grid;place-items:center;cursor:pointer;
+  background:rgba(0,0,0,.18);color:inherit}
+@keyframes wrxSweep{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+
+/* Full screen celebration */
+.wrxStage{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;cursor:pointer;overflow:hidden;
+  background:radial-gradient(circle at 50% 45%,rgba(10,16,34,.35),rgba(10,16,34,.82));animation:wrxFade .35s ease both}
+.wrxBurst{position:absolute;left:50%;top:44%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;pointer-events:none;opacity:.5;
+  background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--wrx-b) 65%,transparent) 0 6deg,transparent 6deg 18deg);
+  -webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);
+  animation:wrxSpin 24s linear infinite}
+.wrxConfetti{position:absolute;inset:0;pointer-events:none}
+.wrxConfetti i{position:absolute;top:-24px;border-radius:2px;opacity:0;animation-name:wrxFall;animation-timing-function:linear;animation-fill-mode:both}
+.wrxConfetti i.round{border-radius:50%}
+.wrxStage.golden .wrxConfetti i.t0{background:#f5c518}
+.wrxStage.golden .wrxConfetti i.t1{background:#ffe27a}
+.wrxStage.golden .wrxConfetti i.t2{background:#fff3b0}
+.wrxStage.golden .wrxConfetti i.t3{background:#e0a800}
+.wrxStage.golden .wrxConfetti i.t4{background:#ffffff}
+.wrxStage.rocket .wrxConfetti i.t0{background:#5b7cfa}
+.wrxStage.rocket .wrxConfetti i.t1{background:#9fb4ff}
+.wrxStage.rocket .wrxConfetti i.t2{background:#ff6b3d}
+.wrxStage.rocket .wrxConfetti i.t3{background:#ffd166}
+.wrxStage.rocket .wrxConfetti i.t4{background:#ffffff}
+.wrxStage.crown .wrxConfetti i.t0{background:#a855f7}
+.wrxStage.crown .wrxConfetti i.t1{background:#d8b4fe}
+.wrxStage.crown .wrxConfetti i.t2{background:#f5c518}
+.wrxStage.crown .wrxConfetti i.t3{background:#ffe27a}
+.wrxStage.crown .wrxConfetti i.t4{background:#ffffff}
+.wrxStage.star .wrxConfetti i.t0{background:#ffb020}
+.wrxStage.star .wrxConfetti i.t1{background:#ffd27a}
+.wrxStage.star .wrxConfetti i.t2{background:#ff5d8f}
+.wrxStage.star .wrxConfetti i.t3{background:#ffffff}
+.wrxStage.star .wrxConfetti i.t4{background:#ffe27a}
+.wrxStage.rainbow .wrxConfetti i.t0{background:#ff4f9a}
+.wrxStage.rainbow .wrxConfetti i.t1{background:#ffd166}
+.wrxStage.rainbow .wrxConfetti i.t2{background:#2dd4bf}
+.wrxStage.rainbow .wrxConfetti i.t3{background:#3b82f6}
+.wrxStage.rainbow .wrxConfetti i.t4{background:#a855f7}
+.wrxStage.diamond .wrxConfetti i.t0{background:#38d0f0}
+.wrxStage.diamond .wrxConfetti i.t1{background:#bff4ff}
+.wrxStage.diamond .wrxConfetti i.t2{background:#a78bfa}
+.wrxStage.diamond .wrxConfetti i.t3{background:#ffffff}
+.wrxStage.diamond .wrxConfetti i.t4{background:#7dd3fc}
+.wrxStage.fire .wrxConfetti i.t0{background:#ff7a1a}
+.wrxStage.fire .wrxConfetti i.t1{background:#ffd23f}
+.wrxStage.fire .wrxConfetti i.t2{background:#ff3d1f}
+.wrxStage.fire .wrxConfetti i.t3{background:#fff0b3}
+.wrxStage.fire .wrxConfetti i.t4{background:#ffa94d}
+.wrxStage.heart .wrxConfetti i.t0{background:#ff4d84}
+.wrxStage.heart .wrxConfetti i.t1{background:#ffa3bf}
+.wrxStage.heart .wrxConfetti i.t2{background:#ffffff}
+.wrxStage.heart .wrxConfetti i.t3{background:#d81b60}
+.wrxStage.heart .wrxConfetti i.t4{background:#ffc2d4}
+.wrxStreamer{position:absolute;top:-10%;width:22vmin;height:130%;pointer-events:none;opacity:.9;
+  background:linear-gradient(90deg,var(--wrx-tail),var(--wrx-b),var(--wrx-tail2));filter:drop-shadow(0 0 20px rgba(0,0,0,.4))}
+.wrxStreamer.left{left:-6vmin;transform:rotate(14deg) translateY(-120%);animation:wrxDrop .9s .1s cubic-bezier(.2,.9,.3,1.1) forwards}
+.wrxStreamer.right{right:-6vmin;transform:rotate(-14deg) translateY(-120%);animation:wrxDropR .9s .25s cubic-bezier(.2,.9,.3,1.1) forwards}
+.wrxCard{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;max-width:min(520px,88vw);color:#fff;
+  animation:wrxPop .7s .1s cubic-bezier(.2,1.4,.4,1) both}
+.wrxMedal{position:relative;display:grid;place-items:center;filter:drop-shadow(0 12px 30px rgba(0,0,0,.45));animation:wrxFloat 3s ease-in-out infinite}
+.wrxMedalEmoji{position:absolute;top:22px;font-size:54px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.wrxShine{position:absolute;top:8px;left:16px;width:100px;height:90px;border-radius:50%;overflow:hidden;pointer-events:none}
+.wrxShine::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.8) 50%,transparent 65%);
+  transform:translateX(-130%);animation:wrxSweep 2.2s .6s ease-in-out infinite}
+.wrxKicker{margin:8px 0 0;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--wrx-a);font-weight:800}
+.wrxCard h2{margin:0;font-size:clamp(30px,6vw,46px);line-height:1.05;
+  background:linear-gradient(180deg,#fff,var(--wrx-a) 60%,var(--wrx-b));-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrxFrom{margin:2px 0 0;font-size:16px;opacity:.95}
+.wrxTask{margin:6px 0 0;font-size:14px;opacity:.8;font-weight:600}
+.wrxMessage{margin:10px 0 0;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.14);font-size:16px;font-style:italic;overflow-wrap:anywhere}
+.wrxHint{margin-top:14px;opacity:.6}
+@keyframes wrxFade{from{opacity:0}to{opacity:1}}
+@keyframes wrxSpin{to{transform:rotate(360deg)}}
+@keyframes wrxFall{0%{transform:translateY(-4vh) rotate(0);opacity:0}8%{opacity:1}100%{transform:translateY(108vh) rotate(var(--spin));opacity:1}}
+@keyframes wrxDrop{to{transform:rotate(14deg) translateY(-8%)}}
+@keyframes wrxDropR{to{transform:rotate(-14deg) translateY(-8%)}}
+@keyframes wrxPop{0%{transform:scale(.3) translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes wrxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* The wrapped gift that waits on screen */
+.wrxGift{position:fixed;right:18px;bottom:20px;z-index:9000;display:flex;align-items:center;gap:12px;padding:10px 16px 10px 10px;border-radius:20px;cursor:pointer;
+  border:0;color:#fff;font:inherit;text-align:left;
+  background:linear-gradient(135deg,var(--wrx-c),color-mix(in srgb,var(--wrx-tail) 70%,#1b1030));
+  box-shadow:0 14px 36px rgba(0,0,0,.4),0 0 0 2px color-mix(in srgb,var(--wrx-b) 70%,transparent);animation:wrxWiggle 2.4s ease-in-out infinite}
+.wrxGift.opening{animation:none}
+.wrxGiftText{display:flex;flex-direction:column;line-height:1.25}
+.wrxGiftText small{opacity:.85;font-size:12px}
+.wrxGiftBox{position:relative;width:52px;height:52px;flex:none}
+.wrxGiftBox .body{position:absolute;left:5px;right:5px;bottom:2px;height:30px;border-radius:5px;background:linear-gradient(135deg,var(--wrx-a),var(--wrx-b))}
+.wrxGiftBox .body::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:9px;margin-left:-4.5px;background:var(--wrx-tail)}
+.wrxGiftBox .lid{position:absolute;left:2px;right:2px;top:12px;height:13px;border-radius:5px;z-index:2;transform-origin:left bottom;
+  background:linear-gradient(135deg,var(--wrx-a),var(--wrx-b));transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.wrxGiftBox .lid::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:9px;margin-left:-4.5px;background:var(--wrx-tail)}
+.wrxGiftBox .bowL,.wrxGiftBox .bowR{position:absolute;top:2px;width:14px;height:12px;border:3px solid var(--wrx-tail);border-radius:50% 50% 0 50%;z-index:3;background:transparent}
+.wrxGiftBox .bowL{left:11px;transform:rotate(-20deg)}
+.wrxGiftBox .bowR{right:11px;transform:scaleX(-1) rotate(-20deg)}
+.wrxGiftBox .spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;opacity:0}
+.wrxGiftBox .s1{left:4px;top:6px}.wrxGiftBox .s2{right:2px;top:2px}.wrxGiftBox .s3{right:8px;top:18px}
+.wrxGift.opening .lid{transform:translateY(-16px) rotate(-38deg)}
+.wrxGift.opening .bowL,.wrxGift.opening .bowR{transform:translateY(-22px) scale(.8);transition:transform .5s ease}
+.wrxGift.opening .spark{animation:wrxSpark .9s ease-out forwards}
+.wrxGift.opening .s2{animation-delay:.1s}.wrxGift.opening .s3{animation-delay:.2s}
+@keyframes wrxSpark{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:translateY(-30px) scale(2)}}
+@keyframes wrxWiggle{0%,60%,100%{transform:rotate(0)}66%{transform:rotate(-3deg)}72%{transform:rotate(3deg)}78%{transform:rotate(-2deg)}84%{transform:rotate(2deg)}}
+
+/* Permissions */
+.wrxModal{position:fixed;inset:0;z-index:99990;display:grid;place-items:center;background:rgba(7,12,28,.55);padding:16px}
+.wrxModalCard{width:min(480px,100%);max-height:80vh;display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:18px;background:#fff;color:#14213d;
+  box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.wrxModalCard header{display:flex;justify-content:space-between;gap:12px}
+.wrxModalCard h3{margin:0}
+.wrxModalCard p{margin:4px 0 0;font-size:13px;opacity:.75}
+.wrxModalCard header button{border:0;background:rgba(20,33,61,.08);border-radius:10px;width:34px;height:34px;cursor:pointer;color:inherit}
+.wrxModalCard>input{height:40px;border-radius:10px;border:1px solid rgba(20,33,61,.2);padding:0 12px;font:inherit}
+.wrxPeople{overflow:auto;display:flex;flex-direction:column;gap:2px}
+.wrxPerson{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 6px;border-radius:10px;cursor:pointer}
+.wrxPerson:hover{background:rgba(20,33,61,.05)}
+.wrxPerson span{display:flex;flex-direction:column;min-width:0}
+.wrxPerson small{opacity:.65}
+.wrxPerson input{width:42px;height:24px;accent-color:#e0a800}
+.wrxEmpty{text-align:center}
+.wrxPermBtn{display:inline-flex;align-items:center;gap:6px}
+
+@media (max-width:640px){
+  .wrxGift{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
+  .wrxPalette,.wrxGivePanel{position:fixed;left:12px;right:12px;bottom:12px;width:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .wrxConfetti,.wrxBurst,.wrxStreamer,.wrxRibbon::after,.wrxShine::after{display:none}
+  .wrxGift,.wrxMedal,.wrxCard,.wrxStage{animation:none}
+}
+.workDetailReactions{padding:0 20px 8px}
+.wrxPalette.down,.wrxGivePanel.down{bottom:auto;top:38px}
+@media (max-width:640px){.wrxPalette.down,.wrxGivePanel.down{top:auto;bottom:12px}}

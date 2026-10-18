@@ -5613,3 +5613,19 @@ html[data-ra-glow="high"] {
     font-size: 9px !important;
   }
 }
+
+/* Font style choice (Settings > Appearance). Only plain text is changed. */
+html[data-ra-font] body,
+html[data-ra-font] button,
+html[data-ra-font] input,
+html[data-ra-font] textarea,
+html[data-ra-font] select{font-family:var(--ra-font-user)}
+html[data-ra-font] code,html[data-ra-font] pre,html[data-ra-font] kbd,html[data-ra-font] svg text,html[data-ra-font] .brandWordmark{font-family:revert}
+.fontStyleCard{margin-top:18px}
+.fontStyleCard h3{margin:0 0 4px}
+.fontStyleCard p{margin:0 0 10px;opacity:.75;font-size:14px}
+.fontStyleGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.fontStyleOption{display:grid;gap:4px;text-align:left;padding:12px;border-radius:16px;border:1px solid rgba(127,140,160,.3);background:transparent;color:inherit;cursor:pointer}
+.fontStyleOption span{font-size:15px}
+.fontStyleOption small{opacity:.7}
+.fontStyleOption.on{border-color:#ff9900;background:rgba(255,153,0,.14)}

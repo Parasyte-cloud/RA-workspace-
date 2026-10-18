@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { ArrowRight, KeyRound, MonitorCheck, ShieldCheck, Video } from 'lucide-react'
 import Room7GuestDocuments from './Room7GuestDocuments'
 import Room7Install, { registerRoom7Worker } from './Room7Install'
 import Room7PublicExperienceSections, {
@@ -29,6 +30,7 @@ import Room7LobbyChat from '../room7-shared/Room7LobbyChat'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import { googleCalendarUrl, icsFile, outlookCalendarUrl } from '../lib/room7Share'
 import type { CalendarEvent } from '../lib/room7Share'
+import { ParasyteCrestBar } from '../components/ParasyteCrest'
 
 const loadExternalMeeting = () => import('./ExternalRoom7Meeting')
 const ExternalRoom7Meeting = lazy(loadExternalMeeting)
@@ -686,7 +688,7 @@ export default function ExternalRoom7App() {
     document.title =
       room?.title
         ? `${room.title} | ROOM 7`
-        : 'RideArrivo ROOM 7'
+        : 'ROOM 7'
   }, [room?.title])
 
   // Event pages are for invited guests: keep them out of search results.
@@ -1084,7 +1086,8 @@ export default function ExternalRoom7App() {
   }
 
   return (
-    <main className="room7Public responsiveModule" data-theme={appearance.theme}>
+    <>
+      <main className="room7Public responsiveModule" data-theme={appearance.theme}>
       <div className="room7PublicGlow room7PublicGlowOne" />
       <div className="room7PublicGlow room7PublicGlowTwo" />
 
@@ -1102,84 +1105,136 @@ export default function ExternalRoom7App() {
 
       {!loading && !locator && (
         <section className="room7Landing">
-          <div className="room7LandingHero">
-            <span className="room7PublicEyebrow">
-              RIDEARRIVO ROOM 7
-            </span>
-
-            <h1>
-              Your event,<br />one tap away.
-            </h1>
-
-            <p>
-              Join live meetings and events from any phone or laptop.
-              No app to download and no account to create.
-            </p>
-
-            <form
-              className="room7LandingForm"
-              onSubmit={event => void openEntry(event)}
-            >
-              <label htmlFor="room7-entry-code">
-                Event code or invitation link
-              </label>
-
-              <div className="room7LandingField">
-                <input
-                  id="room7-entry-code"
-                  value={entryValue}
-                  onChange={event => setEntryValue(event.target.value)}
-                  placeholder="e.g. 4YXZTE4K"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  inputMode="text"
-                  enterKeyHint="go"
-                />
-
-                <button
-                  type="submit"
-                  disabled={entryBusy || !entryValue.trim()}
-                >
-                  {entryBusy ? 'Checking...' : 'Join'}
-                </button>
+          <div className="room7LandingMain">
+            <div className="room7LandingHero">
+              <div className="room7LandingKicker">
+                <span className="room7LandingKickerDot" aria-hidden="true" />
+                <span>ROOM 7</span>
               </div>
 
-              {entryError && (
-                <p className="room7PublicEntryError" role="alert">
-                  {entryError}
-                </p>
-              )}
-            </form>
+              <h1>
+                Meet without<br />the friction.
+              </h1>
 
-            <a
-              className="room7PublicEntryStaff"
-              href="https://intranet.ridearrivo.com/?section=room"
-            >
-              RideArrivo staff? Open ROOM 7 in the workspace
-            </a>
+              <p>
+                Secure browser-based meetings, live events and conversations
+                from any phone, tablet or laptop.
+              </p>
+
+              <div className="room7LandingPromises" aria-label="ROOM 7 benefits">
+                <span><MonitorCheck size={16} aria-hidden="true" />No downloads</span>
+                <span><ShieldCheck size={16} aria-hidden="true" />Secure by design</span>
+                <span><Video size={16} aria-hidden="true" />Camera + mic check</span>
+              </div>
+
+              <div className="room7LandingPreview" aria-hidden="true">
+                <div className="room7LandingPreviewTop">
+                  <span>Ready when you are</span>
+                  <span className="room7LandingPreviewLive">HD</span>
+                </div>
+                <div className="room7LandingPreviewGrid">
+                  <div className="room7LandingPreviewTile room7LandingPreviewTileMain">
+                    <span>A</span>
+                    <i />
+                  </div>
+                  <div className="room7LandingPreviewTile room7LandingPreviewTileAlt">
+                    <span>M</span>
+                  </div>
+                  <div className="room7LandingPreviewTile room7LandingPreviewTileSoft">
+                    <span>K</span>
+                  </div>
+                </div>
+                <div className="room7LandingPreviewFooter">
+                  <span>Encrypted meeting</span>
+                  <span>Browser based</span>
+                </div>
+              </div>
+            </div>
+
+            <aside className="room7LandingJoinCard" aria-labelledby="room7-join-title">
+              <div className="room7LandingJoinMark" aria-hidden="true">
+                <Video size={20} />
+              </div>
+
+              <div className="room7LandingJoinHeading">
+                <span>JOIN ROOM 7</span>
+                <h2 id="room7-join-title">Join a meeting</h2>
+                <p>Enter the event code or invitation link you received.</p>
+              </div>
+
+              <form
+                className="room7LandingForm"
+                onSubmit={event => void openEntry(event)}
+              >
+                <label htmlFor="room7-entry-code">
+                  Event code or invitation link
+                </label>
+
+                <div className="room7LandingField">
+                  <KeyRound size={19} aria-hidden="true" />
+                  <input
+                    id="room7-entry-code"
+                    value={entryValue}
+                    onChange={event => setEntryValue(event.target.value)}
+                    placeholder="e.g. 4YXZTE4K"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    inputMode="text"
+                    enterKeyHint="go"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={entryBusy || !entryValue.trim()}
+                  >
+                    <span>{entryBusy ? 'Checking...' : 'Join room'}</span>
+                    {!entryBusy && <ArrowRight size={17} aria-hidden="true" />}
+                  </button>
+                </div>
+
+                {entryError && (
+                  <p className="room7PublicEntryError" role="alert">
+                    {entryError}
+                  </p>
+                )}
+              </form>
+
+              <div className="room7LandingTrust">
+                <ShieldCheck size={16} aria-hidden="true" />
+                <span>Secure browser access. Your meeting session stays temporary.</span>
+              </div>
+
+              <a
+                className="room7PublicEntryStaff room7LandingStaffPill"
+                href="https://intranet.ridearrivo.com/?section=room"
+              >
+                <span>RideArrivo staff · Open workspace</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            </aside>
           </div>
 
           <ol className="room7LandingSteps" aria-label="How it works">
             <li>
-              <b>1</b>
+              <span className="room7LandingStepIcon" aria-hidden="true"><KeyRound size={18} /></span>
               <span>
                 <strong>Enter your code</strong>
-                It is in your invitation email or message.
+                Use the code or invitation link from your email or message.
               </span>
             </li>
             <li>
-              <b>2</b>
+              <span className="room7LandingStepIcon" aria-hidden="true"><MonitorCheck size={18} /></span>
               <span>
-                <strong>Add your name</strong>
-                Check your camera and microphone before you go in.
+                <strong>Check your setup</strong>
+                Add your name and confirm your camera and microphone.
               </span>
             </li>
             <li>
-              <b>3</b>
+              <span className="room7LandingStepIcon" aria-hidden="true"><Video size={18} /></span>
               <span>
-                <strong>Join the room</strong>
-                Chat, ask questions and view shared documents.
+                <strong>Join instantly</strong>
+                Enter the room to meet, chat and view shared content.
               </span>
             </li>
           </ol>
@@ -1189,7 +1244,7 @@ export default function ExternalRoom7App() {
       {!loading && locator && error && !room && (
         <section className="room7PublicErrorCard">
           <span className="room7PublicEyebrow">
-            RIDEARRIVO ROOM 7
+            ROOM 7
           </span>
           <h1>
             This event is not available
@@ -1225,7 +1280,7 @@ export default function ExternalRoom7App() {
               </div>
 
               <span className="room7PublicEyebrow">
-                RIDEARRIVO · ROOM 7
+                ROOM 7
               </span>
 
               <h1>
@@ -1234,7 +1289,7 @@ export default function ExternalRoom7App() {
 
               <p className="room7PublicSummary">
                 {room.public_summary ||
-                  'A professionally hosted RideArrivo event experience for invited guests, partners and stakeholders.'}
+                  'A professionally hosted ROOM 7 experience for invited guests, partners and stakeholders.'}
               </p>
 
               <div className="room7PublicSchedule">
@@ -1327,7 +1382,7 @@ export default function ExternalRoom7App() {
                 'invitation' &&
                 !inviteToken && (
                   <div className="room7PublicNotice">
-                    This event requires a valid RideArrivo invitation link.
+                    This event requires a valid ROOM 7 invitation link.
                   </div>
                 )}
 
@@ -1482,7 +1537,7 @@ export default function ExternalRoom7App() {
 
               <div className="room7PublicTrust">
                 <span>
-                  Guest identity is validated by the RideArrivo event service.
+                  Guest identity is validated by the ROOM 7 event service.
                 </span>
                 <span>
                   Your meeting access token is temporary.
@@ -1517,7 +1572,7 @@ export default function ExternalRoom7App() {
 
           <footer className="room7PublicFooter">
             <span>
-              RideArrivo Limited
+              ROOM 7
             </span>
             <span>
               ROOM 7 · Secure external event access
@@ -1526,5 +1581,7 @@ export default function ExternalRoom7App() {
         </>
       )}
     </main>
+      <ParasyteCrestBar/>
+    </>
   )
 }

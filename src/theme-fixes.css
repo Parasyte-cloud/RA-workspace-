@@ -72,7 +72,7 @@ html[data-ra-theme='dark'] .postActions button:hover,
 html[data-ra-theme='dark'] .postActions button.active { color: #8fc2ff; }
 
 /* Warning, error and success tones. */
-html[data-ra-theme='dark'] :is(.authMessage, .callout, .cmCallNotice, .paymentProviderStatus.pending, .embedNote, .paymentProviderNotice, .performanceBanner.needs_focus, .workstationGuideBadges span, .workstationGuideAdminButton, .cmRoomManagedBadge, .myLeaveBadge.pending, .vendorsWarn, .vendorPill.on_hold, .adminAuthorityBadge, .adminReward) {
+html[data-ra-theme='dark'] :is(.authMessage, .callout, .cmCallNotice, .paymentProviderStatus.pending, .embedNote, .paymentProviderNotice, .performanceBanner.needs_focus, .workstationGuideBadges span, .cmRoomManagedBadge, .myLeaveBadge.pending, .vendorsWarn, .vendorPill.on_hold, .adminAuthorityBadge, .adminReward) {
   background: var(--ra-warning-bg, rgba(255,174,64,.13));
   color: var(--ra-warning, #ffc66d);
   border-color: rgba(255,174,64,.25);

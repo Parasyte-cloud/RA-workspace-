@@ -52,8 +52,8 @@ html[data-room7-theme] #root{min-height:100dvh}
 [data-theme="light"] .r7IslandPill::before{
   box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(15,23,42,.06),0 0 0 1px rgba(15,23,42,.08),0 14px 34px rgba(15,23,42,.16);
 }
-.r7IslandLogo{height:22px;width:auto;flex:0 0 auto;object-fit:contain;transition:height .4s,opacity .3s}
-[data-theme="light"] .r7IslandLogo{filter:invert(1) hue-rotate(180deg)}
+.r7IslandLogo{height:26px;width:auto;flex:0 0 auto;object-fit:contain;transition:height .4s,opacity .3s}
+[data-theme="light"] .r7IslandLogo{filter:drop-shadow(0 0 1px rgba(5,13,25,.75)) brightness(.55) contrast(1.2)}
 
 .r7IslandTicker{
   flex:1;

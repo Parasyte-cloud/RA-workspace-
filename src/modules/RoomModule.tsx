@@ -22,7 +22,9 @@ import {
   Send,
   Share2,
   ShieldCheck,
+  Trash2,
   Users,
+  Mic,
   Video,
   X
 } from 'lucide-react'
@@ -47,6 +49,11 @@ import Room7EventControlCenter from './Room7EventControlCenter'
 import GuestAdmissionPanel from './GuestAdmissionPanel'
 import RoomHub from './RoomHub'
 import '../room.css'
+import '../room7-ai/room7-ai.css'
+import PhysicalMeetingSetup, { type StartedMeeting } from '../room7-ai/PhysicalMeetingSetup'
+import PhysicalMeetingRecorder from '../room7-ai/PhysicalMeetingRecorder'
+import Room7AiMeetingRecord from '../room7-ai/Room7AiMeetingRecord'
+import Room7AiRecordsList from '../room7-ai/Room7AiRecordsList'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
 
@@ -131,6 +138,9 @@ export default function RoomModule({
   const [callRoomCodes,setCallRoomCodes]=useState<Set<string>>(new Set())
   const [myId,setMyId]=useState('')
   const [endingId,setEndingId]=useState('')
+  const [deletingId,setDeletingId]=useState('')
+  const [isAdmin,setIsAdmin]=useState(false)
+  const [historyNotice,setHistoryNotice]=useState('')
   const [roomTitle,setRoomTitle]=useState('')
   const [joinCode,setJoinCode]=useState(initialCode)
   const [aiNotesEnabled,setAiNotesEnabled]=useState(true)
@@ -153,6 +163,8 @@ export default function RoomModule({
   const [guestBusy,setGuestBusy]=useState('')
   const [guestError,setGuestError]=useState('')
   const [copied,setCopied]=useState('')
+  const [ai,setAi]=useState<null|{view:'setup'}|{view:'rec';meeting:StartedMeeting}|{view:'record';id:string}>(null)
+  const [aiRefresh,setAiRefresh]=useState(0)
   const [calStart,setCalStart]=useState(()=>toLocalInput(nextQuarterHour()))
   const [calMinutes,setCalMinutes]=useState(60)
 
@@ -196,7 +208,14 @@ export default function RoomModule({
         client.auth.getUser()
       ])
       setCallRoomCodes(new Set((calls||[]).map((row:{room_code:string})=>row.room_code)))
-      setMyId(auth?.user?.id||'')
+      const uid=auth?.user?.id||''
+      setMyId(uid)
+      // Only used to decide whether to show the Delete button; the database
+      // function makes the real decision.
+      if(uid){
+        const {data:me}=await client.from('employee_profiles').select('role').eq('id',uid).maybeSingle()
+        setIsAdmin((me as {role?:string}|null)?.role==='admin')
+      }
     }catch(error){
       console.error('ROOM 7 history load failed:',error)
       setNotice(error instanceof Error?error.message:'Unable to load ROOM 7 history.')
@@ -559,6 +578,38 @@ export default function RoomModule({
     }
   }
 
+  const deleteFromList=async(room:{id:string;title:string})=>{
+    if(deletingId||!client)return
+    if(!window.confirm(`Delete "${room.title}" permanently? Its chat, notes and attendance are removed for everyone. AI recordings of this meeting are kept. This cannot be undone.`))return
+    setDeletingId(room.id)
+    setHistoryNotice('')
+    try{
+      const {error}=await client.rpc('delete_workspace_room',{p_id:room.id})
+      if(error)throw error
+      setRooms(current=>current.filter(item=>item.id!==room.id))
+      setHub(current=>current&&current.room.id===room.id?null:current)
+      setHistoryNotice(`${room.title} deleted.`)
+    }catch(error){
+      console.error('ROOM 7 delete failed:',error)
+      setHistoryNotice(error instanceof Error?error.message:'Unable to delete this meeting.')
+    }finally{
+      setDeletingId('')
+    }
+  }
+
+  if(ai){
+    const closeAi=()=>{setAi(null);setAiRefresh(n=>n+1)}
+    return (
+      <>
+      {callNode}
+      {admissionNode}
+      {ai.view==='setup'&&<PhysicalMeetingSetup onCancel={closeAi} onStarted={meeting=>setAi({view:'rec',meeting})} onOpenRecord={id=>setAi({view:'record',id})}/>}
+      {ai.view==='rec'&&<PhysicalMeetingRecorder meeting={ai.meeting} onExit={closeAi} onOpenRecord={id=>setAi({view:'record',id})}/>}
+      {ai.view==='record'&&<Room7AiMeetingRecord sessionId={ai.id} myId={myId} onBack={closeAi}/>}
+      </>
+    )
+  }
+
   return (
     <>
     {callNode}
@@ -639,7 +690,7 @@ export default function RoomModule({
         </div>
       }
 
-      <div className="roomActionGrid">
+      <div className="roomActionGrid roomActionGrid3">
         <article className="roomActionCard glassCard">
           <div className="roomActionIcon primary"><Plus size={22}/></div>
           <div>
@@ -683,6 +734,18 @@ export default function RoomModule({
           >
             {creating?<LoaderCircle size={17} className="roomSpin"/>:<Video size={17}/>}
             {creating?'Creating ROOM 7...':'Create ROOM 7'}
+          </button>
+        </article>
+
+        <article className="roomActionCard glassCard">
+          <div className="roomActionIcon"><Mic size={22}/></div>
+          <div>
+            <span className="eyebrow">IN THE ROOM</span>
+            <h3>Physical meeting</h3>
+            <p>Record a meeting held in person from this laptop, phone or iPad. R7 AI turns it into a transcript and meeting record.</p>
+          </div>
+          <button type="button" className="glassButton roomWideButton" onClick={()=>setAi({view:'setup'})}>
+            <Mic size={17}/>Start physical meeting
           </button>
         </article>
 
@@ -948,6 +1011,8 @@ export default function RoomModule({
         </div>
       </div>
 
+      {historyNotice&&<div className="roomNotice" role="status">{historyNotice}</div>}
+
       {recentRooms.length===0
         ?<div className="roomRecentEmpty">Ended ROOM 7 meetings will appear here.</div>
         :<div className="roomRecentGrid">
@@ -961,11 +1026,14 @@ export default function RoomModule({
               <div className="roomRecentActions">
                 <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'chat'})}><MessageSquare size={14}/>Chat</button>
                 <button type="button" className="secondaryButton" onClick={()=>setHub({room,tab:'notes'})}><NotebookPen size={14}/>Notes</button>
+                {(isAdmin||room.created_by===myId)&&<button type="button" className="secondaryButton roomRecentDelete" disabled={deletingId===room.id} aria-label={`Delete ${room.title}`} onClick={()=>void deleteFromList(room)}>{deletingId===room.id?<LoaderCircle size={14} className="roomSpin"/>:<Trash2 size={14}/>}Delete</button>}
               </div>
             </article>
           )}
         </div>
       }
+
+      <Room7AiRecordsList refreshKey={aiRefresh} onOpen={id=>setAi({view:'record',id})}/>
     </section>
     </>
   )

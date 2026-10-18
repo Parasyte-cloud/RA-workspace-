@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { transformSync } from 'esbuild'
+import { buildSync } from 'esbuild'
 
 const load = async path => {
-  const js = transformSync(readFileSync(path, 'utf8'), { loader: 'ts', format: 'esm' }).code
+  // Bundled, because modules import each other (ringtone uses audioRoute).
+  const js = buildSync({ entryPoints: [path], bundle: true, format: 'esm', write: false }).outputFiles[0].text
   return import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`)
 }
 const L = await load('src/lib/callLog.ts')
@@ -133,7 +134,7 @@ test('chat shows calls in the thread, the list, and a Calls tab, and keeps the c
   assert.match(chat, /filter==='calls'/)
   assert.match(chat, /callPreview\(lastCall,userId\)/)
   assert.match(chat, /inPlace:true/)
-  assert.match(chat, /callId:typeof callId==='string'\?callId:undefined/)
+  assert.match(chat, /callId:typeof placed==='string'\?placed:undefined/)
 })
 
 test('the ringer rings, plays ringback, and closes calls that rang out', () => {
