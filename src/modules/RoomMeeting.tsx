@@ -132,10 +132,14 @@ export default function RoomMeeting({
   const [elapsed,setElapsed]=useState(0)
   // Every chat call, on every device, uses the same FaceTime-style screen. ROOM 7 meetings keep RealtimeKit's own.
   const faceTime=chatCall
+  // The call clock starts when the other person is actually on the call, like
+  // FaceTime, not when this screen opened (that counted the ringing time).
+  const answeredAtRef=useRef(0)
   useEffect(()=>{
     if(!chatCall)return
-    const started=Date.now()
-    const timer=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),1000)
+    const timer=window.setInterval(()=>{
+      setElapsed(answeredAtRef.current?Math.floor((Date.now()-answeredAtRef.current)/1000):0)
+    },1000)
     return()=>window.clearInterval(timer)
   },[chatCall])
 
@@ -316,11 +320,20 @@ export default function RoomMeeting({
       if(update.state==='connected')setConnection('connected')
     }
 
+    const markAnswered=()=>{
+      if(answeredAtRef.current)return
+      if(meeting.participants.joined.toArray().length>0)answeredAtRef.current=Date.now()
+    }
+
     self.on('roomJoined',handleJoined as never)
+    self.on('roomJoined',markAnswered as never)
     self.on('roomLeft',handleRoomLeft as never)
+    meeting.participants.joined.on('participantJoined',markAnswered as never)
     meeting.meta.on('socketConnectionUpdate',handleSocket as never)
     return()=>{
       self.removeListener('roomJoined',handleJoined as never)
+      self.removeListener('roomJoined',markAnswered as never)
+      meeting.participants.joined.removeListener('participantJoined',markAnswered as never)
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }

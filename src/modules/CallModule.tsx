@@ -81,12 +81,14 @@ export default function CallModule() {
     return () => setActiveCallId('')
   }, [liveRoomId])
 
-  const finish = useCallback((message = '') => {
+  const finish = useCallback((message = '', hangUp = true) => {
     const callId = callIdRef.current
     callIdRef.current = ''
     // The caller pressing End while it still rings must cancel the call, not
-    // only try to end it, or the other phone keeps ringing.
-    if (callId) serverHangUp(callId, sessionRef.current?.role ?? 'unknown')
+    // only try to end it, or the other phone keeps ringing. A device that was
+    // kicked because the same person joined from another device only closes
+    // its own screen: the call is still alive on the new device.
+    if (callId && hangUp) serverHangUp(callId, sessionRef.current?.role ?? 'unknown')
     setSession(null)
     setMinimized(false)
     setNotice(message)
@@ -97,6 +99,13 @@ export default function CallModule() {
       const detail = (event as CustomEvent<JoinRoomDetail>).detail
       // Only chat calls. Plain ROOM 7 joins are handled by the ROOM 7 page.
       if (!detail?.code || !detail.callId) return
+      // One call at a time. A second join used to take over this screen and
+      // leave the first call running on the server with nobody on it.
+      if (callIdRef.current && callIdRef.current !== detail.callId) {
+        serverHangUp(detail.callId, 'unknown')
+        setNotice('You are already on a call. End it before starting another.')
+        return
+      }
       callIdRef.current = detail.callId
       // Counted as in a call from the moment it is accepted, not once the room opens.
       setActiveCallId(detail.callId)
@@ -215,7 +224,10 @@ export default function CallModule() {
   }, [])
 
   const onLeft = useCallback((reason: RoomLeaveReason) => {
-    finish(reason === 'lost' ? 'The call connection was lost.' : reason === 'kicked' ? 'You joined this call from another device.' : '')
+    finish(
+      reason === 'lost' ? 'The call connection was lost.' : reason === 'kicked' ? 'You joined this call from another device.' : '',
+      reason !== 'kicked'
+    )
   }, [finish])
 
   const onEnded = useCallback(async () => {

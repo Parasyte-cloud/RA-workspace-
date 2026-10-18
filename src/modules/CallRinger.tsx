@@ -260,6 +260,14 @@ export default function CallRinger() {
   const respond = async (call: CallRow, status: 'accepted' | 'declined') => {
     const client = supabase
     if (!client || busy) return
+    // Already on a call: answering would take over the screen and strand the
+    // first call. Decline this one so the caller sees it was not answered.
+    if (status === 'accepted' && getActiveCallId() && getActiveCallId() !== call.id) {
+      setIncoming(current => current.filter(item => item.id !== call.id))
+      setOutcome('You are already on a call')
+      void client.rpc('respond_chat_call', { p_call: call.id, p_status: 'declined' })
+      return
+    }
     setBusy(true)
     const { data, error } = await client.rpc('respond_chat_call', { p_call: call.id, p_status: status })
     setBusy(false)

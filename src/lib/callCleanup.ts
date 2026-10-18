@@ -1,11 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getActiveCallId } from './activeCall'
 
-type Row = { id: string; heartbeat_at?: string | null }
+type Row = { id: string; heartbeat_at?: string | null; answered_at?: string | null }
 
 // Another phone or computer that is genuinely on the call keeps a fresh
 // heartbeat, so a call beaten in the last 40 seconds is left alone.
 const LIVE_MS = 75_000
+// A call answered a moment ago has not sent its first heartbeat yet (the phone is
+// still loading the call screen). Another device of the same person must not
+// mistake that for a dead call and end it.
+const NEW_CALL_MS = 120_000
 
 /*
  * Ends answered calls this person is in that nothing is carrying any more: the
@@ -18,7 +22,7 @@ export async function endStaleCalls(client: SupabaseClient, me: string): Promise
   if (!me) return 0
   const wide = await client
     .from('chat_calls')
-    .select('id,heartbeat_at')
+    .select('id,heartbeat_at,answered_at')
     .eq('status', 'accepted')
     .or(`caller_id.eq.${me},callee_id.eq.${me}`)
   let rows = (wide.data || []) as Row[]
@@ -36,7 +40,10 @@ export async function endStaleCalls(client: SupabaseClient, me: string): Promise
   const stale = rows.filter(row => {
     if (row.id === active) return false
     const beat = row.heartbeat_at ? Date.parse(row.heartbeat_at) : 0
-    return !(beat && Date.now() - beat < LIVE_MS)
+    if (beat && Date.now() - beat < LIVE_MS) return false
+    const answered = row.answered_at ? Date.parse(row.answered_at) : 0
+    if (!beat && answered && Date.now() - answered < NEW_CALL_MS) return false
+    return true
   })
   let ended = 0
   for (const row of stale) {
