@@ -75,6 +75,10 @@ html.hasParasyteCrest body{padding-bottom:36px}
   html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar img{height:10.5px}
   html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 }
+/* An open chat hides the top bar, so the pill that rides in it would sit on the person's name. */
+@media(max-width:599px){
+  html.hasParasyteCrest:has(.cm .cmShell.threadOpen) .parasyteCrestBar{display:none}
+}
 @media(max-width:599px) and (prefers-reduced-motion:reduce){
   html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{transition:none}
 }

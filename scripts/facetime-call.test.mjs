@@ -33,3 +33,20 @@ test('Settings can switch back to the classic call screen', () => {
   assert.match(settings, /Use the classic call screen/)
   assert.match(settings, /setClassicCall/)
 })
+
+test('the call screen has a speaker control that lists outputs or explains the phone route', () => {
+  assert.match(stage, /getSpeakerDevices/)
+  assert.match(stage, /Speaker and sound output/)
+  assert.match(stage, /Control Center/)
+  assert.ok(css.includes('.ftSheet'))
+})
+
+test('the incoming call card always shows: drawn on body, polled as a backup, above chat', () => {
+  const ringer = readFileSync(new URL('../src/modules/CallRinger.tsx', import.meta.url), 'utf8')
+  const ringCss = readFileSync(new URL('../src/call-ringer.css', import.meta.url), 'utf8')
+  assert.match(ringer, /createPortal\(/)
+  assert.match(ringer, /setInterval\(\(\) => void poll\(\), 3000\)/)
+  assert.match(ringCss, /html body > \.callRinger\.callRinger \{ z-index: 2147483600; \}/)
+  const crest = readFileSync(new URL('../src/parasyte-crest.css', import.meta.url), 'utf8')
+  assert.match(crest, /cmShell\.threadOpen\) \.parasyteCrestBar\{display:none\}/)
+})

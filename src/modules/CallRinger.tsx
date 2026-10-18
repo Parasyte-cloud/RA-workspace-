@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
@@ -108,6 +109,8 @@ export default function CallRinger() {
     if (!client) return
     let cancelled = false
     let channel: ReturnType<typeof client.channel> | null = null
+    let pollTimer = 0
+    let removePollListener = () => {}
 
     void (async () => {
       const { data } = await client.auth.getSession()
@@ -132,11 +135,36 @@ export default function CallRinger() {
           if (row && row.id) handle(row)
         })
         .subscribe()
+
+      // Safety net. The live connection can drop without a sound (phone
+      // sleep, a network change, a busy socket) and a call would then never
+      // appear. Every few seconds, ask the database what is ringing for this
+      // person, so a call always shows up and a call answered or ended
+      // elsewhere goes away.
+      const poll = async () => {
+        if (cancelled || document.visibilityState === 'hidden') return
+        const { data: ringing, error } = await client
+          .from('chat_calls')
+          .select('id,conversation_id,caller_id,callee_id,room_code,kind,status,created_at')
+          .eq('status', 'ringing')
+          .eq('callee_id', id)
+          .gte('created_at', new Date(Date.now() - RING_WINDOW_MS).toISOString())
+        if (cancelled || error) return
+        const rows = (ringing || []) as CallRow[]
+        const live = new Set(rows.map(row => row.id))
+        setIncoming(current => current.filter(item => live.has(item.id)))
+        for (const row of rows) handle(row)
+      }
+      pollTimer = window.setInterval(() => void poll(), 3000)
+      document.addEventListener('visibilitychange', poll)
+      removePollListener = () => document.removeEventListener('visibilitychange', poll)
     })()
 
     return () => {
       cancelled = true
       clearTimer()
+      if (pollTimer) window.clearInterval(pollTimer)
+      removePollListener()
       if (channel) void client.removeChannel(channel)
     }
   }, [handle])
@@ -241,7 +269,9 @@ export default function CallRinger() {
 
   if (!me || (!incoming.length && !outgoing && !outcome && !showPrompt)) return null
 
-  return (
+  // Drawn on <body>, not inside the page: an open chat, the sticky bars and any
+  // parent with a blur or transform would otherwise cover or trap a fixed card.
+  return createPortal(
     <div className="callRinger responsiveModule" role="alert" aria-live="assertive">
       {incoming.map(call => (
         <div className="callCard incoming" key={call.id}>
@@ -287,6 +317,7 @@ export default function CallRinger() {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
