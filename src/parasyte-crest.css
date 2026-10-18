@@ -43,6 +43,8 @@ html.hasParasyteCrest body{padding-bottom:36px}
 @media(min-width:701px){
   html.hasParasyteCrest .appBackground{height:calc(100dvh - 36px) !important;min-height:0 !important;padding-bottom:12px !important}
   html.hasParasyteCrest .shell.glassFrame{height:calc(100dvh - 36px - 28px) !important;max-height:calc(100dvh - 36px - 28px) !important}
+  /* The frame's rounded corner clips the last line at the foot of the sidebar, so lift the footer clear of it. */
+  html.hasParasyteCrest .shell.glassFrame .sidebarFooter{padding-bottom:18px !important}
 }
 /* On phones the app has its own floating bottom navigation, whose height changes with the device.
    Rather than guess it, the signature stops floating there and becomes the last thing on the page,
