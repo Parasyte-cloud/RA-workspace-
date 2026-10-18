@@ -2389,3 +2389,7 @@ html[data-ra-theme='dark'] .cmReplyBar {
   color: #dbe5f1;
 }
 /* RA_WHATSAPP_REPLY_UI_END */
+
+/* A call still marked "In progress": a clear way to end it. */
+.cmCallBack.cmCallEnd{background:#d33;color:#fff}
+html[data-ra-theme='dark'] .cm .cmCallBack.cmCallEnd{background:#d33;color:#fff}

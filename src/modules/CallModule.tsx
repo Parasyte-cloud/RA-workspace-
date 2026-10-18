@@ -1,3 +1,4 @@
+import { setActiveCallId } from '../lib/activeCall'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { prefetchWhenIdle } from '../lib/prefetch'
@@ -66,6 +67,13 @@ export default function CallModule() {
 
   useEffect(() => { prefetchWhenIdle(loadRoomMeeting) }, [])
 
+  // Tell the rest of the app which call this screen is really in.
+  const liveRoomId = session?.room.id || ''
+  useEffect(() => {
+    setActiveCallId(liveRoomId ? callIdRef.current : '')
+    return () => setActiveCallId('')
+  }, [liveRoomId])
+
   const finish = useCallback((message = '') => {
     const callId = callIdRef.current
     callIdRef.current = ''
@@ -81,6 +89,8 @@ export default function CallModule() {
       // Only chat calls. Plain ROOM 7 joins are handled by the ROOM 7 page.
       if (!detail?.code || !detail.callId) return
       callIdRef.current = detail.callId
+      // Counted as in a call from the moment it is accepted, not once the room opens.
+      setActiveCallId(detail.callId)
       setNotice('')
       setMinimized(false)
       setAudioOnly(detail.audioOnly)

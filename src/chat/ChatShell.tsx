@@ -19,6 +19,7 @@ import {
   Phone,
   PhoneIncoming,
   PhoneMissed,
+  PhoneOff,
   PhoneOutgoing,
   Pencil,
   Plus,
@@ -82,6 +83,7 @@ import {
   unseenMissed,
   type CallRecord
 } from '../lib/callLog'
+import { endStaleCalls } from '../lib/callCleanup'
 import { useChatCalls } from '../modules/useChatCalls'
 import { useConversations } from './hooks/useConversations'
 import { useMessages } from './hooks/useMessages'
@@ -2180,6 +2182,15 @@ export function ChatShell(){
     }
   },[mobileThreadOpen])
 
+  // Ends a call that shows "In progress" but that nobody is on any more.
+  const endCallNow=async(callId:string)=>{
+    const client=supabase
+    if(!client)return
+    const {error}=await client.rpc('respond_chat_call',{p_call:callId,p_status:'ended'})
+    if(error)setCallNotice(error.message)
+    else setCallNotice('Call ended.')
+  }
+
   const startCall=async(kind:'Voice'|'Video',target:DirectRow|null=selected)=>{
     const client=supabase
     const selected=target
@@ -2203,7 +2214,21 @@ export function ChatShell(){
       // The database answers null when the other person is already on a call
       // (sweep RA-012). Close the room we opened and say so; they see a
       // missed call and can ring back.
-      if(callId===null||callId===undefined){
+      let placed=callId
+      if(placed===null||placed===undefined){
+        // "Busy" can be a call left behind when an app was swiped away. Clear
+        // any of mine and try once more before telling the person.
+        if(await endStaleCalls(client,userId)>0){
+          const retry=await client.rpc('start_chat_call',{
+            p_conversation:selected.conversation.id,
+            p_kind:kind==='Video'?'video':'voice',
+            p_room_code:room.room.room_code
+          })
+          if(retry.error)throw retry.error
+          placed=retry.data
+        }
+      }
+      if(placed===null||placed===undefined){
         if(createdRoomId)void endCallRoom(createdRoomId)
         createdRoomId=''
         setCallNotice(`${displayName(selected.other)} is on another call. They will see a missed call from you.`)
@@ -2214,7 +2239,7 @@ export function ChatShell(){
       requestJoinRoom({
         code:room.room.room_code,
         audioOnly:kind==='Voice',
-        callId:typeof callId==='string'?callId:undefined,
+        callId:typeof placed==='string'?placed:undefined,
         inPlace:true
       })
     }catch(error){
@@ -2804,6 +2829,11 @@ export function ChatShell(){
                           <strong>{label.title}</strong>
                           <small>{label.detail} &middot; {new Date(call.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small>
                         </span>
+                        {call.status==='accepted'&&(
+                          <button type="button" className="cmCallBack cmCallEnd" aria-label="End this call" onClick={()=>void endCallNow(call.id)}>
+                            <PhoneOff size={14}/>End call
+                          </button>
+                        )}
                         {label.canCallBack&&selected&&(
                           <button type="button" className="cmCallBack" disabled={calling} onClick={()=>void startCall(call.kind==='video'?'Video':'Voice')}>
                             {call.kind==='video'?<Video size={14}/>:<Phone size={14}/>}Call back

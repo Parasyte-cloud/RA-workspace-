@@ -29,3 +29,42 @@ test('the app heartbeats, hangs up on close, and ends when the other person disa
   assert.match(stage, /hadRemote/)
   assert.match(read('src/modules/RoomMeeting.tsx'), /onRemoteGone=\{hangUp\}/)
 })
+
+test('a call left behind is ended by the app itself, with or without the SQL', () => {
+  const lib = read('src/lib/callCleanup.ts')
+  assert.match(lib, /status', 'accepted'/)
+  assert.match(lib, /respond_chat_call/)
+  assert.match(lib, /getActiveCallId/)
+  const ringer = read('src/modules/CallRinger.tsx')
+  assert.match(ringer, /endStaleCalls\(client, id\)/)
+  assert.match(ringer, /visibilitychange', onShow/)
+  const mod = read('src/modules/CallModule.tsx')
+  assert.match(mod, /setActiveCallId\(detail\.callId\)/)
+  const chat = read('src/chat/ChatShell.tsx')
+  assert.match(chat, /End call/)
+  assert.match(chat, /endStaleCalls\(client,userId\)/)
+})
+
+test('endStaleCalls ends only calls nothing is carrying (behaviour)', async () => {
+  const { buildSync } = await import('esbuild')
+  const out = buildSync({ entryPoints: ['src/lib/callCleanup.ts'], bundle: true, format: 'esm', write: false, platform: 'node' })
+  const mod = await import('data:text/javascript;base64,' + Buffer.from(out.outputFiles[0].text).toString('base64'))
+  const act = await import('data:text/javascript;base64,' + Buffer.from(buildSync({ entryPoints: ['src/lib/activeCall.ts'], bundle: true, format: 'esm', write: false }).outputFiles[0].text).toString('base64'))
+  const ended = []
+  const make = (rows, failWide) => ({
+    from: () => {
+      const q = { select: cols => { q.cols = cols; return q }, eq: () => q, or: () => q,
+        then: res => res(failWide && q.cols.includes('heartbeat_at') ? { data: null, error: { message: 'no column' } } : { data: rows, error: null }) }
+      return q
+    },
+    rpc: async (name, args) => { ended.push(args.p_call); return { error: null } }
+  })
+  const fresh = new Date(Date.now() - 5000).toISOString()
+  const old = new Date(Date.now() - 600000).toISOString()
+  const n = await mod.endStaleCalls(make([{ id: 'a', heartbeat_at: old }, { id: 'b', heartbeat_at: fresh }, { id: 'c' }]), 'me')
+  assert.equal(n, 2)
+  assert.deepEqual(ended.splice(0), ['a', 'c'])
+  // Before the SQL is run the heartbeat column does not exist: still works.
+  assert.equal(await mod.endStaleCalls(make([{ id: 'x' }], true), 'me'), 1)
+  assert.deepEqual(ended.splice(0), ['x'])
+})
