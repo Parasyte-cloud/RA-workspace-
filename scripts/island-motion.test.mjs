@@ -29,9 +29,9 @@ test('island motion: screen changes reset the bar and pulse, chat list drives th
 test('island motion: respects Reduce Motion unless the person opts in, from Settings', () => {
   assert.match(motion, /prefers-reduced-motion: reduce/)
   assert.match(motion, /export function funAllowed/)
-  assert.match(motion, /export function setFunOverride/)
+  assert.match(motion, /export function setFunChoice/)
   assert.match(settings, /Playful island motion/)
-  assert.match(settings, /setFunOverride/)
+  assert.match(settings, /setFunChoice/)
 })
 
 test('liquid glow: phones only, gated on data-ra-fun, behind the contents', () => {
@@ -42,4 +42,18 @@ test('liquid glow: phones only, gated on data-ra-fun, behind the contents', () =
   for (const name of ['raGlowDriftA', 'raGlowDriftB', 'raGlowMorph']) assert.match(css, new RegExp(`@keyframes ${name}\\b`), name)
   assert.match(motion, /className='raGlow'/)
   assert.ok(!/animation[^;]*(forwards|both)/.test(css.slice(css.indexOf('Liquid glow'))), 'no fill mode')
+})
+
+test('liquid glow is a true pill and the names and icons pulse, with a Settings switch for both', () => {
+  const glow = css.slice(css.indexOf('Liquid glow'))
+  assert.match(glow, /border-radius: 999px/)
+  assert.match(glow, /clip-path: inset\(0 round 999px\)/)
+  assert.match(css, /@keyframes raBeat/)
+  assert.match(css, /html\[data-ra-beat='on'\]/)
+  assert.match(css, /max-width: 599px/)
+  assert.match(motion, /export function beatEnabled/)
+  assert.match(motion, /export function setBeatEnabled/)
+  assert.match(motion, /data-ra-beat/)
+  assert.match(settings, /Pulse the names and icons/)
+  assert.match(settings, /setBeatEnabled/)
 })
