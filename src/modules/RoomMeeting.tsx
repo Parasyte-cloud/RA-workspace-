@@ -49,6 +49,7 @@ import '../room7-shared/room7-chat.css'
 import { supabase } from '../lib/supabase'
 import { useCanGiveRibbon } from '../components/Recognition'
 import { noShowDelay } from '../lib/callTimers'
+import { MAX_JOIN_RETRIES, isRetryableJoinFailure, joinFailureMessage, joinRetryDelay } from '../lib/joinFailure'
 
 type RoomStatus='active'|'ended'
 
@@ -135,6 +136,12 @@ export default function RoomMeeting({
   const [peopleOpen,setPeopleOpen]=useState(false)
   const [teamChatOpen,setTeamChatOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
+  // The pass (auth token) the current client was built from. A client built
+  // from an older pass is never shown or joined, or it would join the room as a
+  // second copy of this person next to the new one.
+  const [readyToken,setReadyToken]=useState('')
+  // Quiet retries used since the last good connection.
+  const joinRetryRef=useRef(0)
   const [elapsed,setElapsed]=useState(0)
   // Every chat call, on every device, uses the same FaceTime-style screen. ROOM 7 meetings keep RealtimeKit's own.
   const faceTime=chatCall
@@ -184,26 +191,36 @@ export default function RoomMeeting({
   // A different room is a fresh join: show the setup screen again.
   useEffect(()=>{
     rejoiningRef.current=false
+    joinRetryRef.current=0
   },[session.room.id])
 
   useEffect(()=>{
     let active=true
     let client:{leave:()=>Promise<void>}|undefined
+    const passToken=session.auth_token
     setInitError('')
+    setReadyToken('')
 
     // One failed start used to leave a dead black screen. A start can fail for
     // a moment (network blip, media service busy), so try up to three times
     // before giving up, and only then show the error with a Try again button.
     const start=async()=>{
       let lastError:unknown=null
+      // The SDK hook ignores a start while another is still running and gives
+      // back nothing. That used to leave the screen on the old pass for good,
+      // so wait for the earlier start to finish and go again.
+      let busyWaits=0
       for(let attempt=1;attempt<=3&&active;attempt++){
         try{
           const created=await initMeeting({
-            authToken:session.auth_token,
+            authToken:passToken,
             defaults:rejoiningRef.current?mediaStateRef.current:{audio:true,video:!audioOnly}
           })
-          if(!created)return
-          if(active)client=created
+          if(!created){
+            if(busyWaits++<20){attempt--;await wait(400);continue}
+            return
+          }
+          if(active){client=created;setReadyToken(passToken)}
           else retire(created)
           return
         }catch(error){
@@ -213,11 +230,7 @@ export default function RoomMeeting({
       }
       if(active){
         const message=lastError instanceof Error?lastError.message:''
-        setInitError(
-          /ERR0001|failed to initiali[sz]e/i.test(message)||!message
-            ?'Could not connect the call. Check your internet connection and try again.'
-            :message
-        )
+        setInitError(joinFailureMessage(/failed to initiali[sz]e/i.test(message)?'':message))
       }
     }
     void start()
@@ -284,6 +297,75 @@ export default function RoomMeeting({
     setConnection('lost')
   },[])
 
+  // Letting the server say no for a good reason ends the attempt at once.
+  const leaveOnRefusal=useCallback((message:string)=>{
+    if(/removed/i.test(message)){onLeftRef.current('kicked');return true}
+    if(/ended|not found/i.test(message)){onLeftRef.current('ended');return true}
+    return false
+  },[])
+
+  const giveUpJoin=useCallback((message:string)=>{
+    rejoinInFlightRef.current=false
+    joinRetryRef.current=0
+    setConnection('connected')
+    setRejoinAttempt(0)
+    setInitError(joinFailureMessage(message))
+  },[])
+
+  // The media service refused the join (usually the network blinked, or a stale
+  // copy of this person was still in the room). Before showing an error, ask
+  // the server for a fresh pass, which also removes any stale copy, and join
+  // again. Only after that does the person see the error screen.
+  const handleJoinError=useCallback((message:string)=>{
+    if(!isRetryableJoinFailure(message)||joinRetryRef.current>=MAX_JOIN_RETRIES){
+      giveUpJoin(message)
+      return
+    }
+    joinRetryRef.current+=1
+    const attempt=joinRetryRef.current
+    // Our own replacement of the old connection must not read as being removed.
+    rejoinInFlightRef.current=true
+    setConnection('reconnecting')
+    setRejoinAttempt(attempt)
+    void (async()=>{
+      await wait(joinRetryDelay(attempt))
+      try{
+        const ok=await onRejoinRef.current()
+        if(!ok){giveUpJoin(message);return}
+        if(joinWatchRef.current)window.clearTimeout(joinWatchRef.current)
+        joinWatchRef.current=window.setTimeout(()=>{
+          joinWatchRef.current=0
+          if(rejoinInFlightRef.current){
+            rejoinInFlightRef.current=false
+            setConnection('lost')
+          }
+        },25000)
+      }catch(error){
+        const text=error instanceof Error?error.message:''
+        rejoinInFlightRef.current=false
+        if(leaveOnRefusal(text))return
+        giveUpJoin(text||message)
+      }
+    })()
+  },[giveUpJoin,leaveOnRefusal])
+
+  // Try again from the error screen starts clean with a new pass.
+  const tryAgain=useCallback(async()=>{
+    joinRetryRef.current=0
+    setInitError('')
+    setConnection('reconnecting')
+    rejoinInFlightRef.current=true
+    try{
+      const ok=await onRejoinRef.current()
+      if(!ok)setInitTry(n=>n+1)
+    }catch(error){
+      const text=error instanceof Error?error.message:''
+      rejoinInFlightRef.current=false
+      if(leaveOnRefusal(text))return
+      giveUpJoin(text)
+    }
+  },[giveUpJoin,leaveOnRefusal])
+
   // Meeting lifecycle. Only a deliberate exit leaves the call; a dropped
   // connection is recovered in place.
   useEffect(()=>{
@@ -294,6 +376,7 @@ export default function RoomMeeting({
       if(isRetired(meeting))return
       if(joinWatchRef.current){window.clearTimeout(joinWatchRef.current);joinWatchRef.current=0}
       rejoinInFlightRef.current=false
+      joinRetryRef.current=0
       setConnection('connected')
       setRejoinAttempt(0)
     }
@@ -507,19 +590,19 @@ export default function RoomMeeting({
             <h3>{chatCall?'The call could not start':'ROOM 7 could not start'}</h3>
             <p>{initError}</p>
             <div className="roomMeetingStateActions">
-              <button type="button" className="primaryButton" onClick={()=>setInitTry(n=>n+1)}>Try again</button>
+              <button type="button" className="primaryButton" onClick={()=>void tryAgain()}>Try again</button>
               <button type="button" className="glassButton" onClick={()=>onLeft('left')}>{chatCall?'Back to chat':'Return to ROOM 7'}</button>
             </div>
           </div>
         }
-        {!initError&&!meeting&&
+        {!initError&&(!meeting||readyToken!==session.auth_token)&&
           <div className="roomMeetingState">
             <LoaderCircle size={32} className="roomSpin"/>
             <h3>{chatCall?'Connecting call':'Preparing ROOM 7'}</h3>
             <p>Initialising secure audio and video.</p>
           </div>
         }
-        {!initError&&meeting&&
+        {!initError&&meeting&&readyToken===session.auth_token&&
           <RealtimeKitProvider value={meeting}>
             {faceTime
               ?<FaceTimeStage
@@ -532,7 +615,7 @@ export default function RoomMeeting({
                 onHangUp={hangUp}
                 onMinimize={onMinimize}
                 onRestore={onRestore}
-                onJoinError={setInitError}
+                onJoinError={handleJoinError}
                 answered={acceptedAt>0}
               />
               :<RtkMeeting
