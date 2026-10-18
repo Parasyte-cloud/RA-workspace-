@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Phone, PhoneOff, Video } from 'lucide-react'
+import { MessageSquare, Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { announceCallAccepted, announceCallFinished, requestJoinRoom } from '../lib/roomApi'
 import { endStaleCalls } from '../lib/callCleanup'
 import { getActiveCallId, subscribeActiveCall } from '../lib/activeCall'
 import { startTone, wireAudioUnlock } from '../lib/ringtone'
+import { sendMessage } from '../chat/api/chatApi'
+import { DECLINE_REPLIES } from '../lib/declineReplies'
+import { enqueue, isNetworkError } from '../lib/outbox'
 import {
   alertPermission,
   alertsPromptDismissed,
@@ -39,6 +42,7 @@ export default function CallRinger() {
   const [outcome, setOutcome] = useState('')
   const [names, setNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [replyFor, setReplyFor] = useState('')
   const [soundBlocked, setSoundBlocked] = useState(false)
   // Once the call screen is up it shows "Calling..." itself, so the card steps aside.
   const [stageCallId, setStageCallId] = useState(getActiveCallId())
@@ -290,6 +294,22 @@ export default function CallRinger() {
     }
   }
 
+  // Decline and send a short message in the same chat, like the iPhone's Message button.
+  const declineWith = async (call: CallRow, text: string) => {
+    setReplyFor('')
+    await respond(call, 'declined')
+    const clientMessageId = crypto.randomUUID()
+    try {
+      await sendMessage({ conversationId: call.conversation_id, body: text, replyToId: null, clientMessageId, mentionedUserIds: [] })
+    } catch (error) {
+      if (isNetworkError(error) && meRef.current) {
+        enqueue(meRef.current, { tempId: `temp-${clientMessageId}`, conversationId: call.conversation_id, body: text, replyToId: null, clientMessageId, mentionedUserIds: [], queuedAt: Date.now() })
+      } else {
+        setOutcome('Call declined, but the message could not be sent')
+      }
+    }
+  }
+
   const cancel = async (call: CallRow) => {
     const client = supabase
     if (!client) return
@@ -312,12 +332,22 @@ export default function CallRinger() {
             <strong>{nameOf(call.caller_id)}</strong>
             <small>{soundBlocked ? 'Incoming ' + call.kind + ' call. Click anywhere to hear the ring.' : 'Incoming ' + call.kind + ' call'}</small>
           </div>
+          <button type="button" className="callBtn message" disabled={busy} onClick={() => setReplyFor(current => (current === call.id ? '' : call.id))} aria-label="Decline with a message" aria-expanded={replyFor === call.id}>
+            <MessageSquare size={18} />
+          </button>
           <button type="button" className="callBtn decline" disabled={busy} onClick={() => void respond(call, 'declined')} aria-label="Decline call">
             <PhoneOff size={18} />
           </button>
           <button type="button" className="callBtn accept" disabled={busy} onClick={() => void respond(call, 'accepted')} aria-label="Accept call">
             <Phone size={18} />
           </button>
+          {replyFor === call.id && (
+            <div className="callReplies" role="menu" aria-label="Decline with a message">
+              {DECLINE_REPLIES.map(text => (
+                <button key={text} type="button" role="menuitem" className="callReply" disabled={busy} onClick={() => void declineWith(call, text)}>{text}</button>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       {outgoing && outgoing.id !== stageCallId && (

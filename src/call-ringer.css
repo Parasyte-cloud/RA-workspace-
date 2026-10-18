@@ -159,3 +159,11 @@ html body > .callRinger.callRinger { z-index: 2147483600; }
 .callRingCheck li.ok{color:#1f9d55}
 .callRingCheck li.bad{color:#d97706}
 .callRingCheck li small{color:inherit;opacity:.85;font-size:12.5px}
+
+/* Decline with a message */
+.callCard.incoming{flex-wrap:wrap}
+.callBtn.message{background:rgba(255,255,255,.16)}
+.callReplies{flex:1 1 100%;display:grid;gap:6px;padding-top:8px}
+.callReply{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;border-radius:14px;padding:10px 12px;text-align:left;font:inherit;font-size:14px;cursor:pointer}
+.callReply:hover{background:rgba(255,255,255,.16)}
+.callReply:disabled{opacity:.5;cursor:wait}

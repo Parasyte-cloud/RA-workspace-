@@ -370,6 +370,9 @@ export default function FaceTimeStage({
           <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? (answered ? 'Connecting…' : 'Calling…') : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
           {quality === 'poor' && !calling && !reconnecting && <span className="ftQuality" role="status">Poor connection</span>}
           {remotes.length > 1 && <span className="ftQuality ftOthers" role="status">{remotes.length === 2 ? '1 other person' : `${remotes.length - 1} other people`} on this call</span>}
+          {!calling && remote && !remote.audioEnabled && (
+            <span className="ftMuted" role="status"><MicOff size={12} /> {remoteName} is muted</span>
+          )}
         </div>
         <span className="ftSpacer" aria-hidden="true" />
       </header>
