@@ -1,140 +1,104 @@
 # Data allocation (Administration > Data Allocation)
 
-RideArrivo buys mobile data in bulk (for example 1.5 TB on MTN) and gives every employee a
-**daily** allowance of 500 MB, 1 GB, 2 GB, 3 GB or 5 GB. This feature is the ledger, the
-rules and the control screen. A FreeRADIUS server in front of the office gateway enforces
-the rules at the network edge.
-
-## The one network fact you must plan around
-
-An MTN MiFi is a SIM with a Wi-Fi radio. It counts data against the SIM and has no idea who is
-connected, and it cannot speak RADIUS. So nobody can cap "Ada gets 2 GB today" on a MiFi by itself.
-
-To enforce per-person limits, people must connect **through a gateway you control**, and the
-MiFi (or any 4G SIM) becomes that gateway's internet uplink:
+Everyone works remotely on their own connection, so the daily allowance is delivered by
+**buying each person's bundle straight into their own MTN number** every morning. You decide
+who gets 500 MB, 1 GB, 2 GB, 3 GB or 5 GB; the workspace buys it, records it and stops when the
+pool or the day's spending limit runs out.
 
 ```
- phones / laptops --Wi-Fi--> office gateway (MikroTik recommended) --WAN--> MiFi / 4G SIM(s) --> MTN
-                                  |   RADIUS 1812/1813 + CoA 3799
-                                  v
-                            FreeRADIUS (ra-data site)
-                                  |   HTTPS + shared secret
-                                  v
-                    Supabase Edge Function "data-radius"  -->  database (the ledger)
-                                                                    ^
-                              Administration > Data Allocation -----+
+Administration > Data Allocation            VTpass (data reseller)             MTN
+  plans, numbers, bundles, limit  ---->  Edge Function data-topup  ---->  buys the bundle  ---->  person's SIM
+        pool and ledger (database)  <----  outcome of every order
 ```
 
-What the pool means: the 1.5 TB is the data you actually loaded onto the SIM(s) that feed the
-gateway. This screen tracks how much of it people have used and stops everyone when it is empty.
-It cannot top up an MTN SIM for you.
+The 1.5 TB is a **budget pool**: the total data you have set aside for staff. Each delivered bundle is
+taken from it, and delivery stops when it is empty. The data itself comes from the VTpass wallet
+(you pay per bundle), not from your 5G router. Your office 5G router is not part of this design: it
+cannot reach people who are not on its Wi-Fi.
 
-If people keep using their own MiFi directly, the gateway never sees that traffic. The screen then
-works as a ledger only: use the **Usage** button on a person's row to record what the MTN portal
-shows. Nothing is enforced for them. Be clear with yourself about which mode each person is in.
+## Rules
 
-## Rules the system applies
-
-- The day is the **Africa/Lagos** calendar day. Allowances reset at 00:00 with no cron job.
-- Unused data does not roll over, and unused allowance is never taken from the pool. Only real usage is.
-- 1 GB is 1024 MB, the same as MTN counts.
-- Daily plans: `500 MB, 1 GB, 2 GB, 3 GB, 5 GB`. Extra data for one day is an **adjustment** with a reason, kept in the audit trail.
-- Out of data, plan suspended, no plan, employee deactivated, or pool empty: new logins are refused with a clear message, and open sessions are disconnected within about a minute.
-- Network passwords are bcrypt hashed and shown once. Five wrong attempts lock the person for 15 minutes.
-- If the workspace cannot be reached, logins are refused (fail closed) and the gateway resends its usage reports later, so usage is delayed, not lost.
+- The day is the **Africa/Lagos** calendar day. Each person gets at most **one bundle per day**.
+- Nothing is bought until an administrator switches delivery on **and** sets a daily spending limit in naira.
+- The pool, the daily limit and "one per person per day" are enforced inside the database under a lock,
+  so pressing Run now twice, or the schedule overlapping a manual run, cannot double-buy.
+- If VTpass does not answer clearly (timeout, error, unknown reply) the order is **waiting**, never "failed".
+  A waiting order is asked about again on every run and is never bought a second time.
+  Only a clear refusal counts as failed, and a failed order is retried (new order id, up to 3 tries a day).
+- If the VTpass wallet is empty or the keys are wrong, the run stops straight away and buys nothing else.
+- If an order stays waiting, check VTpass, then press **It arrived** or **It did not** on that row.
+- Unused data does not carry over. A suspended plan or a deactivated person gets nothing from the next run.
+- Everything an administrator changes is in the audit trail. Phone numbers are shown masked
+  (`0803 *** 4567`) and only the masked form is ever written to the audit trail.
 
 ## Set-up, step by step
 
-### 1. Database and function (once)
+### 1. VTpass account
+
+Create a VTpass account, fund the wallet, and get the three keys from its dashboard (API keys page):
+API key, public key (starts with `PK_`) and secret key (starts with `SK_`). Start in **sandbox**: it is a
+separate account area on `sandbox.vtpass.com` where nothing real is bought. Sandbox treats the number
+`08011111111` as a success and any other number as a failure, so test with that number.
+
+If your live VTpass account restricts API access by IP address, note that Supabase Edge Functions do not
+have a fixed IP address. Ask VTpass support about this before going live. If IP restriction is on, the
+purchase code must instead run on a machine with a fixed IP (the same `dataTopupCore.ts` logic).
+
+### 2. Database and functions
 
 ```bash
-supabase db push                                   # applies 20261018000000_data_allocation.sql
-supabase secrets set DATA_RADIUS_SECRET="$(openssl rand -hex 32)"   # keep this value, you need it in step 2
-supabase functions deploy data-radius --no-verify-jwt
+supabase db push                                      # applies 20261018010000_data_topups.sql
+supabase secrets set VTPASS_ENV=sandbox               # sandbox first. Change to live only when ready.
+supabase secrets set VTPASS_API_KEY=...  VTPASS_SECRET_KEY=...  VTPASS_PUBLIC_KEY=...
+supabase functions deploy data-topup --no-verify-jwt
 ```
 
-`--no-verify-jwt` is required: FreeRADIUS has no workspace session. The function is protected by the
-shared secret instead and returns 401 without it. The secret is never stored in git.
+`--no-verify-jwt` is needed because the daily schedule has no workspace session. The function checks for
+itself: it accepts only the cron secret (`CRON_DISPATCH_SECRET`, already used by the other scheduled
+functions) or a signed-in workspace administrator.
 
-Open Administration > Data Allocation, click **1.5 TB**, then **Add to pool**. Pick a plan for each person.
+The migration also schedules the run at **05:00, 06:00 and 08:00 Lagos time** (pg_cron). The later runs only
+retry failures and re-check waiting orders. If pg_cron, pg_net or the Vault secret `cron_dispatch_secret`
+are not set up, the schedule is skipped with a notice and **Run now** still works; the existing
+`cron_authentication_status()` function shows whether the cron secret is in place.
 
-### 2. FreeRADIUS server
+### 3. Configure it on screen
 
-Any small Linux box on the office network (a Raspberry Pi 4, an old PC, a cheap VPS reachable from the gateway).
-
-```bash
-sudo apt install freeradius freeradius-rest freeradius-utils jq curl
-cd ops/freeradius
-sudo bash install.sh
-sudo nano /etc/freeradius/3.0/ra-data.secret.conf     # URL, vendor, and the secret from step 1
-sudo nano /etc/freeradius/3.0/clients.conf            # add your gateway (see clients.conf.example)
-sudo systemctl enable --now freeradius
-```
-
-`ra_data_vendor = "mikrotik"` also sends `Mikrotik-Total-Limit`, so a MikroTik stops the session itself the
-moment the allowance is spent. Use `"generic"` for other gateways; the enforcer then does the cutting.
-
-Check it before involving the gateway:
-
-```bash
-radtest ada@ridearrivo.com 'THEIR-PASSWORD' 127.0.0.1 0 testing123   # use your own client secret
-```
-
-You should see `Access-Accept` with `Session-Timeout` and, on mikrotik mode, `Mikrotik-Total-Limit`.
-
-### 3. The gateway (MikroTik RouterOS v7 example)
-
-Replace `192.168.88.10` with the FreeRADIUS server and the secret with the one in `clients.conf`.
-
-```
-/radius add service=hotspot address=192.168.88.10 secret=CHANGE_ME_gateway_shared_secret timeout=3s
-/radius incoming set accept=yes port=3799
-/ip hotspot profile set [find] use-radius=yes radius-accounting=yes radius-interim-update=received login-by=http-pap,https
-```
-
-- `radius-interim-update=received` makes the router honour the 60 second reporting interval the server asks for.
-- `incoming accept=yes` is what lets the enforcer send Disconnect-Request.
-- Use HTTPS hotspot login (give the hotspot a certificate) so the password is not typed over plain HTTP.
-- PAP is required: the workspace checks the password against its bcrypt hash, which cannot be done with CHAP or MSCHAP.
-- Point the router's WAN at the MiFi(s). If the MiFi has no Ethernet, use the router's Wi-Fi in station mode, or a 4G router with the SIM inside.
-
-pfSense (captive portal), OpenWrt with CoovaChilli, and most hotspot gateways work the same way: RADIUS auth on 1812,
-accounting on 1813, interim updates on, dynamic authorisation (CoA/Disconnect) on 3799.
-
-### 4. Cutting people off (the enforcer)
-
-Radius accounting tells the workspace how much has been used; the enforcer tells the gateway to hang up.
-
-```bash
-sudo install -m 755 ops/freeradius/ra-data-enforcer.sh /usr/local/bin/
-sudo install -m 640 -o root -g freerad ops/freeradius/ra-data-nas.list.example /etc/freeradius/3.0/ra-data-nas.list
-sudo nano /etc/freeradius/3.0/ra-data-nas.list        # gateway IP and its secret
-sudo cp ops/freeradius/ra-data-enforcer.{service,timer} /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now ra-data-enforcer.timer
-journalctl -u ra-data-enforcer -f                      # shows "disconnected ada@... (quota_exhausted)"
-```
-
-### 5. People
-
-In Administration > Data Allocation press **Password** on a person's row and give it to them privately, or let them create
-their own on their dashboard ("My data today"). They join the office Wi-Fi and sign in with their work email and that password.
-
-When the first usage report arrives the **Gateway** tile turns green.
+1. Open Administration > Data Allocation. Add the pool (the **1.5 TB** button fills 1500 GB).
+2. Give each person a daily plan.
+3. Add each person's MTN number on their row, or paste `email, number` lines in the **MTN numbers** box.
+4. In **Daily delivery**, press **Load bundles from VTpass** and pick the daily bundle for each plan
+   (check the price). Choose bundles that last one day, so what you deliver matches the plan.
+5. Set the daily spending limit, then **Switch delivery on**.
+6. Press **Run now**. In sandbox the message says "Test run". Check **Recent deliveries**.
+7. When you are happy, run `supabase secrets set VTPASS_ENV=live`. The screen then shows **LIVE: real money is spent**
+   and asks you to confirm before switching delivery on.
 
 ## What each part does if it breaks
 
 | Failure | Result |
 | --- | --- |
-| Workspace or database unreachable | Logins refused. Gateway keeps accounting packets and resends. Existing sessions continue until the next successful report. |
-| FreeRADIUS down | Gateway cannot authenticate new logins. Existing sessions keep running until they end. |
-| Enforcer not running | People are refused at next login, but a session already past its limit keeps running. On MikroTik the `Mikrotik-Total-Limit` still stops it. |
-| Wrong shared secret | Every request gets 401, so every login is refused. Fix `ra-data.secret.conf` and `supabase secrets`. |
-| Gateway clock or NAS reboot resets its counters | A counter that goes backwards is charged as fresh usage. Retransmitted packets are never charged twice. |
+| VTpass wallet empty | The run stops at the first refusal, nothing else is bought, the screen shows the reason. Fund the wallet and press Run now. |
+| VTpass slow or down | Orders become "waiting" and are re-checked on every run. Nobody is double-charged. |
+| Workspace database down | Nothing is reserved, so nothing is bought. |
+| Person has no number or no bundle for their plan | They are skipped and counted as "need a number" on the screen. |
+| Wrong keys | The run stops at the first refusal. |
+| Run twice, or schedule plus Run now | The second run finds everyone already delivered or waiting and buys nothing. |
+
+## Check it yourself
+
+- `supabase/checks/data-topups.sql`: 32 behaviour checks for the database rules (run on a scratch Postgres).
+- `scripts/data-topup.test.mjs`: the purchase logic against a fake database and a fake reseller, and the screens.
 
 ## Files
 
-- `supabase/migrations/20261018000000_data_allocation.sql`: tables, rules, administrator and RADIUS functions
-- `supabase/checks/data-allocation.sql`: behaviour checks (47) for a scratch Postgres
-- `supabase/functions/data-radius/` and `_shared/dataRadiusCore.ts`: the HTTP side FreeRADIUS calls
-- `src/modules/AdminDataAllocation.tsx`: the Administration screen; `src/components/MyDataCard.tsx`: the dashboard card
-- `ops/freeradius/`: module, site, installer, enforcer and systemd units
+- `supabase/migrations/20261018010000_data_topups.sql`: numbers, bundles, ledger, switch, limit, schedule
+- `supabase/functions/data-topup/` and `_shared/dataTopupCore.ts`: the purchase function and its logic
+- `src/modules/AdminDataDelivery.tsx`: delivery controls; `src/modules/AdminDataAllocation.tsx`: pool, plans, numbers
+- `src/components/MyDataCard.tsx`: what each person sees on their dashboard
+
+## Office gateway mode (optional, not used for remote staff)
+
+The earlier FreeRADIUS design (`ops/freeradius/`, `data-radius`, migration `20261018000000`) meters
+traffic at an office gateway. It only applies to people sitting on the office network, so it is not part of
+the remote setup above. It stays in the repository, switched off, in case you need it for an office.
