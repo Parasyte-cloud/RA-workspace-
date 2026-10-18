@@ -18,6 +18,31 @@ const ACTIVITY_KEY =
 const ACTIVITY_WRITE_THROTTLE_MS =
   15 * 1000
 
+// Browsers can block storage (private windows, strict settings). The last
+// activity time then lives in memory for this tab, so the idle check keeps
+// working instead of throwing every 30 seconds.
+let memoryActivity = Date.now()
+
+function storeActivity(ms: number) {
+  memoryActivity = ms
+  try {
+    window.localStorage.setItem(ACTIVITY_KEY, String(ms))
+  } catch {
+    /* memory copy is enough */
+  }
+}
+
+function loadActivity(): number {
+  try {
+    const raw = window.localStorage.getItem(ACTIVITY_KEY)
+    const parsed = raw ? Number(raw) : NaN
+    if (Number.isFinite(parsed)) return parsed
+  } catch {
+    /* fall through to the memory copy */
+  }
+  return memoryActivity
+}
+
 // While a call or meeting is open the person is present even when they are not
 // touching the keyboard, so the idle timer must not sign them out of it.
 let holds = 0
@@ -26,20 +51,12 @@ export function useHoldIdleSignOut(active: boolean) {
   useEffect(() => {
     if (!active) return
     holds += 1
-    try {
-      window.localStorage.setItem(ACTIVITY_KEY, String(Date.now()))
-    } catch {
-      /* storage can be blocked */
-    }
+    storeActivity(Date.now())
     return () => {
       holds = Math.max(0, holds - 1)
-      try {
-        // Counts as activity at the moment the call ends, so leaving a long
-        // call does not sign the person out a second later.
-        window.localStorage.setItem(ACTIVITY_KEY, String(Date.now()))
-      } catch {
-        /* storage can be blocked */
-      }
+      // Counts as activity at the moment the call ends, so leaving a long
+      // call does not sign the person out a second later.
+      storeActivity(Date.now())
     }
   }, [active])
 }
@@ -71,35 +88,10 @@ export function useIdleSignOut(
       }
 
       lastWrite = now
-
-      window.localStorage.setItem(
-        ACTIVITY_KEY,
-        String(now)
-      )
+      storeActivity(now)
     }
 
-    const getLastActivity = () => {
-      const raw =
-        window.localStorage.getItem(
-          ACTIVITY_KEY
-        )
-
-      const parsed =
-        raw ? Number(raw) : NaN
-
-      if (!Number.isFinite(parsed)) {
-        const now = Date.now()
-
-        window.localStorage.setItem(
-          ACTIVITY_KEY,
-          String(now)
-        )
-
-        return now
-      }
-
-      return parsed
-    }
+    const getLastActivity = loadActivity
 
     const checkIdle = async () => {
       if (signingOut) {
@@ -114,10 +106,7 @@ export function useIdleSignOut(
       }
 
       if (holds > 0) {
-        window.localStorage.setItem(
-          ACTIVITY_KEY,
-          String(Date.now())
-        )
+        storeActivity(Date.now())
         return
       }
 

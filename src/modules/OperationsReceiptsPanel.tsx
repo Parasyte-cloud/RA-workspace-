@@ -1022,6 +1022,8 @@ export default function OperationsReceiptsPanel() {
                       <button
                         type="button"
                         className="glassButton"
+                        aria-label="Download receipt"
+                        title="Download receipt"
                         onClick={() =>
                           void openReceipt(
                             receipt,

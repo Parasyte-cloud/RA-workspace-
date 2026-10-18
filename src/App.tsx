@@ -641,11 +641,11 @@ function App(){
     const {data} =
       supabase.auth.onAuthStateChange(
         (event,next)=>{
+          // The event name is enough to debug with. Email addresses stay out of logs.
           console.info(
             '[RideArrivo Auth]',
             event,
-            next?.user?.email ||
-            'no session'
+            next ? 'session' : 'no session'
           )
 
           if(event==='PASSWORD_RECOVERY'){

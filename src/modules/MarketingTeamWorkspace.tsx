@@ -2400,6 +2400,8 @@ export function MarketingTeamWorkspace({onNavigate}:{onNavigate?:(target:string)
 
             <button
               type="button"
+              aria-label="Send message"
+              title="Send message"
               disabled={
                 !selectedSpaceId
                 || !messageText.trim()
