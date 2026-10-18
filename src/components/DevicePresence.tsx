@@ -16,8 +16,8 @@ type LocationState={
 
 const CONSENT_VERSION='2026-08-admin-location-v1'
 const CONSENT_KEY='ridearrivo-location-sharing'
-// Settings talks to this component through two window events, so the sidebar
-// only needs to offer "Share work location" and the off switch lives in Settings.
+// Settings drives this component through two window events: the sidebar only shows the address,
+// and the on/off switch for sharing lives in Settings.
 export const LOCATION_REQUEST_EVENT='ra-location-request'
 export const LOCATION_STATE_EVENT='ra-location-state'
 
@@ -214,11 +214,6 @@ export default function DevicePresence({profileId}:Props){
         </span>
       </div>
 
-      {!location.shared && (
-        <button type="button" onClick={shareLocation} disabled={locating}>
-          {locating?'Locating...':'Share work location'}
-        </button>
-      )}
     </div>
   )
 }

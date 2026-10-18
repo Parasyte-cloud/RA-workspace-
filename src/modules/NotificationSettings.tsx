@@ -174,7 +174,7 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
             <span className="appearanceSettingNumber"><MapPin size={16} /></span>
             <div>
               <h3>Work location sharing</h3>
-              <p>On: your precise sign-in location is sent to RideArrivo for account security and workplace administration. Off: only your device and time zone are recorded. You can turn it back on from the sidebar. To remove the browser permission too, use the site settings of your browser.</p>
+              <p>On: your precise sign-in location is sent to RideArrivo for account security and workplace administration. Off: only your device and time zone are recorded. To remove the browser permission too, use the site settings of your browser.</p>
             </div>
           </div>
           <label className="settingsToggle">
