@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Copy, Globe, Mail, MapPin, Phone } from 'lucide-react'
+import { Check, Copy, FileText, Globe, Mail, MapPin, Phone } from 'lucide-react'
 import { LETTERHEAD } from '../lib/letterhead'
 import './company-contact.css'
 
 type Row = { id: string; label: string; value: string; icon: JSX.Element; href?: string }
 
 const ROWS: Row[] = [
+  { id: 'rc', label: 'Registration', value: LETTERHEAD.rcNumber, icon: <FileText size={16} /> },
   { id: 'address', label: 'Address', value: LETTERHEAD.address, icon: <MapPin size={16} /> },
   { id: 'phone', label: 'Telephone', value: LETTERHEAD.phoneIntl, icon: <Phone size={16} />, href: `tel:${LETTERHEAD.phoneIntl.replace(/\s+/g, '')}` },
   { id: 'email', label: 'Email', value: LETTERHEAD.email, icon: <Mail size={16} />, href: `mailto:${LETTERHEAD.email}` },
@@ -51,7 +52,7 @@ export default function CompanyContactCard() {
     timer.current = window.setTimeout(() => { setCopied(''); setFailed(false) }, 2200)
   }
 
-  const all = [LETTERHEAD.legalName, LETTERHEAD.address, `Tel: ${LETTERHEAD.phoneIntl}`, `Email: ${LETTERHEAD.email}`, LETTERHEAD.website].join('\n')
+  const all = [LETTERHEAD.legalName, LETTERHEAD.rcNumber, LETTERHEAD.address, `Tel: ${LETTERHEAD.phoneIntl}`, `Email: ${LETTERHEAD.email}`, LETTERHEAD.website].join('\n')
 
   return (
     <section className="ccCard" aria-label="Company contact details">
