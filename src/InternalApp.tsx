@@ -1,6 +1,7 @@
 import App from './App'
 import {RibbonGiftHost} from './components/WorkReactions'
 import {RecognitionHost} from './components/Recognition'
+import {ParasyteCrestBar,ParasyteSplash} from './components/ParasyteCrest'
 import './styles.css'
 import './brand.css'
 import './workspace-shell.css'
@@ -25,11 +26,12 @@ import './glass-clear.css'
 import './visibility-fixes.css'
 import './secondary-button.css'
 import './dark-readability.css'
+import './parasyte-crest.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
 
 
 export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
-  return <><App/><RibbonGiftHost/><RecognitionHost/></>
+  return <><App/><RibbonGiftHost/><RecognitionHost/><ParasyteCrestBar/><ParasyteSplash/></>
 }

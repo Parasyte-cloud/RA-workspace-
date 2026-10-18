@@ -1,0 +1,61 @@
+/* PArAsYtE crest: splash and the slim bar at the base of every screen.
+   Both are always dark, in light and dark mode, because the crest is metallic silver. */
+
+.parasyteCrestBar{
+  position:fixed;left:0;right:0;bottom:0;z-index:25;height:30px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:linear-gradient(180deg,#0a1626,#050d19);
+  border-top:1px solid rgba(255,255,255,.06);
+  box-shadow:0 -1px 0 rgba(255,153,0,.12);
+  pointer-events:none;
+}
+.parasyteCrestBar::before{
+  content:"";position:absolute;left:0;right:0;top:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,177,59,.55),transparent);
+}
+.parasyteCrestBar img{height:13px;width:auto;display:block;opacity:.92}
+.parasyteCrestCredit{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#9fb0c4;white-space:nowrap}
+
+/* Room for the bar so it never covers the last line of a page. */
+html.hasParasyteCrest body{padding-bottom:30px}
+@media(min-width:701px){
+  html.hasParasyteCrest .sidebar{height:calc(100vh - 28px - 30px)}
+}
+/* On phones the app has its own fixed bottom navigation: sit just above it. */
+@media(max-width:700px){
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{bottom:70px}
+  html.hasParasyteCrest:has(.sidebar) body{padding-bottom:100px}
+  .parasyteCrestCredit{display:none}
+  .parasyteCrestBar img{height:12px}
+}
+
+.parasyteSplash{
+  position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:24px;cursor:pointer;
+  background:
+    radial-gradient(60% 50% at 50% 38%,rgba(120,150,200,.16),transparent 70%),
+    radial-gradient(40% 30% at 82% 92%,rgba(255,153,0,.10),transparent 70%),
+    linear-gradient(180deg,#060d19,#02060d);
+  color:#e8eef7;opacity:1;transition:opacity .5s ease;
+}
+.parasyteSplash.leaving{opacity:0;pointer-events:none}
+.parasyteSplashInner{display:grid;justify-items:center;gap:18px;text-align:center;animation:psRise .9s cubic-bezier(.2,.7,.2,1) both}
+.parasyteSplashCrest{
+  width:min(560px,84vw);height:auto;display:block;
+  filter:drop-shadow(0 0 28px rgba(170,195,235,.25));
+  -webkit-mask-image:linear-gradient(100deg,#000 0%,#000 40%,rgba(0,0,0,.55) 50%,#000 60%,#000 100%);
+  -webkit-mask-size:260% 100%;mask-size:260% 100%;
+  animation:psSheen 2.4s ease-in-out .5s 1 both;
+}
+.parasyteSplashRule{width:min(260px,50vw);height:1px;background:linear-gradient(90deg,transparent,rgba(255,177,59,.8),transparent)}
+.parasyteSplashRole{margin:0;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#b9c7d9}
+.parasyteSplashProduct{margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7f91a8}
+.parasyteSplashSkip{position:absolute;bottom:26px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5f7087}
+
+@keyframes psRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes psSheen{from{-webkit-mask-position:120% 0;mask-position:120% 0}to{-webkit-mask-position:-20% 0;mask-position:-20% 0}}
+
+@media(prefers-reduced-motion:reduce){
+  .parasyteSplashInner,.parasyteSplashCrest{animation:none}
+  .parasyteSplash{transition:none}
+}
+@media print{.parasyteCrestBar,.parasyteSplash{display:none}}
