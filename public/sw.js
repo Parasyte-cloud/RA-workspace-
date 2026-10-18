@@ -126,8 +126,22 @@ self.addEventListener('push', event => {
       }
     } catch (_) {}
 
+    // Several messages in one chat (or mailbox) before anyone looks: keep ONE
+    // notification and count them, instead of each message replacing the last
+    // and hiding what came before.
+    let count = 1
+    const groupable = data.type === 'chat_message' || data.type === 'chat_mention' || data.type === 'mail_message'
+    if (groupable && data.tag && !data.repeat) {
+      try {
+        const shown = await self.registration.getNotifications({ tag: data.tag })
+        if (shown.length) count = Math.min(99, ((shown[0].data && shown[0].data.count) || 1) + 1)
+      } catch (_) {}
+    }
+    const noun = data.type === 'mail_message' ? 'new emails' : 'new messages'
+    const body = count > 1 ? `${count} ${noun}. Latest: ${data.body || ''}`.trim() : (data.body || '')
+
     await self.registration.showNotification(data.title || 'RideArrivo', {
-      body: data.body || '',
+      body,
       tag: data.tag || undefined,
       renotify: Boolean(data.tag),
       silent: false,
@@ -137,14 +151,14 @@ self.addEventListener('push', event => {
       requireInteraction: Boolean(data.urgent),
       // A ring buzzes long. A chat message gives two short buzzes, like WhatsApp.
       vibrate: data.urgent ? [400, 200, 400, 200, 400] : (data.type === 'chat_message' || data.type === 'chat_mention' || data.type === 'room_join_request') ? [180, 90, 180] : undefined,
-      data: { url: data.url || '/' }
+      data: { url: data.url || '/', count }
     })
   })())
 })
 
 self.addEventListener('notificationclick', event => {
   event.notification.close()
-  try { if (self.navigator.clearAppBadge) self.navigator.clearAppBadge() } catch (_) {}
+  // The icon count is the app's to set (it knows the real unread total), so a tap does not wipe it.
   const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
 
   event.waitUntil((async () => {
@@ -152,7 +166,18 @@ self.addEventListener('notificationclick', event => {
     for (const client of windows) {
       if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
         await client.focus()
-        if ('navigate' in client) await client.navigate(target).catch(() => {})
+        // Ask the open app to go there itself. Reloading the page with
+        // navigate() would drop what the person is doing, even a live call.
+        // If the app does not answer (an older copy), fall back to navigate().
+        const handled = await new Promise(resolve => {
+          try {
+            const channel = new MessageChannel()
+            const timer = setTimeout(() => resolve(false), 700)
+            channel.port1.onmessage = reply => { clearTimeout(timer); resolve(Boolean(reply.data && reply.data.handled)) }
+            client.postMessage({ type: 'ra-open', url: target }, [channel.port2])
+          } catch (_) { resolve(false) }
+        })
+        if (!handled && 'navigate' in client) await client.navigate(target).catch(() => {})
         return
       }
     }
