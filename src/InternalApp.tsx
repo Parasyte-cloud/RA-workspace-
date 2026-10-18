@@ -29,9 +29,11 @@ import './dark-readability.css'
 import './parasyte-crest.css'
 import {useEffect} from 'react'
 import {startIslandBar} from './lib/islandBar'
+import {startIslandMotion} from './lib/islandMotion'
 
 
 export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
+  useEffect(()=>startIslandMotion(),[])
   return <><App/><RibbonGiftHost/><RecognitionHost/><ParasyteCrestBar/><ParasyteSplash/></>
 }

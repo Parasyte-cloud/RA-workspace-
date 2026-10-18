@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LOCATION_REQUEST_EVENT, LOCATION_STATE_EVENT } from '../components/DevicePresence'
-import { BellRing, LogOut, MapPin, MessageCircle, Play, Volume2 } from 'lucide-react'
+import { funOverride, reduceMotion, setFunOverride } from '../lib/islandMotion'
+import { BellRing, LogOut, MapPin, MessageCircle, Play, Sparkles, Volume2 } from 'lucide-react'
 import PhoneAlertsToggle from '../components/PhoneAlertsToggle'
 import AlertPreferences from '../components/AlertPreferences'
 import { moveSession, readKeepSignedIn } from '../lib/keepSignedIn'
@@ -35,6 +36,12 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
   const changeLocation = (next: boolean) => {
     setLocShared(next)
     window.dispatchEvent(new CustomEvent(LOCATION_REQUEST_EVENT, { detail: next }))
+  }
+  const [fun, setFun] = useState(() => funOverride())
+  const [systemReduce] = useState(() => reduceMotion())
+  const changeFun = (next: boolean) => {
+    setFun(next)
+    setFunOverride(next)
   }
   const [keep, setKeep] = useState(() => readKeepSignedIn(window.localStorage))
   const changeKeep = (next: boolean) => {
@@ -180,6 +187,19 @@ export function NotificationSettings({ onSignOut }: { onSignOut?: () => void }) 
           <label className="settingsToggle">
             <input type="checkbox" checked={locShared} onChange={event => changeLocation(event.target.checked)} />
             <span>Share my work location from this device</span>
+          </label>
+        </article>
+        <article className="appearanceSettingCard">
+          <div className="appearanceSettingCopy">
+            <span className="appearanceSettingNumber"><Sparkles size={16} /></span>
+            <div>
+              <h3>Playful island motion</h3>
+              <p>On a phone, the top bar and the bottom dock bounce when they shrink and grow, and a soft liquid glow drifts behind them. {systemReduce ? 'This phone has Reduce Motion turned on, so the motion is off unless you switch it on here.' : 'It follows your phone setting for Reduce Motion, which is currently off.'} This setting is per device.</p>
+            </div>
+          </div>
+          <label className="settingsToggle">
+            <input type="checkbox" checked={fun || !systemReduce} disabled={!systemReduce} onChange={event => changeFun(event.target.checked)} />
+            <span>{systemReduce ? 'Play the island motion on this device' : 'Island motion is on'}</span>
           </label>
         </article>
         <AlertPreferences />
