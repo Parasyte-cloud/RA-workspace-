@@ -166,18 +166,34 @@ export default function DevicePresence({profileId}:Props){
     }
   },[profileId,register,shareLocation])
 
+  const [expanded,setExpanded]=useState(false)
   const label=address
     || (location.shared && location.latitude!==null && location.longitude!==null
       ? `${coarse(location.latitude).toFixed(2)}, ${coarse(location.longitude).toFixed(2)}`
       : timezone)
 
+  // Long addresses slide left in a loop so the sidebar never has to widen. Click shows the whole address.
+  const scrolls=label.length>26
+
   return (
     <div className="devicePresence">
       <div
-        className="devicePresenceLocation"
+        className={`devicePresenceLocation${expanded?' expanded':''}${scrolls&&!expanded?' scrolls':''}`}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
         title={message || address || 'Device presence is recorded for account security. Precise location is shared only after your permission.'}
+        onClick={()=>setExpanded(value=>!value)}
+        onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setExpanded(value=>!value)}}}
       >
-        <MapPin size={12}/><span>{label}</span>
+        <MapPin size={12}/>
+        <span className="devicePresenceText">
+          {scrolls && !expanded ? (
+            <span className="devicePresenceTrack" style={{animationDuration:`${Math.max(14,label.length*0.32)}s`}}>
+              <span>{label}</span><span aria-hidden="true">{label}</span>
+            </span>
+          ) : label}
+        </span>
       </div>
 
       {!location.shared ? (
