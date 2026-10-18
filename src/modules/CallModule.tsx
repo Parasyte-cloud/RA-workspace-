@@ -1,4 +1,5 @@
 import { setActiveCallId } from '../lib/activeCall'
+import { hangUpCall, hangUpStatuses, type CallRole } from '../lib/callHangup'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { prefetchWhenIdle } from '../lib/prefetch'
@@ -54,6 +55,12 @@ async function invokeJoin(roomCode: string): Promise<CallSession> {
   return data as CallSession
 }
 
+function serverHangUp(callId: string, role: CallRole) {
+  const client = supabase
+  if (!client) return
+  void hangUpCall((fn, args) => client.rpc(fn, args), callId, role)
+}
+
 // One-to-one voice and video calls started from Chat. They have their own
 // screen and never open, list or end anything in ROOM 7.
 export default function CallModule() {
@@ -77,7 +84,9 @@ export default function CallModule() {
   const finish = useCallback((message = '') => {
     const callId = callIdRef.current
     callIdRef.current = ''
-    if (callId) void supabase?.rpc('respond_chat_call', { p_call: callId, p_status: 'ended' })
+    // The caller pressing End while it still rings must cancel the call, not
+    // only try to end it, or the other phone keeps ringing.
+    if (callId) serverHangUp(callId, sessionRef.current?.role ?? 'unknown')
     setSession(null)
     setMinimized(false)
     setNotice(message)
@@ -97,7 +106,12 @@ export default function CallModule() {
       void invokeJoin(detail.code)
         .then(setSession)
         .catch(error => {
+          // The call row is still live on the server: close it, and stop
+          // counting this phone as "in a call".
+          const failed = callIdRef.current
           callIdRef.current = ''
+          setActiveCallId('')
+          if (failed) serverHangUp(failed, 'unknown')
           setNotice(error instanceof Error ? error.message : 'Unable to join the call.')
         })
     }
@@ -179,12 +193,14 @@ export default function CallModule() {
       const callId = callIdRef.current
       if (!callId || !sessionRef.current || !tokenRef.current || !url || !anon) return
       try {
-        void fetch(`${url}/rest/v1/rpc/respond_chat_call`, {
-          method: 'POST',
-          keepalive: true,
-          headers: { apikey: anon, Authorization: `Bearer ${tokenRef.current}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ p_call: callId, p_status: 'ended' })
-        }).catch(() => {})
+        for (const status of hangUpStatuses(sessionRef.current.role)) {
+          void fetch(`${url}/rest/v1/rpc/respond_chat_call`, {
+            method: 'POST',
+            keepalive: true,
+            headers: { apikey: anon, Authorization: `Bearer ${tokenRef.current}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_call: callId, p_status: status })
+          }).catch(() => {})
+        }
       } catch { /* nothing more can be done as the page closes */ }
     }
     window.addEventListener('pagehide', leaveNow)
