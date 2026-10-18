@@ -31,7 +31,6 @@ import {
 } from '@cloudflare/realtimekit-react'
 import { RtkMeeting } from '@cloudflare/realtimekit-react-ui'
 import FaceTimeStage from './FaceTimeStage'
-import { classicCall } from '../lib/callStyle'
 import {
   Room7ExtrasControls,
   Room7ExtrasOverlay,
@@ -131,8 +130,8 @@ export default function RoomMeeting({
   const [teamChatOpen,setTeamChatOpen]=useState(false)
   const [initTry,setInitTry]=useState(0)
   const [elapsed,setElapsed]=useState(0)
-  // Chat calls look like FaceTime unless this device chose the classic screen.
-  const [faceTime]=useState(()=>chatCall&&!classicCall())
+  // Every chat call, on every device, uses the same FaceTime-style screen. ROOM 7 meetings keep RealtimeKit's own.
+  const faceTime=chatCall
   useEffect(()=>{
     if(!chatCall)return
     const started=Date.now()

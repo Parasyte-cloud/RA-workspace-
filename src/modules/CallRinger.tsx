@@ -4,6 +4,7 @@ import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
 import { endStaleCalls } from '../lib/callCleanup'
+import { getActiveCallId, subscribeActiveCall } from '../lib/activeCall'
 import { startTone, wireAudioUnlock } from '../lib/ringtone'
 import {
   alertPermission,
@@ -39,6 +40,9 @@ export default function CallRinger() {
   const [names, setNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [soundBlocked, setSoundBlocked] = useState(false)
+  // Once the call screen is up it shows "Calling..." itself, so the card steps aside.
+  const [stageCallId, setStageCallId] = useState(getActiveCallId())
+  useEffect(() => subscribeActiveCall(setStageCallId), [])
   const namesRef = useRef<Record<string, string>>({})
   const timerRef = useRef<number | null>(null)
   const meRef = useRef('')
@@ -278,7 +282,8 @@ export default function CallRinger() {
     await client.rpc('respond_chat_call', { p_call: call.id, p_status: 'cancelled' })
   }
 
-  if (!me || (!incoming.length && !outgoing && !outcome && !showPrompt)) return null
+  const showOutgoing = Boolean(outgoing) && outgoing?.id !== stageCallId
+  if (!me || (!incoming.length && !showOutgoing && !outcome && !showPrompt)) return null
 
   // Drawn on <body>, not inside the page: an open chat, the sticky bars and any
   // parent with a blur or transform would otherwise cover or trap a fixed card.
@@ -299,7 +304,7 @@ export default function CallRinger() {
           </button>
         </div>
       ))}
-      {outgoing && (
+      {outgoing && outgoing.id !== stageCallId && (
         <div className="callCard outgoing">
           <span className="callPulse">{outgoing.kind === 'video' ? <Video size={20} /> : <Phone size={20} />}</span>
           <div className="callCopy">

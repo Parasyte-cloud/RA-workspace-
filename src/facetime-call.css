@@ -1,8 +1,14 @@
 /* FaceTime-style chat calls (see FaceTimeStage.tsx). */
 
 .callScreen.callFT { background: #000; }
+/* Phones and tablets: edge to edge. Desktop: a centred window, the same shape for every call (a
+   16:10 video window; the controls and name sit inside it exactly as on a phone). */
 @media (min-width: 861px) {
-  .callScreen.callFT.callFull { inset: 4vh calc(50% - min(23vh, 215px)); border-radius: 34px; }
+  .callScreen.callFT.callFull {
+    inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(960px, 92vw, calc(88vh * 16 / 10)); height: min(600px, 88vh, calc(92vw * 10 / 16));
+    border-radius: 28px;
+  }
 }
 .callScreen.callFT .callStage { background: #000; }
 
@@ -117,5 +123,6 @@
 .ftSheet strong { font-size: 17px; text-align: center; }
 .ftChoice { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: 16px; background: rgba(255,255,255,.1); color: #fff; font-size: 16px; text-align: left; cursor: pointer; }
 .ftChoice.on { background: #fff; color: #111; font-weight: 700; }
+.ftChoice .ftTick { margin-left: auto; }
 .ftSheetNote { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.82); }
 .ftSheetClose { min-height: 50px; border: 0; border-radius: 16px; background: rgba(255,255,255,.18); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }

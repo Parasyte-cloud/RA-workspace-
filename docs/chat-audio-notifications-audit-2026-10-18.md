@@ -31,6 +31,27 @@ checklist at the end says exactly what to press.
 | 11 | Low | The self-check did not cover sound | It only checked permission and push registration. | **Fixed.** Settings now also reports whether sound is running and whether rings can play on silent. |
 | 12 | Low | Remote call audio is rebuilt when the call is minimised and restored | `RtkParticipantsAudio` sits inside the two stage layouts. | **Not changed on purpose.** It also hosts RealtimeKit's "audio blocked" dialog, so moving it risks layout and stacking for a gap of about a tenth of a second. |
 
+## Round 2: one call screen, a Speaker button that works (same day)
+
+Reported with screenshots: on desktop the Speaker button showed "Your phone picks where call sound plays..."
+and nothing else, and on iPhone the call opened RealtimeKit's stock "Join" set-up screen instead of the
+FaceTime screen.
+
+| # | Severity | Finding | Root cause | Status |
+|---|----------|---------|-----------|--------|
+| 13 | High | iPhone showed the classic set-up screen (serif font, Join button, device dropdowns) | The FaceTime screen was switched off per device by a stored "classic call screen" setting. The phone had it on. | **Fixed.** The setting, its toggle and its helper are deleted. Every chat call, on every device, uses the one FaceTime screen. ROOM 7 meetings keep their own. |
+| 14 | High | Speaker button on desktop only showed phone wording | The list needed two or more outputs, and a laptop reports one (plus a "default" copy of it). Anything less fell through to the phone text. | **Fixed.** Desktop and Android list every real output by its real name with the one in use ticked, even when there is only one. The "default" entry is matched to the real device by group. If the browser lists nothing (Safari on a Mac), the button is not drawn at all, instead of a dead one. |
+| 15 | Medium | iPhone Speaker needed a sheet for a two way choice | Extra tap. | **Fixed.** One tap flips Phone and Speaker like FaceTime. The button is white while the speaker is on. |
+| 16 | High | Pressing End on a call that was still ringing left the other phone ringing | The hang up sent `ended`, which the database only accepts for answered calls. The caller never sent `cancelled`. | **Fixed.** The caller sends `cancelled` then `ended` (each is a no-op in the wrong state). The tab-close path does the same. The person being called never sends the cancel, which the database refuses. |
+| 17 | Medium | A failed join left the phone "in a call" and the call live | Join failure cleared the call id but not the shared active call id, and never told the server. | **Fixed.** The active id is cleared and the call is closed on the server. |
+| 18 | Medium | The "Calling..." card and the call screen showed the same call twice | Both listened to the same call. | **Fixed.** The card steps aside while the call screen is up. |
+| 19 | Medium | Controls vanished while ringing or reconnecting | The hide timer ignored the call state. | **Fixed.** They only fade on a connected video call. Voice calls, ringing, reconnecting and the open sheet keep them on screen. |
+| 20 | Low | Desktop call window was a narrow phone shaped column | Fixed inset sized for a portrait window. | **Fixed.** A centred 16:10 window on desktop, edge to edge on phones. The same controls and header sit in it either way. |
+
+Tests: `call-screen-consistency.test.mjs` (output list, hang up statuses, active call subscription, no classic
+option) plus updated `facetime-call` and `call-cleanup` tests. Still needs a device check: the one tap Speaker
+toggle on a real iPhone (same Audio Session caveat as before).
+
 ## Against iMessage and FaceTime
 
 Already at or near parity: delivered and read receipts, typing indicator, replies, forwarding, edit and

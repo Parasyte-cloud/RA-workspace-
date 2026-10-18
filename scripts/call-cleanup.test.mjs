@@ -91,7 +91,8 @@ test('a locked phone keeps the call; the earpiece works; the ring check is in Se
   assert.match(route, /play-and-record/)
   assert.match(route, /'playback'/)
   assert.match(route, /defaultRoute/)
-  assert.match(read('src/modules/FaceTimeStage.tsx'), /uniqueOutputs/)
+  assert.match(read('src/lib/outputSheet.ts'), /uniqueOutputs/)
+  assert.match(read('src/modules/FaceTimeStage.tsx'), /outputChoices/)
   assert.match(read('src/modules/NotificationSettings.tsx'), /<CallRingCheck \/>/)
 })
 
