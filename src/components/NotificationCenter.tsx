@@ -291,6 +291,22 @@ useEffect(
     }
 
     if(
+      item.entity_type==='workspace_note' &&
+      onOpenSection
+    ){
+      try{
+        if(item.entity_id){
+          sessionStorage.setItem('ra.notes.open',item.entity_id)
+        }
+      }catch{
+        // Notes still opens without the remembered note.
+      }
+      setOpen(false)
+      onOpenSection('notes')
+      return
+    }
+
+    if(
       item.entity_type==='workspace_announcement' &&
       onOpenSection
     ){
