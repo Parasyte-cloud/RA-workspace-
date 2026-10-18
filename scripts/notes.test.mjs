@@ -84,3 +84,28 @@ test('island: double tap to move, position stays on screen and is saved', () => 
   assert.match(src, /isDoubleTap\(lastTap\.current/)
   assert.match(src, /savePos\(pos\)/)
 })
+
+test('sharing: owner-only control, editors cannot pin or trash, names are limited', () => {
+  const sql = read('supabase/migrations/20261018170000_workspace_notes_sharing.sql')
+  assert.match(sql, /create table if not exists public\.note_shares/)
+  assert.match(sql, /owner_id = auth\.uid\(\) or public\.note_can_read\(id\)/)
+  assert.match(sql, /owner_id = auth\.uid\(\) or public\.note_can_edit\(id\)/)
+  assert.match(sql, /new\.pinned := old\.pinned/)
+  assert.match(sql, /new\.deleted_at := old\.deleted_at/)
+  assert.match(sql, /public\.note_owner\(note_id\) = auth\.uid\(\) and user_id <> auth\.uid\(\)/)
+  assert.match(sql, /revoke all on public\.note_shares from anon/i)
+  assert.match(sql, /'note_shared'/)
+  assert.ok(!/for delete[^;]*workspace_notes[^;]*note_can/i.test(sql), 'delete stays owner only')
+  assert.match(read('src/components/NotificationCenter.tsx'), /workspace_note/)
+})
+test('sharing: access rules for the buttons', async () => {
+  const shares = [{ note_id: 'n', user_id: 'b', can_edit: true }, { note_id: 'n', user_id: 'c', can_edit: false }]
+  const note = { id: 'n', owner_id: 'a' }
+  assert.equal(N.accessFor(note, 'a', shares), 'owner')
+  assert.equal(N.accessFor(note, 'b', shares), 'edit')
+  assert.equal(N.accessFor(note, 'c', shares), 'view')
+  assert.equal(N.accessFor(note, 'z', shares), 'view')
+  assert.equal(N.isSharedByMe(note, 'a', shares), true)
+  assert.equal(N.isSharedByMe(note, 'b', shares), false)
+  assert.equal(N.personName({ id: 'x', full_name: '', email: 'x@ridearrivo.com' }), 'x@ridearrivo.com')
+})

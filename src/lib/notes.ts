@@ -16,6 +16,7 @@ export type Stroke = { c: string; w: number; p: Array<[number, number]> }
 
 export type Note = {
   id: string
+  owner_id?: string
   title: string
   body: string
   sketch: Stroke[] | null
@@ -143,4 +144,31 @@ export function strokePath(stroke: Stroke): string {
   if (pts.length === 0) return ''
   if (pts.length === 1) return `M${pts[0][0]} ${pts[0][1]}h.01`
   return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ')
+}
+
+/* ---- sharing -------------------------------------------------------- */
+
+export type Share = { note_id: string; user_id: string; can_edit: boolean }
+export type Person = { id: string; full_name: string; email: string; job_title?: string }
+export type Access = 'owner' | 'edit' | 'view'
+
+// What the signed-in person may do with a note. The database enforces this
+// too; this only decides which buttons to show.
+export function accessFor(note: Pick<Note, 'id' | 'owner_id'>, meId: string, shares: readonly Share[]): Access {
+  if (!note.owner_id || note.owner_id === meId) return 'owner'
+  const mine = shares.find(share => share.note_id === note.id && share.user_id === meId)
+  return mine?.can_edit ? 'edit' : 'view'
+}
+
+export function personName(person: Person | undefined): string {
+  if (!person) return 'a colleague'
+  return person.full_name.trim() || person.email
+}
+
+export function sharesOf(noteId: string, shares: readonly Share[]): Share[] {
+  return shares.filter(share => share.note_id === noteId)
+}
+
+export function isSharedByMe(note: Pick<Note, 'id' | 'owner_id'>, meId: string, shares: readonly Share[]): boolean {
+  return (!note.owner_id || note.owner_id === meId) && shares.some(share => share.note_id === note.id)
 }

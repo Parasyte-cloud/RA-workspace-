@@ -66,3 +66,21 @@ html[data-ra-theme='dark'] .notesApp{--notes-ink:#f1f4f9;--notes-paper:rgba(14,2
   .notesLine textarea,.notesStatic{font-size:17px}
 }
 @media(prefers-reduced-motion:reduce){.notesRow,.notesTool{transition:none}}
+
+/* Sharing */
+.notesRowShare{margin-left:6px;vertical-align:-2px;color:var(--notes-amber)}
+.notesSharedBar{background:rgba(25,113,194,.14)}
+.notesShareLayer{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:12px}
+.notesShareScrim{position:absolute;inset:0;border:0;background:rgba(3,10,24,.5);cursor:default}
+.notesShareSheet{position:relative;width:min(460px,100%);max-height:80vh;overflow:auto;display:grid;gap:8px;padding:16px;border-radius:22px;background:#0f1b30;color:#eaf0f8;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 60px rgba(0,0,0,.45);align-content:start}
+html[data-ra-theme='light'] .notesShareSheet{background:#fff;color:#122033;border-color:rgba(7,26,56,.12)}
+.notesShareSheet header{display:flex;justify-content:space-between;align-items:center}
+.notesShareSheet p{margin:0;font-size:13px;opacity:.75}
+.notesShareAdd{display:flex;gap:8px;flex-wrap:wrap}
+.notesShareAdd .notesSearch{flex:1;min-width:180px}
+.notesShareSheet select{border:1px solid rgba(127,140,160,.4);background:transparent;color:inherit;border-radius:10px;padding:8px;font:inherit}
+.notesShareSheet select option{color:#122033}
+.notesPerson{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.notesPerson:not(.static):hover{background:rgba(255,153,0,.12)}
+.notesPerson span{flex:1;display:grid}
+.notesPerson small{opacity:.7}

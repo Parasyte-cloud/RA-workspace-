@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
-import { ArrowLeft, Brush, Eraser, ListChecks, List, NotebookPen, Pin, PinOff, Plus, RotateCcw, Search, Trash2, Undo2 } from 'lucide-react'
+import { ArrowLeft, Brush, Eraser, ListChecks, List, NotebookPen, Pin, PinOff, Plus, RotateCcw, Search, Trash2, Undo2, UserPlus, Users, X as CloseIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import {
   daysLeftInTrash,
@@ -19,13 +19,20 @@ import {
   toggleKind,
   trashExpired,
   checklistProgress,
+  accessFor,
+  isSharedByMe,
+  personName,
+  sharesOf,
+  type Access,
+  type Person,
+  type Share,
   type Note,
   type NoteLine,
   type Stroke
 } from '../lib/notes'
 import '../notes.css'
 
-const COLUMNS = 'id,title,body,sketch,pinned,deleted_at,created_at,updated_at'
+const COLUMNS = 'id,owner_id,title,body,sketch,pinned,deleted_at,created_at,updated_at'
 const DRAFT_PREFIX = 'ra-note-draft-'
 const SAVE_DELAY_MS = 700
 const INK = 'ink'
@@ -37,7 +44,7 @@ const COLOURS: Array<{ id: string; label: string }> = [
 ]
 
 type SaveState = 'saved' | 'saving' | 'offline'
-type Folder = 'all' | 'trash'
+type Folder = 'all' | 'shared' | 'trash'
 
 function readDraft(id: string): Partial<Note> | null {
   try {
@@ -211,6 +218,96 @@ function Line({
   )
 }
 
+// ---- Sharing ---------------------------------------------------------------
+
+function ShareSheet({
+  shares,
+  people,
+  onAdd,
+  onSetEdit,
+  onRemove,
+  onClose
+}: {
+  shares: Share[]
+  people: Record<string, Person>
+  onAdd: (person: Person, canEdit: boolean) => Promise<void>
+  onSetEdit: (userId: string, canEdit: boolean) => void
+  onRemove: (userId: string) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<Person[]>([])
+  const [canEdit, setCanEdit] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const client = supabase
+    const text = query.trim()
+    if (!client || text.length < 2) { setFound([]); return }
+    let alive = true
+    const timer = window.setTimeout(async () => {
+      const { data } = await client.rpc('notes_find_members', { p_query: text })
+      if (alive) setFound(((data || []) as Person[]).filter(person => !shares.some(share => share.user_id === person.id)))
+    }, 250)
+    return () => { alive = false; window.clearTimeout(timer) }
+  }, [query, shares])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="notesShareLayer">
+      <button type="button" className="notesShareScrim" aria-label="Close" onClick={onClose} />
+      <div className="notesShareSheet" role="dialog" aria-label="Share note">
+        <header>
+          <strong>Share note</strong>
+          <button type="button" className="notesTool" aria-label="Close" onClick={onClose}><CloseIcon size={18} /></button>
+        </header>
+        <p>People you add see this note under Shared with me. Only you can delete it.</p>
+        <div className="notesShareAdd">
+          <label className="notesSearch">
+            <Search size={16} />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search by name or email" aria-label="Search colleagues" />
+          </label>
+          <select value={canEdit ? 'edit' : 'view'} onChange={event => setCanEdit(event.target.value === 'edit')} aria-label="Permission for new people">
+            <option value="view">Can view</option>
+            <option value="edit">Can edit</option>
+          </select>
+        </div>
+        {found.map(person => (
+          <button key={person.id} type="button" className="notesPerson" disabled={busy} onClick={async () => {
+            setBusy(true)
+            await onAdd(person, canEdit)
+            setBusy(false)
+            setQuery('')
+            setFound([])
+          }}>
+            <UserPlus size={16} />
+            <span><strong>{personName(person)}</strong><small>{person.job_title || person.email}</small></span>
+          </button>
+        ))}
+        {query.trim().length >= 2 && found.length === 0 && <p className="notesEmpty">No one found.</p>}
+        <h3 className="notesGroup">Shared with</h3>
+        {shares.length === 0 && <p className="notesEmpty">Not shared with anyone yet.</p>}
+        {shares.map(share => (
+          <div key={share.user_id} className="notesPerson static">
+            <Users size={16} />
+            <span><strong>{personName(people[share.user_id])}</strong></span>
+            <select value={share.can_edit ? 'edit' : 'view'} onChange={event => onSetEdit(share.user_id, event.target.value === 'edit')} aria-label={`Permission for ${personName(people[share.user_id])}`}>
+              <option value="view">Can view</option>
+              <option value="edit">Can edit</option>
+            </select>
+            <button type="button" className="notesTool danger" aria-label={`Stop sharing with ${personName(people[share.user_id])}`} onClick={() => onRemove(share.user_id)}><CloseIcon size={16} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ---- The note being written -------------------------------------------------
 
 function Editor({
@@ -222,7 +319,12 @@ function Editor({
   onRestore,
   onForget,
   onBack,
-  saveState
+  saveState,
+  access,
+  ownerName,
+  sharedCount,
+  onShare,
+  onLeave
 }: {
   note: Note
   readOnly: boolean
@@ -233,6 +335,11 @@ function Editor({
   onForget: () => void
   onBack: () => void
   saveState: SaveState
+  access: Access
+  ownerName: string
+  sharedCount: number
+  onShare: () => void
+  onLeave: () => void
 }) {
   const [lines, setLines] = useState<NoteLine[]>(() => parseBody(note.body))
   const [active, setActive] = useState(0)
@@ -325,18 +432,33 @@ function Editor({
           {saveState === 'saving' ? 'Saving…' : saveState === 'offline' ? 'Not saved yet. Will retry.' : 'Saved'}
         </span>
         <span className="notesBarSpacer" />
+        {access === 'owner' && !readOnly && (
+          <button type="button" className={`notesTool${sharedCount ? ' on' : ''}`} onClick={onShare} aria-label="Share" title="Share"><Users size={18} /></button>
+        )}
+        {access !== 'owner' && (
+          <button type="button" className="notesPill" onClick={onLeave} title="Stop seeing this note">Leave</button>
+        )}
         {!readOnly && (
           <>
             <button type="button" className="notesTool" onClick={() => setKind('todo')} aria-label="Checklist" title="Checklist"><ListChecks size={18} /></button>
             <button type="button" className="notesTool" onClick={() => setKind('bullet')} aria-label="Bulleted list" title="Bulleted list"><List size={18} /></button>
             <button type="button" className={`notesTool${drawing ? ' on' : ''}`} onClick={() => setDrawing(value => !value)} aria-label="Scribble" aria-pressed={drawing} title="Scribble"><Brush size={18} /></button>
-            <button type="button" className={`notesTool${note.pinned ? ' on' : ''}`} onClick={onPin} aria-label={note.pinned ? 'Unpin' : 'Pin'} title={note.pinned ? 'Unpin' : 'Pin'}>{note.pinned ? <PinOff size={18} /> : <Pin size={18} />}</button>
-            <button type="button" className="notesTool danger" onClick={onTrash} aria-label="Delete note" title="Delete"><Trash2 size={18} /></button>
+            {access === 'owner' && (
+              <>
+                <button type="button" className={`notesTool${note.pinned ? ' on' : ''}`} onClick={onPin} aria-label={note.pinned ? 'Unpin' : 'Pin'} title={note.pinned ? 'Unpin' : 'Pin'}>{note.pinned ? <PinOff size={18} /> : <Pin size={18} />}</button>
+                <button type="button" className="notesTool danger" onClick={onTrash} aria-label="Delete note" title="Delete"><Trash2 size={18} /></button>
+              </>
+            )}
           </>
         )}
       </header>
 
-      {readOnly && (
+      {access !== 'owner' && (
+        <div className="notesTrashBar notesSharedBar">
+          Shared by {ownerName}. {access === 'edit' ? 'You can edit this note.' : 'You can view this note.'}
+        </div>
+      )}
+      {readOnly && access === 'owner' && (
         <div className="notesTrashBar">
           <span>In Recently Deleted. {daysLeftInTrash(note)} days left.</span>
           <button type="button" className="notesPill" onClick={onRestore}><RotateCcw size={14} /> Restore</button>
@@ -395,49 +517,19 @@ function Editor({
 
 export default function NotesModule() {
   const [notes, setNotes] = useState<Note[]>([])
+  const [shares, setShares] = useState<Share[]>([])
+  const [people, setPeople] = useState<Record<string, Person>>({})
+  const [meId, setMeId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [query, setQuery] = useState('')
   const [folder, setFolder] = useState<Folder>('all')
   const [saveState, setSaveState] = useState<SaveState>('saved')
+  const [sharing, setSharing] = useState(false)
   const pending = useRef<Map<string, Partial<Note>>>(new Map())
   const timers = useRef<Map<string, number>>(new Map())
-
-  // Load, bring back anything an earlier visit could not save, and clear out
-  // notes that have been in Recently Deleted for more than 30 days.
-  useEffect(() => {
-    const client = supabase
-    if (!client) { setLoading(false); setError('Notes need a signed-in workspace.'); return }
-    let alive = true
-    void (async () => {
-      const { data, error: loadError } = await client.from('workspace_notes').select(COLUMNS).order('updated_at', { ascending: false }).limit(1000)
-      if (!alive) return
-      if (loadError) {
-        setError(/workspace_notes/.test(loadError.message) ? 'Notes are not set up on the server yet. Ask Admin to run the Notes SQL.' : loadError.message)
-        setLoading(false)
-        return
-      }
-      const rows = (data || []) as Note[]
-      const expired = rows.filter(trashExpired)
-      if (expired.length) void client.from('workspace_notes').delete().in('id', expired.map(note => note.id))
-      const live = rows.filter(note => !trashExpired(note)).map(note => {
-        const draft = readDraft(note.id)
-        if (draft) {
-          pending.current.set(note.id, draft)
-          return { ...note, ...draft } as Note
-        }
-        return note
-      })
-      setNotes(live)
-      setLoading(false)
-      if (pending.current.size) {
-        for (const id of pending.current.keys()) schedule(id)
-      }
-    })()
-    return () => { alive = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const opened = useRef(false)
 
   const flush = useCallback(async (id: string) => {
     const client = supabase
@@ -462,6 +554,86 @@ export default function NotesModule() {
     if (old) window.clearTimeout(old)
     timers.current.set(id, window.setTimeout(() => { timers.current.delete(id); void flush(id) }, SAVE_DELAY_MS))
   }, [flush])
+
+  // Load notes and shares, bring back anything an earlier visit could not
+  // save, and clear out notes that have been in Recently Deleted over 30 days.
+  const load = useCallback(async () => {
+    const client = supabase
+    if (!client) { setLoading(false); setError('Notes need a signed-in workspace.'); return }
+    const { data: auth } = await client.auth.getUser()
+    const me = auth.user?.id || ''
+    setMeId(me)
+    const { data, error: loadError } = await client.from('workspace_notes').select(COLUMNS).order('updated_at', { ascending: false }).limit(1000)
+    if (loadError) {
+      setError(/workspace_notes/.test(loadError.message) ? 'Notes are not set up on the server yet. Ask Admin to run the Notes SQL.' : loadError.message)
+      setLoading(false)
+      return
+    }
+    const rows = (data || []) as Note[]
+    const expired = rows.filter(note => note.owner_id === me && trashExpired(note))
+    if (expired.length) void client.from('workspace_notes').delete().in('id', expired.map(note => note.id))
+    const live = rows.filter(note => !expired.includes(note)).map(note => {
+      const draft = pending.current.get(note.id) || readDraft(note.id)
+      if (draft) {
+        pending.current.set(note.id, draft)
+        schedule(note.id)
+        return { ...note, ...draft } as Note
+      }
+      return note
+    })
+    setNotes(live)
+
+    // Sharing is optional: if its tables are missing the notepad still works.
+    const { data: shareRows } = await client.from('note_shares').select('note_id,user_id,can_edit')
+    const list = (shareRows || []) as Share[]
+    setShares(list)
+    const ids = [...new Set([...live.map(note => note.owner_id).filter(Boolean), ...list.map(share => share.user_id)])] as string[]
+    if (ids.length) {
+      const { data: folks } = await client.rpc('notes_people', { p_ids: ids })
+      const map: Record<string, Person> = {}
+      for (const person of (folks || []) as Person[]) map[person.id] = person
+      setPeople(map)
+    }
+    setLoading(false)
+  }, [schedule])
+
+  useEffect(() => { void load() }, [load])
+
+  // Open the note a notification pointed at.
+  useEffect(() => {
+    if (opened.current || loading) return
+    opened.current = true
+    try {
+      const wanted = window.sessionStorage.getItem('ra.notes.open')
+      if (wanted) {
+        window.sessionStorage.removeItem('ra.notes.open')
+        const note = notes.find(item => item.id === wanted)
+        if (note) {
+          setFolder(note.owner_id && note.owner_id !== meId ? 'shared' : 'all')
+          setSelectedId(note.id)
+        }
+      }
+    } catch { /* storage can be blocked */ }
+  }, [loading, notes, meId])
+
+  // Live updates: someone edits a note you both have open, or shares one with you.
+  useEffect(() => {
+    const client = supabase
+    if (!client) return
+    const channel = client
+      .channel('workspace-notes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspace_notes' }, payload => {
+        const next = payload.new as Partial<Note> & { id?: string }
+        if (payload.eventType === 'UPDATE' && next.id && !pending.current.has(next.id)) {
+          setNotes(current => current.map(note => (note.id === next.id ? { ...note, ...(next as Note) } : note)))
+        } else if (payload.eventType !== 'UPDATE') {
+          void load()
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'note_shares' }, () => { void load() })
+      .subscribe()
+    return () => { void client.removeChannel(channel) }
+  }, [load])
 
   // Save straight away when the app is left or the connection returns.
   useEffect(() => {
@@ -511,15 +683,51 @@ export default function NotesModule() {
     setSelectedId('')
   }
 
+  const addShare = async (noteId: string, person: Person, canEdit: boolean) => {
+    const client = supabase
+    if (!client) return
+    const { error: shareError } = await client.from('note_shares').insert({ note_id: noteId, user_id: person.id, can_edit: canEdit })
+    if (shareError) { setError(shareError.message); return }
+    setPeople(current => ({ ...current, [person.id]: person }))
+    setShares(current => [...current, { note_id: noteId, user_id: person.id, can_edit: canEdit }])
+  }
+  const setShareEdit = async (noteId: string, userId: string, canEdit: boolean) => {
+    const client = supabase
+    if (!client) return
+    const { error: shareError } = await client.from('note_shares').update({ can_edit: canEdit }).eq('note_id', noteId).eq('user_id', userId)
+    if (shareError) { setError(shareError.message); return }
+    setShares(current => current.map(share => (share.note_id === noteId && share.user_id === userId ? { ...share, can_edit: canEdit } : share)))
+  }
+  const removeShare = async (noteId: string, userId: string) => {
+    const client = supabase
+    if (!client) return
+    const { error: shareError } = await client.from('note_shares').delete().eq('note_id', noteId).eq('user_id', userId)
+    if (shareError) { setError(shareError.message); return }
+    setShares(current => current.filter(share => !(share.note_id === noteId && share.user_id === userId)))
+  }
+  const leave = async (noteId: string) => {
+    await removeShare(noteId, meId)
+    setNotes(current => current.filter(note => note.id !== noteId))
+    setSelectedId('')
+  }
+
+  const mine = (note: Note) => !note.owner_id || note.owner_id === meId
   const visible = useMemo(() => {
-    const list = notes.filter(note => (folder === 'trash' ? isInTrash(note) : !isInTrash(note)) && matchesSearch(note, query))
+    const list = notes.filter(note => {
+      if (folder === 'shared') return !mine(note) && matchesSearch(note, query)
+      if (!mine(note)) return false
+      return (folder === 'trash' ? isInTrash(note) : !isInTrash(note)) && matchesSearch(note, query)
+    })
     return sortNotes(list)
-  }, [notes, folder, query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, folder, query, meId])
 
   const selected = notes.find(note => note.id === selectedId) || null
-  const trashCount = notes.filter(isInTrash).length
+  const trashCount = notes.filter(note => mine(note) && isInTrash(note)).length
+  const sharedCount = notes.filter(note => !mine(note)).length
   const pinned = visible.filter(note => note.pinned)
   const others = visible.filter(note => !note.pinned)
+  const access: Access = selected ? accessFor(selected, meId, shares) : 'owner'
 
   const row = (note: Note) => (
     <button
@@ -528,8 +736,11 @@ export default function NotesModule() {
       className={`notesRow${note.id === selectedId ? ' active' : ''}`}
       onClick={() => setSelectedId(note.id)}
     >
-      <strong>{noteTitle(note)}</strong>
-      <span><em>{noteDate(note.updated_at)}</em> {notePreview(note)}</span>
+      <strong>
+        {noteTitle(note)}
+        {isSharedByMe(note, meId, shares) && <Users size={13} className="notesRowShare" aria-label="Shared" />}
+      </strong>
+      <span><em>{noteDate(note.updated_at)}</em> {mine(note) ? notePreview(note) : `From ${personName(people[note.owner_id || ''])}. ${notePreview(note)}`}</span>
     </button>
   )
 
@@ -546,13 +757,14 @@ export default function NotesModule() {
         </label>
         <div className="notesFolders" role="tablist">
           <button type="button" role="tab" aria-selected={folder === 'all'} className={folder === 'all' ? 'on' : ''} onClick={() => { setFolder('all'); setSelectedId('') }}>All notes</button>
+          <button type="button" role="tab" aria-selected={folder === 'shared'} className={folder === 'shared' ? 'on' : ''} onClick={() => { setFolder('shared'); setSelectedId('') }}>Shared with me{sharedCount ? ` (${sharedCount})` : ''}</button>
           <button type="button" role="tab" aria-selected={folder === 'trash'} className={folder === 'trash' ? 'on' : ''} onClick={() => { setFolder('trash'); setSelectedId('') }}>Recently deleted{trashCount ? ` (${trashCount})` : ''}</button>
         </div>
         {error && <p className="notesError" role="alert">{error}</p>}
         {loading && <p className="notesEmpty">Loading…</p>}
         {!loading && !error && visible.length === 0 && (
           <p className="notesEmpty">
-            {query ? 'No notes match your search.' : folder === 'trash' ? 'Nothing deleted.' : 'No notes yet. Tap New to jot something down.'}
+            {query ? 'No notes match your search.' : folder === 'trash' ? 'Nothing deleted.' : folder === 'shared' ? 'Nothing has been shared with you yet.' : 'No notes yet. Tap New to jot something down.'}
           </p>
         )}
         {pinned.length > 0 && <h3 className="notesGroup">Pinned</h3>}
@@ -567,8 +779,13 @@ export default function NotesModule() {
             <Editor
               key={selected.id}
               note={selected}
-              readOnly={isInTrash(selected)}
+              readOnly={access === 'view' || (access === 'owner' && isInTrash(selected))}
               saveState={saveState}
+              access={access}
+              ownerName={personName(people[selected.owner_id || ''])}
+              sharedCount={sharesOf(selected.id, shares).length}
+              onShare={() => setSharing(true)}
+              onLeave={() => void leave(selected.id)}
               onChange={patch => edit(selected.id, patch)}
               onPin={() => edit(selected.id, { pinned: !selected.pinned })}
               onTrash={() => { edit(selected.id, { deleted_at: new Date().toISOString() }); setSelectedId('') }}
@@ -584,6 +801,17 @@ export default function NotesModule() {
             </div>
           )}
       </div>
+
+      {selected && sharing && access === 'owner' && (
+        <ShareSheet
+          shares={sharesOf(selected.id, shares)}
+          people={people}
+          onAdd={(person, canEdit) => addShare(selected.id, person, canEdit)}
+          onSetEdit={(userId, canEdit) => void setShareEdit(selected.id, userId, canEdit)}
+          onRemove={userId => void removeShare(selected.id, userId)}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </div>
   )
 }
