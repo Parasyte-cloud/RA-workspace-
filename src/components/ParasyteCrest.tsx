@@ -5,7 +5,7 @@ import '../parasyte-crest.css'
 // and engineering behind RideArrivo Workspace, so the crest is part of the product: a splash
 // when the workspace opens, and a slim bar at the base of every screen.
 
-export const PARASYTE_CREST_SRC = '/parasyte-crest.png'
+export const PARASYTE_CREST_SRC = '/parasyte-wordmark-v2.png'
 export const PARASYTE_CREDIT = 'Major controller and engineering'
 export const PARASYTE_URL = 'https://www.parasyte.cloud'
 

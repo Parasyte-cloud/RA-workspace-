@@ -55,6 +55,17 @@ html.hasParasyteCrest body{padding-bottom:36px}
   html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
   .parasyteCrestBar img{height:16px}
 }
+/* Phone with the floating top bar: the signature sits in the middle of that bar, small, above it.
+   Only the wordmark takes taps, so the search and bell buttons either side stay fully usable. */
+@media(max-width:599px){
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{
+    position:fixed;left:50%;right:auto;top:calc(env(safe-area-inset-top,0px) + 29px);bottom:auto;
+    transform:translateX(-50%);z-index:70;margin:0;width:auto;height:auto;
+  }
+  html.hasParasyteCrest:has(.sidebar) .parasyteSignature{padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.26)}
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar img{height:9px}
+  html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+}
 
 .parasyteSplash{
   position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:24px;cursor:pointer;

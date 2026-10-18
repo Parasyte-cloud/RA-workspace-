@@ -233,7 +233,7 @@ test('Administration wiring: tab, card, dashboard card, stylesheet', () => {
 })
 
 test('PArAsYtE crest: assets, splash and base bar mounted for every screen', () => {
-  for (const f of ['parasyte-crest.png', 'parasyte-mark.png']) assert.ok(existsSync(new URL(`../public/${f}`, import.meta.url)), f)
+  for (const f of ['parasyte-wordmark-v2.png', 'parasyte-p-v2.png']) assert.ok(existsSync(new URL(`../public/${f}`, import.meta.url)), f)
   const app = read('../src/InternalApp.tsx')
   assert.match(app, /<ParasyteCrestBar\/><ParasyteSplash\/>/)
   assert.match(app, /parasyte-crest\.css/)
@@ -254,7 +254,7 @@ test('PArAsYtE crest also on ROOM 7, public forms and the navbars', () => {
   assert.match(read('../src/room7-public/ExternalRoom7App.tsx'), /<ParasyteCrestBar\/>/)
   assert.match(read('../src/forms-public/FormsApp.tsx'), /<ParasyteCrestBar \/>/)
   assert.match(read('../src/App.tsx'), /<div className="brand"><BrandLogo className="sidebarLogo"\/>/, 'sidebar keeps the RideArrivo logo')
-  assert.match(read('../src/room7-public/Room7TopIsland.tsx'), /src="\/parasyte-mark\.png" alt="PArAsYtE"/, 'ROOM 7 shows only the P mark')
+  assert.match(read('../src/room7-public/Room7TopIsland.tsx'), /src="\/parasyte-p-v2\.png" alt="PArAsYtE"/, 'ROOM 7 shows only the P mark')
 })
 
 test('no em dash anywhere in what was added', () => {
