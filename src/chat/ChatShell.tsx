@@ -84,6 +84,7 @@ import {
   type CallRecord
 } from '../lib/callLog'
 import { endStaleCalls } from '../lib/callCleanup'
+import { getActiveCallId } from '../lib/activeCall'
 import { useChatCalls } from '../modules/useChatCalls'
 import { useConversations } from './hooks/useConversations'
 import { useMessages } from './hooks/useMessages'
@@ -1034,6 +1035,7 @@ export function ChatShell(){
         if(
           membership &&
           message.sender_id!==me &&
+          !message.deleted_at &&
           new Date(message.created_at).getTime()>new Date(membership.last_read_at).getTime()
         ){
           unreadMap.set(message.conversation_id,(unreadMap.get(message.conversation_id) || 0)+1)
@@ -1053,6 +1055,7 @@ export function ChatShell(){
             client.from('social_messages').select('id',{count:'exact',head:true})
               .eq('conversation_id',conversation.id)
               .neq('sender_id',me)
+              .is('deleted_at',null)
               .gt('created_at',membership.last_read_at)
           ])
           const first=lastResult && !lastResult.error ? ((lastResult.data || [])[0] as Message|undefined) : undefined
@@ -1406,6 +1409,24 @@ export function ChatShell(){
     const client=supabase
     if(!client || !userId)return
 
+    // Realtime can fire dozens of events at once (one read receipt per person
+    // per message, one membership write per read). Each used to run a full
+    // reload. Now the first event starts a short timer and everything that
+    // arrives before it fires is covered by that single refresh.
+    const scheduleBase=()=>{
+      if(baseTimerRef.current)return
+      baseTimerRef.current=window.setTimeout(()=>{baseTimerRef.current=0;void loadBase()},1000)
+    }
+    let receiptTimer=0
+    const scheduleReceipts=()=>{
+      if(receiptTimer)return
+      receiptTimer=window.setTimeout(()=>{
+        receiptTimer=0
+        const conversationId=selectedRef.current
+        if(conversationId)void loadReceiptSummaries(conversationId)
+      },500)
+    }
+
     const channel=client
       .channel(`native-chat-${userId}`)
       .on(
@@ -1425,8 +1446,7 @@ export function ChatShell(){
                 if(canMarkReadNow())void markRead(row.conversation_id)
               }
             }
-            if(baseTimerRef.current)window.clearTimeout(baseTimerRef.current)
-            baseTimerRef.current=window.setTimeout(()=>{baseTimerRef.current=0;void loadBase()},1200)
+            scheduleBase()
             return
           }
 
@@ -1468,6 +1488,8 @@ export function ChatShell(){
         payload=>{
           // The other person edited or deleted a message.
           const row=payload.new as Message
+          // A deleted message no longer counts as unread: refresh the counts.
+          if(row.deleted_at)scheduleBase()
           setMessages(current=>current.some(m=>m.id===row.id)?current.map(m=>m.id===row.id?{...m,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at,attachment_path:row.attachment_path,attachment_name:row.attachment_name,attachment_mime:row.attachment_mime,attachment_size:row.attachment_size,attachment_duration_ms:row.attachment_duration_ms}:m):current)
           setDirects(rows=>rows.map(item=>item.latest?.id===row.id?{...item,latest:{...item.latest,body:row.body,edited_at:row.edited_at,deleted_at:row.deleted_at}}:item))
         }
@@ -1479,26 +1501,18 @@ export function ChatShell(){
           schema:'public',
           table:'chat_message_receipts'
         },
-        ()=>{
-          const conversationId=
-            selectedRef.current
-
-          if(conversationId){
-            void loadReceiptSummaries(
-              conversationId
-            )
-          }
-        }
+        scheduleReceipts
       )
       .on(
         'postgres_changes',
         {event:'*',schema:'public',table:'social_conversation_members'},
-        ()=>{void loadBase()}
+        scheduleBase
       )
       .subscribe()
 
     return()=>{
       if(baseTimerRef.current){window.clearTimeout(baseTimerRef.current);baseTimerRef.current=0}
+      if(receiptTimer)window.clearTimeout(receiptTimer)
       void client.removeChannel(channel)
     }
   },[userId,loadBase,markRead,loadReceiptSummaries])
@@ -1693,6 +1707,8 @@ export function ChatShell(){
         conversation_id:conversationId,
         sender_id:userId,
         body,
+        // Lets a retry after a lost answer find the first copy instead of posting a second.
+        client_message_id:clientMessageId,
         ...(replyId?{reply_to_id:replyId}:{}),
         ...(file && uploadedPath?{
           attachment_path:uploadedPath,
@@ -1705,7 +1721,26 @@ export function ChatShell(){
       .select(MESSAGE_COLUMNS)
       .single()
 
-    if(error || !data){
+    // If the first attempt did save but its answer never reached us, this is a
+    // retry of a message that already exists. Use that row and drop the copy of
+    // the file that was just uploaded.
+    let row=(data as Message|null)
+    if(!row && error && (error as {code?:string}).code==='23505'){
+      const existing=await client
+        .from('social_messages')
+        .select(MESSAGE_COLUMNS)
+        .eq('conversation_id',conversationId)
+        .eq('sender_id',userId)
+        .eq('client_message_id',clientMessageId)
+        .maybeSingle()
+      if(existing.data){
+        row=existing.data as unknown as Message
+        if(uploadedPath && row.attachment_path!==uploadedPath){
+          void client.storage.from(ATTACH_BUCKET).remove([uploadedPath])
+        }
+      }
+    }
+    if(!row){
       if(file && uploadedPath){
         // The file is unused now, so remove it. The retry uploads it again.
         void client.storage.from(ATTACH_BUCKET).remove([uploadedPath])
@@ -1718,7 +1753,7 @@ export function ChatShell(){
     if(mentionedUserIds.length){
       try{
         await registerChatMessageMentions(
-          (data as Message).id,
+          row.id,
           mentionedUserIds
         )
       }catch(error){
@@ -1732,14 +1767,14 @@ export function ChatShell(){
 
     const broadcastKind=detectBroadcast(body,rooms.some(room=>room.id===conversationId))
     if(broadcastKind){
-      const {error:broadcastError}=await client.rpc('register_chat_broadcast_mention',{p_message_id:(data as Message).id,p_kind:broadcastKind})
+      const {error:broadcastError}=await client.rpc('register_chat_broadcast_mention',{p_message_id:row.id,p_kind:broadcastKind})
       if(broadcastError){
         setNotice(`Message sent, but @${broadcastKind} did not notify anyone: ${broadcastError.message}`)
       }
     }
 
     retryFilesRef.current.delete(id)
-    const saved={...(data as Message),localUrl:optimistic.localUrl}
+    const saved={...row,localUrl:optimistic.localUrl}
     setNotice('')
     setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
     setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
@@ -2195,6 +2230,10 @@ export function ChatShell(){
     const client=supabase
     const selected=target
     if(!client || !selected || calling)return
+    if(getActiveCallId()){
+      setCallNotice('You are already on a call. End it before starting another.')
+      return
+    }
     if(!hasCalling){
       setCallNotice(`${kind} calling is not enabled on your account yet. Reach out to Admin to give you access.`)
       return

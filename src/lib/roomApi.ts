@@ -44,6 +44,14 @@ export const CALL_FINISHED_EVENT = 'ra:call-finished'
 
 export type CallFinishedDetail = { callId: string; status: string }
 
+// Sent to the caller's call window the moment the other person answers, so it
+// can start waiting for them to arrive.
+export const CALL_ACCEPTED_EVENT = 'ra:call-accepted'
+
+export function announceCallAccepted(detail: { callId: string }) {
+  window.dispatchEvent(new CustomEvent<{ callId: string }>(CALL_ACCEPTED_EVENT, { detail }))
+}
+
 export function announceCallFinished(detail: CallFinishedDetail) {
   window.dispatchEvent(new CustomEvent<CallFinishedDetail>(CALL_FINISHED_EVENT, { detail }))
 }
