@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Phone, PhoneOff, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { announceCallFinished, requestJoinRoom } from '../lib/roomApi'
+import { announceCallAccepted, announceCallFinished, requestJoinRoom } from '../lib/roomApi'
 import { endStaleCalls } from '../lib/callCleanup'
 import { getActiveCallId, subscribeActiveCall } from '../lib/activeCall'
 import { startTone, wireAudioUnlock } from '../lib/ringtone'
@@ -44,6 +44,7 @@ export default function CallRinger() {
   const [stageCallId, setStageCallId] = useState(getActiveCallId())
   useEffect(() => subscribeActiveCall(setStageCallId), [])
   const namesRef = useRef<Record<string, string>>({})
+  const acceptedRef = useRef<Set<string>>(new Set())
   const timerRef = useRef<number | null>(null)
   const meRef = useRef('')
   const [permission, setPermission] = useState(alertPermission())
@@ -89,6 +90,13 @@ export default function CallRinger() {
         const rest = current.filter(item => item.id !== row.id)
         return row.status === 'ringing' && fresh ? [...rest, row] : rest
       })
+    }
+
+    // The other person answered: tell the call window once (heartbeats keep
+    // sending this same row, so remember which calls were announced).
+    if (row.caller_id === mine && row.status === 'accepted' && !acceptedRef.current.has(row.id)) {
+      acceptedRef.current.add(row.id)
+      announceCallAccepted({ callId: row.id })
     }
 
     if (row.caller_id === mine) {
@@ -260,6 +268,14 @@ export default function CallRinger() {
   const respond = async (call: CallRow, status: 'accepted' | 'declined') => {
     const client = supabase
     if (!client || busy) return
+    // Already on a call: answering would take over the screen and strand the
+    // first call. Decline this one so the caller sees it was not answered.
+    if (status === 'accepted' && getActiveCallId() && getActiveCallId() !== call.id) {
+      setIncoming(current => current.filter(item => item.id !== call.id))
+      setOutcome('You are already on a call')
+      void client.rpc('respond_chat_call', { p_call: call.id, p_status: 'declined' })
+      return
+    }
     setBusy(true)
     const { data, error } = await client.rpc('respond_chat_call', { p_call: call.id, p_status: status })
     setBusy(false)

@@ -48,6 +48,7 @@ import { useRoomChat } from '../room7-shared/useRoomChat'
 import '../room7-shared/room7-chat.css'
 import { supabase } from '../lib/supabase'
 import { useCanGiveRibbon } from '../components/Recognition'
+import { noShowDelay } from '../lib/callTimers'
 
 type RoomStatus='active'|'ended'
 
@@ -97,7 +98,9 @@ export default function RoomMeeting({
   onExtend,
   moderation,
   audioOnly=false,
-  chatCall=false
+  chatCall=false,
+  acceptedAt=0,
+  onNoShow
 }:{
   session:RoomSession
   minimized?:boolean
@@ -113,6 +116,9 @@ export default function RoomMeeting({
   audioOnly?:boolean
   /** A one-to-one call started from Chat: shown as a call, not as a ROOM 7 meeting. */
   chatCall?:boolean
+  /** When the other person answered (caller side only). Starts the "did they arrive" wait. */
+  acceptedAt?:number
+  onNoShow?:()=>void
 }){
   const [meeting,initMeeting]=useRealtimeKitClient()
   useHoldIdleSignOut(Boolean(meeting))
@@ -132,10 +138,26 @@ export default function RoomMeeting({
   const [elapsed,setElapsed]=useState(0)
   // Every chat call, on every device, uses the same FaceTime-style screen. ROOM 7 meetings keep RealtimeKit's own.
   const faceTime=chatCall
+  // The call clock starts when the other person is actually on the call, like
+  // FaceTime, not when this screen opened (that counted the ringing time).
+  const answeredAtRef=useRef(0)
+  const onNoShowRef=useRef(onNoShow)
+  onNoShowRef.current=onNoShow
+  // The caller waits a short time after Accept for the other person to arrive.
+  useEffect(()=>{
+    if(!chatCall||!acceptedAt||session.role!=='host')return
+    const timer=window.setTimeout(()=>{
+      // Check the live participant list too, in case the join event was missed.
+      const someoneHere=(meetingRef.current?.participants.joined.toArray().length||0)>0
+      if(!answeredAtRef.current&&!someoneHere)onNoShowRef.current?.()
+    },noShowDelay(acceptedAt))
+    return()=>window.clearTimeout(timer)
+  },[chatCall,acceptedAt,session.role])
   useEffect(()=>{
     if(!chatCall)return
-    const started=Date.now()
-    const timer=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),1000)
+    const timer=window.setInterval(()=>{
+      setElapsed(answeredAtRef.current?Math.floor((Date.now()-answeredAtRef.current)/1000):0)
+    },1000)
     return()=>window.clearInterval(timer)
   },[chatCall])
 
@@ -316,11 +338,20 @@ export default function RoomMeeting({
       if(update.state==='connected')setConnection('connected')
     }
 
+    const markAnswered=()=>{
+      if(answeredAtRef.current)return
+      if(meeting.participants.joined.toArray().length>0)answeredAtRef.current=Date.now()
+    }
+
     self.on('roomJoined',handleJoined as never)
+    self.on('roomJoined',markAnswered as never)
     self.on('roomLeft',handleRoomLeft as never)
+    meeting.participants.joined.on('participantJoined',markAnswered as never)
     meeting.meta.on('socketConnectionUpdate',handleSocket as never)
     return()=>{
       self.removeListener('roomJoined',handleJoined as never)
+      self.removeListener('roomJoined',markAnswered as never)
+      meeting.participants.joined.removeListener('participantJoined',markAnswered as never)
       self.removeListener('roomLeft',handleRoomLeft as never)
       meeting.meta.removeListener('socketConnectionUpdate',handleSocket as never)
     }
@@ -502,6 +533,7 @@ export default function RoomMeeting({
                 onMinimize={onMinimize}
                 onRestore={onRestore}
                 onJoinError={setInitError}
+                answered={acceptedAt>0}
               />
               :<RtkMeeting
                 key={session.auth_token}
