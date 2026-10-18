@@ -1258,7 +1258,7 @@ function App(){
 
   return <NotificationsProvider><SoundOnPrompt/><div className="appBackground"><div className={`shell glassFrame glassSurface${mediumNavExpanded?' mediumNavExpanded':''}`}>
     <aside className="sidebar glassPanel glassNav">
-      <div className="brand"><BrandLogo className="sidebarLogo"/><span>RideArrivo Internal</span></div>
+      <div className="brand"><img src="/parasyte-crest.png" alt="PArAsYtE" className="brandLogo sidebarLogo" draggable={false}/><span>RideArrivo Internal</span></div>
       <nav className="sidebarNav" aria-label="Workspace navigation">
         <div className="sidebarNavPrimary">
           {groupedNav.pinned.map(renderNavRow)}

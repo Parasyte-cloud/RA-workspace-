@@ -6,6 +6,7 @@ import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import { guideForUser } from '../lib/workstationGuide'
 import MyWorkspaceSessionsPanel from './MyWorkspaceSessionsPanel'
 import DashboardNotificationsTeaser from '../components/DashboardNotificationsTeaser'
+import MyDataCard from '../components/MyDataCard'
 import '../personal-dashboard.css'
 
 type Profile={
@@ -227,6 +228,8 @@ export default function PersonalDashboard({profile,assignments,onNavigate}:{prof
       >
         <WorkstationGuideCard slug={ownGuide.slug} workstationLabel={ownGuide.label} />
       </Disclosure>
+
+      <MyDataCard/>
 
       <div className="todayMore" aria-label="More about you">
         <Disclosure title="Performance details" hint="Score breakdown and how it is measured">

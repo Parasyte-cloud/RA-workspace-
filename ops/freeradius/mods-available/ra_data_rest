@@ -1,0 +1,49 @@
+# REST module: lets FreeRADIUS ask the RideArrivo workspace (Supabase Edge Function
+# "data-radius") who may connect and how much data they have left, and report usage back.
+#
+# Enable:  ln -s ../mods-available/ra_data_rest /etc/freeradius/3.0/mods-enabled/ra_data_rest
+# Needs:   apt install freeradius-rest
+#
+# ra_data_base_url, ra_data_vendor and ra_data_secret come from ra-data.secret.conf, which
+# lives only on the RADIUS server (never in git).
+rest ra_data_rest {
+	connect_uri = "${ra_data_base_url}"
+
+	connect_timeout = 4.0
+	timeout = 8.0
+
+	tls {
+		# Supabase uses a public certificate: verify it.
+		check_cert = yes
+		check_cert_cn = yes
+	}
+
+	# Password check + remaining data for today. HTTP 200 accepts, 401 rejects, anything
+	# else (503 when the database is unreachable) is a failure, which also rejects: the
+	# service fails closed.
+	authenticate {
+		uri = "${..connect_uri}/authenticate?vendor=${ra_data_vendor}&interim=60"
+		method = 'post'
+		body = 'json'
+		tls = ${..tls}
+	}
+
+	# Usage counters. A 5xx here makes FreeRADIUS withhold the Accounting-Response, so the
+	# gateway keeps the packet and resends it later: usage is delayed, never lost.
+	accounting {
+		uri = "${..connect_uri}/accounting"
+		method = 'post'
+		body = 'json'
+		tls = ${..tls}
+	}
+
+	pool {
+		start = 0
+		min = 0
+		spare = 1
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+	}
+}

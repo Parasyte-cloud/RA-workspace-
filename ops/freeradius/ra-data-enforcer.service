@@ -1,0 +1,9 @@
+[Unit]
+Description=RideArrivo data allocation enforcer (disconnect sessions that are out of data)
+After=network-online.target freeradius.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=freerad
+ExecStart=/usr/local/bin/ra-data-enforcer.sh

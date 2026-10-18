@@ -1,0 +1,77 @@
+# Virtual server for RideArrivo data allocation.
+#
+# Enable:  ln -s ../sites-available/ra-data /etc/freeradius/3.0/sites-enabled/ra-data
+#          and remove the stock "default" and "inner-tunnel" links unless you use them.
+#
+# The gateway (MikroTik hotspot, pfSense captive portal, OpenWrt/CoovaChilli) sends
+# Access-Request with the person's work email and their network password (PAP), then
+# Accounting-Request packets with byte counters.
+
+server ra-data {
+
+	listen {
+		type = auth
+		ipaddr = *
+		port = 1812
+	}
+
+	listen {
+		type = acct
+		ipaddr = *
+		port = 1813
+	}
+
+	authorize {
+		preprocess
+
+		# Only PAP carries the password in a form the workspace can check against its
+		# bcrypt hash. Configure the gateway for PAP (MikroTik: login-by=http-pap).
+		if (&User-Name && &User-Password) {
+			update control {
+				&Auth-Type := ra_data
+				# FreeRADIUS 3.2 reads extra HTTP headers for rlm_rest from the CONTROL list.
+				# (In the request list it would be sent inside the JSON body instead.)
+				&REST-HTTP-Header := "X-Radius-Secret: ${ra_data_secret}"
+			}
+		}
+		else {
+			update reply {
+				&Reply-Message := "Use the RideArrivo network password (PAP)"
+			}
+			reject
+		}
+	}
+
+	authenticate {
+		Auth-Type ra_data {
+			# 200 from the workspace means "let them in". rlm_rest reports that as "updated"
+			# because it added the reply attributes, and an authenticate section only accepts
+			# "ok", so translate it. 401 (refused) and 5xx (workspace unreachable) come back as
+			# reject / fail and are left alone, which keeps the service fail-closed.
+			ra_data_rest
+			if (updated) {
+				ok
+			}
+		}
+	}
+
+	preacct {
+		preprocess
+		update control {
+			&REST-HTTP-Header := "X-Radius-Secret: ${ra_data_secret}"
+		}
+	}
+
+	accounting {
+		ra_data_rest
+	}
+
+	session {
+	}
+
+	post-auth {
+		Post-Auth-Type REJECT {
+			attr_filter.access_reject
+		}
+	}
+}
