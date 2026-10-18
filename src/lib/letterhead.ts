@@ -16,6 +16,8 @@ export const LETTERHEAD = {
   // Taken from the official RideArrivo Letterhead and Letter Template (Word).
   brandName: 'RideArrivo',
   legalName: 'RideArrivo Limited',
+  // CAC registration number, shown on the Letterhead page and included in Copy all.
+  rcNumber: 'RC 9700401',
   tagline: 'Arrive Better.',
   website: 'www.ridearrivo.com',
   email: 'info@ridearrivo.com',
