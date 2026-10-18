@@ -68,3 +68,9 @@ test('endStaleCalls ends only calls nothing is carrying (behaviour)', async () =
   assert.equal(await mod.endStaleCalls(make([{ id: 'x' }], true), 'me'), 1)
   assert.deepEqual(ended.splice(0), ['x'])
 })
+
+test('admin lists keep their buttons inside the card on phones', () => {
+  const css = read('src/letterhead.css')
+  assert.match(css, /\.lhAdminList li\{flex-wrap:wrap/)
+  assert.match(css, /white-space:nowrap;margin-left:auto/)
+})
