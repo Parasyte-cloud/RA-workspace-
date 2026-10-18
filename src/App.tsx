@@ -102,6 +102,7 @@ import {
   writeList,
 } from './lib/workspaceNav'
 import { useIdleSignOut } from './lib/useIdleSignOut'
+import { protectSavedSignIn, resetDeliberateSignOut, signOutEverywhere, signOutMessage, signOutThisDevice, takeSignOutReason, wasDeliberateSignOut } from './lib/authSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
 import ControlledDownloadButton from './components/ControlledDownloadButton'
@@ -493,6 +494,8 @@ function App(){
   const [passwordMode,setPasswordMode]=useState<'recovery'|'invite'>(initialAuthLink.kind==='invite' ? 'invite' : 'recovery')
   const [confirmLink,setConfirmLink]=useState(initialAuthLink.kind==='confirm' ? initialAuthLink : null)
   const [passwordSaved,setPasswordSaved]=useState(false)
+  // Why the person is on the sign-in screen, when it was not their own tap.
+  const [signedOutNote,setSignedOutNote]=useState('')
 
 
   useIdleSignOut(
@@ -655,9 +658,18 @@ function App(){
           }else if(
             event==='SIGNED_OUT'
           ){
+            const reason=takeSignOutReason()
+            setSignedOutNote(
+              wasDeliberateSignOut()
+                ? signOutMessage(reason)
+                : 'Your session ended. It may have expired or been ended from another device. Sign in again to continue.'
+            )
+            resetDeliberateSignOut()
             setSession(null)
             setPasswordRecovery(false)
           }
+
+          if(next)protectSavedSignIn()
 
           setAuthReady(true)
         }
@@ -1136,14 +1148,14 @@ function App(){
       'ridearrivo-last-activity'
     )
 
-    return supabase?.auth.signOut()
+    return signOutThisDevice(supabase,'user')
   }
 
   if(!authReady) return <div className="splash"><BrandLogo className="splashLogo"/><div className="spinner"/></div>
   if(!supabaseConfigured) return <SetupRequired/>
   if(confirmLink) return <ConfirmLinkGate link={confirmLink} onDone={()=>setConfirmLink(null)}/>
   if(!session) return <AuthGate
-    notice={passwordSaved ? 'Password saved. Sign in with your work email and the new password.' : ''}
+    notice={passwordSaved ? 'Password saved. Sign in with your work email and the new password.' : signedOutNote}
     linkProblem={initialAuthLink.kind==='error' ? initialAuthLink.message : ''}
   />
   if(passwordRecovery) return <PasswordRecoveryGate
@@ -1231,7 +1243,7 @@ function App(){
           <button
             className="glassButton"
             onClick={()=>
-              void supabase?.auth.signOut()
+              void signOutThisDevice(supabase,'user')
             }
           >
             Sign out
@@ -1372,7 +1384,7 @@ function App(){
           )
 
           const {error} =
-            await supabase?.auth.signOut() ?? {}
+            await signOutThisDevice(supabase,'user')
 
           if(error){
             console.error(
@@ -1450,7 +1462,7 @@ function App(){
         {section==='marketing'&&<MarketingTeamWorkspace onNavigate={navigateToSection}/>}
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
-        {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()}/></>}
+        {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()} onSignOutEverywhere={()=>void signOutEverywhere(supabase)}/></>}
         {section==='admin'&&<AdminModule/>}
         {section==='deptadmin'&&<DepartmentAdminView onNavigate={navigateToSection}/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
@@ -1515,7 +1527,7 @@ function PasswordRecoveryGate({onDone,mode}:{onDone:()=>void;mode:'recovery'|'in
       const {error}=await supabase.auth.updateUser({password})
       if(error) throw error
       setMessage('Password saved. Taking you to sign in...')
-      await supabase.auth.signOut()
+      await signOutThisDevice(supabase,'password')
       onDone()
     }catch(error){
       setMessage(error instanceof Error ? error.message : 'Unable to update password.')

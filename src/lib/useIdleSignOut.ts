@@ -4,6 +4,7 @@ import type {
   SupabaseClient,
 } from '@supabase/supabase-js'
 import { readKeepSignedIn } from './keepSignedIn'
+import { signOutThisDevice } from './authSignOut'
 
 const IDLE_LIMIT_MS =
   30 * 60 * 1000
@@ -138,7 +139,8 @@ export function useIdleSignOut(
           'IDLE_TIMEOUT'
         )
 
-        await client.auth.signOut()
+        // Only this device: a timeout here must not end the phone's session.
+        await signOutThisDevice(client, 'idle')
       } catch (error) {
         console.error(
           'Idle sign-out failed',
