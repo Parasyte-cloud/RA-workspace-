@@ -58,16 +58,23 @@ html.hasParasyteCrest body{padding-bottom:36px}
   html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
   .parasyteCrestBar img{height:16px}
 }
-/* Phone with the floating top bar: the signature sits in the middle of that bar, small, above it.
-   Only the wordmark takes taps, so the search and bell buttons either side stay fully usable. */
+/* Phone with the floating top bar: the signature sits in the middle of that bar and follows it.
+   The bar is 58px tall at rest and shrinks to 44px when you scroll (data-ra-island="compact"), so the
+   signature rides up with it and stays inside the bar. Only the wordmark takes taps, so the search
+   and bell buttons either side stay fully usable. */
 @media(max-width:599px){
   html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{
-    position:fixed;left:50%;right:auto;top:calc(env(safe-area-inset-top,0px) + 29px);bottom:auto;
+    position:fixed;left:50%;right:auto;top:calc(env(safe-area-inset-top,0px) + 24px);bottom:auto;
     transform:translateX(-50%);z-index:70;margin:0;width:auto;height:auto;
+    transition:top .5s cubic-bezier(.34,1.45,.5,1);
   }
-  html.hasParasyteCrest:has(.sidebar) .parasyteSignature{padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.26)}
-  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar img{height:9px}
+  html.hasParasyteCrest[data-ra-island='compact']:has(.sidebar) .parasyteCrestBar{top:calc(env(safe-area-inset-top,0px) + 17px)}
+  html.hasParasyteCrest:has(.sidebar) .parasyteSignature{padding:4px 9px;box-shadow:0 2px 8px rgba(0,0,0,.26)}
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar img{height:10.5px}
   html.hasParasyteCrest:has(.sidebar) body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:599px) and (prefers-reduced-motion:reduce){
+  html.hasParasyteCrest:has(.sidebar) .parasyteCrestBar{transition:none}
 }
 
 .parasyteSplash{
