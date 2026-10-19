@@ -42,6 +42,7 @@ import {
   useRef,
   useState
 } from 'react'
+import GlassPopover from './ui/GlassPopover'
 import type { FormEvent } from 'react'
 import { useChatExtras } from './hooks/useChatExtras'
 import { ChatAvatar } from './ui/ChatAvatar'
@@ -348,6 +349,8 @@ export function ChatShell(){
   const [drafts,setDrafts]=useState<Record<string,string>>({})
   const [mutes,setMutes]=useState<Record<string,string|null>>({})
   const [muteOpen,setMuteOpen]=useState(false)
+  const muteBtnRef=useRef<HTMLButtonElement>(null)
+  const exportBtnRef=useRef<HTMLButtonElement>(null)
   const [searchHits,setSearchHits]=useState<SearchHit[]>([])
   const [searchLoading,setSearchLoading]=useState(false)
   const pendingJumpRef=useRef('')
@@ -2837,17 +2840,18 @@ export function ChatShell(){
                   </button>
                   <div className="cmMuteWrap">
                     <button
+                      ref={muteBtnRef}
                       type="button"
                       className="cmRound cmSecondary"
                       title={isMuted(mutes[selectedId])?muteLabel(mutes[selectedId]):'Mute notifications'}
                       aria-label="Mute notifications"
                       aria-expanded={muteOpen}
-                      onClick={event=>{event.stopPropagation();setMuteOpen(open=>!open)}}
+                      onClick={event=>{event.stopPropagation();setExportOpen(false);setMuteOpen(open=>!open)}}
                     >
                       {isMuted(mutes[selectedId])?<BellOff size={18}/>:<Bell size={18}/>}
                     </button>
                     {muteOpen&&(
-                      <div className="cmMenu" role="menu" onClick={event=>event.stopPropagation()}>
+                      <GlassPopover anchor={muteBtnRef.current} label="Mute notifications" onClose={()=>setMuteOpen(false)}>
                         <div className="cmMenuHead">{isMuted(mutes[selectedId])?muteLabel(mutes[selectedId]):'Mute for'}</div>
                         {MUTE_CHOICES.map(choice=>(
                           <button key={choice.id} type="button" role="menuitem" onClick={()=>void chooseMute(choice.id)}>
@@ -2859,7 +2863,7 @@ export function ChatShell(){
                             <strong>Turn sound back on</strong>
                           </button>
                         )}
-                      </div>
+                      </GlassPopover>
                     )}
                   </div>
                   <button
@@ -2873,25 +2877,26 @@ export function ChatShell(){
                     <Search size={18}/>
                   </button>
                   <button
+                    ref={exportBtnRef}
                     type="button"
                     className="cmRound cmSecondary"
                     title="Export chat"
                     aria-label="Export chat"
                     aria-expanded={exportOpen}
                     disabled={!!exporting}
-                    onClick={event=>{event.stopPropagation();setExportOpen(open=>!open)}}
+                    onClick={event=>{event.stopPropagation();setMuteOpen(false);setExportOpen(open=>!open)}}
                   >
                     <FileDown size={18}/>
                   </button>
                   {exportOpen&&(
-                    <div className="cmMenu" role="menu" onClick={event=>event.stopPropagation()}>
+                    <GlassPopover anchor={exportBtnRef.current} label="Export chat" onClose={()=>setExportOpen(false)}>
                       <button type="button" role="menuitem" onClick={()=>void exportChat(false)}>
                         <strong>Text only</strong><small>A .txt transcript of every message</small>
                       </button>
                       <button type="button" role="menuitem" onClick={()=>void exportChat(true)}>
                         <strong>With files and images</strong><small>A .zip with the transcript and every attachment</small>
                       </button>
-                    </div>
+                    </GlassPopover>
                   )}
                   {!selectedRoom&&(
                     <>

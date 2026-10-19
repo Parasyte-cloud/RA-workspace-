@@ -1,0 +1,60 @@
+/* Liquid glass menus that open from the chat header. */
+.cmGlassHost {
+  --g-text: #071a38;
+  --g-muted: rgba(7, 26, 56, .62);
+  --g-tint: rgba(255, 255, 255, .5);
+  --g-tint-top: rgba(255, 255, 255, .72);
+  --g-edge: rgba(255, 255, 255, .7);
+  --g-hover: rgba(7, 26, 56, .07);
+  --g-scrim: rgba(20, 30, 50, .22);
+  --g-shadow: 0 24px 60px rgba(7, 26, 56, .28);
+}
+html[data-ra-theme='dark'] .cmGlassHost {
+  --g-text: #eef3fa;
+  --g-muted: rgba(238, 243, 250, .68);
+  --g-tint: rgba(24, 44, 72, .5);
+  --g-tint-top: rgba(70, 100, 140, .42);
+  --g-edge: rgba(255, 255, 255, .22);
+  --g-hover: rgba(255, 255, 255, .1);
+  --g-scrim: rgba(2, 8, 18, .45);
+  --g-shadow: 0 26px 70px rgba(0, 0, 0, .55);
+}
+
+/* Above the thread, the top bar and the dock, below an incoming call card. */
+.cmGlassScrim {
+  position: fixed; inset: 0; z-index: 2400;
+  background: var(--g-scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
+  animation: cmGlassFade .18s ease-out both;
+}
+.cmGlassMenu {
+  position: fixed; z-index: 2401; display: grid; gap: 2px; padding: 8px; border-radius: 22px;
+  color: var(--g-text);
+  background: linear-gradient(160deg, var(--g-tint-top), var(--g-tint) 55%);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid var(--g-edge);
+  box-shadow: var(--g-shadow), inset 0 1px 0 rgba(255, 255, 255, .38), inset 0 -1px 0 rgba(255, 255, 255, .06);
+  transform-origin: top right;
+  animation: cmGlassPop .2s cubic-bezier(.2, .9, .3, 1.15) both;
+}
+.cmGlassMenu .cmMenuHead { padding: 8px 12px 4px; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--g-muted); }
+.cmGlassMenu button {
+  display: grid; gap: 2px; text-align: left; border: 0; border-radius: 14px; padding: 11px 12px;
+  background: transparent; color: var(--g-text); font: inherit; cursor: pointer;
+}
+.cmGlassMenu button:hover, .cmGlassMenu button:focus-visible { background: var(--g-hover); outline: none; }
+.cmGlassMenu small { font-size: 12px; color: var(--g-muted); }
+
+/* Without blur support the sheet must still be readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cmGlassMenu { background: var(--cm-side, #fff); }
+  .cmGlassScrim { background: rgba(7, 26, 56, .45); }
+}
+
+@keyframes cmGlassFade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes cmGlassPop { from { opacity: 0; transform: scale(.92) translateY(-6px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) {
+  .cmGlassScrim, .cmGlassMenu { animation: none; }
+}
