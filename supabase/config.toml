@@ -562,3 +562,15 @@ verify_jwt = false
 [functions.support-recording]
 enabled = true
 verify_jwt = true
+
+[functions.support-sos-ingest]
+enabled = true
+verify_jwt = false
+
+[functions.support-location]
+enabled = true
+verify_jwt = true
+
+[functions.support-invite]
+enabled = true
+verify_jwt = false

@@ -4,6 +4,8 @@
 //   1. presence hygiene   browser vanished / shift ended -> Offline, mirrored to TaskRouter
 //   2. messaging routing  requeue tickets held by absent officers, hand out waiting tickets
 //   3. callbacks          turn due callbacks into TaskRouter tasks
+//   0. safety             SOS escalation and location session expiry (runs first, database only)
+//   5. alerts      send queued web push, SMS, WhatsApp and calls; recover stuck sends
 //   4. telephony          call prices, fraud and spend scan, recording retention, old quality samples
 //
 // Every step is independent: one failing does not stop the others, and the
@@ -11,6 +13,7 @@
 //
 // PArAsYtE | RA-Workspace support module
 
+import { dispatchDeliveries } from '../_shared/supportNotify.ts'
 import { cors, adminClient, deleteRecording, errorResponse, fetchCallPrice, json, mirrorPresence, queueCallbackTask, requireCronSecret } from '../_shared/supportTwilio.ts'
 
 Deno.serve(async (req) => {
@@ -22,6 +25,28 @@ Deno.serve(async (req) => {
     const admin = adminClient()
     const report: Record<string, unknown> = {}
     const failures: string[] = []
+
+    // Emergencies first, and database only: a slow Twilio call below must never
+    // delay an escalation. Each minute: escalate unacknowledged SOS incidents,
+    // hand over from absent responders, expire location sessions, trim old logs.
+    try {
+      const esc = await admin.rpc('support_incident_escalate_due')
+      if (esc.error) throw esc.error
+      const sweep = await admin.rpc('support_location_sweep')
+      if (sweep.error) throw sweep.error
+      report.safety = { escalations: (esc.data || []).length, ...(sweep.data as Record<string, unknown>) }
+      for (const row of (esc.data || []) as Array<{ incident_ref: string; level: number; action: string }>) {
+        console.log(JSON.stringify({ evt: 'sos_' + row.action, incident: row.incident_ref, level: row.level }))
+      }
+    } catch (e) { failures.push('safety'); console.error('maintenance safety', e) }
+
+    // Alerts go right after the safety step: the database has just queued anything an escalation produced.
+    try {
+      const sweep = await admin.rpc('support_notifications_sweep')
+      if (sweep.error) throw sweep.error
+      const sent = await dispatchDeliveries(admin, { limit: 25, budgetMs: 15_000 })
+      report.alerts = { ...(sweep.data as Record<string, unknown>), ...sent }
+    } catch (e) { failures.push('alerts'); console.error('maintenance alerts', e) }
 
     try {
       const { data, error } = await admin.rpc('support_maintenance_presence', { p_stale_seconds: 90 })

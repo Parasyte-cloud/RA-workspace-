@@ -20,3 +20,6 @@ dist/
 
 # Support Command Centre: generated Twilio ids and secrets
 .env.support.generated
+
+.env.support.private
+vapid.private.env

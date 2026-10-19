@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="support-functions-url" content="https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1">
+<title>Join RideArrivo Support</title>
+<!-- PArAsYtE | RA-Workspace support module -->
+<style>
+:root{--bg:#0b0f17;--card:#121826;--line:#243047;--text:#e8edf5;--muted:#9aa7bd;--accent:#d58a2a;--bad:#ff8a8a;--good:#6ee7a1}
+@media(prefers-color-scheme:light){:root{--bg:#f4f6fa;--card:#fff;--line:#d6dde9;--text:#0f1724;--muted:#52607a;--accent:#b46a0f;--bad:#b42318;--good:#117a45}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+main{flex:1;display:grid;place-items:center;padding:24px 16px}
+.card{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px}
+h1{margin:0 0 6px;font-size:1.4rem}p{margin:0 0 16px;color:var(--muted)}
+label{display:block;margin:14px 0 6px;font-weight:600;font-size:.9rem}
+input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+input.code{letter-spacing:.18em;font-size:1.2rem;text-transform:uppercase;font-variant-numeric:tabular-nums}
+button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--accent);color:#111;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:.92rem}
+.msg.bad{border:1px solid var(--bad);color:var(--bad)}.msg.good{border:1px solid var(--good);color:var(--good)}
+.hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+a{color:var(--accent)}
+footer{padding:18px 16px 22px;text-align:center}
+footer a{color:#c0c7d1;text-decoration:none;font-weight:800;letter-spacing:.22em;font-size:.82rem;text-transform:none;opacity:.85}
+footer a:hover{opacity:1}
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <div id="form-view">
+      <h1>Join RideArrivo Support</h1>
+      <p>Enter the email address your invitation was sent to and the one-time code, then choose a password.</p>
+      <form id="f" autocomplete="on" novalidate>
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" inputmode="email" autocomplete="username" required>
+        <label for="code">One-time code</label>
+        <input id="code" name="code" class="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" required>
+        <label for="pw">Choose a password</label>
+        <input id="pw" name="password" type="password" autocomplete="new-password" minlength="10" required>
+        <div class="hint">At least 10 characters. If you already have a RideArrivo workspace account, your existing password stays as it is.</div>
+        <label for="pw2">Repeat the password</label>
+        <input id="pw2" type="password" autocomplete="new-password" required>
+        <button id="go" type="submit">Create my access</button>
+        <div id="msg" class="msg bad" role="alert" hidden></div>
+      </form>
+    </div>
+    <div id="done-view" hidden>
+      <h1>You are in</h1>
+      <p id="done-text"></p>
+      <div class="msg good">Sign in to the workspace with your email address and your password. Support opens for you.</div>
+      <button id="signin" type="button">Go to sign in</button>
+    </div>
+  </div>
+</main>
+<footer><a href="https://www.parasyte.cloud" target="_blank" rel="noopener">PArAsYtE</a></footer>
+<script>
+(function () {
+  var base = (document.querySelector('meta[name="support-functions-url"]') || {}).content || ''
+  var $ = function (id) { return document.getElementById(id) }
+  var params = new URLSearchParams(location.search)
+  if (params.get('email')) $('email').value = params.get('email')
+  if (params.get('code')) $('code').value = params.get('code')
+  // Remove the code from the address bar and history as soon as it has been read.
+  if (location.search) history.replaceState(null, '', location.pathname)
+
+  function show(text, good) { var m = $('msg'); m.hidden = false; m.className = 'msg ' + (good ? 'good' : 'bad'); m.textContent = text }
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault()
+    $('msg').hidden = true
+    if (!base || base.indexOf('__') === 0) return show('This page is not configured yet. Ask your administrator.')
+    var email = $('email').value.trim(), code = $('code').value.trim(), pw = $('pw').value
+    if (!email || !code) return show('Enter your email address and the code from your invitation.')
+    if (pw.length < 10) return show('Use at least 10 characters for your password.')
+    if (pw !== $('pw2').value) return show('The two passwords do not match.')
+    $('go').disabled = true; $('go').textContent = 'Working'
+    fetch(base.replace(/\/+$/, '') + '/support-invite', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'redeem', email: email, code: code, password: pw })
+    }).then(function (r) { return r.json().catch(function () { return {} }).then(function (b) { return { ok: r.ok, body: b } }) })
+      .then(function (res) {
+        if (!res.ok || res.body.error) { show(res.body.error || 'Something went wrong. Try again.'); return }
+        $('form-view').hidden = true; $('done-view').hidden = false
+        $('done-text').textContent = res.body.existingAccount
+          ? 'Support access has been added to your existing account.'
+          : 'Welcome' + (res.body.name ? ', ' + res.body.name.split(' ')[0] : '') + '. Your account is ready.'
+      })
+      .catch(function () { show('Could not reach the server. Check your connection and try again.') })
+      .then(function () { $('go').disabled = false; $('go').textContent = 'Create my access' })
+  })
+  $('signin').addEventListener('click', function () { location.href = '/' })
+})()
+</script>
+</body>
+</html>

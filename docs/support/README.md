@@ -15,6 +15,9 @@ One workstation for every way a customer reaches RideArrivo Support: phone, What
 | Shifts | Day (07:00 to 19:00) and Night (19:00 to 07:00, Africa/Lagos) evaluated live, including overnight shifts. Officers can only go Available on shift. |
 | Head of Support | Control tower: KPIs for today, live calls, officer board, SLA breaches, channel load, assign and reassign. |
 | Administration | Provision officers (skills, capacity, shift, Twilio worker), voice settings and IVR, dial rules (toll fraud policy), opening hours and closures, voicemail, number registry, do-not-contact list, spend and fraud limits, recording retention. |
+| Staff invites | Admin issues a one-time code (email, WhatsApp or copy) so staff without a RideArrivo email can join. |
+| Teams | Supervisors can be scoped to their own team. |
+| Alerts and PWA | Push, SMS, WhatsApp and voice alerts for SOS and escalations; installable app; notification centre; live map with route and trail. |
 | Line quality and safety | Softphone sends latency, jitter and loss samples; the control tower shows MOS, outbound ASR and ACD, spend today and open fraud alerts. |
 
 ## Where it plugs in
@@ -50,6 +53,17 @@ These are the defects found in the Phase 1 and Phase 2 drafts and what would hav
 - **Recording** covers outbound calls and voicemail, with a consent notice, audited playback and a retention purge. Inbound calls are not recorded. Do not enable it before legal sign off on disclosure and retention.
 - The SQL logic is tested on Postgres 16 with a Supabase-shaped stub, not against a live Supabase project. Run it against staging first.
 - Twilio, the BYOC trunk and a real browser softphone could not be exercised from the build environment. First call testing is a deployment step.
+
+## v3.3 honest limits
+
+- The SOS, location and code-issuing contracts are untested against the real RideArrivo app. Until it provides them, those screens say "not connected".
+- Business-initiated WhatsApp needs an approved template. Nigerian SMS needs a registered sender ID or Messaging Service. Voice alerts have no keypad acknowledgement.
+- iOS push works only from an installed Home Screen app. Icons are placeholders.
+- OpenStreetMap tiles are for light use only; use a paid provider in production.
+- Team scoping covers assignment, location approval, audit, reports and invites, not the shared queues, floor board or emergencies.
+- The join page throttle is in memory and best effort; the real protection is the 5 guess lockout.
+- Alerts depend on `support-maintenance` running every minute.
+- `support-ingest` still has no filter for the company's own noreply, mailer-daemon or Auto-Submitted mail.
 
 ## Documents
 

@@ -538,3 +538,270 @@ export function qualityVerdict(s: { rttMs: number; jitterMs: number; lossPct: nu
   if (s.mos >= 3.6) return 'fair'
   return 'poor'
 }
+
+// ---------------------------------------------------------------------------
+// Workstation safety: location freshness and SOS event parsing
+// ---------------------------------------------------------------------------
+
+export type LocationFreshness = { state: 'live' | 'stale' | 'unknown'; ageSeconds: number | null }
+
+/**
+ * A position is only "live" while it is newer than the freshness limit. Older
+ * positions are shown as last known with their age, never as live. A clock a
+ * little ahead of ours counts as age 0; a timestamp that cannot be read is unknown.
+ */
+export function locationFreshness(recordedAt: unknown, nowMs: number, freshSeconds: number): LocationFreshness {
+  const ms = typeof recordedAt === 'number' ? recordedAt : Date.parse(String(recordedAt ?? ''))
+  if (!Number.isFinite(ms)) return { state: 'unknown', ageSeconds: null }
+  const age = Math.max(0, Math.round((nowMs - ms) / 1000))
+  return { state: age <= freshSeconds ? 'live' : 'stale', ageSeconds: age }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export type SosLocation = { lat: number; lng: number; accuracy_m?: number; heading?: number; recorded_at?: string }
+export type SosEvent = {
+  eventId: string
+  subjectType: 'rider' | 'driver'
+  subjectId: string
+  identityCode: string | null
+  tripRef: string | null
+  bookingRef: string | null
+  vehicleRef: string | null
+  activatedAt: string | null
+  location: SosLocation | null
+}
+
+function shortText(value: unknown, max: number): string | null {
+  if (value === null || value === undefined) return null
+  const text = String(value).trim().slice(0, max)
+  return text || null
+}
+
+function finite(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined
+  const n = Number(value)
+  return Number.isFinite(n) ? n : undefined
+}
+
+/**
+ * Validate a signed SOS event from the RideArrivo backend. Fields that identify
+ * the event and the person are required. Everything else is best effort: a bad
+ * coordinate or timestamp is dropped rather than rejecting an emergency.
+ */
+export function parseSosEvent(body: unknown): { ok: true; value: SosEvent } | { ok: false; error: string } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, error: 'Body must be a JSON object' }
+  const b = body as Record<string, unknown>
+  const eventId = shortText(b.event_id, 200)
+  if (!eventId) return { ok: false, error: 'event_id is required' }
+  const subjectType = b.subject_type === 'rider' || b.subject_type === 'driver' ? b.subject_type : null
+  if (!subjectType) return { ok: false, error: 'subject_type must be rider or driver' }
+  const subjectId = String(b.subject_id ?? '').trim()
+  if (!UUID_RE.test(subjectId)) return { ok: false, error: 'subject_id must be a uuid' }
+
+  let location: SosLocation | null = null
+  const loc = b.location
+  if (loc && typeof loc === 'object' && !Array.isArray(loc)) {
+    const l = loc as Record<string, unknown>
+    const lat = finite(l.lat)
+    const lng = finite(l.lng)
+    if (lat !== undefined && lng !== undefined && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      location = { lat, lng }
+      const accuracy = finite(l.accuracy_m)
+      const heading = finite(l.heading)
+      if (accuracy !== undefined && accuracy >= 0) location.accuracy_m = accuracy
+      if (heading !== undefined && heading >= 0 && heading <= 360) location.heading = heading
+      const when = typeof l.recorded_at === 'string' ? Date.parse(l.recorded_at) : NaN
+      if (Number.isFinite(when)) location.recorded_at = new Date(when).toISOString()
+    }
+  }
+
+  const activated = typeof b.activated_at === 'string' ? Date.parse(b.activated_at) : NaN
+  return {
+    ok: true,
+    value: {
+      eventId,
+      subjectType,
+      subjectId,
+      identityCode: shortText(b.identity_code, 20)?.toUpperCase() ?? null,
+      tripRef: shortText(b.trip_id, 100),
+      bookingRef: shortText(b.booking_ref, 100),
+      vehicleRef: shortText(b.vehicle_id, 100),
+      activatedAt: Number.isFinite(activated) ? new Date(activated).toISOString() : null,
+      location,
+    },
+  }
+}
+
+export type LatLng = [number, number]
+
+/** Decode a Google-style encoded polyline (precision 5 or 6). Returns [] for anything malformed. */
+export function decodePolyline(encoded: unknown, precision = 5): LatLng[] {
+  if (typeof encoded !== 'string' || encoded.length === 0 || encoded.length > 50_000) return []
+  const factor = Math.pow(10, precision === 6 ? 6 : 5)
+  const out: LatLng[] = []
+  let index = 0, lat = 0, lng = 0
+  const next = (): number | null => {
+    let result = 0, shift = 0, byte: number
+    do {
+      if (index >= encoded.length) return null
+      byte = encoded.charCodeAt(index++) - 63
+      if (byte < 0 || byte > 63) return null
+      result |= (byte & 0x1f) << shift
+      shift += 5
+      if (shift > 35) return null
+    } while (byte >= 0x20)
+    return result & 1 ? ~(result >> 1) : result >> 1
+  }
+  while (index < encoded.length) {
+    const dLat = next(); const dLng = next()
+    if (dLat === null || dLng === null) return []
+    lat += dLat; lng += dLng
+    const la = lat / factor, ln = lng / factor
+    if (Math.abs(la) > 90 || Math.abs(ln) > 180) return []
+    out.push([la, ln])
+  }
+  return out
+}
+
+/** Keep the first and last point and spread the rest evenly, so a long route still draws quickly. */
+export function downsamplePath(points: LatLng[], max: number): LatLng[] {
+  if (points.length <= max || max < 2) return points
+  const out: LatLng[] = []
+  const step = (points.length - 1) / (max - 1)
+  for (let i = 0; i < max; i++) out.push(points[Math.round(i * step)])
+  return out
+}
+
+function readPath(raw: unknown, max: number): LatLng[] {
+  if (!Array.isArray(raw)) return []
+  const pts: LatLng[] = []
+  for (const p of raw.slice(0, 5000)) {
+    let a: number | undefined, o: number | undefined
+    if (Array.isArray(p)) { a = finite(p[0]); o = finite(p[1]) }
+    else if (p && typeof p === 'object') { a = finite((p as Record<string, unknown>).lat); o = finite((p as Record<string, unknown>).lng) }
+    if (a !== undefined && o !== undefined && Math.abs(a) <= 90 && Math.abs(o) <= 180) pts.push([a, o])
+  }
+  return downsamplePath(pts, max)
+}
+
+export type LiveLocation = {
+  lat: number; lng: number; heading?: number; speed_kmh?: number; accuracy_m?: number; recorded_at?: string
+  trip?: Record<string, unknown>; trail?: Array<{ lat: number; lng: number; recorded_at?: string }>
+}
+
+/** Keep only the fields the console needs from the upstream location service. */
+export function sanitizeLiveLocation(raw: unknown): LiveLocation | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const lat = finite(r.lat)
+  const lng = finite(r.lng)
+  if (lat === undefined || lng === undefined || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
+  const out: LiveLocation = { lat, lng }
+  const heading = finite(r.heading); if (heading !== undefined && heading >= 0 && heading <= 360) out.heading = heading
+  const speed = finite(r.speed_kmh); if (speed !== undefined && speed >= 0 && speed < 400) out.speed_kmh = speed
+  const accuracy = finite(r.accuracy_m); if (accuracy !== undefined && accuracy >= 0) out.accuracy_m = accuracy
+  const when = typeof r.recorded_at === 'string' ? Date.parse(r.recorded_at) : NaN
+  if (Number.isFinite(when)) out.recorded_at = new Date(when).toISOString()
+  const t = r.trip
+  if (t && typeof t === 'object') {
+    const trip = t as Record<string, unknown>
+    const point = (p: unknown) => {
+      if (!p || typeof p !== 'object') return undefined
+      const q = p as Record<string, unknown>
+      const a = finite(q.lat), o = finite(q.lng)
+      return a !== undefined && o !== undefined ? { lat: a, lng: o, label: shortText(q.label, 120) } : undefined
+    }
+    // Planned route: either a list of points or an encoded polyline. At most 400 points are kept.
+    let route = readPath(trip.route, 400)
+    if (!route.length && typeof trip.route_polyline === 'string') {
+      route = downsamplePath(decodePolyline(trip.route_polyline, finite(trip.route_precision) === 6 ? 6 : 5), 400)
+    }
+    out.trip = {
+      status: shortText(trip.status, 40),
+      booking_ref: shortText(trip.booking_ref, 100),
+      pickup: point(trip.pickup),
+      dropoff: point(trip.dropoff),
+      eta_minutes: finite(trip.eta_minutes),
+      vehicle: shortText(trip.vehicle, 120),
+      driver_name: shortText(trip.driver_name, 120),
+      route: route.length >= 2 ? route : undefined,
+    }
+  }
+  // Where they have actually been: the last 100 positions, oldest first.
+  if (Array.isArray(r.trail)) {
+    const trail: Array<{ lat: number; lng: number; recorded_at?: string }> = []
+    for (const p of r.trail.slice(-300)) {
+      if (!p || typeof p !== 'object') continue
+      const q = p as Record<string, unknown>
+      const a = finite(q.lat), o = finite(q.lng)
+      if (a === undefined || o === undefined || Math.abs(a) > 90 || Math.abs(o) > 180) continue
+      const w = typeof q.recorded_at === 'string' ? Date.parse(q.recorded_at) : NaN
+      trail.push({ lat: a, lng: o, recorded_at: Number.isFinite(w) ? new Date(w).toISOString() : undefined })
+    }
+    if (trail.length) out.trail = trail.slice(-100)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Staff invites
+// ---------------------------------------------------------------------------
+
+// 30 characters with no 0/O/1/I/L/U look-alikes. Ten characters is about 49 bits,
+// and a code also needs the matching email, expires in 48 hours and locks after 5 misses.
+export const INVITE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ'
+
+export function generateInviteCode(randomBytes: (n: number) => Uint8Array): string {
+  const out: string[] = []
+  // Rejection sampling keeps every character equally likely.
+  const limit = 256 - (256 % INVITE_ALPHABET.length)
+  while (out.length < 10) {
+    for (const byte of randomBytes(16)) {
+      if (byte < limit && out.length < 10) out.push(INVITE_ALPHABET[byte % INVITE_ALPHABET.length])
+    }
+  }
+  return `${out.slice(0, 5).join('')}-${out.slice(5).join('')}`
+}
+
+// People type codes from a phone screen. Forgive case, spaces and dashes.
+export function normalizeInviteCode(raw: unknown): string {
+  return String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20)
+}
+
+export function validateJoinPassword(password: unknown, email: string): string | null {
+  const p = String(password ?? '')
+  if (p.length < 10) return 'Use at least 10 characters.'
+  if (p.length > 128) return 'That password is too long.'
+  const local = email.split('@')[0]?.toLowerCase() || ''
+  if (p.toLowerCase().includes(local) && local.length >= 4) return 'Do not use your email name in your password.'
+  if (/^(.)\1+$/.test(p)) return 'Choose a less repetitive password.'
+  if (/^(password|12345678|qwertyuiop|letmein)/i.test(p)) return 'That password is too easy to guess.'
+  return null
+}
+
+export function isValidEmail(raw: unknown): boolean {
+  const e = String(raw ?? '').trim()
+  return e.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)
+}
+
+export function inviteMessage(opts: { name: string; code: string; joinUrl: string; hours?: number }) {
+  const hours = opts.hours ?? 48
+  const first = opts.name.trim().split(/\s+/)[0] || 'there'
+  const link = opts.joinUrl ? `Open ${opts.joinUrl} and enter this code with your email address.` : 'Open the RideArrivo Support join page your administrator shared and enter this code with your email address.'
+  const text =
+    `Hello ${first},\n\nYou have been invited to join the RideArrivo Support team.\n\n` +
+    `Your one-time code: ${opts.code}\n\n${link}\nThen choose a password. The code works once and expires in ${hours} hours. ` +
+    `Never share it with anyone.\n\nIf you were not expecting this, ignore this message.\n\nRideArrivo Support`
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const html =
+    `<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#111">` +
+    `<h2 style="margin:0 0 12px">Welcome to RideArrivo Support</h2>` +
+    `<p>Hello ${esc(first)}, you have been invited to join the RideArrivo Support team.</p>` +
+    `<p style="margin:20px 0 4px">Your one-time code</p>` +
+    `<p style="font-size:28px;letter-spacing:3px;font-weight:700;background:#f3f4f6;padding:14px 18px;border-radius:8px;display:inline-block;margin:0">${esc(opts.code)}</p>` +
+    (opts.joinUrl ? `<p style="margin:20px 0"><a href="${esc(opts.joinUrl)}" style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">Set up your account</a></p>` : '') +
+    `<p style="color:#555;font-size:13px">Enter your email address and this code, then choose a password. The code works once and expires in ${hours} hours. Never share it with anyone. If you were not expecting this, ignore this message.</p>` +
+    `<p style="color:#999;font-size:12px;margin-top:28px">RideArrivo Support</p></div>`
+  return { subject: 'Your RideArrivo Support invitation', text, html }
+}
