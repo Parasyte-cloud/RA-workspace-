@@ -1,7 +1,7 @@
 // Browser-facing control plane for the Support Command Centre.
 //
-// Officer actions   : presence, register_device, queue_callback, sync_self
-// Supervisor actions: admin_list, provision_agent, update_voice_settings,
+// Officer actions   : presence, register_device, queue_callback, sync_self, push_config, notify_dispatch
+// Supervisor actions: admin_list, provision_agent, team_save, team_delete, alert_rule_save, contact_save, update_voice_settings,
 //                     list_dial_rules, upsert_dial_rule, delete_dial_rule,
 //                     telephony_list, set_business_hours, upsert_closure,
 //                     delete_closure, upsert_number, delete_number,
@@ -17,6 +17,7 @@
 // PArAsYtE | RA-Workspace support module
 
 import { AGENT_SELECTABLE_STATES, clientIdentity, normalizePhone } from '../_shared/supportCore.ts'
+import { dispatchDeliveries, pushConfigured } from '../_shared/supportNotify.ts'
 import {
   cors,
   errorResponse,
@@ -47,8 +48,12 @@ Deno.serve(async (req) => {
     const { admin, employeeId, user, isSupervisor } = await requireSupportUser(req)
     const body = await req.json().catch(() => ({}))
     const action = asText(body?.action, 40)
-    const requireSupervisor = () => {
+    // Configuration (people, roles, teams, telephony) is for unscoped supervisors. A team lead can act
+    // on alerts but cannot change who has access or how the phone line behaves.
+    const scope = isSupervisor ? ((await admin.rpc('support_supervisor_scope', { p_user: employeeId })).data as string | null) : null
+    const requireSupervisor = (allowTeam = false) => {
       if (!isSupervisor) throw new HttpError(403, 'Support supervisor access required')
+      if (!allowTeam && scope === 'team') throw new HttpError(403, 'This needs a supervisor who is not limited to one team')
     }
     const audit = (act: string, type: string, id: string, payload: unknown = {}) =>
       admin.rpc('support_write_audit', { p_actor: employeeId, p_action: act, p_entity_type: type, p_entity_id: id, p_payload: payload })
@@ -147,19 +152,84 @@ Deno.serve(async (req) => {
     // ------------------------------------------------------------ supervisor
     if (action === 'admin_list') {
       requireSupervisor()
-      const [employees, agents, shifts, assignments, settings] = await Promise.all([
+      const [employees, agents, shifts, assignments, settings, teams] = await Promise.all([
         admin.from('employee_profiles').select('id, full_name, email, role, job_title, department, active').eq('active', true).order('full_name'),
         admin.from('support_agents').select('*').order('created_at'),
         admin.from('support_shifts').select('id, name, timezone, starts_at, ends_at, active').eq('active', true).order('starts_at'),
         admin.from('support_shift_assignments').select('shift_id, employee_id, weekday, effective_from, effective_to'),
         admin.from('support_voice_settings').select('*').eq('id', true).maybeSingle(),
+        admin.from('support_teams').select('id, name, description, active').order('name'),
       ])
       const failed = employees.error || agents.error || shifts.error || assignments.error
       if (failed) throw failed
       return json(req, {
         employees: employees.data || [], agents: agents.data || [], shifts: shifts.data || [],
-        assignments: assignments.data || [], voiceSettings: settings.data || null,
+        assignments: assignments.data || [], voiceSettings: settings.data || null, teams: teams.data || [],
       })
+    }
+
+    // ------------------------------------------------------------ alerts
+    if (action === 'push_config') {
+      return json(req, { publicKey: Deno.env.get('VAPID_PUBLIC_KEY') || null, configured: pushConfigured() })
+    }
+
+    if (action === 'notify_dispatch') {
+      // Lets a screen send what it just queued (a test alert, say) without waiting for the minute tick.
+      const out = await dispatchDeliveries(admin, { limit: 10, budgetMs: 8000 })
+      return json(req, { ok: true, ...out })
+    }
+
+    if (action === 'alert_rule_save') {
+      requireSupervisor()
+      const id = clampInt(body?.id, 1, 1_000_000, 0)
+      if (!id) throw new HttpError(400, 'id is required')
+      const patch: Record<string, unknown> = {}
+      if (typeof body?.enabled === 'boolean') patch.enabled = body.enabled
+      if (body?.delaySeconds !== undefined) patch.delay_seconds = clampInt(body.delaySeconds, 0, 3600, 0)
+      if (body?.minLevel !== undefined) patch.min_level = clampInt(body.minLevel, 0, 10, 0)
+      const { error } = await admin.from('support_alert_rules').update(patch).eq('id', id)
+      if (error) throw new HttpError(400, error.message)
+      await audit('alert_rule_changed', 'alert_rule', String(id), patch)
+      return json(req, { ok: true })
+    }
+
+    if (action === 'contact_save') {
+      requireSupervisor()
+      const target = asText(body?.employeeId, 64)
+      if (!uuidRe.test(target)) throw new HttpError(400, 'employeeId is required')
+      const raw = asText(body?.phone, 40)
+      const phone = raw ? normalizePhone(raw) : ''
+      if (raw && !phone) throw new HttpError(400, 'That phone number is not valid. Use the international form, like +2348012345678')
+      const { error } = await admin.from('support_staff_contacts').upsert({
+        employee_id: target, phone: phone || null, allow_sms: body?.allowSms !== false, allow_whatsapp: body?.allowWhatsapp !== false,
+        allow_voice: body?.allowVoice !== false, updated_at: new Date().toISOString(), updated_by: employeeId,
+      }, { onConflict: 'employee_id' })
+      if (error) throw new HttpError(400, error.message)
+      await audit('alert_contact_updated', 'employee', target, { phone: phone ? phone.slice(0, 4) + '****' + phone.slice(-2) : null })
+      return json(req, { ok: true })
+    }
+
+    if (action === 'team_save') {
+      requireSupervisor()
+      const name = asText(body?.name, 60)
+      if (name.length < 2) throw new HttpError(400, 'A team needs a name')
+      const row = { name, description: asText(body?.description, 200) || null, active: body?.active !== false }
+      const id = asText(body?.id, 64)
+      const q = uuidRe.test(id) ? admin.from('support_teams').update(row).eq('id', id) : admin.from('support_teams').insert(row)
+      const { data, error } = await q.select('id').single()
+      if (error) throw new HttpError(400, error.code === '23505' ? 'A team with that name already exists' : error.message)
+      await audit('team_saved', 'team', data.id, row)
+      return json(req, { ok: true, id: data.id })
+    }
+
+    if (action === 'team_delete') {
+      requireSupervisor()
+      const id = asText(body?.id, 64)
+      if (!uuidRe.test(id)) throw new HttpError(400, 'id is required')
+      const { error } = await admin.from('support_teams').delete().eq('id', id)
+      if (error) throw new HttpError(400, error.message)
+      await audit('team_deleted', 'team', id)
+      return json(req, { ok: true })
     }
 
     if (action === 'provision_agent') {
@@ -169,11 +239,17 @@ Deno.serve(async (req) => {
       const { data: emp } = await admin.from('employee_profiles').select('id, full_name, email, active').eq('id', target).maybeSingle()
       if (!emp?.active) throw new HttpError(404, 'Active employee not found')
 
-      const voiceEnabled = body?.voiceEnabled !== false
+      // Role kind: watcher (sees queues, never gets work, no private details or locations),
+      // agent, or supervisor. The older isSupervisor flag still works.
+      const roleKind = body?.roleKind === 'watcher' || body?.roleKind === 'supervisor' || body?.roleKind === 'agent'
+        ? body.roleKind
+        : (body?.isSupervisor ? 'supervisor' : 'agent')
+      const voiceEnabled = roleKind !== 'watcher' && body?.voiceEnabled !== false
       const row = {
         employee_id: target,
         enabled: body?.enabled !== false,
-        is_supervisor: Boolean(body?.isSupervisor),
+        role_kind: roleKind,
+        is_supervisor: roleKind === 'supervisor',
         voice_enabled: voiceEnabled,
         messaging_enabled: body?.messagingEnabled !== false,
         email_enabled: body?.emailEnabled !== false,
@@ -185,6 +261,10 @@ Deno.serve(async (req) => {
         skills: stringList(body?.skills, 30, true) ?? [],
         languages: stringList(body?.languages, 20) ?? ['English'],
         updated_at: new Date().toISOString(),
+        // Only touched when the caller sends them, so an older screen cannot wipe a team.
+        ...(body?.teamId !== undefined ? { team_id: uuidRe.test(asText(body.teamId, 64)) ? asText(body.teamId, 64) : null } : {}),
+        ...(body?.supervisorScope !== undefined || roleKind !== 'supervisor'
+          ? { supervisor_scope: roleKind === 'supervisor' && body?.supervisorScope === 'team' ? 'team' : 'all' } : {}),
       }
       const { data: agent, error } = await admin.from('support_agents').upsert(row, { onConflict: 'employee_id' }).select('*').single()
       if (error) throw new HttpError(400, error.message)
@@ -428,7 +508,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'resolve_alert') {
-      requireSupervisor()
+      requireSupervisor(true)
       const id = asText(body?.alertId, 64)
       if (!uuidRe.test(id)) throw new HttpError(400, 'alertId is required')
       const { error } = await admin.from('support_fraud_alerts').update({ resolved_at: new Date().toISOString(), resolved_by: employeeId }).eq('id', id).is('resolved_at', null)

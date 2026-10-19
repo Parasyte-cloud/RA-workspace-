@@ -414,3 +414,339 @@ export async function fetchRecordingUrl(callId: string): Promise<string> {
   const blob = data instanceof Blob ? data : new Blob([data as BlobPart], { type: 'audio/mpeg' })
   return URL.createObjectURL(blob)
 }
+
+// ---------------------------------------------------------------------------
+// Workstation safety: emergencies, identity lookup, location sessions,
+// watchers, reports, audit, safety settings
+// ---------------------------------------------------------------------------
+
+export type IncidentStatus = 'triggered' | 'acknowledged' | 'escalated' | 'resolved'
+export type IncidentLocation = { lat: number; lng: number; accuracy_m?: number; heading?: number; recorded_at?: string }
+export type IncidentRow = {
+  id: string
+  public_id: string
+  status: IncidentStatus
+  subject_type: 'rider' | 'driver'
+  activated_at: string
+  received_at: string
+  last_activation_at: string
+  escalation_level: number
+  next_escalation_at: string | null
+  acknowledged_at: string | null
+  resolved_at: string | null
+  outcome: string | null
+  duplicate_count: number
+  assigned_to: string | null
+  assigned_name: string | null
+  acknowledged_by: string | null
+  acknowledged_name: string | null
+  /** False for watchers: they see that an emergency exists, not who or where. */
+  detail_visible: boolean
+  identity_code: string | null
+  trip_ref: string | null
+  booking_ref: string | null
+  vehicle_ref: string | null
+  last_location: IncidentLocation | null
+  location_age_seconds: number | null
+  location_fresh_seconds: number
+}
+export type IncidentEvent = { id: number; event_type: string; detail: Record<string, unknown>; actor_name: string | null; created_at: string }
+export type IncidentDetail = {
+  incident: Record<string, unknown>
+  original_payload: unknown
+  assigned_name: string | null
+  events: IncidentEvent[]
+  location_sessions: Array<{ id: string; status: string; expires_at: string; requested_by: string; requester_name: string | null }>
+}
+export const INCIDENT_OUTCOMES = [
+  ['assisted_on_scene', 'Assisted, person is safe'],
+  ['emergency_services_contacted', 'Emergency services contacted (by staff)'],
+  ['false_alarm', 'False alarm, confirmed with the person'],
+  ['unreachable', 'Could not reach the person'],
+  ['other', 'Other (explain in notes)'],
+] as const
+export const INCIDENT_ACTIONS = [
+  ['note', 'Note'],
+  ['contacted_subject', 'Contacted the rider or driver'],
+  ['contacted_driver', 'Contacted the driver'],
+  ['dispatched_help', 'Dispatched help'],
+  ['contacted_emergency_services', 'Contacted emergency services'],
+] as const
+
+export async function loadIncidents(): Promise<IncidentRow[]> {
+  const { data, error } = await client().from('support_incident_board_view').select('*').order('activated_at', { ascending: false }).limit(100)
+  if (error) fail(error, 'Unable to load emergencies')
+  return (data || []) as IncidentRow[]
+}
+
+export async function canSeeSensitive(): Promise<boolean> {
+  const { data, error } = await client().rpc('support_can_see_sensitive')
+  if (error) return false
+  return Boolean(data)
+}
+
+export async function getIncidentDetail(id: string): Promise<IncidentDetail | null> {
+  const { data, error } = await client().rpc('support_incident_detail', { p_incident: id })
+  if (error) fail(error, 'Unable to open the emergency')
+  return (data as IncidentDetail | null) ?? null
+}
+
+async function rpcVoid(fn: string, args: Record<string, unknown>, fallback: string) {
+  const { error } = await client().rpc(fn, args)
+  if (error) fail(error, fallback)
+}
+export const ackIncident = (id: string) => rpcVoid('support_incident_acknowledge', { p_incident: id }, 'Could not acknowledge')
+export const logIncident = (id: string, kind: string, text: string) => rpcVoid('support_incident_log', { p_incident: id, p_kind: kind, p_text: text }, 'Could not record that')
+export const reassignIncident = (id: string, to: string, reason: string) => rpcVoid('support_incident_reassign', { p_incident: id, p_to: to, p_reason: reason }, 'Could not reassign')
+export const resolveIncident = (id: string, outcome: string, notes: string) => rpcVoid('support_incident_resolve', { p_incident: id, p_outcome: outcome, p_notes: notes }, 'Could not resolve')
+export const reopenIncident = (id: string, reason: string) => rpcVoid('support_incident_reopen', { p_incident: id, p_reason: reason }, 'Could not reopen')
+
+export type IdentityResult = {
+  status: 'found' | 'not_found' | 'rate_limited'
+  code?: string
+  subject_type?: 'rider' | 'driver'
+  customer_id?: string | null
+  display_name?: string | null
+  phone?: string | null
+  email?: string | null
+  full_details?: boolean
+  tickets?: Array<{ id: string; public_id: string; subject: string; status: SupportTicketStatus; priority: SupportPriority }>
+}
+export async function lookupIdentity(code: string, reason: string): Promise<IdentityResult> {
+  const { data, error } = await client().rpc('support_lookup_identity', { p_code: code, p_reason: reason || null })
+  if (error) fail(error, 'Lookup failed')
+  return data as IdentityResult
+}
+
+export type LocationSession = { id: string; status: 'pending_approval' | 'active' | 'denied' | 'ended' | 'expired'; expires_at: string; existing?: boolean }
+export async function requestLocation(input: { ticketId?: string; incidentId?: string; identityCode?: string; reason: string }): Promise<LocationSession> {
+  const { data, error } = await client().rpc('support_request_location', {
+    p_ticket: input.ticketId ?? null, p_incident: input.incidentId ?? null, p_identity_code: input.identityCode ?? null, p_reason: input.reason,
+  })
+  if (error) fail(error, 'Could not open a location session')
+  return data as LocationSession
+}
+export const endLocation = (id: string, reason?: string) => rpcVoid('support_end_location', { p_session: id, p_reason: reason ?? null }, 'Could not end the session')
+export const decideLocation = (id: string, approve: boolean, note?: string) => rpcVoid('support_decide_location', { p_session: id, p_approve: approve, p_note: note ?? null }, 'Could not record the decision')
+
+export async function findMyLocationSession(scope: { ticketId?: string; incidentId?: string }, meId: string): Promise<LocationSession | null> {
+  let q = client().from('support_location_sessions').select('id, status, expires_at')
+    .eq('requested_by', meId).in('status', ['active', 'pending_approval']).gt('expires_at', new Date().toISOString())
+  q = scope.incidentId ? q.eq('incident_id', scope.incidentId) : q.eq('ticket_id', scope.ticketId ?? '')
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(1)
+  if (error) return null
+  return ((data || [])[0] as LocationSession | undefined) ?? null
+}
+export async function getLocationSession(id: string): Promise<LocationSession | null> {
+  const { data } = await client().from('support_location_sessions').select('id, status, expires_at').eq('id', id).maybeSingle()
+  return (data as LocationSession | null) ?? null
+}
+
+export type LocationReading = {
+  ok: true
+  state: 'live' | 'stale' | 'unavailable' | 'not_configured'
+  ageSeconds: number | null
+  location: { lat: number; lng: number; heading?: number; speed_kmh?: number; accuracy_m?: number; recorded_at?: string } | null
+  trip: { status?: string; booking_ref?: string; pickup?: { lat: number; lng: number; label?: string }; dropoff?: { lat: number; lng: number; label?: string }; eta_minutes?: number; vehicle?: string; driver_name?: string; route?: Array<[number, number]> } | null
+  trail?: Array<{ lat: number; lng: number; recorded_at?: string }> | null
+  source: 'live_service' | 'sos_event' | null
+  warning: string | null
+  expiresAt: string
+  freshSeconds: number
+}
+export const fetchLocation = (sessionId: string) => invokeSupport<LocationReading>('support-location', { sessionId })
+
+export type PendingLocation = { id: string; status: string; reason: string; requested_by: string; ticket_id: string | null; incident_id: string | null; expires_at: string; created_at: string }
+export async function loadLiveLocationSessions(): Promise<PendingLocation[]> {
+  const { data, error } = await client().from('support_location_sessions')
+    .select('id, status, reason, requested_by, ticket_id, incident_id, expires_at, created_at')
+    .in('status', ['pending_approval', 'active']).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(50)
+  if (error) fail(error, 'Unable to load location sessions')
+  return (data || []) as PendingLocation[]
+}
+
+export async function loadWatchers(ticketId: string): Promise<string[]> {
+  const { data } = await client().from('support_ticket_watchers').select('employee_id').eq('ticket_id', ticketId)
+  return (data || []).map((r: { employee_id: string }) => r.employee_id)
+}
+export const watchTicket = (ticketId: string) => rpcVoid('support_watch_ticket', { p_ticket: ticketId, p_employee: null }, 'Could not watch the ticket')
+export const unwatchTicket = (ticketId: string) => rpcVoid('support_unwatch_ticket', { p_ticket: ticketId, p_employee: null }, 'Could not stop watching')
+
+export type SafetySettings = {
+  location_session_minutes: number; location_requires_approval: boolean; location_max_active_per_officer: number; location_fresh_seconds: number
+  location_log_retention_days: number; identity_lookups_per_10min: number; identity_failed_per_10min: number
+  incident_ack_seconds: number; incident_escalate_seconds: number; incident_followup_seconds: number; incident_max_level: number
+}
+export async function loadSafetySettings(): Promise<SafetySettings | null> {
+  const { data, error } = await client().from('support_safety_settings').select('*').maybeSingle()
+  if (error) fail(error, 'Unable to load safety settings')
+  return (data as SafetySettings | null) ?? null
+}
+export async function saveSafetySettings(patch: Partial<SafetySettings>): Promise<SafetySettings> {
+  const { data, error } = await client().rpc('support_update_safety_settings', { p_patch: patch })
+  if (error) fail(error, 'Could not save safety settings')
+  return data as SafetySettings
+}
+
+export type AuditRow = { id: number; created_at: string; actor_id: string | null; actor_name: string | null; action: string; entity_type: string | null; entity_id: string | null; payload: Record<string, unknown> }
+export async function searchAudit(f: { action?: string; actor?: string; from?: string; to?: string; limit?: number }): Promise<AuditRow[]> {
+  const { data, error } = await client().rpc('support_audit_search', {
+    p_action: f.action || null, p_actor: f.actor || null, p_from: f.from || null, p_to: f.to || null, p_limit: f.limit ?? 200,
+  })
+  if (error) fail(error, 'Unable to search the audit log')
+  return (data || []) as AuditRow[]
+}
+
+export type SupportReport = {
+  range: { from: string; to: string }
+  cases: {
+    total: number; open: number; resolved: number; reopened: number; escalated: number
+    avg_first_response_minutes: number | null; avg_resolution_minutes: number | null; avg_waiting_minutes: number | null; avg_active_minutes: number | null
+    first_response_sla_pct: number | null; resolution_sla_pct: number | null
+  }
+  by_category: Array<{ category: string; total: number; open: number; resolved: number }>
+  by_priority: Array<{ priority: string; total: number }>
+  by_agent: Array<{ employee_id: string; name: string; handled: number; resolved: number; avg_resolution_minutes: number | null }>
+  queue_aging_now: { unassigned: number; oldest_minutes: number }
+  emergencies: { total: number; unresolved: number; escalated: number; avg_seconds_to_acknowledge: number | null; max_seconds_to_acknowledge: number | null; avg_minutes_to_resolve: number | null }
+  location: { sessions: number; fetches: number; served: number; stale: number; unavailable: number; availability_pct: number | null }
+}
+export async function loadReport(f: { from?: string; to?: string; agent?: string; category?: string }): Promise<SupportReport> {
+  const { data, error } = await client().rpc('support_report_summary', {
+    p_from: f.from || null, p_to: f.to || null, p_agent: f.agent || null, p_category: f.category || null,
+  })
+  if (error) fail(error, 'Unable to build the report')
+  return data as SupportReport
+}
+export const logExport = (kind: string, rows: number) => rpcVoid('support_log_export', { p_kind: kind, p_rows: rows }, 'Could not record the export')
+
+/** Seconds as "2m 05s" for emergencies, where seconds matter. */
+export function shortAge(totalSeconds: number | null | undefined): string {
+  if (totalSeconds == null || !Number.isFinite(totalSeconds)) return '-'
+  const s = Math.max(0, Math.round(totalSeconds))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${String(s % 60).padStart(2, '0')}s`
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+}
+
+export function csvEscape(value: unknown): string {
+  const text = value == null ? '' : String(value)
+  // A leading = + - @ makes spreadsheets run the cell as a formula.
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
+}
+
+// ---------------------------------------------------------------------------
+// Staff invites (support-invite function; list is a direct RPC)
+// ---------------------------------------------------------------------------
+
+export type InviteRole = 'watcher' | 'agent' | 'supervisor'
+export type StaffInvite = {
+  id: string; email: string; full_name: string; phone: string | null; role_kind: InviteRole; job_title: string
+  status: 'pending' | 'redeemed' | 'revoked' | 'expired' | 'locked'; attempts: number; expires_at: string; created_at: string
+  created_by_name: string | null; last_sent_at: string | null; send_count: number
+  delivery: Record<string, { ok: boolean; at: string; detail: string }>; redeemed_at: string | null
+}
+export type InviteOutcome = {
+  ok: boolean; inviteId: string; expiresAt: string; code: string; joinUrl: string | null
+  delivery: Record<string, { ok: boolean; detail: string }>
+}
+
+export async function canInviteStaff(): Promise<boolean> {
+  const { data, error } = await client().rpc('support_can_invite')
+  return !error && data === true
+}
+export async function listInvites(): Promise<StaffInvite[]> {
+  const { data, error } = await client().rpc('support_invites_list')
+  if (error) fail(error, 'Unable to load invites')
+  return (data || []) as StaffInvite[]
+}
+export const createInvite = (p: { email: string; fullName: string; phone?: string; roleKind: InviteRole; jobTitle?: string; teamId?: string; channels: Array<'email' | 'whatsapp'> }) =>
+  invokeSupport<InviteOutcome>('support-invite', { action: 'create', ...p })
+export const resendInvite = (inviteId: string, channels: Array<'email' | 'whatsapp'>) =>
+  invokeSupport<InviteOutcome>('support-invite', { action: 'resend', inviteId, channels })
+export const revokeInvite = (inviteId: string) => invokeSupport('support-invite', { action: 'revoke', inviteId })
+export const delegateInvites = (employeeId: string, value: boolean) => invokeSupport('support-invite', { action: 'delegate', employeeId, value })
+
+// ---------------------------------------------------------------------------
+// Alerts outside the screen: notification centre, devices, phone contact, rules
+// ---------------------------------------------------------------------------
+
+export type NotificationRow = {
+  id: number; kind: string; severity: 'info' | 'warning' | 'critical'; title: string; body: string
+  entity_type: string | null; entity_id: string | null; level: number; data: Record<string, unknown> | null
+  created_at: string; read_at: string | null
+}
+export type AlertChannel = 'push' | 'sms' | 'whatsapp' | 'voice'
+export type AlertRule = { id: number; kind: string; audience: 'responder' | 'supervisors' | 'on_duty'; channel: AlertChannel; enabled: boolean; min_level: number; delay_seconds: number }
+export type MyContact = { phone: string | null; allow_sms: boolean; allow_whatsapp: boolean; allow_voice: boolean }
+export type PushDevice = { id: string; user_agent: string | null; created_at: string; last_success_at: string | null }
+export type DeliveryReport = {
+  by_channel: Array<{ channel: AlertChannel; sent: number; failed: number; skipped: number; queued: number }>
+  oldest_queued_seconds: number | null
+  recent_problems: Array<{ at: string; channel: AlertChannel; status: string; error: string | null; kind: string; title: string; recipient: string }>
+  staff_without_path: Array<{ employee_id: string; name: string; push: boolean; phone: boolean }>
+}
+
+export async function loadNotifications(limit = 40): Promise<NotificationRow[]> {
+  const { data, error } = await client().from('support_notifications')
+    .select('id, kind, severity, title, body, entity_type, entity_id, level, data, created_at, read_at')
+    .order('created_at', { ascending: false }).limit(limit)
+  if (error) fail(error, 'Unable to load notifications')
+  return (data || []) as NotificationRow[]
+}
+export async function markNotificationsRead(ids?: number[]): Promise<void> {
+  const { error } = await client().rpc('support_notifications_mark_read', { p_ids: ids ?? null })
+  if (error) fail(error, 'Unable to mark as read')
+}
+export async function loadMyContact(): Promise<MyContact> {
+  const { data: u } = await client().auth.getUser()
+  const id = u.user?.id
+  if (!id) return { phone: null, allow_sms: true, allow_whatsapp: true, allow_voice: true }
+  const { data } = await client().from('support_staff_contacts').select('phone, allow_sms, allow_whatsapp, allow_voice').eq('employee_id', id).maybeSingle()
+  return (data as MyContact | null) ?? { phone: null, allow_sms: true, allow_whatsapp: true, allow_voice: true }
+}
+export async function saveMyContact(c: { phone: string; sms: boolean; whatsapp: boolean; voice: boolean }): Promise<void> {
+  const { error } = await client().rpc('support_set_my_contact', { p_phone: c.phone, p_sms: c.sms, p_whatsapp: c.whatsapp, p_voice: c.voice })
+  if (error) fail(error, 'Unable to save your number')
+}
+export const pushConfig = () => invokeSupport<{ publicKey: string | null; configured: boolean }>('support-taskrouter-control', { action: 'push_config' })
+export const dispatchAlertsNow = () => invokeSupport('support-taskrouter-control', { action: 'notify_dispatch' })
+export async function registerPushDevice(sub: { endpoint: string; p256dh: string; auth: string }, userAgent: string): Promise<void> {
+  const { error } = await client().rpc('support_push_subscribe', { p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth, p_user_agent: userAgent })
+  if (error) fail(error, 'Unable to register this device')
+}
+export async function unregisterPushDevice(endpoint: string): Promise<void> {
+  const { error } = await client().rpc('support_push_unsubscribe', { p_endpoint: endpoint })
+  if (error) fail(error, 'Unable to remove this device')
+}
+export async function myPushDevices(): Promise<PushDevice[]> {
+  const { data, error } = await client().rpc('support_my_push_devices')
+  if (error) fail(error, 'Unable to load devices')
+  return (data || []) as PushDevice[]
+}
+export async function sendTestAlert(channel: AlertChannel): Promise<void> {
+  const { error } = await client().rpc('support_send_test_alert', { p_channel: channel })
+  if (error) fail(error, 'Unable to send a test')
+  await dispatchAlertsNow().catch(() => undefined)
+}
+export async function loadAlertRules(): Promise<AlertRule[]> {
+  const { data, error } = await client().from('support_alert_rules').select('id, kind, audience, channel, enabled, min_level, delay_seconds').order('kind').order('audience').order('channel')
+  if (error) fail(error, 'Unable to load alert rules')
+  return (data || []) as AlertRule[]
+}
+export const saveAlertRule = (id: number, patch: { enabled?: boolean; delaySeconds?: number; minLevel?: number }) =>
+  invokeSupport('support-taskrouter-control', { action: 'alert_rule_save', id, ...patch })
+export const saveStaffContact = (employeeId: string, c: { phone: string; allowSms: boolean; allowWhatsapp: boolean; allowVoice: boolean }) =>
+  invokeSupport('support-taskrouter-control', { action: 'contact_save', employeeId, ...c })
+export async function loadDeliveryReport(): Promise<DeliveryReport> {
+  const { data, error } = await client().rpc('support_delivery_report')
+  if (error) fail(error, 'Unable to load the delivery report')
+  return data as DeliveryReport
+}
+export async function loadStaffContacts(): Promise<Array<{ employee_id: string; phone: string | null; allow_sms: boolean; allow_whatsapp: boolean; allow_voice: boolean }>> {
+  const { data, error } = await client().from('support_staff_contacts').select('employee_id, phone, allow_sms, allow_whatsapp, allow_voice')
+  if (error) fail(error, 'Unable to load contacts')
+  return data || []
+}

@@ -13,7 +13,7 @@ for pass in 1 2; do
   done
 done
 echo MIGRATIONS_OK
-for t in tests.sql tests_routing.sql tests_controls.sql; do
+for t in tests.sql tests_routing.sql tests_controls.sql tests_safety.sql tests_invites.sql tests_teams.sql tests_notifications.sql; do
   $P -d scc_test -f $S/$t 2>&1 | sed "s#^#[$t] #" ; [ ${PIPESTATUS[0]} -ne 0 ] && { echo "FAILED $t"; exit 1; }
 done
 echo SQL_TESTS_OK

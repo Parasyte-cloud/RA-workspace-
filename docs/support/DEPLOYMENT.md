@@ -29,7 +29,7 @@ The installer copies files, patches `SupportWorkspaceRoute`, `AdministrationCont
 supabase db push --linked          # staging project first
 ```
 
-Five migrations apply in order: core, voice and TaskRouter, omnichannel ingest, messaging routing, telephony controls. They are idempotent, so re-running is safe. To rehearse locally on plain Postgres 16:
+Nine migrations apply in order: core, voice and TaskRouter, omnichannel ingest, messaging routing, telephony controls, workstation safety (20261020200000), staff invites (20261020210000), teams (20261020220000), notifications (20261020230000). If v3.2 has not been applied yet, one `db push` applies all of them in order. They are idempotent, so re-running is safe. To rehearse locally on plain Postgres 16:
 
 ```bash
 PGT_DIR=/tmp/pgtest PGT_PORT=54399 bash scripts/support-sql-tests/run.sh "$PWD"
@@ -66,12 +66,13 @@ Then, in the Twilio console:
 ```bash
 cp .env.support.example .env.support.private      # fill TWILIO_AUTH_TOKEN, TWILIO_CALLER_ID, TWILIO_BYOC_TRUNK_SID
 cat .env.support.generated >> .env.support.private
-openssl rand -hex 32          # use for SUPPORT_CRON_SECRET, then again for SUPPORT_INGEST_SECRET
+openssl rand -hex 32          # use for SUPPORT_CRON_SECRET, then again for SUPPORT_INGEST_SECRET and SUPPORT_SOS_SECRET
 supabase secrets set --env-file .env.support.private
 rm .env.support.generated .env.support.private      # secrets now live only in Supabase
 
 supabase functions deploy support-voice-token support-taskrouter-control support-voice-webhook \
-  support-taskrouter-webhook support-sms-webhook support-ingest support-maintenance support-recording
+  support-taskrouter-webhook support-sms-webhook support-ingest support-maintenance support-recording \
+  support-sos-ingest support-location support-invite
 ```
 
 `verify_jwt = false` on the webhook functions is intentional: Twilio does not carry a Supabase JWT. They authenticate by signature. `config.toml` is already patched.
@@ -89,7 +90,7 @@ select cron.schedule('support-maintenance', '* * * * *', $$
 $$);
 ```
 
-Store the secret in Vault rather than inline if your policy requires it. Without cron: stale officers stay Available in TaskRouter until the next assignment rejects them, waiting tickets are only assigned when a message arrives or capacity frees, and scheduled callbacks never fire. Alert if the function returns 207 or stops being called.
+Store the secret in Vault rather than inline if your policy requires it. Without cron: an unacknowledged SOS never escalates and location sessions never expire on their own (the gate still refuses expired ones), stale officers stay Available in TaskRouter until the next assignment rejects them, waiting tickets are only assigned when a message arrives or capacity frees, and scheduled callbacks never fire. Alert if the function returns 207 or stops being called.
 
 ## 6. People
 
@@ -124,6 +125,15 @@ Do these on staging with two test accounts.
 | Set the daily spend cap to a tiny amount after one priced call | next dial refused with the budget message; a `spend_cap` alert appears on the control tower |
 | Register a byoc number, disable the trunk at the carrier, place a call | call still connects over Twilio; audit shows `carrier_fallback` |
 | Place a 1 minute test call | within a minute the control tower shows quality samples and an average MOS |
+| Open Insights, Reports | numbers load, no error banner; CSV downloads and an `export` row appears in the audit log |
+| Look up a code you issued, as an officer who is not handling that person | contact details partly hidden; a successful lookup is in the audit log; five misses in ten minutes are blocked and logged |
+| Send a signed test SOS (see `API-CONTRACTS.md`) | within seconds a red banner appears for every officer on shift; the tab title shows `(SOS 1)`; the same event sent again changes nothing but the repeat counter |
+| Leave that SOS alone for 90 seconds, with `support-maintenance` running | level goes to 1, status Escalated, timeline says why; it is still on screen after a page reload |
+| Acknowledge, record a contact, try Resolve with no notes | acknowledge keeps the alert open; resolve is refused until notes and an outcome are given; "emergency services contacted" is refused until a contact is logged |
+| Mark yourself Offline while assigned to an SOS | within a minute it moves to an available officer, or the next level comes forward |
+| Open a location session on a case, wait for the time to pass, or resolve the case | position stops showing; the session says expired or ended |
+| Open a location session while the location service is not connected | the card says NOT CONNECTED; for an emergency it shows the SOS position labelled LAST KNOWN with its age |
+| As a Watcher, open Emergency | you see the alert and its status, not who, where or the actions |
 
 ## 8. Troubleshooting
 
@@ -161,6 +171,83 @@ Sign in with a staff account, open Support, then Administration, Support Routing
 
 When you resume, start at section 3 and carry on in order. Nothing in the database needs redoing.
 
+## 11. Turning on the safety features before Twilio
+
+Emergencies, identity codes, location sessions, reports and the audit viewer need only Supabase, so they can go live first.
+
+1. `supabase db push --linked` (applies `20261020200000_support_workstation_safety.sql`).
+2. Set `SUPPORT_SOS_SECRET` and `SUPPORT_CRON_SECRET` (and leave `RA_LOCATION_API_URL` and `RA_LOCATION_API_KEY` empty until the location service exists).
+3. Deploy `support-sos-ingest`, `support-location`, `support-maintenance` and `support-taskrouter-control` (it now accepts a role kind when saving an officer).
+4. Schedule the one-minute job from section 5. Its Twilio steps may report problems until Twilio is configured; the emergency step runs first and does not depend on them.
+5. Give the RideArrivo backend developer `API-CONTRACTS.md`. Until it sends events, the Emergency tab stays empty. Send a signed test event yourself first.
+6. Set your own people up in Administration, Support Routing: officers as Agent, you as Supervisor, anyone who should only watch as Watcher.
+
 ## 10. Rollback
 
-The module is additive. To switch it off without touching data: remove `<SupportCommandCentre/>` from the route, point the number back at its old webhook, and stop the cron job. Tables and tickets remain. Do not drop the tables; the audit log and tickets are your record.
+The module is additive. To switch it off without touching data: remove `<SupportCommandCentre/>` from the route (this also hides the Emergency tab, so first make sure someone else is watching incoming SOS events), point the number back at its old webhook, and stop the cron job. Tables and tickets remain. Do not drop the tables; the audit log and tickets are your record.
+
+## 12. Staff sign-in by invite code (v3.3)
+
+Support staff have no RideArrivo email, so they join with a one-time code that an admin or a delegate issues.
+
+1. Create the account: Administration, Support Routing, **Invite staff**. Enter name, work email, role kind (Agent, Watcher, Supervisor) and optional team. The code is shown once as `XXXXX-XXXXX` and stored only as a salted hash. It is valid for 48 hours, bound to that email, and locks after 5 wrong guesses (use Resend to issue a new one).
+2. Delivery, any of three:
+   - **Email** from RideArrivo through Resend: set `RESEND_API_KEY` and `SUPPORT_INVITE_FROM_EMAIL` (for example `RideArrivo Support <support@ridearrivo.com>`). The sending domain must be verified in Resend (SPF and DKIM), otherwise mail lands in spam or is refused.
+   - **WhatsApp**: set `SUPPORT_INVITE_WA_FROM` and `SUPPORT_INVITE_WA_CONTENT_SID` (template variables: {1} first name, {2} code, {3} join link). Business-initiated WhatsApp needs a Meta-approved template; until it is approved, use email or copy.
+   - **Copy once** from the screen and send it yourself.
+3. The invitee opens the join page, `https://<your-app>/support-join.html`. Set `SUPPORT_JOIN_URL` to that address so messages link to it. The installer fills in the functions URL from `--functions-url` or `VITE_SUPABASE_URL`. They enter the email, the code and choose a password, then sign in to RA-Workspace.
+4. Delegation: Invite staff, **Delegates**. A delegate can invite agents and watchers, never supervisors.
+5. Deploy `support-invite`. It has JWT verification off on purpose because the join page is public; the `redeem` action is rate limited and every other action checks the caller's session inside the function.
+6. If RideArrivo's Supabase project has a trigger on `auth.users` that restricts email domains, creating the account will fail with an error. That cannot be checked from here; test one invite on staging first.
+
+## 13. Teams and supervisor scope (v3.3)
+
+Administration, Support Routing, **Teams**: create teams, put officers in a team, and set each supervisor to scope **All** or **Team**. A team-scoped supervisor can assign, approve locations, read the audit log, run reports and invite only within their team, and cannot change configuration. Admin, the Administration workstation and the Head of Support title are always unscoped. Emergencies, the shared queues and the floor board are deliberately not scoped, so no SOS is ever hidden from a supervisor.
+
+## 14. Alerts outside the screen (v3.3)
+
+Escalations now reach people who are not looking. Rules live in Administration, Support Routing, **Alerts**: per event kind, audience (responder, supervisors, on duty), channel (push, SMS, WhatsApp, voice), minimum level and delay. Defaults are seeded. Acknowledging or resolving cancels queued SMS, WhatsApp and voice. A failure in the alert path is audited (`notify_failed`) and never blocks an SOS.
+
+**Push (browser notifications).**
+```bash
+node scripts/generate-vapid-keys.mjs      # writes the private key to a mode-600 file, prints only the public key
+supabase secrets set --env-file <that file>
+```
+The secrets are `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (a `mailto:` address). The app fetches the public key from the function, so no build variable is needed. Never paste the private key anywhere. Staff turn push on from the bell, Notification settings.
+
+**SMS.** Set `SUPPORT_ALERT_SMS_FROM` or `SUPPORT_ALERT_MESSAGING_SERVICE_SID`. Sending to Nigerian numbers needs a registered sender ID or a Messaging Service.
+
+**WhatsApp.** Set `SUPPORT_ALERT_WA_FROM` and, for business-initiated messages, `SUPPORT_ALERT_WA_CONTENT_SID` (approved template, {1} headline, {2} detail).
+
+**Voice.** Uses `TWILIO_CALLER_ID` and reads the alert twice. There is no keypad acknowledgement; the person acknowledges in the workstation.
+
+Each person adds their phone and WhatsApp numbers under the bell, Notification settings. Admins can send a test alert and read the delivery report.
+
+**Dependency:** delivery runs on `support-maintenance` every minute (section 5). SOS ingest also dispatches immediately. Without cron, delayed rules never fire.
+
+## 15. Installable app and notifications (v3.3)
+
+The workstation registers `support-sw.js` and a manifest so staff can install it. The service worker caches nothing from the app, only an offline page, so a deploy is never served stale. On iPhone and iPad, push works only after Add to Home Screen. Replace the placeholder "RA" icons in `public/` with the real brand icons before launch.
+
+## 16. Map (v3.3)
+
+Case locations and SOS positions show on a Leaflet map with a route line and a recent trail when the location service sends them (see `API-CONTRACTS.md`). Default tiles are OpenStreetMap, which is for light use only. For production set `VITE_SUPPORT_MAP_TILE_URL` and `VITE_SUPPORT_MAP_ATTRIBUTION` to a paid provider. Tiles are fetched by the officer's browser, so the provider sees the tile coordinates being viewed; weigh that for privacy.
+
+## 17. Release order for v3.3
+
+1. Apply the migrations (`supabase db push --linked`): 20261020200000 if not yet applied, then 210000, 220000, 230000.
+2. Set secrets (section 4, 12, 14), then deploy `support-invite` and redeploy `support-sos-ingest`, `support-maintenance`, `support-location`, `support-taskrouter-control`.
+3. Confirm the cron job (section 5).
+4. Merge the app last, so the new screens never call functions that do not exist yet.
+
+Extra go-live checks:
+
+| Check | Expected |
+|---|---|
+| Invite yourself with a second email, copy the code, redeem on the join page | account created, you can sign in and see Support |
+| Redeem with a wrong code 5 times | locked; Resend issues a new code |
+| Redeem after 48 hours or with a different email | refused with the same generic message |
+| Team-scoped supervisor opens another team's audit and assigns another team's ticket | refused; own team works |
+| Send a test alert to yourself with push on | notification arrives with the tab closed |
+| Send a signed test SOS and do nothing | after the delay the SMS or WhatsApp rule fires; acknowledging stops queued ones |
+| Open a location session with route data | map shows position, trail and route |

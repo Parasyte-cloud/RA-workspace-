@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, Mail, MessageSquare, Phone, PhoneCall, PhoneForwarded, StickyNote, Voicemail, X } from 'lucide-react'
+import { CalendarClock, Eye, EyeOff, Mail, MessageSquare, Phone, PhoneCall, PhoneForwarded, StickyNote, Voicemail, X } from 'lucide-react'
+import SupportLocationPanel from './SupportLocationPanel'
 import {
-  addNote, assignTicket, claimTicket, control, dueLabel, fetchRecordingUrl, formatDuration, getTicketDetail, label, loadTicketCalls, queueCallback, timeAgo, updateTicket,
+  addNote, assignTicket, claimTicket, control, dueLabel, fetchRecordingUrl, formatDuration, getTicketDetail, label, loadTicketCalls, loadWatchers, queueCallback, timeAgo, unwatchTicket, updateTicket, watchTicket,
   type SupportAgentPresence, type TicketCall, type SupportPriority, type SupportTicketDetail, type SupportTicketStatus,
 } from '../lib/supportCommandCentre'
 
@@ -9,6 +10,7 @@ type Props = {
   ticketId: string
   meId: string | null
   isSupervisor: boolean
+  canSeeSensitive: boolean
   agents: SupportAgentPresence[]
   onClose: () => void
   onChanged: () => void
@@ -37,7 +39,7 @@ function timeline(detail: SupportTicketDetail): Entry[] {
   return out.sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
 }
 
-export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, agents, onClose, onChanged, onCall }: Props) {
+export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, canSeeSensitive, agents, onClose, onChanged, onCall }: Props) {
   const [detail, setDetail] = useState<SupportTicketDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -46,11 +48,13 @@ export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, agen
   const [callbackAt, setCallbackAt] = useState('')
   const [calls, setCalls] = useState<TicketCall[]>([])
   const [audio, setAudio] = useState<{ callId: string; url: string } | null>(null)
+  const [watchers, setWatchers] = useState<string[]>([])
 
   const load = useCallback(async () => {
     try {
       setDetail(await getTicketDetail(ticketId)); setNotice('')
       setCalls(await loadTicketCalls(ticketId).catch(() => []))
+      setWatchers(await loadWatchers(ticketId).catch(() => []))
     }
     catch (e) { setNotice(e instanceof Error ? e.message : 'Unable to load the ticket.') }
     finally { setLoading(false) }
@@ -101,6 +105,9 @@ export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, agen
             <button type="button" key={a.status} disabled={busy || closed && a.status !== 'in_progress'} onClick={() => void act(() => updateTicket(t.id, { status: a.status }))}>{a.text}</button>
           ))}
           {closed ? <button type="button" disabled={busy} onClick={() => void act(() => updateTicket(t.id, { status: 'reopened' }))}>Reopen</button> : null}
+          {meId ? (watchers.includes(meId)
+            ? <button type="button" disabled={busy} onClick={() => void act(() => unwatchTicket(t.id), 'You stopped watching this ticket.')}><EyeOff size={14} /> Unwatch</button>
+            : <button type="button" disabled={busy} onClick={() => void act(() => watchTicket(t.id), 'You are watching this ticket. Watching shows you its activity; it does not make you the owner.')}><Eye size={14} /> Watch</button>) : null}
           <select value={t.priority} disabled={busy} onChange={(e) => void act(() => updateTicket(t.id, { priority: e.target.value as SupportPriority }))} aria-label="Priority">{PRIORITIES.map((p) => <option key={p}>{p}</option>)}</select>
           {isSupervisor ? <select value={t.assigned_agent_id || ''} disabled={busy} onChange={(e) => void act(() => assignTicket(t.id, e.target.value || null))} aria-label="Assign to">
             <option value="">Unassigned</option>
@@ -122,6 +129,8 @@ export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, agen
           </div>
           {t.channel === 'whatsapp' || t.channel === 'sms' ? <p className="sccMuted"><MessageSquare size={13} /> Reply to {label(t.channel)} customers from the {t.channel === 'whatsapp' ? 'WhatsApp panel' : 'messaging tools'} below; the thread appears here automatically.</p> : null}
         </section>
+
+        {canSeeSensitive && !closed && (mine || isSupervisor) ? <SupportLocationPanel ticketId={t.id} meId={meId} /> : null}
 
         {calls.some((c) => c.recording_sid || c.is_voicemail) ? <section className="sccRelated" aria-label="Recordings">
           <strong><Voicemail size={13} /> Recordings and voicemail</strong>

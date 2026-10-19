@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Headphones, RefreshCw, Save, Search, ShieldCheck, Trash2 } from 'lucide-react'
 import { control, type TelephonySettings } from '../lib/supportCommandCentre'
 import SupportTelephonyAdmin from './SupportTelephonyAdmin'
+import SupportInvites from './SupportInvites'
+import SupportAlertsAdmin from './SupportAlertsAdmin'
 import '../support-command-centre.css'
 
 type Employee = { id: string; full_name: string; email: string; role: string; job_title: string; department: string; active: boolean }
 type Agent = {
-  employee_id: string; enabled: boolean; is_supervisor: boolean; voice_enabled: boolean; messaging_enabled: boolean
+  employee_id: string; enabled: boolean; is_supervisor: boolean; role_kind?: 'watcher' | 'agent' | 'supervisor'; voice_enabled: boolean; messaging_enabled: boolean
   email_enabled: boolean; sms_enabled: boolean; whatsapp_enabled: boolean; web_chat_enabled: boolean
-  voice_capacity: number; messaging_capacity: number; skills: string[]; languages: string[]; provider_worker_id: string | null
+  voice_capacity: number; messaging_capacity: number; skills: string[]; languages: string[]; provider_worker_id: string | null; can_invite?: boolean
+  team_id?: string | null; supervisor_scope?: 'all' | 'team'
 }
 type Shift = { id: string; name: string; timezone: string; starts_at: string; ends_at: string; active: boolean }
 type Assignment = { shift_id: string; employee_id: string; weekday: number }
@@ -18,11 +21,12 @@ type VoiceSettings = {
   outbound_limit_per_10min: number
 }
 type DialRule = { prefix: string; action: 'allow' | 'deny'; note: string | null }
-type Snapshot = { employees: Employee[]; agents: Agent[]; shifts: Shift[]; assignments: Assignment[]; voiceSettings: VoiceSettings | null }
+type Team = { id: string; name: string; description: string | null; active: boolean }
+type Snapshot = { employees: Employee[]; agents: Agent[]; shifts: Shift[]; assignments: Assignment[]; voiceSettings: VoiceSettings | null; teams?: Team[] }
 
 const DAYS = [['Sun', 0], ['Mon', 1], ['Tue', 2], ['Wed', 3], ['Thu', 4], ['Fri', 5], ['Sat', 6]] as const
 const SKILLS = ['general_support', 'booking', 'payments', 'active_ride', 'safety', 'driver_support']
-type Section = 'officers' | 'voice' | 'dial' | 'hours' | 'numbers' | 'dnc' | 'safety'
+type Section = 'officers' | 'teams' | 'invites' | 'alerts' | 'voice' | 'dial' | 'hours' | 'numbers' | 'dnc' | 'safety'
 
 export default function SupportOfficerAdminPanel() {
   const [section, setSection] = useState<Section>('officers')
@@ -36,7 +40,10 @@ export default function SupportOfficerAdminPanel() {
 
   // officer form
   const [enabled, setEnabled] = useState(true)
-  const [isLead, setIsLead] = useState(false)
+  const [roleKind, setRoleKind] = useState<'watcher' | 'agent' | 'supervisor'>('agent')
+  const [teamId, setTeamId] = useState('')
+  const [scope, setScope] = useState<'all' | 'team'>('all')
+  const [newTeam, setNewTeam] = useState({ name: '', description: '' })
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [messagingEnabled, setMessagingEnabled] = useState(true)
   const [voiceCapacity, setVoiceCapacity] = useState(1)
@@ -72,7 +79,8 @@ export default function SupportOfficerAdminPanel() {
   useEffect(() => {
     if (!selected) return
     const a = agentMap.get(selected.id)
-    setEnabled(a?.enabled ?? true); setIsLead(a?.is_supervisor ?? false)
+    setEnabled(a?.enabled ?? true); setRoleKind(a?.role_kind ?? (a?.is_supervisor ? 'supervisor' : 'agent'))
+    setTeamId(a?.team_id || ''); setScope(a?.supervisor_scope === 'team' ? 'team' : 'all')
     setVoiceEnabled(a?.voice_enabled ?? true); setMessagingEnabled(a?.messaging_enabled ?? true)
     setVoiceCapacity(a?.voice_capacity ?? 1); setMessagingCapacity(a?.messaging_capacity ?? 3)
     setSkills(a?.skills?.length ? a.skills : ['general_support']); setLanguages((a?.languages || ['English']).join(', '))
@@ -90,7 +98,7 @@ export default function SupportOfficerAdminPanel() {
 
   const saveOfficer = () => selected && run(async () => {
     const res = await control<{ routingWarning?: string | null }>({
-      action: 'provision_agent', employeeId: selected.id, enabled, isSupervisor: isLead, voiceEnabled, messagingEnabled,
+      action: 'provision_agent', employeeId: selected.id, enabled, roleKind, isSupervisor: roleKind === 'supervisor', teamId: teamId || null, supervisorScope: roleKind === 'supervisor' ? scope : 'all', voiceEnabled, messagingEnabled,
       voiceCapacity, messagingCapacity, skills, languages: languages.split(',').map((s) => s.trim()).filter(Boolean),
       assignments: shiftId && weekdays.length ? [{ shiftId, weekdays }] : [],
     })
@@ -120,7 +128,7 @@ export default function SupportOfficerAdminPanel() {
       <div><span className="sccEyebrow">Administration</span><h3>Support Routing</h3><p>Who takes calls and tickets, when, and the rules the phone line follows. Changes apply to the next call or ticket.</p></div>
       <button type="button" className="sccIconBtn" onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{loading ? 'Loading' : 'Refresh'}</button>
     </header>
-    <nav className="sccTabs">{([['officers', 'Officers'], ['voice', 'Voice and IVR'], ['dial', 'Dial rules'], ['hours', 'Hours and voicemail'], ['numbers', 'Numbers'], ['dnc', 'Do not contact'], ['safety', 'Limits and retention']] as Array<[Section, string]>).map(([id, text]) => <button key={id} type="button" className={section === id ? 'active' : ''} onClick={() => setSection(id)}>{text}</button>)}</nav>
+    <nav className="sccTabs">{([['officers', 'Officers'], ['teams', 'Teams'], ['invites', 'Invite staff'], ['alerts', 'Alerts'], ['voice', 'Voice and IVR'], ['dial', 'Dial rules'], ['hours', 'Hours and voicemail'], ['numbers', 'Numbers'], ['dnc', 'Do not contact'], ['safety', 'Limits and retention']] as Array<[Section, string]>).map(([id, text]) => <button key={id} type="button" className={section === id ? 'active' : ''} onClick={() => setSection(id)}>{text}</button>)}</nav>
     {notice ? <div className="sccNotice" role="status">{notice}</div> : null}
 
     {section === 'officers' ? <div className="supportAdminGrid">
@@ -136,7 +144,16 @@ export default function SupportOfficerAdminPanel() {
           <div className="supportAdminIdentity"><div><strong>{selected.full_name}</strong><small>{selected.email}</small></div><span><Headphones size={14} />{agentMap.get(selected.id)?.provider_worker_id ? 'Linked to call routing' : 'Not linked to call routing'}</span></div>
           <div className="supportAdminForm">
             <label><span>Support officer</span><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /></label>
-            <label><span>Team lead (sees Control tower)</span><input type="checkbox" checked={isLead} onChange={(e) => setIsLead(e.target.checked)} /></label>
+            <label className="wide"><span>Role</span>
+              <select value={roleKind} onChange={(e) => setRoleKind(e.target.value as typeof roleKind)}>
+                <option value="agent">Agent: takes calls and tickets, works emergencies</option>
+                <option value="supervisor">Supervisor: also sees Control tower, Insights, approvals and the audit log</option>
+                <option value="watcher">Watcher: sees queues and activity only; no work, no private details, no locations</option>
+              </select></label>
+            <label><span>Team</span>
+              <select value={teamId} onChange={(e) => setTeamId(e.target.value)}><option value="">No team</option>{(snap.teams || []).filter((t) => t.active || t.id === teamId).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+            {roleKind === 'supervisor' ? <label><span>Supervisor reach</span>
+              <select value={scope} onChange={(e) => setScope(e.target.value as 'all' | 'team')}><option value="all">Everyone</option><option value="team" disabled={!teamId}>Own team only{teamId ? '' : ' (pick a team first)'}</option></select></label> : null}
             <label><span>Takes calls</span><input type="checkbox" checked={voiceEnabled} onChange={(e) => setVoiceEnabled(e.target.checked)} /></label>
             <label><span>Takes chat, WhatsApp, SMS, email, forms</span><input type="checkbox" checked={messagingEnabled} onChange={(e) => setMessagingEnabled(e.target.checked)} /></label>
             <label><span>Calls at once</span><input type="number" min={0} max={5} value={voiceCapacity} onChange={(e) => setVoiceCapacity(Number(e.target.value))} /></label>
@@ -152,6 +169,28 @@ export default function SupportOfficerAdminPanel() {
         </> : <div className="sccEmpty">Pick an employee to provision or edit.</div>}
       </div>
     </div> : null}
+
+    {section === 'teams' ? <div className="supportAdminEditor sccPanel">
+      <h4>Teams</h4>
+      <p className="sccHealthNote">A supervisor limited to a team can assign work to, approve locations for and read the audit trail of that team only. Emergencies, the shared queues and the floor board stay visible to every supervisor on purpose. Administrators and the Head of Support are never limited.</p>
+      {(snap.teams || []).length === 0 ? <div className="sccEmpty">No teams yet.</div> : (snap.teams || []).map((t) => <div key={t.id} className="sccAuditRow">
+        <span><b>{t.name}</b><small>{t.description || 'No description'}</small></span>
+        <span><small>{snap.agents.filter((a) => a.team_id === t.id && a.enabled).length} people</small></span>
+        <span style={{ display: 'flex', gap: 6 }}>
+          <button type="button" className="sccIconBtn" disabled={saving} onClick={() => void run(async () => { await control({ action: 'team_save', id: t.id, name: t.name, description: t.description || '', active: !t.active }); return t.active ? 'Team hidden from new assignments.' : 'Team restored.' })}>{t.active ? 'Hide' : 'Restore'}</button>
+          <button type="button" className="sccIconBtn" disabled={saving} onClick={() => { if (window.confirm(`Delete the team ${t.name}? People in it become unassigned and any supervisor limited to it can then act on no one but themselves.`)) void run(async () => { await control({ action: 'team_delete', id: t.id }); return 'Team deleted.' }) }}><Trash2 size={14} />Delete</button>
+        </span>
+      </div>)}
+      <div className="supportAdminForm">
+        <label><span>Team name</span><input value={newTeam.name} onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })} /></label>
+        <label><span>Description</span><input value={newTeam.description} onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })} /></label>
+      </div>
+      <button type="button" className="sccVoicePrimary" disabled={saving || newTeam.name.trim().length < 2} onClick={() => void run(async () => { await control({ action: 'team_save', name: newTeam.name, description: newTeam.description }); setNewTeam({ name: '', description: '' }); return 'Team created.' })}><Save size={15} />Add team</button>
+    </div> : null}
+
+    {section === 'invites' ? <SupportInvites employees={snap.employees} agents={snap.agents} teams={snap.teams || []} onChanged={() => void load()} /> : null}
+
+    {section === 'alerts' ? <SupportAlertsAdmin employees={snap.employees} /> : null}
 
     {section === 'voice' && vs ? <div className="supportAdminEditor sccPanel">
       <div className="supportAdminForm">

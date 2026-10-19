@@ -43,3 +43,53 @@
 .sccHealth{padding-bottom:6px}.sccHealth .sccMetrics{padding:12px}.sccHealthNote{margin:0;padding:0 14px 10px}
 .supportAdminEditor h4{margin:18px 0 6px}.supportAdminEditor input[type=time],.supportAdminEditor input[type=date]{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 9px;background:rgba(0,0,0,.12);color:inherit}
 .sccTabs{row-gap:6px}.sccRelated audio{max-width:100%;height:34px}.sccRelated em{opacity:.65}
+
+/* Workstation safety: emergencies, location, lookup, insights */
+.sccSos{display:grid;gap:6px;position:sticky;top:0;z-index:60}
+.sccSosRow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;border:1px solid rgba(239,68,68,.6);background:rgba(127,29,29,.85);color:#fff}
+.sccSosRow>span{display:grid;gap:2px;margin-right:auto;min-width:0}.sccSosRow small{opacity:.85}
+.sccSosRow.new{animation:sccPulse 1.4s ease-in-out infinite}.sccSosRow.seen{background:rgba(120,53,15,.85);border-color:rgba(245,158,11,.6)}.sccSosRow.warn{background:rgba(120,53,15,.9);border-color:rgba(245,158,11,.7)}
+.sccSosRow button{border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:#fff;border-radius:10px;padding:7px 12px;cursor:pointer;font:inherit}.sccSosRow .sccSosAck{background:#fff;color:#7f1d1d;font-weight:800;border-color:#fff}
+@keyframes sccPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
+@media(prefers-reduced-motion:reduce){.sccSosRow.new{animation:none}}
+.sccTabs button.alert{border-color:rgba(239,68,68,.7);color:#ffb4b4;font-weight:700}.sccTabs.sub{margin-bottom:12px}
+.sccSosGrid{display:grid;grid-template-columns:minmax(240px,.8fr) minmax(0,1.9fr);gap:12px;align-items:start}
+.sccSosDetail{padding:14px;display:grid;gap:12px}.sccQueue.sel{background:color-mix(in srgb,#fff 9%,transparent)}.sccQueue.hot b{color:#ff9d9d}
+.sccFacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.sccFacts span{display:grid;gap:2px;padding:9px 10px;border:1px solid color-mix(in srgb,currentColor 10%,transparent);border-radius:12px;overflow:hidden}.sccFacts small{opacity:.6}.sccFacts b{overflow-wrap:anywhere}
+.sccQuality.ok{background:rgba(34,197,94,.14)}
+.sccLoc{display:grid;gap:8px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px}
+.sccLoc input,.sccLoc textarea,.sccNoteForm input,.sccNoteForm select,.sccLookup .sccNoteForm input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:rgba(0,0,0,.18);color:inherit;font:inherit}
+.sccLoc button,.sccLookup button{border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 11px;background:rgba(255,255,255,.07);color:inherit;cursor:pointer;font:inherit;justify-self:start;display:inline-flex;gap:6px;align-items:center}.sccLoc button:disabled,.sccLookup button:disabled{opacity:.45;cursor:not-allowed}
+.sccLocHead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sccLocBadge{padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:900;letter-spacing:.06em;background:#64748b;color:#fff}.sccLocBadge.live{background:#16a34a}.sccLocBadge.stale{background:#d97706}.sccLocBadge.unavailable,.sccLocBadge.not_configured{background:#475569}
+.sccLocBody{display:grid;gap:4px}.sccLocBody b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.sccLookup{padding-bottom:12px}.sccLookup .sccNoteForm,.sccLookupCard{padding:12px 14px}.sccLookupCard{display:grid;gap:6px}.sccLookupCard h4{margin:10px 0 2px}
+.sccFilters{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.sccFilters label{display:grid;gap:4px;font-size:.75rem;font-weight:700}.sccFilters input,.sccFilters select{border:1px solid color-mix(in srgb,currentColor 16%,transparent);background:color-mix(in srgb,#fff 8%,transparent);color:inherit;border-radius:10px;padding:8px 10px;font:inherit}.sccFilters button{border:1px solid color-mix(in srgb,currentColor 16%,transparent);background:transparent;color:inherit;border-radius:10px;padding:9px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}.sccFilters button:disabled{opacity:.45}
+.sccAuditRow{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(120px,1fr) minmax(0,2fr);gap:10px;padding:10px 14px;border-bottom:1px solid color-mix(in srgb,currentColor 7%,transparent);align-items:start}.sccAuditRow span{display:grid;gap:2px}.sccAuditRow small{opacity:.6}.sccAuditRow code{font-size:.72rem;opacity:.75;overflow-wrap:anywhere}
+.sccTowerGrid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.sccSub{margin:12px 14px 4px;font-size:.85rem;opacity:.75}.sccPad{padding:12px 14px}.sccCheck{display:flex;gap:8px;align-items:flex-start}.sccField{display:grid;gap:4px;font-size:.82rem}
+@media(max-width:1100px){.sccSosGrid{grid-template-columns:1fr}.sccTowerGrid.two{grid-template-columns:1fr}}
+@media(max-width:720px){.sccFacts{grid-template-columns:repeat(2,minmax(0,1fr))}.sccAuditRow{grid-template-columns:1fr}.sccSosRow{flex-wrap:wrap}.sccSosRow>span{flex-basis:100%}}
+
+/* Notification centre */
+.sccBellWrap{position:relative;display:inline-flex}
+.sccBell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 16%,transparent);background:color-mix(in srgb,#fff 8%,transparent);color:inherit;cursor:pointer}
+.sccBell.hot{border-color:rgba(239,68,68,.7)}
+.sccBellCount{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#dc2626;color:#fff;font-size:.68rem;font-weight:800;display:grid;place-items:center}
+.sccBellPanel{position:absolute;right:0;top:48px;z-index:80;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow:auto;padding:10px;background:var(--scc-pop,#101725);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.sccBellList{display:grid;gap:6px;margin-top:8px}
+.sccBellItem{display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 12%,transparent);background:transparent;color:inherit;cursor:pointer;font:inherit}
+.sccBellItem.critical{border-color:rgba(239,68,68,.6);background:rgba(127,29,29,.28)}.sccBellItem.warning{border-color:rgba(245,158,11,.55)}
+.sccBellItem.read{opacity:.6}.sccBellItem small{opacity:.75}
+@media(max-width:560px){.sccBellPanel{position:fixed;left:16px;right:16px;top:70px;width:auto}}
+
+/* Live map */
+.sccMapWrap{position:relative;display:grid;gap:6px}
+.sccMap{width:100%;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.14);z-index:0}
+.sccMapBox{position:relative}
+.sccMapBadge{position:absolute;left:50%;transform:translateX(-50%);top:10px;white-space:nowrap;z-index:500;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:900;letter-spacing:.06em;color:#fff;background:#16a34a;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.sccMapBadge.stale{background:#d97706}
+.sccMapRecenter{position:absolute;right:10px;bottom:34px;z-index:500;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#111;cursor:pointer}
+.sccPin span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:800;font-size:.8rem;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+.sccCar span{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 8px rgba(0,0,0,.5);background:#16a34a}
+.sccCar span.stale{background:#9ca3af;border-style:dashed}
+.sccCar i{display:block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:13px solid #fff}
+.sccCar span:empty::after{content:'';width:10px;height:10px;border-radius:50%;background:#fff}

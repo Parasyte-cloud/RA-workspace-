@@ -3,7 +3,8 @@
 // Needs nothing but Node. The database side is covered by supabase/tests/support.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createHmac } from 'node:crypto'
+import { createHmac, randomBytes as nodeRandomBytes } from 'node:crypto'
+const require_crypto = () => ({ randomBytes: nodeRandomBytes })
 import * as core from '../supabase/functions/_shared/supportCore.ts'
 
 // ---------------------------------------------------------------------------
@@ -428,4 +429,145 @@ test('quality accumulator averages, converts loss fractions and resets', () => {
   assert.equal(q.flush(), null, 'flush resets')
   q.add({ rtt: -5, jitter: Number.NaN, packetsLostFraction: 250 })
   assert.deepEqual(q.flush(), { rttMs: 0, jitterMs: 0, lossPct: 100, count: 1 }, 'negative and absurd values are clamped')
+})
+
+
+// ---------------------------------------------------------------------------
+// Workstation safety
+// ---------------------------------------------------------------------------
+
+test('location is live only while fresh, otherwise last known with its age', () => {
+  const now = Date.parse('2026-10-20T10:00:00Z')
+  assert.deepEqual(core.locationFreshness('2026-10-20T09:59:40Z', now, 45), { state: 'live', ageSeconds: 20 })
+  assert.deepEqual(core.locationFreshness('2026-10-20T09:59:15Z', now, 45), { state: 'live', ageSeconds: 45 })
+  assert.deepEqual(core.locationFreshness('2026-10-20T09:59:14Z', now, 45), { state: 'stale', ageSeconds: 46 })
+  assert.deepEqual(core.locationFreshness('2026-10-20T09:00:00Z', now, 45), { state: 'stale', ageSeconds: 3600 })
+  assert.deepEqual(core.locationFreshness('2026-10-20T10:00:30Z', now, 45), { state: 'live', ageSeconds: 0 })
+  for (const bad of [null, undefined, '', 'yesterday', {}]) assert.equal(core.locationFreshness(bad, now, 45).state, 'unknown')
+})
+
+const SUBJECT = '11111111-2222-4333-8444-555555555555'
+
+test('a valid SOS event is normalised', () => {
+  const r = core.parseSosEvent({
+    event_id: ' evt-1 ', subject_type: 'driver', subject_id: SUBJECT, identity_code: 'rad-abcde-fghjk', trip_id: 'T1', booking_ref: 'B9', vehicle_id: 'V3',
+    activated_at: '2026-10-20T09:59:00+01:00', location: { lat: '6.52', lng: 3.37, accuracy_m: 8, heading: 90, recorded_at: '2026-10-20T08:58:55Z' },
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.value.eventId, 'evt-1')
+  assert.equal(r.value.identityCode, 'RAD-ABCDE-FGHJK')
+  assert.equal(r.value.activatedAt, '2026-10-20T08:59:00.000Z')
+  assert.deepEqual(r.value.location, { lat: 6.52, lng: 3.37, accuracy_m: 8, heading: 90, recorded_at: '2026-10-20T08:58:55.000Z' })
+})
+
+test('SOS events are rejected only when the event or the person cannot be identified', () => {
+  for (const [body, why] of [
+    [null, 'not an object'], [[], 'array'], [{}, 'empty'],
+    [{ subject_type: 'rider', subject_id: SUBJECT }, 'no event id'],
+    [{ event_id: 'e', subject_type: 'pilot', subject_id: SUBJECT }, 'bad subject type'],
+    [{ event_id: 'e', subject_type: 'rider', subject_id: 'nope' }, 'bad subject id'],
+  ]) assert.equal(core.parseSosEvent(body).ok, false, why)
+})
+
+test('bad coordinates and timestamps never reject an emergency', () => {
+  for (const location of [{ lat: 200, lng: 3 }, { lat: 'x', lng: 3 }, { lat: 6 }, 'here', [], null]) {
+    const r = core.parseSosEvent({ event_id: 'e', subject_type: 'rider', subject_id: SUBJECT, location, activated_at: 'soon' })
+    assert.equal(r.ok, true)
+    assert.equal(r.value.location, null)
+    assert.equal(r.value.activatedAt, null)
+  }
+  const r = core.parseSosEvent({ event_id: 'e', subject_type: 'rider', subject_id: SUBJECT, location: { lat: 6, lng: 3, heading: 999, accuracy_m: -4 } })
+  assert.deepEqual(r.value.location, { lat: 6, lng: 3 })
+})
+
+test('upstream location data is reduced to the fields the console shows', () => {
+  const out = core.sanitizeLiveLocation({
+    lat: 6.5, lng: 3.4, heading: 45, speed_kmh: 30, accuracy_m: 5, recorded_at: '2026-10-20T10:00:00Z', secret: 'x', driver_phone: '+234801',
+    trip: { status: 'in_progress', booking_ref: 'B1', pickup: { lat: 6.4, lng: 3.3, label: 'Ikeja' }, dropoff: { lat: 'bad', lng: 3 }, eta_minutes: 7, rider_phone: '+234802' },
+  })
+  assert.equal(out.lat, 6.5)
+  assert.equal('secret' in out, false)
+  assert.equal('driver_phone' in out, false)
+  assert.equal('rider_phone' in out.trip, false)
+  assert.equal(out.trip.dropoff, undefined)
+  assert.equal(out.trip.pickup.label, 'Ikeja')
+  assert.equal(core.sanitizeLiveLocation({ lat: 95, lng: 3 }), null)
+  assert.equal(core.sanitizeLiveLocation('x'), null)
+})
+
+test('invite codes: right shape, no look-alike characters, evenly drawn, forgiving on entry', () => {
+  const { randomBytes } = require_crypto()
+  const seen = new Set()
+  for (let i = 0; i < 500; i++) {
+    const code = core.generateInviteCode((n) => new Uint8Array(randomBytes(n)))
+    assert.match(code, /^[2-9A-HJKMNP-TV-Z]{5}-[2-9A-HJKMNP-TV-Z]{5}$/)
+    assert.doesNotMatch(code, /[01OILU]/)
+    seen.add(code)
+  }
+  assert.equal(seen.size, 500)
+  assert.equal(core.normalizeInviteCode(' kq7m2-x9tra '), 'KQ7M2X9TRA')
+  assert.equal(core.INVITE_ALPHABET.length, 30)
+  // all-0xFF bytes are above the rejection limit, so the generator must keep asking for more
+  let calls = 0
+  const code = core.generateInviteCode((n) => { calls++; return calls < 3 ? new Uint8Array(n).fill(255) : new Uint8Array(n).fill(0) })
+  assert.ok(calls >= 3 && code === '22222-22222')
+})
+
+test('join password rules and email check', () => {
+  assert.ok(core.validateJoinPassword('short', 'a@b.com'))
+  assert.ok(core.validateJoinPassword('aaaaaaaaaaaa', 'a@b.com'))
+  assert.ok(core.validateJoinPassword('ngozi.okafor-2026', 'ngozi.okafor@x.com'))
+  assert.ok(core.validateJoinPassword('password1234', 'a@b.com'))
+  assert.equal(core.validateJoinPassword('correct-horse-battery', 'a@b.com'), null)
+  assert.ok(core.isValidEmail('a@b.co') && !core.isValidEmail('a@b') && !core.isValidEmail('a b@c.com'))
+})
+
+test('invite message carries the code, escapes the name, and never contains an em dash', () => {
+  const m = core.inviteMessage({ name: '<b>Ada</b> Obi', code: 'KQ7M2-X9TRA', joinUrl: 'https://x.example/join' })
+  assert.ok(m.text.includes('KQ7M2-X9TRA') && m.html.includes('KQ7M2-X9TRA') && m.html.includes('https://x.example/join'))
+  assert.ok(!m.html.includes('<b>Ada'))
+  assert.ok(!(m.text + m.html + m.subject).includes('—'))
+  assert.ok(core.inviteMessage({ name: 'A', code: 'C', joinUrl: '' }).text.includes('join page'))
+})
+
+test('polyline decoding matches the published reference and rejects junk', () => {
+  // Reference example from the encoded polyline algorithm documentation.
+  const pts = core.decodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@')
+  assert.deepEqual(pts, [[38.5, -120.2], [40.7, -120.95], [43.252, -126.453]])
+  assert.deepEqual(core.decodePolyline(''), [])
+  assert.deepEqual(core.decodePolyline('!!!!'), [])
+  assert.deepEqual(core.decodePolyline(123), [])
+  assert.deepEqual(core.decodePolyline('_p~iF'), [])   // a lat with no lng is malformed
+  assert.equal(core.decodePolyline('x'.repeat(60000)).length, 0)
+  // precision 6 divides by a million
+  const p6 = core.decodePolyline('_p~iF~ps|U', 6)
+  assert.ok(Math.abs(p6[0][0] - 3.85) < 1e-6 || p6.length === 1)
+})
+
+test('downsampling keeps the ends and the order', () => {
+  const line = Array.from({ length: 1000 }, (_, i) => [i / 100, i / 100])
+  const d = core.downsamplePath(line, 50)
+  assert.equal(d.length, 50)
+  assert.deepEqual(d[0], line[0]); assert.deepEqual(d[49], line[999])
+  for (let i = 1; i < d.length; i++) assert.ok(d[i][0] > d[i - 1][0])
+  assert.equal(core.downsamplePath(line.slice(0, 10), 50).length, 10)
+})
+
+test('route and trail from the location service are validated and capped', () => {
+  const route = Array.from({ length: 2000 }, (_, i) => [6 + i / 10000, 3 + i / 10000])
+  route.splice(5, 0, [999, 3], ['x', 1], null)
+  const out = core.sanitizeLiveLocation({
+    lat: 6.5, lng: 3.4,
+    trip: { status: 'in_progress', route },
+    trail: [{ lat: 6.1, lng: 3.1, recorded_at: '2026-10-20T10:00:00Z', phone: '+234' }, { lat: 'bad', lng: 3 }, { lat: 6.2, lng: 3.2 }],
+  })
+  assert.equal(out.trip.route.length, 400)
+  assert.ok(out.trip.route.every(([a, o]) => Math.abs(a) <= 90 && Math.abs(o) <= 180))
+  assert.equal(out.trail.length, 2)
+  assert.equal('phone' in out.trail[0], false)
+  const poly = core.sanitizeLiveLocation({ lat: 1, lng: 1, trip: { route_polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' } })
+  assert.equal(poly.trip.route.length, 3)
+  assert.equal(core.sanitizeLiveLocation({ lat: 1, lng: 1, trip: { route: [[1, 1]] } }).trip.route, undefined)   // one point is not a route
+  const many = Array.from({ length: 500 }, (_, i) => ({ lat: 6 + i / 1000, lng: 3 }))
+  assert.equal(core.sanitizeLiveLocation({ lat: 1, lng: 1, trail: many }).trail.length, 100)
 })
