@@ -5,6 +5,7 @@ import SupportWhatsAppPanel from './SupportWhatsAppPanel'
 import InvestorEnquiriesPanel from './InvestorEnquiriesPanel'
 import IntakeSubmissionInbox from './IntakeSubmissionInbox'
 import OperationsExportsCard from '../components/OperationsExportsCard'
+import SupportCommandCentre from './SupportCommandCentre'
 
 export default function SupportWorkspaceRoute({
   onNavigate,
@@ -16,6 +17,7 @@ export default function SupportWorkspaceRoute({
       execution={<SupportModule/>}
       workstationContent={
         <div className="supportWorkstationStack">
+          <SupportCommandCentre/>
           <InvestorEnquiriesPanel/>
           <IntakeSubmissionInbox
             workstation="support"

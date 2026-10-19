@@ -530,3 +530,35 @@ verify_jwt = false
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/knowledge-ai/index.ts"
+
+[functions.support-voice-token]
+enabled = true
+verify_jwt = true
+
+[functions.support-taskrouter-control]
+enabled = true
+verify_jwt = true
+
+[functions.support-voice-webhook]
+enabled = true
+verify_jwt = false
+
+[functions.support-taskrouter-webhook]
+enabled = true
+verify_jwt = false
+
+[functions.support-sms-webhook]
+enabled = true
+verify_jwt = false
+
+[functions.support-ingest]
+enabled = true
+verify_jwt = false
+
+[functions.support-maintenance]
+enabled = true
+verify_jwt = false
+
+[functions.support-recording]
+enabled = true
+verify_jwt = true
