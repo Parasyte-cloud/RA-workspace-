@@ -28,6 +28,7 @@ import AdminAccessManager from './AdminAccessManager'
 import AdminDownloadAccessManager from './AdminDownloadAccessManager'
 import AdminLetterheadAccess from './AdminLetterheadAccess'
 import AdminChatAccess from './AdminChatAccess'
+import AdminConfidential from './AdminConfidential'
 import WorkstationAssignmentManager from './WorkstationAssignmentManager'
 import KpiManagementPanel from './KpiManagementPanel'
 import DeviceAssetCenter from './DeviceAssetCenter'
@@ -47,7 +48,7 @@ type AdminTab=
   | 'overview'
   | 'people'
   
-  | 'attendance'| 'access'| 'chat'
+  | 'attendance'| 'access'| 'chat'| 'confidential'
   | 'workstations'
   | 'performance'
   | 'assets'
@@ -172,6 +173,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['downloads','Downloads',ShieldCheck],
   ['letterhead','Letterhead',FileText],
   ['chat','Chat',MessagesSquare],
+  ['confidential','Confidential',ShieldCheck],
   ['applications','Applications',AppWindow],
   ['payments','Payments',CreditCard],
   ['backups','Backups',DatabaseBackup],
@@ -569,6 +571,7 @@ export default function AdministrationControlPlane(){
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='letterhead'&&<AdminLetterheadAccess/>}
       {tab==='chat'&&<AdminChatAccess/>}
+      {tab==='confidential'&&<AdminConfidential/>}
       {tab==='applications'&&<ApplicationsPanel/>}
       {tab==='payments'&&
         <div className="adminPaymentsStack">
