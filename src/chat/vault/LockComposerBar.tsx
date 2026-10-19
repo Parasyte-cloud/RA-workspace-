@@ -13,7 +13,7 @@ export function LockButton({ on, disabled, onToggle }: ButtonProps) {
   return (
     <button
       type="button"
-      className={`cmRound cmAttach cmLock${on ? ' on' : ''}`}
+      className={`cmRound cmAttach cmVaultBtn${on ? ' on' : ''}`}
       title={on ? 'Confidential is on. Press to turn it off' : 'Send as confidential'}
       aria-label={on ? 'Confidential is on. Press to turn it off' : 'Send as confidential'}
       aria-pressed={on}
