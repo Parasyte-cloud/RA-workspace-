@@ -120,6 +120,8 @@ import {
   MentionSuggestions,
   type MentionSuggestionPerson
 } from './messages/MentionSuggestions'
+import { enqueue, isNetworkError, loadOutbox, type OutboxItem } from '../lib/outbox'
+import { OUTBOX_FAILED, OUTBOX_SENT } from '../components/OutboxFlusher'
 import {
   registerMessageMentions as registerChatMessageMentions,
   sendMessage as sendChatMessage
@@ -1720,6 +1722,12 @@ export function ChatShell(){
         setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
         setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
       }catch(error){
+        if(isNetworkError(error)){
+          // No connection: keep it as "sending" and let the outbox deliver it.
+          enqueue(userId,{tempId:id,conversationId,body,replyToId:replyId || null,clientMessageId,mentionedUserIds,queuedAt:Date.now()})
+          setNotice('You are offline. Your message will send when the connection is back.')
+          return
+        }
         setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
         setNotice(explainWriteError(error instanceof Error ? error.message : 'Unable to send message.'))
       }
@@ -1821,6 +1829,56 @@ export function ChatShell(){
     setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
     setDirects(rows=>rows.map(row=>row.conversation.id===conversationId ? {...row,latest:saved} : row))
   }
+
+  // Messages that were waiting for a connection: show them in their chat, and
+  // swap in the saved copy when the outbox delivers them.
+  const queuedAsMessages=(conversationId:string):Message[]=>
+    loadOutbox(userId).filter(item=>item.conversationId===conversationId).map((item:OutboxItem)=>({
+      id:item.tempId,
+      conversation_id:item.conversationId,
+      sender_id:userId,
+      body:item.body,
+      edited_at:null,
+      created_at:new Date(item.queuedAt).toISOString(),
+      reply_to_id:item.replyToId,
+      client_message_id:item.clientMessageId,
+      mentionedUserIds:item.mentionedUserIds,
+      pending:true
+    }))
+
+  useEffect(()=>{
+    if(!userId)return
+    const onSent=(event:Event)=>{
+      const detail=(event as CustomEvent<{item:OutboxItem;message:Message}>).detail
+      if(!detail)return
+      const {item,message}=detail
+      setNotice('')
+      setMessages(current=>
+        current.some(m=>m.conversation_id===item.conversationId)
+          ? mergeMessages(current.filter(m=>m.id!==item.tempId),[message])
+          : current
+      )
+      setDirects(rows=>rows.map(row=>row.conversation.id===item.conversationId ? {...row,latest:message} : row))
+    }
+    const onFailed=(event:Event)=>{
+      const detail=(event as CustomEvent<{item:OutboxItem;error:unknown}>).detail
+      if(!detail)return
+      setMessages(current=>current.map(m=>m.id===detail.item.tempId ? {...m,pending:false,failed:true} : m))
+    }
+    window.addEventListener(OUTBOX_SENT,onSent)
+    window.addEventListener(OUTBOX_FAILED,onFailed)
+    return ()=>{
+      window.removeEventListener(OUTBOX_SENT,onSent)
+      window.removeEventListener(OUTBOX_FAILED,onFailed)
+    }
+  },[userId,setDirects])
+
+  useEffect(()=>{
+    if(!userId || !selectedId)return
+    const waiting=queuedAsMessages(selectedId)
+    if(waiting.length)setMessages(current=>mergeMessages(current,waiting.filter(w=>!current.some(m=>m.client_message_id===w.client_message_id))))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[userId,selectedId])
 
   const stageFiles=(list:FileList|File[]|null)=>{
     if(!list)return

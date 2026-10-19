@@ -83,6 +83,7 @@ import { pulseIsland } from './lib/islandBar'
 
 import { NotificationCenter } from './components/NotificationCenter'
 import CallRinger from './modules/CallRinger'
+import OutboxFlusher from './components/OutboxFlusher'
 import NotesModule from './modules/NotesModule'
 import IslandNav from './modules/IslandNav'
 import './island-nav.css'
@@ -1412,6 +1413,7 @@ function App(){
           Inside them, loading another section could hide the call and a
           crash in any section would tear it down, ending the meeting. */}
       <CallRinger/>
+      <OutboxFlusher/>
       <RouteErrorBoundary resetKey="calls">
         <CallModule/>
       </RouteErrorBoundary>

@@ -4,6 +4,8 @@ import {
   Check,
   ChevronDown,
   Headphones,
+  MonitorUp,
+  MonitorX,
   PictureInPicture2,
   Smartphone,
   Mic,
@@ -20,6 +22,7 @@ import { applyRoute, canRoute, defaultRoute, reassertRoute, releaseRoute, watchR
 import { outputChoices, outputControl, type OutputKind } from '../lib/outputSheet'
 import { nextQuality, weakest, type CallQuality } from '../lib/callQuality'
 import { canFloatVideo, floatVideo, startCallKeepAlive } from '../lib/callKeepAlive'
+import { canCaptureScreen, screenShareHelp, sharedScreenTrack } from '../lib/screenShare'
 import '../facetime-call.css'
 
 /*
@@ -40,6 +43,8 @@ type Remote = {
   audioEnabled: boolean
   videoEnabled: boolean
   videoTrack?: MediaStreamTrack
+  screenShareEnabled?: boolean
+  screenShareTracks?: { video?: MediaStreamTrack }
   on: (event: string, handler: () => void) => void
   removeListener: (event: string, handler: () => void) => void
 }
@@ -113,6 +118,7 @@ export default function FaceTimeStage({
   routeRef.current = route
   const [quality, setQuality] = useState<CallQuality>('good')
   const scores = useRef<Record<string, number>>({})
+  const [shareHelpOpen, setShareHelpOpen] = useState(false)
   const stageRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef(0)
   const joinError = useRef(onJoinError)
@@ -136,6 +142,7 @@ export default function FaceTimeStage({
     self.on('videoUpdate', redraw as never)
     self.on('audioUpdate', redraw as never)
     self.on('deviceUpdate', redraw as never)
+    self.on('screenShareUpdate', redraw as never)
     self.on('roomJoined', redraw as never)
     joined.on('participantJoined', redraw as never)
     joined.on('participantLeft', redraw as never)
@@ -144,6 +151,7 @@ export default function FaceTimeStage({
       self.removeListener('videoUpdate', redraw as never)
       self.removeListener('audioUpdate', redraw as never)
       self.removeListener('deviceUpdate', redraw as never)
+      self.removeListener('screenShareUpdate', redraw as never)
       self.removeListener('roomJoined', redraw as never)
       joined.removeListener('participantJoined', redraw as never)
       joined.removeListener('participantLeft', redraw as never)
@@ -166,9 +174,11 @@ export default function FaceTimeStage({
     const redraw = () => bump()
     remote.on('videoUpdate', redraw)
     remote.on('audioUpdate', redraw)
+    remote.on('screenShareUpdate', redraw)
     return () => {
       remote.removeListener('videoUpdate', redraw)
       remote.removeListener('audioUpdate', redraw)
+      remote.removeListener('screenShareUpdate', redraw)
     }
   }, [remote, remoteKey])
 
@@ -259,9 +269,17 @@ export default function FaceTimeStage({
   const remoteName = remote?.name || title
   const remoteVideoOn = Boolean(remote?.videoEnabled && remote?.videoTrack)
   const calling = !remote
+  const remoteScreen = sharedScreenTrack(remote)
+  const selfSharing = Boolean(self.screenShareEnabled)
+  const canShare = canCaptureScreen()
 
   const toggleAudio = () => { void (audioOn ? self.disableAudio() : self.enableAudio()).then(() => bump()).catch(() => {}) }
   const toggleVideo = () => { void (videoOn ? self.disableVideo() : self.enableVideo()).then(() => bump()).catch(() => {}) }
+  // Starting a share can be cancelled in the browser's own picker, which is not an error.
+  const toggleShare = () => {
+    if (!canShare) { setShareHelpOpen(true); return }
+    void (selfSharing ? self.disableScreenShare() : self.enableScreenShare()).then(() => bump()).catch(() => bump())
+  }
   const currentSpeaker = self.getCurrentDevices().speaker
   const choices = outputChoices(speakers, currentSpeaker)
   const control = outputControl(routable, choices)
@@ -316,9 +334,10 @@ export default function FaceTimeStage({
     window.addEventListener('pointercancel', end)
   }
 
-  const bigVideo = calling ? videoOn : remoteVideoOn
+  const bigVideo = calling ? videoOn : Boolean(remoteScreen) || remoteVideoOn
+  const bigTrack = calling ? self.videoTrack : remoteScreen || remote?.videoTrack
   const showSelfWindow = !calling && !audioOnly || (!calling && audioOnly && videoOn)
-  const isVoice = audioOnly && !videoOn && !remoteVideoOn
+  const isVoice = audioOnly && !videoOn && !remoteVideoOn && !remoteScreen
 
   // Controls fade out only while a connected video call is quiet, like FaceTime.
   // They stay put while ringing, reconnecting, in a voice call, or with the
@@ -341,7 +360,7 @@ export default function FaceTimeStage({
       <div className="ftStage ftMini" ref={stageRef} onClick={onRestore} role="button" aria-label="Return to call">
         <RtkParticipantsAudio meeting={meeting as never} />
         {bigVideo
-          ? <TrackVideo track={calling ? self.videoTrack : remote?.videoTrack} mirror={calling} />
+          ? <TrackVideo track={bigTrack} mirror={calling} className={remoteScreen ? 'ftScreen' : ''} />
           : <div className="ftBackdrop"><Avatar name={remoteName} picture={remote?.picture} /></div>}
         <div className="ftMiniInfo"><strong>{remoteName}</strong><span>{reconnecting ? 'Reconnecting' : calling ? 'Calling' : clock}</span></div>
       </div>
@@ -353,7 +372,7 @@ export default function FaceTimeStage({
       <RtkParticipantsAudio meeting={meeting as never} />
 
       {bigVideo
-        ? <TrackVideo track={calling ? self.videoTrack : remote?.videoTrack} mirror={calling} />
+        ? <TrackVideo track={bigTrack} mirror={calling} className={remoteScreen ? 'ftScreen' : ''} />
         : (
           <div className="ftBackdrop">
             <Avatar name={remoteName} picture={remote?.picture} big />
@@ -370,6 +389,11 @@ export default function FaceTimeStage({
           <span>{reconnecting ? `Waiting for ${remoteName} to reconnect…` : calling ? (answered ? 'Connecting…' : 'Calling…') : (audioOnly && !videoOn && !remoteVideoOn ? `Voice call · ${clock}` : clock)}</span>
           {quality === 'poor' && !calling && !reconnecting && <span className="ftQuality" role="status">Poor connection</span>}
           {remotes.length > 1 && <span className="ftQuality ftOthers" role="status">{remotes.length === 2 ? '1 other person' : `${remotes.length - 1} other people`} on this call</span>}
+          {!calling && remote && !remote.audioEnabled && (
+            <span className="ftMuted" role="status"><MicOff size={12} /> {remoteName} is muted</span>
+          )}
+          {remoteScreen && <span className="ftMuted" role="status"><MonitorUp size={12} /> {remoteName} is sharing their screen</span>}
+          {selfSharing && <span className="ftMuted ftSharing" role="status"><MonitorUp size={12} /> You are sharing your screen</span>}
         </div>
         <span className="ftSpacer" aria-hidden="true" />
       </header>
@@ -398,6 +422,11 @@ export default function FaceTimeStage({
             <RefreshCcw size={21} />
           </button>
         )}
+        {!calling && (
+          <button type="button" className={`ftRound${selfSharing ? ' active' : ''}`} onClick={toggleShare} aria-pressed={selfSharing} aria-label={selfSharing ? 'Stop sharing your screen' : 'Share your screen'} title={selfSharing ? 'Stop sharing' : 'Share screen'}>
+            {selfSharing ? <MonitorX size={22} /> : <MonitorUp size={22} />}
+          </button>
+        )}
         {!audioOnly && canFloatVideo() && (
           <button type="button" className="ftRound" onClick={() => void floatVideo(stageRef.current?.querySelector<HTMLVideoElement>('video:not(.mirror)') || null)} aria-label="Float the call over other apps">
             <PictureInPicture2 size={21} />
@@ -422,6 +451,16 @@ export default function FaceTimeStage({
           <PhoneOff size={24} />
         </button>
       </div>
+
+      {shareHelpOpen && (
+        <div className="ftSheetBack" onClick={event => { event.stopPropagation(); setShareHelpOpen(false) }}>
+          <div className="ftSheet" role="dialog" aria-label={screenShareHelp().title} onClick={event => event.stopPropagation()}>
+            <strong>{screenShareHelp().title}</strong>
+            <p className="ftSheetNote">{screenShareHelp().body}</p>
+            <button type="button" className="ftSheetClose" onClick={() => setShareHelpOpen(false)}>Got it</button>
+          </div>
+        </div>
+      )}
 
       {speakerOpen && control === 'list' && (
         <div className="ftSheetBack" onClick={event => { event.stopPropagation(); setSpeakerOpen(false) }}>
