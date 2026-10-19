@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { transformSync } from 'esbuild'
 import * as core from '../supabase/functions/_shared/knowledgeAiCore.ts'
 
@@ -54,15 +54,41 @@ test('miniMarkdown parses headings, bullets and paragraphs', () => {
   assert.deepEqual(b.map(x => x.kind), ['h', 'p', 'ul', 'p']); assert.deepEqual(b[2].items, ['one', 'two']); assert.equal(b[1].text, 'intro line\nmore')
 })
 
-test('seed articles: unique slugs, no em dashes, all in the migration', () => {
+test('seed articles: unique slugs, no em dashes, every one is in a seed migration', () => {
   const a = JSON.parse(read('supabase/seed/knowledge-articles.json'))
-  const sql = read('supabase/migrations/20261017130100_seed_knowledge_articles.sql')
+  // Seed migrations never edit an earlier one: new articles go in a new file.
+  const files = readdirSync('supabase/migrations').filter(f => /seed.*knowledge/.test(f))
+  assert.ok(files.length >= 1)
+  const sqls = files.map(f => read(`supabase/migrations/${f}`))
   assert.equal(new Set(a.map(x => x.slug)).size, a.length); assert.ok(a.length >= 15)
   for (const x of a) {
-    assert.ok(!(x.title + x.content + x.summary).includes('—'), x.slug)
-    assert.ok(x.content.length > 200, x.slug); assert.ok(sql.includes(`$kb$${x.slug}$kb$`), x.slug)
+    assert.ok(!(x.title + x.content + x.summary).includes('\u2014'), x.slug)
+    assert.ok(x.content.length > 200, x.slug)
+    assert.ok(sqls.some(sql => sql.includes(`$kb$${x.slug}$kb$`)), x.slug)
+    assert.ok(core.CATEGORIES.includes(x.category), `${x.slug} category ${x.category}`)
   }
-  assert.match(sql, /on conflict \(slug\) do nothing/)
+  for (const sql of sqls) assert.match(sql, /on conflict \(slug\) do nothing/)
+  // The SQL text of each article matches the JSON text, so the two cannot drift apart.
+  const all = sqls.join('\n')
+  for (const x of a) assert.ok(all.includes(`$kb$${x.content}$kb$`), `${x.slug} content differs between JSON and SQL`)
+})
+
+test('chat, calls and confidential articles exist and match the shipped behaviour', () => {
+  const a = Object.fromEntries(JSON.parse(read('supabase/seed/knowledge-articles.json')).map(x => [x.slug, x]))
+  for (const slug of ['chat-messages-and-groups', 'calls-in-chat', 'call-could-not-start', 'phone-alerts-and-call-sounds',
+    'confidential-messages-staff-guide', 'confidential-messages-admin-guide', 'chat-calls-vault-engineering-notes']) assert.ok(a[slug], slug)
+  const vault = read('src/chat/vault/vaultFormat.ts')
+  // The line the card shows, and the number of tries, as the guide says them.
+  assert.ok(a['confidential-messages-staff-guide'].content.includes('Need to view again? Contact an administrator.'))
+  assert.ok(vault.includes('Need to view again? Contact an administrator.'))
+  assert.match(a['confidential-messages-staff-guide'].content, /15 seconds, 30 seconds, 1 minute, 5 minutes, 15 minutes, 30 minutes or 1 hour/)
+  assert.match(read('supabase/migrations/20261019100000_confidential_messages.sql'), /max_attempts[\s\S]{0,80}default 5/)
+  // Ring and no-show times quoted in the calls article are the ones in the database and the call screen.
+  assert.match(a['calls-in-chat'].content, /within 45 seconds/)
+  assert.match(read('supabase/migrations/20261018190000_chat_call_audit_round3.sql') + read('supabase/migrations/20261012270000_call_rooms_close_themselves.sql'), /interval '45 seconds'|45 seconds/)
+  assert.match(a['calls-in-chat'].content, /waits 30 seconds/)
+  // Secrets are named, never valued.
+  for (const x of Object.values(a)) assert.doesNotMatch(x.content, /VAULT_(MASTER_KEY|PEPPER)=|BEGIN [A-Z ]*PRIVATE KEY|eyJ[A-Za-z0-9_-]{20,}/, x.slug)
 })
 
 test('migration: admin-only, proposals not client-writable, decide function pinned', () => {
