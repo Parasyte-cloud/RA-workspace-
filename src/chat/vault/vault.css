@@ -2,22 +2,35 @@
    overlays still look right if they are drawn outside the chat shell. */
 
 /* ---------- composer ---------- */
-.cm .cmLock.on { background: var(--cm-accent, #ff9900); color: var(--cm-accent-ink, #071a38); }
-.cm .cmSend[data-vault="on"] { background: var(--cm-accent, #ff9900); color: var(--cm-accent-ink, #071a38); box-shadow: 0 0 0 3px rgba(255, 153, 0, .25); }
+/* Not "cmLock": the chat already uses that name for the "Private conversation"
+   banner, and its padding, margin and tint leaked onto this button. */
+.cm .cmVaultBtn.on { background: var(--cm-accent, #ff9900); color: var(--cm-accent-ink, #071a38); }
+.cm .cmVaultBtn.on:hover { filter: brightness(1.06); }
+.cm .cmSend[data-vault="on"] { background: var(--cm-accent, #ff9900); color: var(--cm-accent-ink, #071a38); box-shadow: 0 0 0 3px rgba(255, 153, 0, .28); }
 
-.vcBar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
-  margin: 0 12px 6px; padding: 8px 12px; border-radius: 12px;
-  background: rgba(255, 153, 0, .14); color: var(--cm-text, #071a38);
-  border: 1px solid rgba(255, 153, 0, .4); font-size: 13px;
+/* The composer floats over the bottom of the thread, so this bar floats too, just
+   above it (same trick as the typing indicator), instead of sitting underneath. */
+.cmThread .vcBar {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--cm-composer-gap, 72px) + 6px); z-index: 24; box-sizing: border-box;
+  display: flex; align-items: center; gap: 6px 14px; flex-wrap: nowrap; min-height: 38px;
+  margin: 0; padding: 6px 12px; border-radius: 999px; font-size: 13px;
+  background: var(--cm-side, #fff); color: var(--cm-text, #071a38);
+  border: 1px solid rgba(255, 153, 0, .6); box-shadow: 0 6px 18px rgba(8, 30, 57, .16);
 }
-.vcBarLabel { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
-.vcBarTime { display: inline-flex; align-items: center; gap: 6px; }
+html[data-ra-theme='dark'] .cmThread .vcBar { background: rgba(18, 40, 66, .96); }
+/* The message list makes room for this bar by itself: ChatShell measures .vcBar along with the
+   composer and sets --cm-overlay, which chat-bottom.css turns into the list's bottom padding. */
+/* Typing and the bar both live above the composer: lift the typing pill. */
+.cmThread .cmTyping:has(+ .vcBar) { bottom: calc(var(--cm-composer-gap, 72px) + 52px); }
+.vcBarLabel { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--cm-accent, #ff9900); white-space: nowrap; }
+.vcBarTime { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .vcBarTime select {
-  font: inherit; padding: 3px 8px; border-radius: 8px; border: 1px solid var(--cm-line, rgba(7, 26, 56, .2));
-  background: var(--cm-input, #fff); color: var(--cm-text, #071a38);
+  font: inherit; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--cm-line, rgba(7, 26, 56, .2));
+  background: var(--cm-input, transparent); color: inherit; cursor: pointer;
 }
-.vcBarHint { color: var(--cm-muted, #6b7788); font-size: 12px; }
+.vcBarHint { color: var(--cm-muted, #6b7788); font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) { .vcBarHint { display: none; } }
 
 /* ---------- the locked card ---------- */
 .vcCard {
@@ -27,6 +40,20 @@
   color: var(--cm-text, #071a38);
 }
 html[data-ra-theme='dark'] .vcCard { background: rgba(255, 255, 255, .07); color: var(--cm-text, #eef3fa); }
+
+/* In a chat bubble the bubble IS the card: fixed comfortable width (a percentage
+   width inside a shrink-to-fit bubble made it balloon to the 640px cap), no
+   box inside the box. */
+.cmMsg .cmBubble[data-vault] { width: 360px; max-width: min(360px, calc(100vw - 96px)); box-sizing: border-box; }
+.cmBubble[data-vault] .vcCard { width: 100%; min-width: 0; box-sizing: border-box; padding: 0; background: none; border: 0; border-radius: 0; }
+html[data-ra-theme='dark'] .cmBubble[data-vault] .vcCard { background: none; }
+/* Your own bubbles are orange: use the same dark ink as your ordinary messages. */
+.cmMsg.mine .vcCard { color: #1a1200; }
+.cmMsg.mine .vcTime, .cmMsg.mine .vcSmall, .cmMsg.mine .vcEnded { color: inherit; opacity: .78; }
+.cmMsg.mine .vcGhost { border-color: rgba(26, 18, 0, .38); }
+.cmMsg.mine .vcNote.vcWarn, html[data-ra-theme='dark'] .cmMsg.mine .vcNote.vcWarn { color: #6e0f0a; font-weight: 600; }
+.cmBubble[data-vault] .vcDecoy { opacity: .9; }
+.cmBubble[data-vault] .vcDecoy i { opacity: .42; }
 .vcTop { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: center; margin-bottom: 8px; }
 .vcBadge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; }
 .vcTime { font-size: 12px; color: var(--cm-muted, #6b7788); }
@@ -38,6 +65,7 @@ html[data-ra-theme='dark'] .vcCard { background: rgba(255, 255, 255, .07); color
 .vcDecoy i:nth-child(4) { width: 52%; }
 .vcNote { margin: 8px 0 0; font-size: 13px; line-height: 1.4; }
 .vcNote.vcWarn { display: flex; gap: 6px; align-items: flex-start; color: #b3261e; }
+.vcNote.vcWarn svg { flex: 0 0 auto; margin-top: 2px; }
 html[data-ra-theme='dark'] .vcNote.vcWarn { color: #ff9b94; }
 .vcSmall { margin: 6px 0 0; font-size: 12px; color: var(--cm-muted, #6b7788); }
 .vcEnded { margin: 8px 0 0; font-size: 12px; font-weight: 600; color: var(--cm-muted, #6b7788); }
@@ -49,6 +77,7 @@ html[data-ra-theme='dark'] .vcNote.vcWarn { color: #ff9b94; }
 .vcPrimary { background: var(--cm-accent, #ff9900); color: var(--cm-accent-ink, #071a38); }
 .vcGhost { background: transparent; border-color: var(--cm-line, rgba(7, 26, 56, .2)); color: inherit; }
 .vcPrimary:disabled, .vcGhost:disabled { opacity: .55; cursor: default; }
+.vcEntry .vcPrimary { justify-content: center; width: 100%; padding: 10px 14px; }
 .vcPrimary:focus-visible, .vcGhost:focus-visible { outline: 2px solid var(--cm-accent, #ff9900); outline-offset: 2px; }
 
 .vcEntry { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--cm-line, rgba(7, 26, 56, .2)); }

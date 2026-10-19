@@ -328,6 +328,29 @@ test('the chat only appears to offer the lock once the server side exists', () =
   assert.match(api, /Promise<VaultSettings \| null>/)
 })
 
+test('the lock button does not borrow the chat banner class, and the layout rules that broke it stay fixed', () => {
+  // The chat already has a ".cmLock" banner ("Private. Only the two of you..."). Reusing that name made the
+  // button inherit the banner's padding, margin and tint.
+  assert.match(read('src/chat.css'), /\.cmLock\{/)
+  const bar = read('src/chat/vault/LockComposerBar.tsx')
+  assert.doesNotMatch(bar, /cmLock\b/)
+  assert.match(bar, /cmVaultBtn/)
+  const css = read('src/chat/vault/vault.css')
+  assert.doesNotMatch(css, /\.cmLock\b/)
+  // A confidential bubble has a fixed width: a percentage width inside a bubble that sizes itself to its
+  // contents ballooned the bubble to its 640px cap around a 340px card.
+  assert.match(css, /\.cmMsg \.cmBubble\[data-vault\] \{ width: 360px;/)
+  // chat-ios-layout.test.mjs finds the bubble by the literal className="cmBubble", so the state is a data attribute.
+  assert.match(read('src/chat/ChatShell.tsx'), /className="cmBubble"\s+data-vault=\{isConf&&!deleted\?'on':undefined\}/)
+  // The bar floats above the floating composer, and the chat measures it so the list makes room.
+  assert.match(css, /\.cmThread \.vcBar \{\s*position: absolute;/)
+  const shell = read('src/chat/ChatShell.tsx')
+  assert.equal((shell.match(/'\.cmTyping','\.vcBar'\]/g) || []).length, 2)
+  // Own bubbles are orange: the card uses the same dark ink as ordinary messages, not the pale muted grey.
+  assert.match(css, /\.cmMsg\.mine \.vcCard \{ color: #1a1200; \}/)
+  assert.match(css, /\.cmMsg\.mine \.vcTime, \.cmMsg\.mine \.vcSmall, \.cmMsg\.mine \.vcEnded \{ color: inherit;/)
+})
+
 test('a confidential message cannot be copied, edited or forwarded from the chat', () => {
   const shell = read('src/chat/ChatShell.tsx')
   assert.match(shell, /&& !message\.forwarded_from_user_id && !isConf/)

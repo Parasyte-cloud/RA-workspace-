@@ -1332,7 +1332,7 @@ export function ChatShell(){
       const composerGap=composer ? Math.max(0,box.bottom-composer.getBoundingClientRect().top) : 0
       thread.style.setProperty('--cm-composer-gap',`${Math.ceil(composerGap)}px`)
       let overlay=composerGap
-      for(const selector of ['.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping']){
+      for(const selector of ['.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping','.vcBar']){
         const el=thread.querySelector(selector)
         if(!el || !floating(el))continue
         overlay=Math.max(overlay,box.bottom-el.getBoundingClientRect().top)
@@ -1345,7 +1345,7 @@ export function ChatShell(){
     }
     const resize=new ResizeObserver(measure)
     const watch=()=>{
-      for(const selector of ['.cmComposer','.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping']){
+      for(const selector of ['.cmComposer','.cmReplyBar','.cmStaged','.cmVoiceBar','.cmTyping','.vcBar']){
         const el=thread.querySelector(selector)
         if(el && !watched.has(el)){watched.add(el);resize.observe(el)}
       }
@@ -3029,6 +3029,7 @@ export function ChatShell(){
                       <div className="cmRowWrap">
                       <div
                         className="cmBubble"
+                        data-vault={isConf&&!deleted?'on':undefined}
                         title={displayName(sender)}
                         onClick={event=>{
                           if((event.target as HTMLElement).closest('button,a,audio,textarea,input,img'))return
