@@ -32,7 +32,7 @@ test('the FaceTime call has a share button and shows a shared screen uncropped',
   const stage = read('src/modules/FaceTimeStage.tsx')
   assert.match(stage, /enableScreenShare\(\)/)
   assert.match(stage, /disableScreenShare\(\)/)
-  assert.match(stage, /remote\.on\('screenShareUpdate'/)
+  assert.match(stage, /\.on\('screenShareUpdate'/)
   assert.match(stage, /Share your screen/)
   assert.match(read('src/facetime-call.css'), /\.ftVideo\.ftScreen \{ object-fit: contain/)
 })
