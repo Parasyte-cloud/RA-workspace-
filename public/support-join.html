@@ -1,66 +1,154 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<meta name="referrer" content="no-referrer">
-<meta name="color-scheme" content="dark light">
-<meta name="support-functions-url" content="https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1">
-<title>Join RideArrivo Support</title>
-<!-- PArAsYtE | RA-Workspace support module -->
-<style>
-:root{--bg:#0b0f17;--card:#121826;--line:#243047;--text:#e8edf5;--muted:#9aa7bd;--accent:#d58a2a;--bad:#ff8a8a;--good:#6ee7a1}
-@media(prefers-color-scheme:light){:root{--bg:#f4f6fa;--card:#fff;--line:#d6dde9;--text:#0f1724;--muted:#52607a;--accent:#b46a0f;--bad:#b42318;--good:#117a45}}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-main{flex:1;display:grid;place-items:center;padding:24px 16px}
-.card{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px}
-h1{margin:0 0 6px;font-size:1.4rem}p{margin:0 0 16px;color:var(--muted)}
-label{display:block;margin:14px 0 6px;font-weight:600;font-size:.9rem}
-input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit}
-input:focus{outline:2px solid var(--accent);outline-offset:1px}
-input.code{letter-spacing:.18em;font-size:1.2rem;text-transform:uppercase;font-variant-numeric:tabular-nums}
-button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--accent);color:#111;font:inherit;font-weight:700;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
-.msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:.92rem}
-.msg.bad{border:1px solid var(--bad);color:var(--bad)}.msg.good{border:1px solid var(--good);color:var(--good)}
-.hint{font-size:.8rem;color:var(--muted);margin-top:6px}
-a{color:var(--accent)}
-footer{padding:18px 16px 22px;text-align:center}
-footer a{color:#c0c7d1;text-decoration:none;font-weight:800;letter-spacing:.22em;font-size:.82rem;text-transform:none;opacity:.85}
-footer a:hover{opacity:1}
-</style>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#07142b" />
+  <meta
+    name="description"
+    content="Create secure access to the RideArrivo Support Command Centre."
+  />
+
+  <link
+    rel="manifest"
+    href="/brand/support/support.webmanifest"
+  />
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/brand/support/support-favicon-32.png"
+  />
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="/brand/support/support-favicon-16.png"
+  />
+  <link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="/brand/support/support-icon-180.png"
+  />
+
+  <meta
+    property="og:title"
+    content="Join RideArrivo Support"
+  />
+  <meta
+    property="og:description"
+    content="Create secure access to the RideArrivo Support Command Centre."
+  />
+  <meta
+    property="og:image"
+    content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png"
+  />
+  <meta
+    property="og:url"
+    content="https://support.ridearrivo.com/support-join"
+  />
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+  <meta
+    name="twitter:title"
+    content="Join RideArrivo Support"
+  />
+  <meta
+    name="twitter:description"
+    content="Create secure access to the RideArrivo Support Command Centre."
+  />
+  <meta
+    name="twitter:image"
+    content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png"
+  />
+
+  <link rel="stylesheet" href="/support-auth.css" />
+
+  <title>Join RideArrivo Support</title>
 </head>
-<body>
-<main>
-  <div class="card">
-    <div id="form-view">
+
+<body class="supportJoinPage">
+  <main class="supportJoinShell">
+    <section class="supportJoinCard">
+      <div class="supportJoinBrand">
+        <img
+          class="supportJoinBrandIcon"
+          src="/brand/support/support-icon-192.png"
+          alt=""
+        />
+
+        <div class="supportJoinBrandCopy">
+          <img
+            src="/ridearrivo-wordmark-workspace.png"
+            alt="RideArrivo"
+          />
+          <strong>RideArrivo Support</strong>
+          <span>Support Command Centre</span>
+        </div>
+      </div>
+
       <h1>Join RideArrivo Support</h1>
-      <p>Enter the email address your invitation was sent to and the one-time code, then choose a password.</p>
-      <form id="f" autocomplete="on" novalidate>
+
+      <p>
+        Enter the email address your invitation was sent to
+        and the one-time code, then choose a secure password.
+      </p>
+
+      <form id="joinForm">
         <label for="email">Email address</label>
-        <input id="email" name="email" type="email" inputmode="email" autocomplete="username" required>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          required
+        />
+
         <label for="code">One-time code</label>
-        <input id="code" name="code" class="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" required>
-        <label for="pw">Choose a password</label>
-        <input id="pw" name="password" type="password" autocomplete="new-password" minlength="10" required>
-        <div class="hint">At least 10 characters. If you already have a RideArrivo workspace account, your existing password stays as it is.</div>
-        <label for="pw2">Repeat the password</label>
-        <input id="pw2" type="password" autocomplete="new-password" required>
-        <button id="go" type="submit">Create my access</button>
-        <div id="msg" class="msg bad" role="alert" hidden></div>
+        <input
+          id="code"
+          type="text"
+          autocomplete="one-time-code"
+          required
+        />
+
+        <label for="password">Choose a password</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+
+        <label for="confirm">Repeat the password</label>
+        <input
+          id="confirm"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+
+        <button id="go" type="submit">
+          Create my access
+        </button>
       </form>
-    </div>
-    <div id="done-view" hidden>
-      <h1>You are in</h1>
-      <p id="done-text"></p>
-      <div class="msg good">Sign in to the workspace with your email address and your password. Support opens for you.</div>
-      <button id="signin" type="button">Go to sign in</button>
-    </div>
-  </div>
-</main>
-<footer><a href="https://www.parasyte.cloud" target="_blank" rel="noopener">PArAsYtE</a></footer>
+
+      <div id="message"></div>
+
+      <div class="supportJoinFooter">
+        Secure RideArrivo staff access · Invitation codes are single-use.
+      </div>
+    </section>
+  </main>
+
 <script>
 (function () {
   var base = (document.querySelector('meta[name="support-functions-url"]') || {}).content || ''

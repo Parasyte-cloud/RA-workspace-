@@ -1,0 +1,27 @@
+{
+  "name": "RideArrivo Support",
+  "short_name": "RA Support",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07142b",
+  "theme_color": "#07142b",
+  "icons": [
+    {
+      "src": "/brand/support/support-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/support/support-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/support/support-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

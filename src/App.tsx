@@ -1558,9 +1558,27 @@ function PasswordRecoveryGate({onDone,mode}:{onDone:()=>void;mode:'recovery'|'in
   return <div className="authPage">
     <div className="authGlass glassPanel">
       <div className="authBrand">
-        <BrandLogo className="authLogo"/>
-        <span>RideArrivo Internal Workspace</span>
-      </div>
+          {isSupportDomain() ? (
+            <div className="supportAuthIdentity">
+              <img
+                src="/brand/support/support-icon-192.png"
+                alt=""
+                className="supportAuthIcon"
+                draggable={false}
+              />
+              <div className="supportAuthIdentityText">
+                <BrandLogo className="authLogo"/>
+                <strong>RideArrivo Support</strong>
+                <span>Support Command Centre</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <BrandLogo className="authLogo"/>
+              <span>RideArrivo Internal Workspace</span>
+            </>
+          )}
+        </div>
       <div className="authCopy">
         <span className="eyebrow">{invite?'WELCOME TO RIDEARRIVO':'PASSWORD RECOVERY'}</span>
         <h1>{invite?'Create your password.':'Choose a new password.'}</h1>
@@ -1758,15 +1776,21 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
 
         <div className="authCopy">
           <span className="eyebrow">
-            SECURE COMPANY WORKSPACE
+            {isSupportDomain()
+              ? 'SECURE SUPPORT WORKSPACE'
+              : 'SECURE COMPANY WORKSPACE'}
           </span>
 
           <h1>
-            Everything your RideArrivo team needs, in one place.
+            {isSupportDomain()
+              ? 'Your Support Command Centre, ready when customers need you.'
+              : 'Everything your RideArrivo team needs, in one place.'}
           </h1>
 
           <p>
-            Sign in with your approved RideArrivo employee account.
+            {isSupportDomain()
+              ? 'Sign in securely to handle calls, messages, tickets, escalations and customer requests.'
+              : 'Sign in with your approved RideArrivo employee account.'}
           </p>
 
           <div className="trustRow">
