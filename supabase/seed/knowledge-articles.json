@@ -192,5 +192,104 @@
   ],
   "summary": "The stack behind the workspace and how a change reaches production.",
   "content": "## Stack\nReact and TypeScript on Vite, deployed to Cloudflare Pages. Supabase provides authentication, the Postgres database (with row level security) and edge functions. The app is a PWA.\n\n## How a change ships\n1. Work happens on a branch and goes in as a pull request.\n2. CI runs the typecheck, the tests, the build and a high-severity dependency audit on every pull request.\n3. After the pull request is approved and merged to main, Cloudflare Pages deploys automatically.\n4. Database changes are migrations in supabase/migrations, applied with supabase db push. Edge functions are deployed with supabase functions deploy.\n\n## Secrets\nSecrets are Supabase function secrets or Cloudflare variables. They never go in the repository or in chat.\n\n## More detail\nThe repository has DEPLOYMENT_GUIDE, ARCHITECTURE_AUDIT and ENGINEERING_SECURITY_AUDIT files, plus notes for push notifications and ROOM 7."
+ },
+ {
+  "slug": "chat-messages-and-groups",
+  "title": "Chat: messages, files, voice notes and groups",
+  "category": "Workspace",
+  "tags": [
+   "chat",
+   "messages",
+   "groups",
+   "voice notes",
+   "files"
+  ],
+  "summary": "How to message one person or a group, send files and voice notes, and what happens when you delete a message.",
+  "content": "## What Chat is\nChat is the messaging part of the workspace. You can message one person (a direct chat) or a group. It works on a phone and a computer, and it keeps working while you move between other sections of the workspace.\n\n## What you can send\n- Text.\n- Photos and files.\n- Voice notes.\n- Confidential messages and documents, using the lock beside the attach button. See \"Sending a confidential message or document\".\n\n## What the other person sees\n- A new message shows in the chat list with an unread count until the chat is opened.\n- A notification shows what was sent in plain words: the message text, or \"Sent a photo\", \"Sent a voice note\", \"Sent a file\" followed by the file name.\n- Mentioning a person notifies them.\n- If the phone alerts are on, the notification also arrives when the app is closed. See \"Phone alerts and call sounds\".\n\n## Deleting a message\nWhen you delete a message it stays in the chat as \"This message was deleted\", for you and for the other people, and it changes live on their screen. The text is gone. A deleted message is not counted as unread, and a notification that quoted the text is changed to \"This message was deleted\" too.\n\n## If sending fails\nA message, file or voice note that fails on a bad connection shows a Retry button. Pressing Retry never sends it twice: if the first try actually got through, Chat finds that copy and uses it.\n\n## Calls\nEvery call is a line in the chat, with a Call back button. See \"Calls in Chat\".\n\n## Not in Chat\nROOM 7 meetings and their chat are separate. Confidential messages are not available inside ROOM 7 yet."
+ },
+ {
+  "slug": "calls-in-chat",
+  "title": "Calls in Chat",
+  "category": "Workspace",
+  "tags": [
+   "calls",
+   "chat",
+   "voice",
+   "video",
+   "facetime"
+  ],
+  "summary": "How to call a colleague from Chat, what the call screen does, and the rules that keep calls private.",
+  "content": "## Starting and answering\nOpen a chat and press the call button. The other person's phone or computer rings, and you hear the ringback tone. If the other person does not answer within 45 seconds, the call is closed as missed and both of you see \"Missed voice call\" in the chat. Press Call back to try again.\n\n## The call screen\nThe call opens as a full screen in the style of FaceTime: the other person fills the screen and your own camera is a small picture you can drag. You can:\n- mute and unmute your microphone\n- turn your camera on or off, and flip between front and back cameras\n- choose where the sound plays where the phone allows it\n- shrink the call to a small window and go back to the chat, then press Return to call\n\nThe call clock starts when the other person is on the call, not while it is ringing.\n\n## Hanging up\nHanging up on either side ends the call for both people. A call that is declined or not answered closes the caller's screen by itself.\n\n## If the other person answers but never arrives\nAfter the callee answers, the caller waits 30 seconds. If nobody is on the call by then, the call ends and the caller sees \"They could not connect. Try calling again.\" While waiting, the screen says \"Connecting...\" instead of \"Calling...\".\n\n## One call at a time\nYou cannot start a second call while you are on one: you see \"You are already on a call\". If someone calls you while you are on a call, they see \"On another call\". If you open the same call from a second device, the first device closes its screen and the call carries on.\n\n## Who can be on a call\nA call between two people is private to those two people. Anyone else who tries to join it is refused with \"This call is private\". An administrator can join any call. When one does, both people on the call get the notice \"An administrator joined your call\", and the header shows how many other people are on the call. If an administrator is one of the two people on the call, nobody gets that notice.\n\n## History\n- Every call is a line in the chat: \"Voice call, 4:32\", \"Missed voice call\", \"Declined\", or \"No answer\".\n- The Calls tab in the chat list shows the history, newest first, with a call back button on each line.\n- A missed call shows in red in the chat list and adds to the unread badge until you open the chat.\n\n## What it cannot do\n- Ringing needs the workspace open, or phone alerts turned on. A closed browser cannot ring by itself. See \"Phone alerts and call sounds\".\n- A call does not take over a locked iPhone screen the way a normal phone call does. That needs a native app.\n- Group calls from a chat are not available yet.\n- If a call fails to start, see \"Call could not start (ERR0002) and other call problems\"."
+ },
+ {
+  "slug": "call-could-not-start",
+  "title": "Call could not start (ERR0002) and other call problems",
+  "category": "Workspace",
+  "tags": [
+   "calls",
+   "troubleshooting",
+   "ERR0002",
+   "iphone",
+   "network"
+  ],
+  "summary": "What to try when a call says it could not start, and what to tell engineering if it keeps happening.",
+  "content": "## What you may see\n\"The call could not start. [ERR0002]: Failed to join room. Check the network and try again.\" with the buttons Try again and Back to chat.\n\n## What it means\nThe call screen could not open its live connection to the call service. The workspace now retries this by itself, up to two more times with a fresh pass each time, before it shows the message. If you still see it, the phone's network is blocking or dropping that connection.\n\n## Try these, in order\n1. Press Try again once and wait. Do not press it repeatedly.\n2. Switch between Wi-Fi and mobile data, then try again.\n3. On iPhone, turn off iCloud Private Relay for the network you are on (Settings, your name, iCloud, Private Relay).\n4. Turn off any VPN, and turn off Low Data Mode (Settings, Mobile Service or Wi-Fi, the network's info button).\n5. Try a different network, for example a phone hotspot. Some office and hotel Wi-Fi networks filter this traffic.\n6. Close the workspace app fully, open it again, and call back.\n\n## Other messages\n- \"This call is private.\" You are not one of the two people on this call.\n- \"You are already on a call.\" Finish or leave the other call first.\n- \"They could not connect. Try calling again.\" The other person answered but did not arrive within 30 seconds. Their network or phone is the cause. Ask them to reopen the app, then call again.\n- No ring on the other side: they need the workspace open, or phone alerts turned on. See \"Phone alerts and call sounds\".\n\n## What to send to engineering\nIf it still fails on a normal network, send: the time, who you were calling, the phone and iOS or Android version, whether Private Relay or a VPN was on, and the exact code in square brackets, for example ERR0002. The code tells engineering which stage failed."
+ },
+ {
+  "slug": "phone-alerts-and-call-sounds",
+  "title": "Phone alerts and call sounds",
+  "category": "Workspace",
+  "tags": [
+   "notifications",
+   "push",
+   "sound",
+   "iphone",
+   "android"
+  ],
+  "summary": "How to get message and call alerts when the app is closed, and why a phone may stay silent.",
+  "content": "## Two different things\n- **Sound inside the app:** while the workspace is open, messages play a sound and calls ring. A browser blocks sound until you have clicked or tapped the page once, so a call card may say \"Click anywhere to hear the ring\". After installing the workspace as an app, a card on first sign-in offers to turn sound on.\n- **Phone alerts:** notifications that arrive when the app is closed. Turn them on in the bell menu with Phone alerts, then Turn on, and allow notifications when the phone asks. Turn it on once for each phone or browser you use.\n\n## What gets sent\nCalls, mentions, tasks and messages. A call notification stays on the screen until you tap it, and a missed call replaces the ring. If the workspace is open and visible, nothing extra is shown because the app already rings.\n\n## iPhone\niPhone only allows alerts for an app that has been added to the Home Screen, and needs iOS 16.4 or later. Open the workspace in Safari, choose Share, then Add to Home Screen, open it from the Home Screen icon, and then turn Phone alerts on.\n\n## If it stays silent\n- The phone is on silent, or a Focus or Do Not Disturb mode is on. That is the phone's choice.\n- Notifications are blocked for the app in the phone's settings.\n- Android may delay alerts to save battery. Calls are sent as high priority, which helps.\n- The Phone alerts row is hidden in the bell menu if engineering has not finished setting it up.\n\n## Limits\nA phone alert is a notification, not a phone call screen. It cannot take over a locked screen like a normal call does."
+ },
+ {
+  "slug": "confidential-messages-staff-guide",
+  "title": "Sending a confidential message or document",
+  "category": "Workspace",
+  "tags": [
+   "confidential",
+   "security",
+   "chat",
+   "key",
+   "lock"
+  ],
+  "summary": "How to lock a message or document in Chat, how the one-time key works, and what the other person sees.",
+  "content": "## What it is\nA confidential message is locked. The chat only shows a blurred card. The other person needs a one-time key from you to open it, it opens once, it shows for the time you chose, and then it locks again. Only an administrator can open it again.\n\n## Sending one\n1. Open a direct chat or a group.\n2. Press the lock beside the attach button. The send button changes colour and a bar shows the view time.\n3. Choose how long it can be viewed: 15 seconds, 30 seconds, 1 minute, 5 minutes, 15 minutes, 30 minutes or 1 hour. The administrator sets the longest time allowed, so the longer choices may be missing.\n4. Write the message, or attach one PDF or image, and send.\n5. A window shows the key, for example K7QM-2XPD-9TCW. **It is shown once.** Copy it or write it down now, then tell the person the key by a phone call, in person, or any way that is not this chat.\n\nIf you close the window before sharing the key, the message cannot be opened until an administrator issues a new key.\n\n## What you can send\n- Text up to 10,000 characters.\n- A PDF or an image (photo), up to 15 MB. Word, Excel and other files are refused.\n- Voice notes cannot be sent as confidential.\n\n## Opening one you received\n1. Tap Request key. The sender and the administrators are told. Asking again within a few minutes does not send more alerts.\n2. When you have the key, tap Enter key and type it. Capital letters, spaces and dashes do not matter.\n3. The content opens with a countdown, and your name and the time are written across it. When the time ends, or when you close it, it locks again.\n\n## Rules to know\n- **The key works once.** In a group, the first person to use it opens it. Everyone else needs an administrator.\n- **Five wrong keys lock it** (an administrator can change this to anything from 3 to 10). A half-typed key does not count as a try.\n- If the page reloads or the connection drops while you are inside your view time, you can continue until the time ends. You cannot get extra time.\n- Switching to another tab or app hides the content. You cannot copy, print, save or drag it, and a confidential message cannot be edited or forwarded.\n- The sender can delete a confidential message for everyone.\n- After it has been viewed, the card says \"Need to view again? Contact an administrator.\"\n\n## Be honest about the limits\nThe workspace cannot stop a screenshot or a photo of the screen. The watermark with your name and the time is there so a leak can be traced, and so people think twice. Do not send something confidential to someone you do not trust with it.\n\n## If you need help\nLost the key, locked out, or need to view something again: ask an administrator. See \"Confidential messages for administrators\"."
+ },
+ {
+  "slug": "confidential-messages-admin-guide",
+  "title": "Confidential messages for administrators",
+  "category": "Workspace",
+  "tags": [
+   "confidential",
+   "administration",
+   "security",
+   "unblock",
+   "audit"
+  ],
+  "summary": "What administrators can and cannot do with confidential messages: settings, unblocking, deleting and the audit trail.",
+  "content": "## Where it is\nAdministration, then the **Confidential** tab. Only people with the Admin role see it. HR does not.\n\n## What you cannot do\nYou cannot read the content of a confidential message or document. This tab never shows it, and the stored text is encrypted with a secret that is not in the database. This is on purpose, so that one administrator account in the wrong hands does not expose what staff locked. People with engineering access to the project's secrets are a separate matter, so keep that access small.\n\n## What you can do\n- **See the list.** Each line shows the chat, who sent it, whether it is a message or a document, the view time, who opened it and when, wrong keys, how many times it was unblocked, and how many people are waiting for access. The list starts on the ones needing attention (locked, viewed, or with a request waiting).\n- **Unblock or issue a new key.** The button shows a new one-time key, once. It resets the wrong key count and closes any open view window. Give the key to the right person by phone or in person, never in the chat. This is the only way a viewed or locked message opens again.\n- **Delete.** Deletes the message for everyone for good, including the stored content.\n- **History.** Shows what happened to one message: sent, key requested, wrong key, locked, opened, unblocked, deleted, settings changed.\n- **Settings.** The longest view time anyone can choose (15 seconds to 1 hour) and how many wrong keys lock a message (3 to 10, 5 by default).\n\n## You are told when\nSomeone requests the key for a message that is still locked (you and the sender are told), someone asks for a viewed or locked message (administrators only), and a message locks after wrong keys (administrators and the sender). The alert never contains any content.\n\n## Good practice\n1. Before unblocking, confirm who is asking and why. The unblock is recorded with your name.\n2. Pass the new key by a separate channel.\n3. If the sender lost the key before sharing it, a new key fixes that. The sender cannot see the old key again.\n4. In a group, only one person can use a key. If a second person also needs it, unblock again.\n\n## Limits to tell staff\n- Screenshots and phone photos cannot be prevented on the web. Only the native app could change that.\n- Only PDF and image files, up to 15 MB.\n- Any member of a chat can use up the wrong key attempts and lock a message. An administrator unblocks it.\n\n## Setup and recovery\nEngineering sets this up once. If the master secret is lost, locked texts cannot be read again, and if the second secret is changed, keys that were not used yet stop working and must be reissued with Unblock. See \"Chat, calls and confidential messages: engineering notes\"."
+ },
+ {
+  "slug": "chat-calls-vault-engineering-notes",
+  "title": "Chat, calls and confidential messages: engineering notes",
+  "category": "Engineering",
+  "tags": [
+   "engineering",
+   "supabase",
+   "edge functions",
+   "deploy",
+   "calls",
+   "confidential"
+  ],
+  "summary": "Which database migrations, edge functions and secrets Chat, calls, phone alerts and confidential messages need, and where the detailed docs are.",
+  "content": "## Pieces and where they live\n- **Chat and calls:** tables `social_messages` and `chat_calls`, the chat screen in `src/chat/ChatShell.tsx`, the call screens in `src/modules/CallModule.tsx`, `RoomMeeting.tsx` and `FaceTimeStage.tsx`. Calls use a Cloudflare RealtimeKit meeting created by the `room-session` edge function.\n- **Phone alerts:** the `push-dispatch` edge function, `push_subscriptions` table and `public/sw.js`.\n- **Confidential messages:** the `confidential-vault` edge function, the `confidential_*` tables and the screens in `src/chat/vault/` and `src/modules/AdminConfidential.tsx`.\n\n## Order of work for a release\n1. Run any new SQL migration first. Every migration here is safe to run twice.\n2. Deploy the edge function that goes with it. A chat or call change that needs `room-session` does nothing until that function is deployed.\n3. Merge and let Cloudflare Pages build the app.\n\nThe app is written so that shipping before the SQL is run breaks nothing: the lock button stays hidden until the vault tables exist.\n\n## Edge functions\n- `room-session`: `supabase functions deploy room-session`. Joins are locked to the two people on a chat call; administrators can join and both people are notified.\n- `push-dispatch`: deployed with `--no-verify-jwt`, called by a database trigger with a shared secret.\n- `confidential-vault`: `supabase functions deploy confidential-vault`. Keep the default JWT check on.\n\n## Secrets (names only, never paste values into chat or tickets)\n- Phone alerts: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_DISPATCH_SECRET`, and `VITE_VAPID_PUBLIC_KEY` in Cloudflare Pages.\n- Confidential messages: `VAULT_MASTER_KEY` (base64 of 32 random bytes) and `VAULT_PEPPER` (at least 32 characters). Back both up. Losing the master key makes locked texts unreadable. Changing the pepper invalidates keys that were not used yet. Without these two secrets the vault answers \"not set up\" and does nothing.\n\n## How the vault keeps content away from browsers\nThe chat row holds only a placeholder and a link. The content is stored in tables that have no policies for the browser. Only the edge function, using the service role, reads them, and only after a database function has checked the one-time key and the member. See `docs/confidential-messages.md`.\n\n## Checks\n- `npm run typecheck` and `npm test` run in CI on every pull request.\n- The vault and call suites include source checks that fail if a security rule is weakened.\n- Device checks are listed at the end of `docs/confidential-messages.md`, `docs/chat-call-audit-round3-2026-10-18.md` and `docs/call-join-failure-2026-10-18.md`. Nothing about calls on a real phone is proven until those are done.\n\n## Known gaps\nRinging a locked or closed phone needs a native wrapper (CallKit and PushKit). Screenshots cannot be blocked on the web. ROOM 7 chat has no confidential option yet."
  }
 ]
