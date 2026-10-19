@@ -422,7 +422,15 @@ const workspaceFromHistory=(value:unknown):Workspace|null=>{
   return candidate
 }
 
+const isSupportDomain=()=>
+  window.location.hostname.toLowerCase()==='support.ridearrivo.com'
+
 const initialSection=():Section=>{
+  // support.ridearrivo.com is the dedicated front door for the existing
+  // authenticated Support workstation. Authorization remains enforced by
+  // canAccess() after the employee profile and workstation assignments load.
+  if(isSupportDomain()) return 'support'
+
   const query=new URLSearchParams(window.location.search)
   // Zoho sends people back here with ?mail=connected or ?mail=error.
   const requested=query.get('section') || (query.has('mail') ? 'mail' : null)
