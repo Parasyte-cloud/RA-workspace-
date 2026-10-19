@@ -25,6 +25,8 @@
 .ftStage * { box-sizing: border-box; }
 .ftVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0b0d12; }
 .ftVideo.mirror { transform: scaleX(-1); }
+/* A shared screen must never be cropped: show all of it, letterboxed. */
+.ftVideo.ftScreen { object-fit: contain; background: #000; }
 
 /* No video: a soft blurred backdrop with the person's avatar, like a voice call on iPhone. */
 .ftBackdrop {
@@ -130,3 +132,5 @@
 
 /* The other person has muted their microphone. */
 .ftWho .ftMuted { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.9); background: rgba(0,0,0,.38); }
+
+.ftWho .ftSharing { background: rgba(48,209,88,.34); }
