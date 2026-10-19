@@ -1635,9 +1635,28 @@ function ConfirmLinkGate({link,onDone}:{link:{tokenHash:string;type:'recovery'|'
   return <div className="authPage">
     <div className="authGlass glassPanel">
       <div className="authBrand">
-        <BrandLogo className="authLogo"/>
-        <span>RideArrivo Internal Workspace</span>
-      </div>
+          {isSupportDomain() ? (
+            <div className="supportAuthIdentity">
+              <img
+                src="/brand/support/support-icon-192.png"
+                alt="RideArrivo Support"
+                className="supportAuthIcon"
+                draggable={false}
+              />
+
+              <div className="supportAuthIdentityText">
+                <BrandLogo className="authLogo"/>
+                <strong>RideArrivo Support</strong>
+                <span>Support Command Centre</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <BrandLogo className="authLogo"/>
+              <span>RideArrivo Internal Workspace</span>
+            </>
+          )}
+        </div>
       <div className="authCopy">
         <span className="eyebrow">{invite?'WELCOME TO RIDEARRIVO':'PASSWORD RECOVERY'}</span>
         <h1>{invite?'Accept your invitation.':'Ready to reset your password?'}</h1>
@@ -1794,7 +1813,9 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
           </p>
 
           <div className="trustRow">
-            Access is restricted to approved RideArrivo employees.
+            {isSupportDomain()
+              ? 'Access is restricted to approved RideArrivo Support staff.'
+              : 'Access is restricted to approved RideArrivo employees.'}
           </div>
         </div>
 
