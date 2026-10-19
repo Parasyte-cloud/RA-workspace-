@@ -73,6 +73,15 @@ import '../chat-dark.css'
 import '../chat-ios.css'
 import './chat-room-remove.css'
 import './chat-links.css'
+import './vault/vault.css'
+import ConfidentialCard from './vault/ConfidentialCard'
+import KeySheet from './vault/KeySheet'
+import type { SheetKey } from './vault/KeySheet'
+import { LockBar, LockButton } from './vault/LockComposerBar'
+import { useVaultItems } from './vault/useVaultItems'
+import { callVault, loadVaultSettings, sendConfidentialFile } from './vault/vaultApi'
+import type { VaultSettings } from './vault/vaultApi'
+import { choicesUpTo } from './vault/vaultFormat'
 import { supabase } from '../lib/supabase'
 import { strToU8, zipSync } from 'fflate'
 import { createCallRoom, endCallRoom, requestJoinRoom } from '../lib/roomApi'
@@ -197,6 +206,7 @@ type Message = {
   attachment_mime?:string|null
   attachment_size?:number|null
   attachment_duration_ms?:number|null
+  confidential_id?:string|null
   localUrl?:string
   pending?:boolean
   failed?:boolean
@@ -355,6 +365,27 @@ export function ChatShell(){
   const [isAdmin,setIsAdmin]=useState(false)
   const [replyTo,setReplyTo]=useState<Message|null>(null)
   const [staged,setStaged]=useState<Staged[]>([])
+  // Confidential messages. The lock button only appears once the server side is set up.
+  const [vaultSettings,setVaultSettings]=useState<VaultSettings|null>(null)
+  const [vaultOn,setVaultOn]=useState(false)
+  const [vaultSeconds,setVaultSeconds]=useState(60)
+  const [vaultSending,setVaultSending]=useState(false)
+  const [keySheet,setKeySheet]=useState<{title:string;keys:SheetKey[]}|null>(null)
+  const vault=useVaultItems(selectedId||'')
+  useEffect(()=>{
+    let alive=true
+    void loadVaultSettings().then(found=>{
+      if(!alive||!found)return
+      setVaultSettings(found)
+      setVaultSeconds(current=>{
+        const allowed=choicesUpTo(found.max_view_seconds)
+        return allowed.includes(current)?current:(allowed[allowed.length-1]??15)
+      })
+    })
+    return()=>{alive=false}
+  },[])
+  // Confidential is chosen per message and per chat, never carried along.
+  useEffect(()=>{setVaultOn(false)},[selectedId])
   const [dragging,setDragging]=useState(false)
   const [imageUrls,setImageUrls]=useState<Record<string,string>>({})
   const [voice,setVoice]=useState<Voice|null>(null)
@@ -1393,6 +1424,17 @@ export function ChatShell(){
     const client=supabase
     if(!client)return
     if(!window.confirm('Delete this message for both of you? This cannot be undone.'))return
+    const vaultItemId=message.confidential_id||vault.byMessage[message.id]?.id
+    if(vaultItemId){
+      // A confidential message is destroyed through the vault, which also removes its file.
+      const result=await callVault('destroy',{item_id:vaultItemId})
+      if(!result.ok){
+        setNotice(result.error)
+        return
+      }
+      setMessages(current=>current.map(m=>m.id===message.id?{...m,body:'This message was deleted',deleted_at:new Date().toISOString()}:m))
+      return
+    }
     const {data,error}=await client.rpc('delete_social_message',{p_id:message.id})
     if(error){
       setNotice(error.message)
@@ -1982,10 +2024,57 @@ export function ChatShell(){
     })
   }
 
+  // Sends the text and each file as separate confidential messages. Every one
+  // gets its own one-time key; the sender sees them once, together.
+  const submitConfidential=async(body:string,files:Staged[])=>{
+    if(!selectedId || vaultSending)return
+    for(const item of files){
+      if(!(item.mime==='application/pdf' || isImageMime(item.mime))){
+        setNotice('Only PDF files and images can be sent as confidential.')
+        return
+      }
+    }
+    setVaultSending(true)
+    const keys:SheetKey[]=[]
+    try{
+      if(body){
+        const result=await callVault<{key:string}>('create_text',{conversation_id:selectedId,text:body,view_seconds:vaultSeconds})
+        if(!result.ok){
+          setNotice(result.error)
+          return
+        }
+        keys.push({label:'Message',key:result.key})
+        setMessageText('')
+        rememberDraft(selectedId,'')
+        requestAnimationFrame(resizeComposer)
+      }
+      for(const item of files){
+        const result=await sendConfidentialFile(selectedId,item.file,item.mime,vaultSeconds)
+        if(!result.ok){
+          setNotice(result.error)
+          break
+        }
+        keys.push({label:item.file.name,key:result.key})
+        if(item.previewUrl)URL.revokeObjectURL(item.previewUrl)
+        setStaged(current=>current.filter(entry=>entry.id!==item.id))
+      }
+    }finally{
+      setVaultSending(false)
+      if(keys.length){
+        setVaultOn(false)
+        setKeySheet({title:keys.length>1?'Your one-time keys':'Your one-time key',keys})
+      }
+    }
+  }
+
   const submit=(event:FormEvent)=>{
     event.preventDefault()
     const body=messageText.trim()
     if(!body && !staged.length)return
+    if(vaultOn && vaultSettings){
+      void submitConfidential(body,staged)
+      return
+    }
     const replyId=replyTo && replyTo.conversation_id===selectedId && !replyTo.pending && !replyTo.failed ? replyTo.id : null
     const files=staged
     const mentionedUserIds=selectedMentions
@@ -2929,8 +3018,10 @@ export function ChatShell(){
                       : ''
                   const quoted=message.reply_to_id ? messages.find(m=>m.id===message.reply_to_id) || null : null
                   const deleted=isDeleted(message)
+                  const vaultItem=(message.confidential_id ? vault.byId[message.confidential_id] : undefined) || vault.byMessage[message.id]
+                  const isConf=!!message.confidential_id || !!vaultItem
                   const canReply=!message.pending && !message.failed && !deleted
-                  const showEdit=canEdit(message,userId) && !message.forwarded_from_user_id
+                  const showEdit=canEdit(message,userId) && !message.forwarded_from_user_id && !isConf
                   const showDelete=canDelete(message,userId)
                   const editing=editingId===message.id
                   return (
@@ -3026,6 +3117,16 @@ export function ChatShell(){
                         })()}
                         {deleted
                           ? <p className="cmDeletedText">This message was deleted</p>
+                          : isConf
+                            ? (
+                              <ConfidentialCard
+                                item={vaultItem}
+                                me={userId}
+                                nameOf={nameOfId}
+                                onDelete={()=>void deleteMessage(message)}
+                                onNotice={setNotice}
+                              />
+                            )
                           : editing
                             ? (
                               <div className="cmEditBox">
@@ -3142,7 +3243,7 @@ export function ChatShell(){
                             <MessagesSquare size={14}/>
                           </button>
                         )}
-                        {copyableText(message)&&!message.pending&&!editing&&(
+                        {copyableText(message)&&!isConf&&!message.pending&&!editing&&(
                           <button
                             type="button"
                             className="cmReplyBtn"
@@ -3153,7 +3254,7 @@ export function ChatShell(){
                             {copiedId===message.id?<Check size={14}/>:<Copy size={14}/>}
                           </button>
                         )}
-                        {canForward(message)&&!editing&&(
+                        {canForward(message)&&!isConf&&!editing&&(
                           <button
                             type="button"
                             className="cmReplyBtn"
@@ -3256,6 +3357,14 @@ export function ChatShell(){
                 </div>
               )}
               {typers.length>0&&<div className="cmTyping" role="status">{typingSentence(typers.map(item=>item.name))}</div>}
+              {vaultOn&&vaultSettings&&(
+                <LockBar
+                  seconds={vaultSeconds}
+                  ceiling={vaultSettings.max_view_seconds}
+                  onSeconds={setVaultSeconds}
+                  hasFiles={staged.length>0}
+                />
+              )}
               <MessageComposer
                 sendState={composerSendState}
                 onRetry={()=>{
@@ -3292,12 +3401,18 @@ export function ChatShell(){
                 >
                   <Paperclip size={19}/>
                 </button>
+                {vaultSettings&&(
+                  <LockButton on={vaultOn} disabled={vaultSending} onToggle={()=>setVaultOn(current=>!current)}/>
+                )}
                 <button
                   type="button"
                   className="cmRound cmAttach"
                   title="Record a voice note"
                   aria-label="Record a voice note"
-                  onClick={()=>void startVoice()}
+                  onClick={()=>{
+                    if(vaultOn){setNotice('Voice notes cannot be sent as confidential. Turn the lock off first.');return}
+                    void startVoice()
+                  }}
                 >
                   <Mic size={19}/>
                 </button>
@@ -3412,7 +3527,7 @@ export function ChatShell(){
 
                   }}
                 />
-                <button className="cmSend" type="submit" aria-label="Send" disabled={!messageText.trim() && !staged.length}>
+                <button className="cmSend" data-vault={vaultOn?'on':undefined} type="submit" aria-label={vaultOn?'Send as confidential':'Send'} disabled={(!messageText.trim() && !staged.length) || vaultSending}>
                   <Send size={19}/>
                 </button>
               </MessageComposer>
@@ -3461,6 +3576,13 @@ export function ChatShell(){
           title={secondary(peopleMap.get(cardId))}
           status={extras.statusOf(cardId)}
           onClose={()=>setCardId('')}
+        />
+      )}
+      {keySheet&&(
+        <KeySheet
+          title={keySheet.title}
+          keys={keySheet.keys}
+          onDone={()=>setKeySheet(null)}
         />
       )}
       {forwardMsg&&(
