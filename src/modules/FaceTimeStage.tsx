@@ -174,13 +174,20 @@ export default function FaceTimeStage({
     const redraw = () => bump()
     remote.on('videoUpdate', redraw)
     remote.on('audioUpdate', redraw)
-    remote.on('screenShareUpdate', redraw)
     return () => {
       remote.removeListener('videoUpdate', redraw)
       remote.removeListener('audioUpdate', redraw)
-      remote.removeListener('screenShareUpdate', redraw)
     }
   }, [remote, remoteKey])
+
+  // Anyone on the call can share, not only the first person, so listen to all of them.
+  const remoteIds = remotes.map(r => r.id).join(',')
+  useEffect(() => {
+    const redraw = () => bump()
+    const list = meeting.participants.joined.toArray() as unknown as Remote[]
+    list.forEach(r => r.on('screenShareUpdate', redraw))
+    return () => list.forEach(r => r.removeListener('screenShareUpdate', redraw))
+  }, [meeting, remoteIds])
 
   useEffect(() => {
     let alive = true
@@ -269,7 +276,8 @@ export default function FaceTimeStage({
   const remoteName = remote?.name || title
   const remoteVideoOn = Boolean(remote?.videoEnabled && remote?.videoTrack)
   const calling = !remote
-  const remoteScreen = sharedScreenTrack(remote)
+  const sharer = remotes.find(r => sharedScreenTrack(r))
+  const remoteScreen = sharedScreenTrack(sharer)
   const selfSharing = Boolean(self.screenShareEnabled)
   const canShare = canCaptureScreen()
 
@@ -392,7 +400,7 @@ export default function FaceTimeStage({
           {!calling && remote && !remote.audioEnabled && (
             <span className="ftMuted" role="status"><MicOff size={12} /> {remoteName} is muted</span>
           )}
-          {remoteScreen && <span className="ftMuted" role="status"><MonitorUp size={12} /> {remoteName} is sharing their screen</span>}
+          {remoteScreen && <span className="ftMuted" role="status"><MonitorUp size={12} /> {sharer?.name || remoteName} is sharing their screen</span>}
           {selfSharing && <span className="ftMuted ftSharing" role="status"><MonitorUp size={12} /> You are sharing your screen</span>}
         </div>
         <span className="ftSpacer" aria-hidden="true" />

@@ -8,6 +8,7 @@ Updated 19 October 2026. This is the current behaviour. The reasoning and the bu
 - **Call screen:** one FaceTime style screen on phone and desktop. The other person fills the screen, your own camera is a small picture you can drag. Mute, camera on and off, flip camera, sound output where the phone allows it, minimise to a small window over the chat and **Return to call**. The clock starts when the other person is on the call, not while it rings.
 - **In the chat:** every call is a line in the conversation: "Missed voice call", "Voice call, 4:32", "Declined", "No answer", each with a **Call back** button. A missed call also shows in the chat list ("Missed voice call" in red) and adds to the unread badge until the chat is opened.
 - **Calls tab:** the Chats list has a **Calls** tab with the history, newest first, and a call-back button on every line.
+- **Share screen:** the call screen has a Share screen button on browsers that can capture a screen (desktop, and some iPads). Anyone sharing is shown to everyone else full size and uncropped, with a badge saying who. iPhone and Android phone browsers cannot capture a screen, so the button there explains that; they can still watch a share. Sharing from a phone needs the native wrapper.
 - **Stays in Chat:** answering or starting a call opens the call screen over the chat instead of jumping to the ROOM 7 page. Hanging up on either side ends the call for both, and a declined or unanswered call closes the caller's screen by itself.
 
 ## Rules
