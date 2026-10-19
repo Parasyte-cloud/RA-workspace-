@@ -40,6 +40,7 @@ import OperationsControlPanel from './OperationsControlPanel'
 import AdminBackupsPanel from './AdminBackupsPanel'
 import Room7MinutesPanel from './Room7MinutesPanel'
 import AdminKnowledgeAi from './AdminKnowledgeAi'
+import SupportOfficerAdminPanel from './SupportOfficerAdminPanel'
 import AdminDataAllocation from './AdminDataAllocation'
 import '../admin-control-plane.css'
 
@@ -61,6 +62,7 @@ type AdminTab=
 
   | 'operations'
   | 'ride-desk'
+  | 'support-routing'
   | 'data'
   | 'ai-knowledge'
 
@@ -181,6 +183,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['audit','Audit',Activity],
   ['operations','Operations',BriefcaseBusiness],
   ['ride-desk','Ride Desk',Headset],
+  ['support-routing','Support Routing',Headset],
   ['ai-knowledge','AI Management',Sparkles],
   ['data','Data Allocation',Wifi],
 ]
@@ -585,6 +588,7 @@ export default function AdministrationControlPlane(){
       {tab==='audit'&&<AdminAuditPanel/>}
       {tab==='operations'&&<OperationsPanel/>}
       {tab==='ride-desk'&&<RideDeskPanel/>}
+      {tab==='support-routing'&&<SupportOfficerAdminPanel/>}
       {tab==='ai-knowledge'&&<AdminKnowledgeAi/>}
       {tab==='data'&&<AdminDataAllocation/>}
     </div>

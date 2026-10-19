@@ -17,3 +17,6 @@ dist/
 *.backup
 *.bak
 *.bundle
+
+# Support Command Centre: generated Twilio ids and secrets
+.env.support.generated
