@@ -53,16 +53,18 @@ These are real and the app does not hide them.
    ```
    supabase secrets set VAULT_MASTER_KEY="$(openssl rand -base64 32)" VAULT_PEPPER="$(openssl rand -base64 48)" --project-ref fkkxcivxnwshahnbatnp
    ```
-2. Run `supabase/migrations/20261019100000_confidential_messages.sql` in the SQL editor. It is safe to run twice.
+2. Run these two files in the SQL editor, in this order. Both are safe to run twice.
+   - `supabase/migrations/20261019100000_confidential_messages.sql`
+   - `supabase/migrations/20261019130000_confidential_grants.sql` (table permissions for the app and the Edge Function; without it a project that has no default grants answers 403 and the lock button stays hidden)
 3. Deploy the function: `supabase functions deploy confidential-vault --project-ref fkkxcivxnwshahnbatnp`
 4. Merge the PR.
 
-The lock button stays hidden until step 2 is done, and the vault answers `not_configured` until step 1 is done. Merging first breaks nothing.
+The lock button stays hidden until both files in step 2 are run, and the vault answers `not_configured` until step 1 is done. Merging first breaks nothing.
 
 ## How it was checked
 
 - `scripts/confidential-messages.test.mjs` runs the real crypto and key code and pins the rules above. Three deliberate weakenings (secrets granted to the browser, cacheable responses, biased key generation) each fail it.
-- The migration was run on a real Postgres engine (PGlite) with attacks: forged inserts, reading secrets, calling the vault functions as a signed-in user, editing, forwarding, unlinking, wrong keys to lockout, double open, window resume, unblock, delete. Four mutations (guard removed, key not burned, no lockout, secrets readable) each broke a check.
+- The migration was run on a real Postgres engine (PGlite), first with permissive default table permissions and then, after a production 403, with none, so the explicit grants in `20261019130000_confidential_grants.sql` are what is being tested. Attacks: forged inserts, reading secrets, calling the vault functions as a signed-in user, editing, forwarding, unlinking, wrong keys to lockout, double open, window resume, unblock, delete. Four mutations (guard removed, key not burned, no lockout, secrets readable) each broke a check.
 - Not yet checked: the screens on a real phone, and the edge function running on Supabase. Use the device checklist in the PR.
 
 ## Device checklist

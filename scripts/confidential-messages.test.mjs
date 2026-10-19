@@ -230,6 +230,24 @@ test('the vault functions are for the edge function only; admin tools check the 
   assert.match(sql, /p_view_seconds > v_max/)
 })
 
+test('every vault table has an explicit permission statement, so a project without default grants still works', () => {
+  // The first version relied on the project's default table permissions. A project that does not
+  // hand new tables to the app and to the Edge Function answered 403 to both: the lock button never
+  // appeared and a message could not be opened. Row rules do not help if the role has no table access.
+  const grants = read('supabase/migrations/20261019130000_confidential_grants.sql')
+  const tables = [...sql.matchAll(/create table if not exists public\.(confidential_\w+)/g)].map(m => m[1])
+  assert.deepEqual(tables.sort(), ['confidential_audit', 'confidential_grants', 'confidential_items', 'confidential_requests', 'confidential_secrets', 'confidential_settings'])
+  const toService = grants.match(/grant select, insert, update, delete on([\s\S]*?)to service_role;/)[1]
+  for (const table of tables) assert.match(toService, new RegExp(`public\\.${table}(?![\\w])`), `${table} is not granted to service_role`)
+  // The app gets read access to exactly two tables, and never write access.
+  const toApp = [...grants.matchAll(/grant (\w+(?:, \w+)*) on ([\w.]+) to authenticated;/g)].map(m => `${m[1]} ${m[2]}`)
+  assert.deepEqual(toApp.filter(x => !x.startsWith('usage')).sort(), ['select public.confidential_items', 'select public.confidential_settings'])
+  for (const secret of ['confidential_secrets', 'confidential_grants', 'confidential_requests', 'confidential_audit']) {
+    assert.doesNotMatch(grants, new RegExp(`on public\\.${secret}[^;]*to authenticated`), secret)
+  }
+  assert.match(grants, /notify pgrst, 'reload schema'/)
+})
+
 test('the file bucket is private and has no storage policy', () => {
   assert.match(sql, /'confidential-vault', 'confidential-vault', false, 15728640/)
   assert.doesNotMatch(sql, /on storage\.objects/)
