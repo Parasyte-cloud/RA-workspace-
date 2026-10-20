@@ -93,6 +93,7 @@ import BirthdayCelebration from './modules/BirthdayCelebration'
 import { NotificationsProvider } from './context/NotificationsContext'
 import SoundOnPrompt from './components/SoundOnPrompt'
 import { GlobalSearch } from './components/GlobalSearch'
+import { registerWorkspaceServiceWorker } from './pwa/registerWorkspaceServiceWorker'
 import {
   buildSidebar,
   DEFAULT_FAVOURITES,
@@ -619,7 +620,7 @@ function App(){
     const connectivity=()=>setOnline(navigator.onLine)
     window.addEventListener('beforeinstallprompt',before)
     window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
+    void registerWorkspaceServiceWorker()
     if(!supabase){
       setAuthReady(true)
       return()=>{

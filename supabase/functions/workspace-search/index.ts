@@ -14,13 +14,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
  *   - chat        social_messages, scoped to conversations the actor is
  *                 actually a member of
  *
- * This runs on the SERVICE ROLE key (bypassing RLS) so it can search
- * across tables in one round trip, so every filter below is a deliberate,
- * manual re-implementation of that table's real RLS policy (see
- * supabase/migrations/20260827000000_schema_baseline.sql,
- * 20260828123000_strict_department_rls.sql and
- * 20260901230000_native_chat_security.sql) - nothing here should return a
- * row the actor could not already see through the app itself.
+ * Every result query runs with the CALLER'S OWN access token and the anon
+ * key, so Postgres row level security is the source of truth for visibility.
+ * The function authenticates the caller, verifies their active employee
+ * profile, and then searches only through that caller-scoped client.
  *
  * "Match any of several text columns" is done as one .ilike() query per
  * column (merged/de-duplicated below) rather than a single .or(...)
@@ -32,15 +29,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
  * real PostgREST parser. Per-column .ilike() calls take the pattern as a
  * plain, library-encoded argument, so there's nothing to get wrong here.
  *
- * A second group of areas (tasks, knowledge base, company files,
- * announcements, calendar, shared workspaces, brand library, CRM, legal and
- * meeting rooms) is searched with a client that carries the CALLER'S OWN
- * access token and the anon key, so Postgres row level security decides what
- * comes back and there is no hand-copied rule to drift. That is only safe if
- * every one of those tables really has RLS on, which is why
- * supabase/checks/workspace_search_rls_check.sql exists and a contract test
- * keeps its table list in step with USER_SCOPED_DOMAINS below. Legal areas
- * also carry a role guard in code, as a second lock.
+ * That is only safe if every searched table really has RLS on, which is why
+ * supabase/checks/workspace_search_rls_check.sql exists and contract tests
+ * keep its table list in step with both the domain registry and the sensitive
+ * result queries below. Legal areas also carry a role guard in code as a
+ * second lock.
  *
  * Deliberately NOT searchable: employee KYC documents and HR detail records,
  * performance reviews, candidates, bank and ledger records, marketing wallet
@@ -285,25 +278,34 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || ""
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || ""
+    if (!supabaseUrl || !anonKey) {
       return json({ error: "Search is unavailable." }, 503)
     }
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
 
     const authHeader = req.headers.get("Authorization") || ""
     if (!authHeader.startsWith("Bearer ")) {
       return json({ error: "Authenticated RideArrivo workspace access is required." }, 401)
     }
-    const { data: userData, error: userError } = await admin.auth.getUser(authHeader.slice(7).trim())
+    const jwt = authHeader.slice(7).trim()
+    if (!jwt) {
+      return json({ error: "Authenticated RideArrivo workspace access is required." }, 401)
+    }
+
+    // One caller-scoped client for authentication and every result query.
+    // RLS remains authoritative for visibility across every searched table.
+    const userClient = createClient(supabaseUrl, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: authHeader } },
+    })
+
+    const { data: userData, error: userError } = await userClient.auth.getUser(jwt)
     const user = userData?.user
     if (userError || !user) {
       return json({ error: "Authenticated RideArrivo workspace access is required." }, 401)
     }
 
-    const profileResult = await admin
+    const profileResult = await userClient
       .from("employee_profiles")
       .select("id,role,active")
       .eq("id", user.id)
@@ -327,45 +329,15 @@ serve(async (req) => {
     }
     const pattern = likePattern(rawQuery)
 
-    // Second client: the caller's own token plus the anon key, so RLS applies.
-    // If the anon key is not configured the extra areas are skipped and
-    // reported as unavailable instead of falling back to the service role.
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || ""
-    const userClient = anonKey
-      ? createClient(supabaseUrl, anonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-          global: { headers: { Authorization: authHeader } },
-        })
-      : null
-    const scopedPromise = userClient
-      ? Promise.all(
-          USER_SCOPED_DOMAINS.map((domain) =>
-            searchDomain(userClient, actor, domain, pattern, rawQuery.toLowerCase()),
-          ),
-        )
-      : Promise.resolve(
-          USER_SCOPED_DOMAINS.map((domain) => ({ key: domain.key, rows: [] as Row[], failed: true })),
-        )
-
-    const canSeeSupport = ["support", "manager", "admin"].includes(actor.role)
-    const canSeeIncidents = ["manager", "admin"].includes(actor.role)
-    const canSeeAllHr = ["hr", "admin"].includes(actor.role)
-    const canSeeAllLeave = ["manager", "hr", "admin"].includes(actor.role)
-    const canSeeAllIntake = ["manager", "admin"].includes(actor.role)
-
-    const intakeWorkstations = canSeeAllIntake
-      ? []
-      : (
-          await admin
-            .from("workspace_workstation_assignments")
-            .select("workstation")
-            .eq("employee_id", actor.id)
-            .eq("active", true)
-        ).data?.map((row: { workstation: string }) => row.workstation) || []
+    const scopedPromise = Promise.all(
+      USER_SCOPED_DOMAINS.map((domain) =>
+        searchDomain(userClient, actor, domain, pattern, rawQuery.toLowerCase()),
+      ),
+    )
 
     const [people, cases, incidents, hrRequests, leaveRequests, intake, chat] = await Promise.all([
       searchColumns(
-        () => admin.from("employee_profiles").select("id,full_name,email,department,job_title").eq("active", true),
+        () => userClient.from("employee_profiles").select("id,full_name,email,department,job_title").eq("active", true),
         ["full_name", "email", "job_title", "department"],
         pattern,
         8,
@@ -373,31 +345,24 @@ serve(async (req) => {
         true,
       ),
 
-      canSeeSupport
-        ? searchColumns(
-            () => admin.from("support_cases").select("id,reference,subject,status,priority,opened_at"),
-            ["subject", "reference"],
-            pattern,
-            6,
-            "opened_at",
-          )
-        : Promise.resolve([]),
-
-      canSeeIncidents
-        ? searchColumns(
-            () => admin.from("incidents").select("id,reference,summary,severity,status,occurred_at"),
-            ["summary", "reference"],
-            pattern,
-            6,
-            "occurred_at",
-          )
-        : Promise.resolve([]),
+      searchColumns(
+        () => userClient.from("support_cases").select("id,reference,subject,status,priority,opened_at"),
+        ["subject", "reference"],
+        pattern,
+        6,
+        "opened_at",
+      ),
 
       searchColumns(
-        () => {
-          const base = admin.from("hr_requests").select("id,subject,category,status,created_at")
-          return canSeeAllHr ? base : base.eq("employee_id", actor.id)
-        },
+        () => userClient.from("incidents").select("id,reference,summary,severity,status,occurred_at"),
+        ["summary", "reference"],
+        pattern,
+        6,
+        "occurred_at",
+      ),
+
+      searchColumns(
+        () => userClient.from("hr_requests").select("id,subject,category,status,created_at"),
         ["subject"],
         pattern,
         6,
@@ -405,10 +370,7 @@ serve(async (req) => {
       ),
 
       searchColumns(
-        () => {
-          const base = admin.from("leave_requests").select("id,leave_type,status,start_date,end_date,created_at")
-          return canSeeAllLeave ? base : base.eq("employee_id", actor.id)
-        },
+        () => userClient.from("leave_requests").select("id,leave_type,status,start_date,end_date,created_at"),
         ["leave_type"],
         pattern,
         6,
@@ -416,20 +378,12 @@ serve(async (req) => {
       ),
 
       searchColumns(
-        () => {
-          const base = admin
+        () =>
+          userClient
             .from("intake_submissions")
             .select(
               "id,form_title_snapshot,category_title_snapshot,source_reference,status,destination_workstation,assigned_employee_id,submitted_at",
-            )
-          if (canSeeAllIntake) return base
-          if (intakeWorkstations.length > 0) {
-            return base.or(
-              `assigned_employee_id.eq.${actor.id},destination_workstation.in.(${intakeWorkstations.join(",")})`,
-            )
-          }
-          return base.eq("assigned_employee_id", actor.id)
-        },
+            ),
         ["form_title_snapshot", "category_title_snapshot", "source_reference"],
         pattern,
         8,
@@ -437,7 +391,7 @@ serve(async (req) => {
       ),
 
       (async () => {
-        const memberships = await admin
+        const memberships = await userClient
           .from("social_conversation_members")
           .select("conversation_id")
           .eq("user_id", actor.id)
@@ -446,7 +400,7 @@ serve(async (req) => {
 
         return searchColumns(
           () =>
-            admin
+            userClient
               .from("social_messages")
               .select("id,conversation_id,sender_id,body,created_at")
               .in("conversation_id", conversationIds)
@@ -459,17 +413,12 @@ serve(async (req) => {
       })(),
     ])
 
-    // Note: intakeWorkstations values come from our own DB (workstation
-    // names in workspace_workstation_assignments), never from the
-    // request, so building that .or(...) string directly is safe - this
-    // is the one .or() left in the file, deliberately, for that reason.
-
     // Chat results need sender names resolved separately (social_messages
     // only has sender_id) - one extra lookup, only for the senders that
-    // actually showed up in results.
+    // actually showed up in results. The same caller RLS applies here.
     const senderIds = [...new Set((chat as Row[]).map((row) => String(row.sender_id)))]
     const senders = senderIds.length
-      ? await admin.from("employee_profiles").select("id,full_name").in("id", senderIds)
+      ? await userClient.from("employee_profiles").select("id,full_name").in("id", senderIds)
       : { data: [] as { id: string; full_name: string }[] }
     const senderNames = new Map((senders.data || []).map((row) => [row.id, row.full_name]))
 

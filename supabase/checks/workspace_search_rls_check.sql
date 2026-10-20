@@ -8,7 +8,10 @@ with searched(tbl) as (
     ('workspace_announcements'),('workspace_events'),('collaboration_spaces'),
     ('brand_assets'),('crm_accounts'),('crm_contacts'),
     ('legal_statutes_regulations'),('legal_research_opinions'),
-    ('legal_contracts'),('workspace_rooms')
+    ('legal_contracts'),('workspace_rooms'),
+    ('employee_profiles'),('support_cases'),('incidents'),('hr_requests'),
+    ('leave_requests'),('intake_submissions'),('social_conversation_members'),
+    ('social_messages')
 )
 select s.tbl as table_name,
        case
