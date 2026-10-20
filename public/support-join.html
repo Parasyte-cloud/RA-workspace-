@@ -57,8 +57,8 @@
       <div id="join-ready">
         <div class="supportJoinCardHeader">
           <span class="supportJoinEyebrow">INVITATION ACTIVATION</span>
-          <h2>Create your Support access</h2>
-          <p>Use the exact email address and one-time code from your invitation.</p>
+          <h2>Verify your Support invitation</h2>
+          <p>Use the exact email address and one-time code from your invitation. If you are new to RideArrivo, you will create a password after verification.</p>
         </div>
 
         <form id="join-form" novalidate>
@@ -68,16 +68,18 @@
           <label for="join-code">One-time code</label>
           <input id="join-code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required />
 
-          <label for="join-password">Choose a password</label>
-          <input id="join-password" name="password" type="password" autocomplete="new-password" minlength="10" required />
-          <small class="supportJoinHint">Use at least 10 characters. Avoid using your email address in the password.</small>
+          <div id="join-password-stage" hidden>
+            <label for="join-password">Choose a password</label>
+            <input id="join-password" name="password" type="password" autocomplete="new-password" minlength="10" />
+            <small class="supportJoinHint">Use at least 10 characters. Avoid using your email address in the password.</small>
 
-          <label for="join-confirm">Repeat the password</label>
-          <input id="join-confirm" name="confirm" type="password" autocomplete="new-password" minlength="10" required />
+            <label for="join-confirm">Repeat the password</label>
+            <input id="join-confirm" name="confirm" type="password" autocomplete="new-password" minlength="10" />
+          </div>
 
           <div id="join-message" class="supportJoinMessage" role="alert" aria-live="assertive" hidden></div>
 
-          <button id="join-submit" class="supportJoinPrimary" type="submit">Create my access</button>
+          <button id="join-submit" class="supportJoinPrimary" type="submit">Verify invitation</button>
         </form>
 
         <button id="join-signin" class="supportJoinSecondary" type="button">Already activated? Sign in</button>
@@ -97,6 +99,7 @@
 (function () {
   var base = (document.querySelector('meta[name="support-functions-url"]') || {}).content || ''
   var $ = function (id) { return document.getElementById(id) }
+  var passwordStage = false
   var params = new URLSearchParams(location.search)
   var emailParam = params.get('email')
   var codeParam = params.get('code')
@@ -120,14 +123,27 @@
   function setSubmitting(value) {
     var button = $('join-submit')
     button.disabled = value
-    button.textContent = value ? 'Creating access…' : 'Create my access'
+    if (value) button.textContent = passwordStage ? 'Creating access…' : 'Verifying invitation…'
+    else button.textContent = passwordStage ? 'Create my access' : 'Verify invitation'
+  }
+
+  function showPasswordStage(body) {
+    passwordStage = true
+    $('join-password-stage').hidden = false
+    $('join-email').readOnly = true
+    $('join-code').readOnly = true
+    $('join-submit').textContent = 'Create my access'
+    if (body && body.name) {
+      showMessage('Invitation verified for ' + body.name + '. Create a password to finish setting up Support access.')
+    }
+    $('join-password').focus()
   }
 
   function showSuccess(body) {
     $('join-ready').hidden = true
     $('join-success').hidden = false
     $('join-success-text').textContent = body.existingAccount
-      ? 'Support access has been added to your existing account. You can now sign in with your current password.'
+      ? 'Support access has been added to your existing account. Sign in with your existing password.'
       : 'Welcome' + (body.name ? ', ' + body.name.split(' ')[0] : '') + '. Your Support account is ready to use.'
   }
 
@@ -147,21 +163,27 @@
       showMessage('Enter your email address and the one-time code from your invitation.')
       return
     }
-    if (password.length < 10) {
-      showMessage('Use at least 10 characters for your password.')
-      return
-    }
-    if (password !== $('join-confirm').value) {
-      showMessage('The two passwords do not match.')
-      return
+    if (passwordStage) {
+      if (password.length < 10) {
+        showMessage('Use at least 10 characters for your password.')
+        return
+      }
+      if (password !== $('join-confirm').value) {
+        showMessage('The two passwords do not match.')
+        return
+      }
     }
 
     setSubmitting(true)
 
+    var payload = passwordStage
+      ? JSON.stringify({ action: 'redeem', email: email, code: code, password: password })
+      : JSON.stringify({ action: 'redeem', email: email, code: code })
+
     fetch(base.replace(/\/+$/, '') + '/support-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'redeem', email: email, code: code, password: password })
+      body: payload
     })
       .then(function (response) {
         return response.json().catch(function () { return {} }).then(function (body) {
@@ -171,6 +193,10 @@
       .then(function (result) {
         if (!result.ok || result.body.error) {
           showMessage(result.body.error || 'Something went wrong. Check your invitation details and try again.')
+          return
+        }
+        if (!passwordStage && result.body.needsPassword) {
+          showPasswordStage(result.body)
           return
         }
         showSuccess(result.body)
@@ -186,6 +212,7 @@
   $('join-signin').addEventListener('click', function () { location.href = '/' })
   $('join-continue').addEventListener('click', function () { location.href = '/' })
   $('join-message').hidden = true
+  $('join-password-stage').hidden = true
   $('join-ready').hidden = false
   $('join-success').hidden = true
 })()
