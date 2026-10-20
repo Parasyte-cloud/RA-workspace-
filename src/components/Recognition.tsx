@@ -8,9 +8,6 @@ import { RIBBONS, ribbonStyle } from '../lib/workReactions'
 import type { RibbonKind } from '../lib/workReactions'
 import { flameTier, initialsOf, lagosWeekRange, ribbonCountLine, weekLabel } from '../lib/recognition'
 import { WorkCelebration } from './RibbonCelebration'
-import { DepartmentAchievementCeremony } from './DepartmentAchievementCeremony'
-import PremiumCelebrationStage from './PremiumCelebrationStage'
-import type { DepartmentAchievement } from './DepartmentAchievementCeremony'
 import type { RibbonBudget } from './WorkReactions'
 import '../work-reactions.css'
 import '../recognition.css'
@@ -464,49 +461,27 @@ type Moment = {
   done: () => void
 }
 
-type MajorRecognitionAward = {
-  id: string
-  employee_id: string
-  award_month: string
-  performance_month: string
-  badge_code: string
-  badge_label: string
-  score: number | string
-  awarded_at: string
-}
-
-function recognitionMonthLabel(value: string) {
-  const date = new Date(`${value}T00:00:00Z`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })
-}
-
 const CHAMP_SEEN = 'ra-champion-celebrated'
 
 export function RecognitionHost() {
   const [signedIn, setSignedIn] = useState(false)
   const [queue, setQueue] = useState<Moment[]>([])
-  const [achievementQueue, setAchievementQueue] = useState<DepartmentAchievement[]>([])
-  const [majorAward, setMajorAward] = useState<MajorRecognitionAward | null>(null)
   const { champion, photo } = useChampion()
   const queued = useRef<Set<string>>(new Set())
-  const achievementQueued = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!maybeSupabase) return
     let live = true
     void supabase.auth.getSession().then(({ data }) => { if (live) setSignedIn(Boolean(data.session)) })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)))
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session))
+      if (!session) {
+        setQueue([])
+        queued.current.clear()
+      }
+    })
     return () => { live = false; sub.subscription.unsubscribe() }
   }, [])
-
-  useEffect(() => {
-    if (signedIn) return
-    setAchievementQueue([])
-    setMajorAward(null)
-    achievementQueued.current.clear()
-  }, [signedIn])
 
   const push = useCallback((moment: Moment) => {
     if (queued.current.has(moment.key)) return
@@ -516,7 +491,8 @@ export function RecognitionHost() {
     setQueue(list => [...list, { ...moment, done: once }])
   }, [])
 
-  // Celebrate each new Golden of the Week once per device.
+  // Golden of the Week remains a lightweight ribbon celebration. Durable
+  // department and major-award ceremonies are owned by RecognitionCeremonyHost.
   useEffect(() => {
     if (!signedIn || !champion) return
     let seen = ''
@@ -536,58 +512,7 @@ export function RecognitionHost() {
     })
   }, [signedIn, champion, photo, push])
 
-  // Monthly KPI / major personal awards are claimed before display. The RPC
-  // inserts durable seen-state atomically, so refreshes and parallel tabs do not replay it.
-  const loadMajorAward = useCallback(async () => {
-    if (!maybeSupabase) return
-    const { data, error } = await supabase.rpc('unseen_major_recognition_award')
-    if (error) return
-    const row = ((data || []) as MajorRecognitionAward[])[0]
-    if (row) setMajorAward(row)
-  }, [])
-
-  useEffect(() => {
-    if (!signedIn || !maybeSupabase) return
-    void loadMajorAward()
-  }, [signedIn, loadMajorAward])
-
-  // Department achievements are separate from personal ribbon recognition.
-  // unseen_department_achievements atomically claims one authorised achievement
-  // before returning it, so refreshes and parallel tabs cannot replay a ceremony.
-  // Realtime INSERT payloads are only a refresh signal.
-  const loadDepartmentAchievements = useCallback(async () => {
-    if (!maybeSupabase) return
-    const { data, error } = await supabase.rpc('unseen_department_achievements')
-    if (error) return
-    const rows = (data || []) as DepartmentAchievement[]
-    setAchievementQueue(current => {
-      const next = [...current]
-      for (const row of rows) {
-        if (achievementQueued.current.has(row.id)) continue
-        achievementQueued.current.add(row.id)
-        next.push(row)
-      }
-      return next
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!signedIn || !maybeSupabase) return
-    void loadDepartmentAchievements()
-    let timer: number | null = null
-    const channel = supabase
-      .channel(`department-achievements-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_achievements' }, () => {
-        if (timer) window.clearTimeout(timer)
-        timer = window.setTimeout(() => { void loadDepartmentAchievements() }, 500)
-      })
-      .subscribe()
-    return () => { if (timer) window.clearTimeout(timer); void supabase.removeChannel(channel) }
-  }, [signedIn, loadDepartmentAchievements])
-
   const current = queue[0] || null
-  const currentAchievement = achievementQueue[0] || null
-
   const close = useCallback(() => {
     setQueue(list => {
       list[0]?.done()
@@ -595,55 +520,16 @@ export function RecognitionHost() {
     })
   }, [])
 
-  const closeAchievement = useCallback(() => {
-    setAchievementQueue(list => list.slice(1))
-    void loadDepartmentAchievements()
-  }, [loadDepartmentAchievements])
-
-  const closeMajorAward = useCallback(() => {
-    setMajorAward(null)
-    void loadMajorAward()
-  }, [loadMajorAward])
-
-  if (current) {
-    return (
-      <WorkCelebration
-        ribbon={{ id: current.key, kind: current.kind, message: '' }}
-        giverName={current.line}
-        kicker={current.kicker}
-        title={current.title}
-        photoUrl={current.photo}
-        holdMs={7000}
-        onClose={close}
-      />
-    )
-  }
-
-  if (majorAward) {
-    return (
-      <PremiumCelebrationStage
-        open
-        intensity="major"
-        kicker="Monthly KPI achievement"
-        title={majorAward.badge_label}
-        message={`Outstanding performance for ${recognitionMonthLabel(majorAward.performance_month)}.`}
-        detail={`Score ${majorAward.score}`}
-        icon={<Award size={88} strokeWidth={1.5} />}
-        introMs={1600}
-        holdMs={7000}
-        onClose={closeMajorAward}
-      />
-    )
-  }
-
-  if (currentAchievement) {
-    return (
-      <DepartmentAchievementCeremony
-        achievement={currentAchievement}
-        onClose={closeAchievement}
-      />
-    )
-  }
-
-  return null
+  if (!current) return null
+  return (
+    <WorkCelebration
+      ribbon={{ id: current.key, kind: current.kind, message: '' }}
+      giverName={current.line}
+      kicker={current.kicker}
+      title={current.title}
+      photoUrl={current.photo}
+      holdMs={7000}
+      onClose={close}
+    />
+  )
 }

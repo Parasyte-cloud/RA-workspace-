@@ -24,10 +24,14 @@ test('premium stage owns intro and hold timing plus Escape and backdrop dismissa
   assert.match(component, /introMs:\s*number/)
   assert.match(component, /holdMs:\s*number/)
   assert.match(component, /setTimeout\(\(\) => setRevealed\(true\),\s*introMs\)/)
-  assert.match(component, /setTimeout\(onClose,\s*holdMs\)/)
+  assert.match(component, /setTimeout\(\(\) => onCloseRef\.current\(\),\s*holdMs\)/)
   assert.match(component, /event\.key\s*===\s*'Escape'/)
   assert.match(component, /event\.currentTarget\s*===\s*event\.target/)
   assert.match(component, /role="alertdialog"/)
+  assert.match(component, /previousFocus/)
+  assert.match(component, /closeButton/)
+  assert.match(component, /event\.key\s*===\s*'Tab'/)
+  assert.match(component, /previousFocus\.current\?\.focus\(\)/)
 })
 
 test('premium stage provides full reduced-motion content and no audio autoplay path', () => {
@@ -39,8 +43,11 @@ test('premium stage provides full reduced-motion content and no audio autoplay p
   assert.doesNotMatch(component, /<audio|Audio\(|\.play\(\)|autoplay|autoPlay/i)
 })
 
-test('premium stage accepts domain-specific body content without owning persistence', () => {
+test('premium stage reports a successful mount and accepts domain-specific content without owning persistence', () => {
   const component = source(componentPath)
+  assert.match(component, /onPresented\?:\s*\(\) => void/)
+  assert.match(component, /requestAnimationFrame/)
+  assert.match(component, /presentationReported/)
   assert.match(component, /children\?:\s*ReactNode/)
   assert.match(component, /\{children\}/)
 })

@@ -56,6 +56,7 @@ import Room7AiMeetingRecord from '../room7-ai/Room7AiMeetingRecord'
 import Room7AiRecordsList from '../room7-ai/Room7AiRecordsList'
 import { prefetchWhenIdle } from '../lib/prefetch'
 import type { RemovedPerson, Room7Moderation } from '../room7-shared/Room7PeoplePanel'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 
 type RoomStatus='active'|'ended'
 
@@ -145,6 +146,7 @@ export default function RoomModule({
   const [joinCode,setJoinCode]=useState(initialCode)
   const [aiNotesEnabled,setAiNotesEnabled]=useState(true)
   const [session,setSession]=useState<RoomSession|null>(null)
+  useCelebrationBlocker('room7', Boolean(session))
   const [configState,setConfigState]=useState<ConfigurationState>('checking')
   const [loading,setLoading]=useState(true)
   const [creating,setCreating]=useState(false)

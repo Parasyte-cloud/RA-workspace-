@@ -3,32 +3,32 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 const read = p => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
-const migration = read('supabase/migrations/20261020250000_department_achievement_claim_once.sql')
-const recognition = read('src/components/Recognition.tsx')
-const ceremony = read('src/components/DepartmentAchievementCeremony.tsx')
+const legacyMigration = read('supabase/migrations/20261020250000_department_achievement_claim_once.sql')
+const deliveryMigration = read('supabase/migrations/20261020310000_recognition_ceremony_delivery.sql')
+const api = read('src/celebrations/api.ts')
+const queue = read('src/celebrations/useRecognitionCeremonyQueue.ts')
+const scene = read('src/components/celebrations/DepartmentTrophyScene.tsx')
 
 function match(text, rx, message) { assert.match(text, rx, message) }
 
-test('unseen achievement RPC atomically claims exactly one achievement before returning it', () => {
-  match(migration, /create or replace function public\.unseen_department_achievements\(\)/i, 'claiming unseen RPC replacement missing')
-  match(migration, /insert into public\.department_achievement_seen/i, 'RPC must persist the claim before returning')
-  match(migration, /on conflict do nothing/i, 'claim must be idempotent across refreshes and tabs')
-  match(migration, /returning\s+achievement_id/i, 'RPC must return only successfully claimed achievements')
-  match(migration, /limit\s+1/i, 'claim RPC must reserve one ceremony at a time')
-  match(migration, /join\s+claimed/i, 'RPC must return only the row claimed by this call')
+test('legacy unseen RPC remains historically atomic while new clients use durable delivery', () => {
+  match(legacyMigration, /insert into public\.department_achievement_seen/i, 'legacy atomic claim evidence missing')
+  match(legacyMigration, /on conflict do nothing/i, 'legacy claim must remain idempotent')
+  match(deliveryMigration, /materialize_department_achievement_deliveries/i, 'durable recipient materializer missing')
+  match(deliveryMigration, /revoke execute on function public\.unseen_department_achievements\(\) from authenticated/i, 'legacy browser claim must be retired')
 })
 
-test('frontend never waits until ceremony close to mark the achievement seen', () => {
-  match(recognition, /unseen_department_achievements/, 'achievement claim RPC missing')
-  assert.doesNotMatch(recognition, /mark_department_achievements_seen[\s\S]{0,260}closing\.id/, 'close handler must not be responsible for persistence')
-  match(recognition, /setAchievementQueue\(list => list\.slice\(1\)\)/, 'close must only remove the displayed ceremony')
-  match(recognition, /void loadDepartmentAchievements\(\)/, 'closing should ask for the next one-time achievement')
+test('frontend claims delivery before display and close never persists legacy seen state', () => {
+  match(api, /claim_next_recognition_ceremony/, 'central claim RPC missing')
+  match(api, /mark_recognition_ceremony_dismissed/, 'central dismissal RPC missing')
+  assert.doesNotMatch(api + queue, /mark_department_achievements_seen|unseen_department_achievements/, 'legacy department seen RPCs must not be used')
+  match(queue, /setCurrent\(null\)/, 'dismissal must clear only the active presentation')
 })
 
-test('one-time ceremony delegates to the premium stage with the approved trophy timing', () => {
-  match(ceremony, /PremiumCelebrationStage/, 'shared premium stage missing')
-  match(ceremony, /intensity="trophy"/, 'trophy intensity missing')
-  match(ceremony, /introMs=\{1600\}/, 'trophy intro must be 1600ms')
-  match(ceremony, /holdMs=\{7000\}/, 'trophy hold must be 7000ms')
-  match(ceremony, /Added to your department trophy cabinet/i, 'permanent shelf message missing')
+test('one-time department scene delegates to the premium stage with approved trophy timing', () => {
+  match(scene, /PremiumCelebrationStage/, 'shared premium stage missing')
+  match(scene, /intensity="trophy"/, 'trophy intensity missing')
+  match(scene, /introMs=\{1600\}/, 'trophy intro must be 1600ms')
+  match(scene, /holdMs=\{7000\}/, 'trophy hold must be 7000ms')
+  match(scene, /Added to your department trophy cabinet/i, 'permanent shelf message missing')
 })

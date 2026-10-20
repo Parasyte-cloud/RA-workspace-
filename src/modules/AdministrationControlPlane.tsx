@@ -42,6 +42,7 @@ import Room7MinutesPanel from './Room7MinutesPanel'
 import AdminKnowledgeAi from './AdminKnowledgeAi'
 import SupportOfficerAdminPanel from './SupportOfficerAdminPanel'
 import AdminDataAllocation from './AdminDataAllocation'
+import RecognitionCelebrationsAdmin from './RecognitionCelebrationsAdmin'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
@@ -65,6 +66,7 @@ type AdminTab=
   | 'support-routing'
   | 'data'
   | 'ai-knowledge'
+  | 'recognition-celebrations'
 
 type AuthUser={
   id:string
@@ -171,6 +173,7 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['access','Access',KeyRound],
   ['workstations','Workstations',Workflow],
   ['performance','Performance',BarChart3],
+  ['recognition-celebrations','Recognition & Celebrations',Award],
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
   ['letterhead','Letterhead',FileText],
@@ -570,6 +573,7 @@ export default function AdministrationControlPlane(){
       {tab==='access'&&<AdminAccessManager/>}
       {tab==='workstations'&&<WorkstationAssignmentManager/>}
       {tab==='performance'&&<KpiManagementPanel/>}
+      {tab==='recognition-celebrations'&&<RecognitionCelebrationsAdmin/>}
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='letterhead'&&<AdminLetterheadAccess/>}
