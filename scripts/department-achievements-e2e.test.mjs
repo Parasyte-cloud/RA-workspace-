@@ -167,9 +167,19 @@ test('department trophies are isolated, cross-department, per-user seen, and tra
     const bravoSeenByAlpha = await must('seen audit bravo', f.service.from('department_achievement_seen').select('*').eq('achievement_id', bravoId).eq('user_id', alpha.id))
     assert.equal(bravoSeenByAlpha.length, 0)
 
-    await must('alpha marks own', alphaClient.rpc('mark_department_achievements_seen', { p_ids: [alphaId] }))
+    const [alphaClaimA, alphaClaimB] = await Promise.all([
+      must('alpha claim tab A', alphaClient.rpc('unseen_department_achievements')),
+      must('alpha claim tab B', alphaClient.rpc('unseen_department_achievements')),
+    ])
+    const claimed = [...alphaClaimA, ...alphaClaimB]
+    assert.equal(claimed.length, 1, 'parallel tabs must only receive the achievement once')
+    assert.equal(claimed[0].id, alphaId)
+
     const alphaSeen = await must('seen audit alpha', f.service.from('department_achievement_seen').select('*').eq('achievement_id', alphaId).eq('user_id', alpha.id))
-    assert.equal(alphaSeen.length, 1)
+    assert.equal(alphaSeen.length, 1, 'claim must persist before the ceremony is rendered')
+
+    const alphaAgain = await must('alpha refresh claim', alphaClient.rpc('unseen_department_achievements'))
+    assert.equal(alphaAgain.length, 0, 'refresh must not replay a claimed ceremony')
 
     const alphaPersistent = await must('alpha persistent history', alphaClient.rpc('department_achievement_history', { p_department: f.deptA }))
     assert.equal(alphaPersistent.length, 1, 'acknowledgement must not hide persistent trophy')

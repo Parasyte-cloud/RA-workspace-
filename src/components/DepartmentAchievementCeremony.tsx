@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Sparkles, Trophy, X } from 'lucide-react'
+import { Award, Sparkles, Trophy, X } from 'lucide-react'
 import '../department-achievements.css'
 
 export type DepartmentAchievement = {
@@ -19,6 +19,9 @@ type Props = {
   holdMs?: number
 }
 
+type CeremonyPhase = 'ribbon' | 'trophy'
+const RIBBON_POP_MS = 950
+
 function displayDepartment(value: string) {
   return value
     .trim()
@@ -33,6 +36,7 @@ export function DepartmentAchievementCeremony({
   holdMs = 4500,
 }: Props) {
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [phase, setPhase] = useState<CeremonyPhase>('ribbon')
 
   useEffect(() => {
     const media = window.matchMedia?.('(prefers-reduced-motion: reduce)')
@@ -41,6 +45,13 @@ export function DepartmentAchievementCeremony({
     media?.addEventListener?.('change', sync)
     return () => media?.removeEventListener?.('change', sync)
   }, [])
+
+  useEffect(() => {
+    setPhase(reducedMotion ? 'trophy' : 'ribbon')
+    if (reducedMotion) return
+    const ribbonTimer = window.setTimeout(() => setPhase('trophy'), RIBBON_POP_MS)
+    return () => window.clearTimeout(ribbonTimer)
+  }, [achievement.id, reducedMotion])
 
   useEffect(() => {
     const timer = window.setTimeout(onClose, holdMs)
@@ -52,7 +63,7 @@ export function DepartmentAchievementCeremony({
       window.clearTimeout(timer)
       window.removeEventListener('keydown', keydown)
     }
-  }, [holdMs, onClose])
+  }, [achievement.id, holdMs, onClose])
 
   return (
     <div
@@ -64,7 +75,7 @@ export function DepartmentAchievementCeremony({
         if (event.currentTarget === event.target) onClose()
       }}
     >
-      <section className="departmentAchievementStage">
+      <section className={`departmentAchievementStage ${phase}`}>
         <button
           type="button"
           className="departmentAchievementClose"
@@ -74,28 +85,43 @@ export function DepartmentAchievementCeremony({
           <X size={18} />
         </button>
 
-        <div className="departmentAchievementAura" aria-hidden="true" />
-        <div className="departmentAchievementParticles" aria-hidden="true">
-          <i /><i /><i /><i /><i /><i />
-        </div>
+        {phase === 'ribbon' ? (
+          <div className="departmentAchievementRibbonPop" aria-live="polite">
+            <div className="departmentAchievementRibbonBurst" aria-hidden="true">
+              <i /><i /><i /><i /><i /><i /><i /><i />
+            </div>
+            <div className="departmentAchievementRibbonMedal" aria-hidden="true">
+              <Award size={70} strokeWidth={1.55} />
+            </div>
+            <span>Department achievement</span>
+            <strong>{achievement.title}</strong>
+          </div>
+        ) : (
+          <>
+            <div className="departmentAchievementAura" aria-hidden="true" />
+            <div className="departmentAchievementParticles" aria-hidden="true">
+              <i /><i /><i /><i /><i /><i />
+            </div>
 
-        <div className="departmentAchievementTrophy" aria-hidden="true">
-          <span className="departmentAchievementHalo"><Sparkles size={22} /></span>
-          <Trophy size={92} strokeWidth={1.45} />
-          <span className="departmentAchievementPedestal" />
-        </div>
+            <div className="departmentAchievementTrophy" aria-hidden="true">
+              <span className="departmentAchievementHalo"><Sparkles size={22} /></span>
+              <Trophy size={92} strokeWidth={1.45} />
+              <span className="departmentAchievementPedestal" />
+            </div>
 
-        <div className="departmentAchievementCopy">
-          <span className="departmentAchievementTier">{achievement.tier.toUpperCase()} ACHIEVEMENT</span>
-          <span className="departmentAchievementDepartment">{displayDepartment(achievement.department)}</span>
-          <h2>{achievement.title}</h2>
-          <p>{achievement.description}</p>
-          <strong>Added to your department trophy cabinet</strong>
-        </div>
+            <div className="departmentAchievementCopy">
+              <span className="departmentAchievementTier">{achievement.tier.toUpperCase()} ACHIEVEMENT</span>
+              <span className="departmentAchievementDepartment">{displayDepartment(achievement.department)}</span>
+              <h2>{achievement.title}</h2>
+              <p>{achievement.description}</p>
+              <strong>Added to your department trophy cabinet</strong>
+            </div>
 
-        <button type="button" className="departmentAchievementDone" onClick={onClose}>
-          View the dashboard
-        </button>
+            <button type="button" className="departmentAchievementDone" onClick={onClose}>
+              View the dashboard
+            </button>
+          </>
+        )}
       </section>
     </div>
   )
