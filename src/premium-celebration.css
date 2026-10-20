@@ -1,0 +1,30 @@
+.premiumCelebrationOverlay{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;overflow:hidden;padding:24px;background:radial-gradient(circle at 50% 35%,rgba(23,35,64,.32),rgba(3,7,18,.9) 72%);backdrop-filter:blur(14px);isolation:isolate}
+.premiumCelebrationGlow{position:absolute;inset:-25%;background:radial-gradient(circle,rgba(255,170,45,.34),transparent 54%);filter:blur(12px);animation:premiumGlow 2.6s ease-in-out infinite alternate;z-index:-2}
+.premiumCelebrationRibbons{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
+.premiumCelebrationPiece{position:absolute;top:-15vh;border-radius:3px;opacity:.96;animation:premiumFall linear infinite;transform-origin:center;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.premiumCelebrationPiece.layer0{filter:blur(.2px)}
+.premiumCelebrationPiece.layer1{opacity:.8;transform:scale(.82)}
+.premiumCelebrationPiece.layer2{opacity:.66;filter:blur(.7px);transform:scale(.62)}
+.premiumCelebrationStreamer{position:absolute;width:48vw;height:22px;border:5px solid rgba(255,159,28,.92);border-left-color:transparent;border-right-color:transparent;border-radius:50%;opacity:.88;animation:premiumSweep 1.55s cubic-bezier(.16,.8,.25,1) both}
+.streamerA{left:-28vw;top:14%;transform:rotate(18deg);border-color:rgba(255,159,28,.9) transparent}
+.streamerB{right:-28vw;top:26%;transform:rotate(-16deg);border-color:rgba(236,72,153,.86) transparent;animation-delay:.08s}
+.streamerC{left:-24vw;bottom:23%;transform:rotate(-13deg);border-color:rgba(59,130,246,.86) transparent;animation-delay:.16s}
+.streamerD{right:-24vw;bottom:14%;transform:rotate(20deg);border-color:rgba(255,209,102,.9) transparent;animation-delay:.22s}
+.premiumCelebrationCard{position:relative;width:min(650px,calc(100vw - 40px));max-height:min(82vh,760px);overflow:auto;text-align:center;padding:46px 34px 32px;border:1px solid rgba(255,255,255,.24);border-radius:32px;background:linear-gradient(160deg,rgba(14,24,45,.94),rgba(7,12,25,.9));box-shadow:0 34px 100px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.16);color:#f8fafc;opacity:0;transform:translateY(28px) scale(.92);transition:opacity .55s ease,transform .68s cubic-bezier(.18,.85,.22,1)}
+.isRevealed .premiumCelebrationCard{opacity:1;transform:translateY(0) scale(1)}
+.premiumCelebration-birthday .premiumCelebrationCard{box-shadow:0 34px 110px rgba(181,77,139,.26),0 34px 100px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.18)}
+.premiumCelebration-trophy .premiumCelebrationCard{box-shadow:0 34px 110px rgba(255,159,28,.22),0 34px 100px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.18)}
+.premiumCelebrationClose{position:absolute;right:18px;top:18px;width:38px;height:38px;border:1px solid rgba(255,255,255,.18);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+.premiumCelebrationIcon{width:132px;height:132px;margin:0 auto 24px;border-radius:38px;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,rgba(255,224,142,.42),rgba(255,159,28,.12) 48%,rgba(255,255,255,.04));box-shadow:0 20px 55px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.24);color:#ffb347}
+.premiumCelebrationIcon svg{width:84px;height:84px}
+.premiumCelebrationIcon img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.premiumCelebrationKicker{display:block;font-size:.72rem;font-weight:850;letter-spacing:.2em;text-transform:uppercase;color:#ffb347;margin-bottom:10px}
+.premiumCelebrationCard h2{font-size:clamp(2rem,6vw,3.7rem);line-height:1.02;letter-spacing:-.045em;margin:0 auto 14px;max-width:570px}
+.premiumCelebrationMessage{font-size:clamp(1rem,2vw,1.16rem);line-height:1.6;color:rgba(241,245,249,.82);max-width:540px;margin:0 auto 16px}
+.premiumCelebrationDetail{display:block;color:#ffd28a;font-size:.95rem;margin:0 auto 18px}.premiumCelebrationBody{margin:0 auto 22px;max-width:540px;text-align:left}
+.premiumCelebrationDone{border:0;border-radius:999px;padding:12px 22px;font-weight:800;background:linear-gradient(135deg,#ff9f1c,#ffc15c);color:#17100a;cursor:pointer;box-shadow:0 12px 32px rgba(255,159,28,.22)}
+@keyframes premiumFall{0%{transform:translate3d(0,-8vh,0) rotate(0deg)}100%{transform:translate3d(var(--celebration-drift),125vh,0) rotate(var(--celebration-spin))}}
+@keyframes premiumSweep{0%{opacity:0;translate:0 -5vh;scale:.65}42%{opacity:1}100%{opacity:.82;translate:35vw 42vh;scale:1.15}}
+@keyframes premiumGlow{from{opacity:.65;transform:scale(.92)}to{opacity:1;transform:scale(1.08)}}
+@media (max-width:640px){.premiumCelebrationOverlay{padding:14px}.premiumCelebrationCard{padding:42px 20px 28px;border-radius:25px}.premiumCelebrationIcon{width:110px;height:110px;border-radius:30px}.premiumCelebrationCard h2{font-size:2.25rem}}
+@media (prefers-reduced-motion: reduce){.premiumCelebrationGlow,.premiumCelebrationRibbons{display:none}.premiumCelebrationCard{opacity:1;transform:none;transition:none}.premiumCelebrationOverlay{backdrop-filter:none}}

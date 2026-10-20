@@ -9,6 +9,7 @@ import type { RibbonKind } from '../lib/workReactions'
 import { flameTier, initialsOf, lagosWeekRange, ribbonCountLine, weekLabel } from '../lib/recognition'
 import { WorkCelebration } from './RibbonCelebration'
 import { DepartmentAchievementCeremony } from './DepartmentAchievementCeremony'
+import PremiumCelebrationStage from './PremiumCelebrationStage'
 import type { DepartmentAchievement } from './DepartmentAchievementCeremony'
 import type { RibbonBudget } from './WorkReactions'
 import '../work-reactions.css'
@@ -463,12 +464,31 @@ type Moment = {
   done: () => void
 }
 
+type MajorRecognitionAward = {
+  id: string
+  employee_id: string
+  award_month: string
+  performance_month: string
+  badge_code: string
+  badge_label: string
+  score: number | string
+  awarded_at: string
+}
+
+function recognitionMonthLabel(value: string) {
+  const date = new Date(`${value}T00:00:00Z`)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
 const CHAMP_SEEN = 'ra-champion-celebrated'
 
 export function RecognitionHost() {
   const [signedIn, setSignedIn] = useState(false)
   const [queue, setQueue] = useState<Moment[]>([])
   const [achievementQueue, setAchievementQueue] = useState<DepartmentAchievement[]>([])
+  const [majorAward, setMajorAward] = useState<MajorRecognitionAward | null>(null)
   const { champion, photo } = useChampion()
   const queued = useRef<Set<string>>(new Set())
   const achievementQueued = useRef<Set<string>>(new Set())
@@ -484,6 +504,7 @@ export function RecognitionHost() {
   useEffect(() => {
     if (signedIn) return
     setAchievementQueue([])
+    setMajorAward(null)
     achievementQueued.current.clear()
   }, [signedIn])
 
@@ -514,6 +535,21 @@ export function RecognitionHost() {
       })
     })
   }, [signedIn, champion, photo, push])
+
+  // Monthly KPI / major personal awards are claimed before display. The RPC
+  // inserts durable seen-state atomically, so refreshes and parallel tabs do not replay it.
+  const loadMajorAward = useCallback(async () => {
+    if (!maybeSupabase) return
+    const { data, error } = await supabase.rpc('unseen_major_recognition_award')
+    if (error) return
+    const row = ((data || []) as MajorRecognitionAward[])[0]
+    if (row) setMajorAward(row)
+  }, [])
+
+  useEffect(() => {
+    if (!signedIn || !maybeSupabase) return
+    void loadMajorAward()
+  }, [signedIn, loadMajorAward])
 
   // Department achievements are separate from personal ribbon recognition.
   // unseen_department_achievements atomically claims one authorised achievement
@@ -564,6 +600,11 @@ export function RecognitionHost() {
     void loadDepartmentAchievements()
   }, [loadDepartmentAchievements])
 
+  const closeMajorAward = useCallback(() => {
+    setMajorAward(null)
+    void loadMajorAward()
+  }, [loadMajorAward])
+
   if (current) {
     return (
       <WorkCelebration
@@ -574,6 +615,23 @@ export function RecognitionHost() {
         photoUrl={current.photo}
         holdMs={7000}
         onClose={close}
+      />
+    )
+  }
+
+  if (majorAward) {
+    return (
+      <PremiumCelebrationStage
+        open
+        intensity="major"
+        kicker="Monthly KPI achievement"
+        title={majorAward.badge_label}
+        message={`Outstanding performance for ${recognitionMonthLabel(majorAward.performance_month)}.`}
+        detail={`Score ${majorAward.score}`}
+        icon={<Award size={88} strokeWidth={1.5} />}
+        introMs={1600}
+        holdMs={7000}
+        onClose={closeMajorAward}
       />
     )
   }

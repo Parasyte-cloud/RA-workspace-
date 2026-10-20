@@ -25,10 +25,10 @@ test('frontend never waits until ceremony close to mark the achievement seen', (
   match(recognition, /void loadDepartmentAchievements\(\)/, 'closing should ask for the next one-time achievement')
 })
 
-test('one-time ceremony gives a short ribbon pop before the trophy reveal', () => {
-  match(ceremony, /'ribbon'\s*\|\s*'trophy'/, 'ceremony phase type missing')
-  match(ceremony, /departmentAchievementRibbonPop/, 'ribbon pop visual missing')
-  match(ceremony, /setPhase\('trophy'\)/, 'ribbon must transition to trophy')
-  match(ceremony, /RIBBON_POP_MS\s*=\s*950/, 'ribbon pop should be short')
+test('one-time ceremony delegates to the premium stage with the approved trophy timing', () => {
+  match(ceremony, /PremiumCelebrationStage/, 'shared premium stage missing')
+  match(ceremony, /intensity="trophy"/, 'trophy intensity missing')
+  match(ceremony, /introMs=\{1600\}/, 'trophy intro must be 1600ms')
+  match(ceremony, /holdMs=\{7000\}/, 'trophy hold must be 7000ms')
   match(ceremony, /Added to your department trophy cabinet/i, 'permanent shelf message missing')
 })
