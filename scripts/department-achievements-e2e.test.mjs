@@ -98,7 +98,7 @@ async function fixture() {
   return { service, deptA, deptB, identity, login, cleanup, tag }
 }
 
-test('department trophies are isolated, cross-department, per-user seen, and transfer-aware', async () => {
+test('department trophies are isolated, cross-department, durably delivered, and transfer-aware', async () => {
   const f = await fixture()
   try {
     const admin = await f.identity('admin', { department: f.deptA, role: 'admin' })
@@ -144,49 +144,61 @@ test('department trophies are isolated, cross-department, per-user seen, and tra
     const adminClient = await f.login(admin)
     const inactiveClient = await f.login(inactive)
 
-    const alphaHistory = await must('alpha history', alphaClient.rpc('department_achievement_history', { p_department: f.deptA }))
+    const alphaHistory = await must('alpha history', alphaClient.rpc('list_department_trophy_history', { p_department: f.deptA, p_limit: 50 }))
     assert.equal(alphaHistory.length, 1)
-    const deniedOther = await must('alpha other history', alphaClient.rpc('department_achievement_history', { p_department: f.deptB }))
+    const deniedOther = await must('alpha other history', alphaClient.rpc('list_department_trophy_history', { p_department: f.deptB, p_limit: 50 }))
     assert.equal(deniedOther.length, 0)
 
-    const bravoHistory = await must('bravo history', bravoClient.rpc('department_achievement_history', { p_department: f.deptB }))
+    const bravoHistory = await must('bravo history', bravoClient.rpc('list_department_trophy_history', { p_department: f.deptB, p_limit: 50 }))
     assert.equal(bravoHistory.length, 1)
 
-    const inactiveUnseen = await must('inactive unseen', inactiveClient.rpc('unseen_department_achievements'))
-    assert.equal(inactiveUnseen.length, 0)
+    const inactiveClaim = await must('inactive claim', inactiveClient.rpc('claim_next_recognition_ceremony'))
+    assert.equal(inactiveClaim, null)
 
-    const adminA = await must('admin alpha history', adminClient.rpc('department_achievement_history', { p_department: f.deptA }))
-    const adminB = await must('admin bravo history', adminClient.rpc('department_achievement_history', { p_department: f.deptB }))
+    const adminA = await must('admin alpha history', adminClient.rpc('list_department_trophy_history', { p_department: f.deptA, p_limit: 50 }))
+    const adminB = await must('admin bravo history', adminClient.rpc('list_department_trophy_history', { p_department: f.deptB, p_limit: 50 }))
     assert.equal(adminA.length, 1)
     assert.equal(adminB.length, 1)
 
     const alphaId = alphaHistory[0].id
     const bravoId = bravoHistory[0].id
 
-    await must('alpha cannot mark bravo', alphaClient.rpc('mark_department_achievements_seen', { p_ids: [bravoId] }))
-    const bravoSeenByAlpha = await must('seen audit bravo', f.service.from('department_achievement_seen').select('*').eq('achievement_id', bravoId).eq('user_id', alpha.id))
-    assert.equal(bravoSeenByAlpha.length, 0)
-
     const [alphaClaimA, alphaClaimB] = await Promise.all([
-      must('alpha claim tab A', alphaClient.rpc('unseen_department_achievements')),
-      must('alpha claim tab B', alphaClient.rpc('unseen_department_achievements')),
+      must('alpha claim tab A', alphaClient.rpc('claim_next_recognition_ceremony')),
+      must('alpha claim tab B', alphaClient.rpc('claim_next_recognition_ceremony')),
     ])
-    const claimed = [...alphaClaimA, ...alphaClaimB]
+    const claimed = [alphaClaimA, alphaClaimB].filter(Boolean)
     assert.equal(claimed.length, 1, 'parallel tabs must only receive the achievement once')
-    assert.equal(claimed[0].id, alphaId)
+    assert.equal(claimed[0].source_kind, 'department_achievement')
+    assert.equal(claimed[0].source_id, alphaId)
 
-    const alphaSeen = await must('seen audit alpha', f.service.from('department_achievement_seen').select('*').eq('achievement_id', alphaId).eq('user_id', alpha.id))
-    assert.equal(alphaSeen.length, 1, 'claim must persist before the ceremony is rendered')
+    const alphaDeliveries = await must('alpha delivery audit', f.service
+      .from('recognition_ceremony_deliveries')
+      .select('source_id,recipient_id,state')
+      .eq('source_kind', 'department_achievement')
+      .eq('source_id', alphaId)
+      .eq('recipient_id', alpha.id))
+    assert.equal(alphaDeliveries.length, 1)
+    assert.equal(alphaDeliveries[0].state, 'claimed', 'claim must persist before the ceremony is rendered')
 
-    const alphaAgain = await must('alpha refresh claim', alphaClient.rpc('unseen_department_achievements'))
-    assert.equal(alphaAgain.length, 0, 'refresh must not replay a claimed ceremony')
+    const bravoDeliveries = await must('bravo delivery isolation', f.service
+      .from('recognition_ceremony_deliveries')
+      .select('source_id,recipient_id,state')
+      .eq('source_kind', 'department_achievement')
+      .eq('source_id', bravoId)
+      .eq('recipient_id', bravo.id))
+    assert.equal(bravoDeliveries.length, 1)
+    assert.equal(bravoDeliveries[0].state, 'pending', 'another employee claim must not consume bravo delivery')
 
-    const alphaPersistent = await must('alpha persistent history', alphaClient.rpc('department_achievement_history', { p_department: f.deptA }))
-    assert.equal(alphaPersistent.length, 1, 'acknowledgement must not hide persistent trophy')
+    const alphaAgain = await must('alpha refresh claim', alphaClient.rpc('claim_next_recognition_ceremony'))
+    assert.equal(alphaAgain, null, 'refresh must not replay a claimed ceremony')
+
+    const alphaPersistent = await must('alpha persistent history', alphaClient.rpc('list_department_trophy_history', { p_department: f.deptA, p_limit: 50 }))
+    assert.equal(alphaPersistent.length, 1, 'ceremony claim must not hide persistent trophy')
 
     await must('transfer alpha', f.service.from('employee_profiles').update({ department: f.deptB }).eq('id', alpha.id))
-    const oldAfterTransfer = await must('old history after transfer', alphaClient.rpc('department_achievement_history', { p_department: f.deptA }))
-    const newAfterTransfer = await must('new history after transfer', alphaClient.rpc('department_achievement_history', { p_department: f.deptB }))
+    const oldAfterTransfer = await must('old history after transfer', alphaClient.rpc('list_department_trophy_history', { p_department: f.deptA, p_limit: 50 }))
+    const newAfterTransfer = await must('new history after transfer', alphaClient.rpc('list_department_trophy_history', { p_department: f.deptB, p_limit: 50 }))
     assert.equal(oldAfterTransfer.length, 0)
     assert.equal(newAfterTransfer.length, 1)
   } finally {

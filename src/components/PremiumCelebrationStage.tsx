@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import '../premium-celebration.css'
 
@@ -16,6 +16,7 @@ export type PremiumCelebrationStageProps = {
   children?: ReactNode
   holdMs: number
   introMs: number
+  onPresented?: () => void
   onClose: () => void
 }
 
@@ -34,9 +35,18 @@ export function PremiumCelebrationStage({
   children,
   holdMs,
   introMs,
+  onPresented,
   onClose,
 }: PremiumCelebrationStageProps) {
   const [revealed, setRevealed] = useState(false)
+  const presentationReported = useRef(false)
+  const onPresentedRef = useRef(onPresented)
+  const onCloseRef = useRef(onClose)
+  const cardRef = useRef<HTMLElement | null>(null)
+  const closeButton = useRef<HTMLButtonElement | null>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
+  onPresentedRef.current = onPresented
+  onCloseRef.current = onClose
 
   const pieces = useMemo(
     () => Array.from({ length: PIECE_COUNT }, (_, index) => ({
@@ -56,19 +66,47 @@ export function PremiumCelebrationStage({
 
   useEffect(() => {
     if (!open) return
+    previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setRevealed(false)
+    presentationReported.current = false
+    const presentationFrame = window.requestAnimationFrame(() => {
+      closeButton.current?.focus()
+      if (presentationReported.current) return
+      presentationReported.current = true
+      onPresentedRef.current?.()
+    })
     const introTimer = window.setTimeout(() => setRevealed(true), introMs)
-    const closeTimer = window.setTimeout(onClose, holdMs)
+    const closeTimer = window.setTimeout(() => onCloseRef.current(), holdMs)
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCloseRef.current()
+        return
+      }
+      if (event.key === 'Tab') {
+        const focusable = Array.from(cardRef.current?.querySelectorAll<HTMLElement>('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])') || [])
+          .filter(element => !element.hasAttribute('disabled'))
+        if (!focusable.length) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
+      window.cancelAnimationFrame(presentationFrame)
       window.clearTimeout(introTimer)
       window.clearTimeout(closeTimer)
       window.removeEventListener('keydown', onKeyDown)
+      previousFocus.current?.focus()
     }
-  }, [open, holdMs, introMs, onClose])
+  }, [open, holdMs, introMs])
 
   if (!open) return null
 
@@ -106,8 +144,8 @@ export function PremiumCelebrationStage({
         <span className="premiumCelebrationStreamer streamerD" />
       </div>
 
-      <section className="premiumCelebrationCard">
-        <button type="button" className="premiumCelebrationClose" onClick={onClose} aria-label="Close celebration">
+      <section ref={cardRef} className="premiumCelebrationCard">
+        <button ref={closeButton} type="button" className="premiumCelebrationClose" onClick={onClose} aria-label="Close celebration">
           <X size={18} />
         </button>
         <div className="premiumCelebrationIcon" aria-hidden="true">

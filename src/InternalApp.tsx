@@ -1,6 +1,8 @@
 import App from './App'
 import {RibbonGiftHost} from './components/WorkReactions'
 import {RecognitionHost} from './components/Recognition'
+import RecognitionCeremonyHost from './components/RecognitionCeremonyHost'
+import {CelebrationBlockerProvider} from './celebrations/CelebrationBlockerContext'
 import {ParasyteCrestBar,ParasyteSplash} from './components/ParasyteCrest'
 import './styles.css'
 import './brand.css'
@@ -37,5 +39,5 @@ export default function InternalApp(){
   useEffect(()=>startIslandBar(),[])
   useEffect(()=>startIslandMotion(),[])
   useEffect(()=>startPushBridge(),[])
-  return <><App/><RibbonGiftHost/><RecognitionHost/><ParasyteCrestBar/><ParasyteSplash/></>
+  return <CelebrationBlockerProvider><App/><RibbonGiftHost/><RecognitionHost/><RecognitionCeremonyHost/><ParasyteCrestBar/><ParasyteSplash/></CelebrationBlockerProvider>
 }

@@ -14,6 +14,10 @@ const NEEDS_SUPABASE = new Set([
   'chat-room-administration.test.mjs',
   'chat-admin-management.test.mjs',
   'department-achievements-e2e.test.mjs',
+  'recognition-department-access-e2e.test.mjs',
+  'personal-awards-e2e.test.mjs',
+  'recognition-ceremony-delivery-e2e.test.mjs',
+  'recognition-governance-e2e.test.mjs',
 ])
 
 const files = readdirSync(new URL('.', import.meta.url))

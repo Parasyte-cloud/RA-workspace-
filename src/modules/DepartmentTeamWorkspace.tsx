@@ -423,10 +423,6 @@ export function DepartmentTeamWorkspace({
     departmentAliasKey
   ])
 
-  const canViewAchievements=
-    profileBelongsHere
-    || normalise(profile?.role)==='admin'
-
   const workstationLinks=
     useMemo(()=>{
       const combined=[...sharedWorkspaceLinks,...workspaceLinks]
@@ -510,10 +506,7 @@ export function DepartmentTeamWorkspace({
       </div>
 
 
-      <DepartmentTrophyCabinet
-        department={canonicalDepartment}
-        enabled={Boolean(canonicalDepartment) && canViewAchievements}
-      />
+      <DepartmentTrophyCabinet department={canonicalDepartment} />
 
 
       {message &&
