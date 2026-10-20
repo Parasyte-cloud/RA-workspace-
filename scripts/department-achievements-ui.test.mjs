@@ -12,7 +12,7 @@ function match(text, rx, message) { assert.match(text, rx, message) }
 
 test('RecognitionHost uses secure department achievement RPCs and keeps personal WorkCelebration', () => {
   match(recognition, /unseen_department_achievements/, 'secure unseen achievement RPC missing')
-  match(recognition, /mark_department_achievements_seen/, 'secure seen RPC missing')
+  assert.doesNotMatch(recognition, /mark_department_achievements_seen/, 'ceremony close must not persist seen-state; claim happens before display')
   assert.doesNotMatch(recognition, /unseen_team_milestones|mark_team_milestones_seen/, 'legacy milestone ceremony RPC still used')
   assert.doesNotMatch(recognition, /kind:\s*'rainbow'/, 'department milestones must not map to rainbow ceremony')
   match(recognition, /<WorkCelebration/, 'personal ribbon/champion celebration must remain')

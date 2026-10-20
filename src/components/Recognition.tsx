@@ -516,8 +516,9 @@ export function RecognitionHost() {
   }, [signedIn, champion, photo, push])
 
   // Department achievements are separate from personal ribbon recognition.
-  // Realtime INSERT payloads are only a refresh signal; authorised RPC data
-  // is the only data allowed into the ceremony queue.
+  // unseen_department_achievements atomically claims one authorised achievement
+  // before returning it, so refreshes and parallel tabs cannot replay a ceremony.
+  // Realtime INSERT payloads are only a refresh signal.
   const loadDepartmentAchievements = useCallback(async () => {
     if (!maybeSupabase) return
     const { data, error } = await supabase.rpc('unseen_department_achievements')
@@ -559,14 +560,9 @@ export function RecognitionHost() {
   }, [])
 
   const closeAchievement = useCallback(() => {
-    setAchievementQueue(list => {
-      const closing = list[0]
-      if (closing) {
-        void supabase.rpc('mark_department_achievements_seen', { p_ids: [closing.id] })
-      }
-      return list.slice(1)
-    })
-  }, [])
+    setAchievementQueue(list => list.slice(1))
+    void loadDepartmentAchievements()
+  }, [loadDepartmentAchievements])
 
   if (current) {
     return (

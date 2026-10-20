@@ -1694,6 +1694,15 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
       value.endsWith(`@${d}`)
     )
 
+  const isValidEmailAddress=(value:string)=>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  // Support invitations may be issued to personal email addresses. This is
+  // only an authentication-entry rule: post-auth profile/workstation/RLS
+  // authorization remains authoritative for Support access.
+  const emailAllowedForCurrentSurface=(value:string)=>
+    isSupportDomain() ? isValidEmailAddress(value) : validDomain(value)
+
   const sendPasswordReset=async()=>{
     setMessage('')
 
@@ -1702,8 +1711,12 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
       return
     }
 
-    if(!cleanEmail || !validDomain(cleanEmail)){
-      setMessage('Enter your approved RideArrivo work email first.')
+    if(!cleanEmail || !emailAllowedForCurrentSurface(cleanEmail)){
+      setMessage(
+        isSupportDomain()
+          ? 'Enter the email address attached to your Support invitation.'
+          : 'Enter your approved RideArrivo work email first.'
+      )
       return
     }
 
@@ -1717,7 +1730,11 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
 
       if(error) throw error
 
-      setMessage('If this account exists, a password reset link has been sent to the work email address.')
+      setMessage(
+        isSupportDomain()
+          ? 'If this account exists, a password reset link has been sent to the email address attached to your Support access.'
+          : 'If this account exists, a password reset link has been sent to the work email address.'
+      )
     }catch(error){
       setMessage(error instanceof Error ? error.message : 'Unable to send password reset email.')
     }finally{
@@ -1735,15 +1752,21 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
     }
 
     if(!cleanEmail){
-      setMessage('Enter your RideArrivo work email.')
+      setMessage(
+        isSupportDomain()
+          ? 'Enter the email address attached to your Support invitation.'
+          : 'Enter your RideArrivo work email.'
+      )
       return
     }
 
-    if(!validDomain(cleanEmail)){
+    if(!emailAllowedForCurrentSurface(cleanEmail)){
       setMessage(
-        `Use an authorised RideArrivo email (${allowedDomains
-          .map((d:string)=>`@${d}`)
-          .join(', ')}).`
+        isSupportDomain()
+          ? 'Enter a valid email address attached to your Support invitation.'
+          : `Use an authorised RideArrivo email (${allowedDomains
+              .map((d:string)=>`@${d}`)
+              .join(', ')}).`
       )
       return
     }
@@ -1832,12 +1855,12 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
           </div>
 
           <label>
-            Work email
+            {isSupportDomain() ? 'Email address' : 'Work email'}
             <input
               type="email"
               value={email}
               onChange={e=>setEmail(e.target.value)}
-              placeholder="name@ridearrivo.com"
+              placeholder={isSupportDomain() ? 'you@example.com' : 'name@ridearrivo.com'}
               autoComplete="email"
               autoCapitalize="none"
               autoCorrect="off"
@@ -1896,7 +1919,11 @@ function AuthGate({notice='',linkProblem=''}:{notice?:string;linkProblem?:string
             <KeyRound size={18}/>
             <span>
               <strong>Forgot / Reset Password</strong>
-              <small>Send one secure recovery link to your work email</small>
+              <small>
+                {isSupportDomain()
+                  ? 'Send one secure recovery link to your Support email'
+                  : 'Send one secure recovery link to your work email'}
+              </small>
             </span>
           </button>
 

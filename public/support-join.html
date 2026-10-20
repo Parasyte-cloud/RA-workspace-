@@ -2,149 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#07142b" />
-  <meta
-    name="description"
-    content="Create secure access to the RideArrivo Support Command Centre."
-  />
+  <meta name="description" content="Create secure access to the RideArrivo Support Command Centre." />
+  <meta name="support-functions-url" content="https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1" />
 
-  <link
-    rel="manifest"
-    href="/brand/support/support.webmanifest"
-  />
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="32x32"
-    href="/brand/support/support-favicon-32.png"
-  />
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="16x16"
-    href="/brand/support/support-favicon-16.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="180x180"
-    href="/brand/support/support-icon-180.png"
-  />
+  <link rel="manifest" href="/brand/support/support.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/brand/support/support-favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/brand/support/support-favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/brand/support/support-icon-180.png" />
 
-  <meta
-    property="og:title"
-    content="Join RideArrivo Support"
-  />
-  <meta
-    property="og:description"
-    content="Create secure access to the RideArrivo Support Command Centre."
-  />
-  <meta
-    property="og:image"
-    content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png"
-  />
-  <meta
-    property="og:url"
-    content="https://support.ridearrivo.com/support-join"
-  />
+  <meta property="og:title" content="Join RideArrivo Support" />
+  <meta property="og:description" content="Create secure access to the RideArrivo Support Command Centre." />
+  <meta property="og:image" content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png" />
+  <meta property="og:url" content="https://support.ridearrivo.com/support-join" />
   <meta property="og:type" content="website" />
-
-  <meta
-    name="twitter:card"
-    content="summary_large_image"
-  />
-  <meta
-    name="twitter:title"
-    content="Join RideArrivo Support"
-  />
-  <meta
-    name="twitter:description"
-    content="Create secure access to the RideArrivo Support Command Centre."
-  />
-  <meta
-    name="twitter:image"
-    content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png"
-  />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Join RideArrivo Support" />
+  <meta name="twitter:description" content="Create secure access to the RideArrivo Support Command Centre." />
+  <meta name="twitter:image" content="https://support.ridearrivo.com/brand/support/support-og-1200x630.png" />
 
   <link rel="stylesheet" href="/support-auth.css" />
-
   <title>Join RideArrivo Support</title>
 </head>
-
 <body class="supportJoinPage">
-  <main class="supportJoinShell">
-    <section class="supportJoinCard">
+  <main class="supportJoinShell" aria-labelledby="support-join-title">
+    <section class="supportJoinIntro" aria-label="RideArrivo Support onboarding">
       <div class="supportJoinBrand">
-        <img
-          class="supportJoinBrandIcon"
-          src="/brand/support/support-icon-192.png"
-          alt=""
-        />
-
+        <img class="supportJoinBrandIcon" src="/brand/support/support-icon-192.png" alt="" />
         <div class="supportJoinBrandCopy">
-          <img
-            src="/ridearrivo-wordmark-workspace.png"
-            alt="RideArrivo"
-          />
+          <img src="/ridearrivo-wordmark-workspace.png" alt="RideArrivo" />
           <strong>RideArrivo Support</strong>
           <span>Support Command Centre</span>
         </div>
       </div>
 
-      <h1>Join RideArrivo Support</h1>
+      <div class="supportJoinIntroCopy">
+        <span class="supportJoinEyebrow">SECURE STAFF ONBOARDING</span>
+        <h1 id="support-join-title">Your Support access starts here.</h1>
+        <p>
+          Activate the account linked to your invitation, then sign in to handle customer calls,
+          messages, tickets and escalations from the Support Command Centre.
+        </p>
+      </div>
 
-      <p>
-        Enter the email address your invitation was sent to
-        and the one-time code, then choose a secure password.
-      </p>
+      <div class="supportJoinTrust" aria-label="Invitation security">
+        <div><strong>Single-use code</strong><span>Your invitation code can only be redeemed once.</span></div>
+        <div><strong>48-hour validity</strong><span>Expired invitations must be reissued by Administration.</span></div>
+        <div><strong>Support-only access</strong><span>Your account still requires an authorised Support assignment.</span></div>
+      </div>
+    </section>
 
-      <form id="joinForm">
-        <label for="email">Email address</label>
-        <input
-          id="email"
-          type="email"
-          autocomplete="email"
-          required
-        />
+    <section class="supportJoinCard" aria-live="polite">
+      <div id="join-ready">
+        <div class="supportJoinCardHeader">
+          <span class="supportJoinEyebrow">INVITATION ACTIVATION</span>
+          <h2>Create your Support access</h2>
+          <p>Use the exact email address and one-time code from your invitation.</p>
+        </div>
 
-        <label for="code">One-time code</label>
-        <input
-          id="code"
-          type="text"
-          autocomplete="one-time-code"
-          required
-        />
+        <form id="join-form" novalidate>
+          <label for="join-email">Email address</label>
+          <input id="join-email" name="email" type="email" autocomplete="email" inputmode="email" required />
 
-        <label for="password">Choose a password</label>
-        <input
-          id="password"
-          type="password"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
+          <label for="join-code">One-time code</label>
+          <input id="join-code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required />
 
-        <label for="confirm">Repeat the password</label>
-        <input
-          id="confirm"
-          type="password"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
+          <label for="join-password">Choose a password</label>
+          <input id="join-password" name="password" type="password" autocomplete="new-password" minlength="10" required />
+          <small class="supportJoinHint">Use at least 10 characters. Avoid using your email address in the password.</small>
 
-        <button id="go" type="submit">
-          Create my access
-        </button>
-      </form>
+          <label for="join-confirm">Repeat the password</label>
+          <input id="join-confirm" name="confirm" type="password" autocomplete="new-password" minlength="10" required />
 
-      <div id="message"></div>
+          <div id="join-message" class="supportJoinMessage" role="alert" aria-live="assertive" hidden></div>
 
-      <div class="supportJoinFooter">
-        Secure RideArrivo staff access · Invitation codes are single-use.
+          <button id="join-submit" class="supportJoinPrimary" type="submit">Create my access</button>
+        </form>
+
+        <button id="join-signin" class="supportJoinSecondary" type="button">Already activated? Sign in</button>
+      </div>
+
+      <div id="join-success" class="supportJoinSuccess" hidden>
+        <div class="supportJoinSuccessMark" aria-hidden="true">✓</div>
+        <span class="supportJoinEyebrow">ACCESS READY</span>
+        <h2>Support access activated</h2>
+        <p id="join-success-text"></p>
+        <button id="join-continue" class="supportJoinPrimary" type="button">Continue to RideArrivo Support</button>
       </div>
     </section>
   </main>
@@ -154,37 +98,96 @@
   var base = (document.querySelector('meta[name="support-functions-url"]') || {}).content || ''
   var $ = function (id) { return document.getElementById(id) }
   var params = new URLSearchParams(location.search)
-  if (params.get('email')) $('email').value = params.get('email')
-  if (params.get('code')) $('code').value = params.get('code')
-  // Remove the code from the address bar and history as soon as it has been read.
+  var emailParam = params.get('email')
+  var codeParam = params.get('code')
+
+  if (emailParam) $('join-email').value = emailParam
+  if (codeParam) $('join-code').value = codeParam
   if (location.search) history.replaceState(null, '', location.pathname)
 
-  function show(text, good) { var m = $('msg'); m.hidden = false; m.className = 'msg ' + (good ? 'good' : 'bad'); m.textContent = text }
+  function showMessage(text) {
+    var message = $('join-message')
+    message.textContent = text
+    message.hidden = false
+  }
 
-  $('f').addEventListener('submit', function (ev) {
-    ev.preventDefault()
-    $('msg').hidden = true
-    if (!base || base.indexOf('__') === 0) return show('This page is not configured yet. Ask your administrator.')
-    var email = $('email').value.trim(), code = $('code').value.trim(), pw = $('pw').value
-    if (!email || !code) return show('Enter your email address and the code from your invitation.')
-    if (pw.length < 10) return show('Use at least 10 characters for your password.')
-    if (pw !== $('pw2').value) return show('The two passwords do not match.')
-    $('go').disabled = true; $('go').textContent = 'Working'
+  function clearMessage() {
+    var message = $('join-message')
+    message.textContent = ''
+    message.hidden = true
+  }
+
+  function setSubmitting(value) {
+    var button = $('join-submit')
+    button.disabled = value
+    button.textContent = value ? 'Creating access…' : 'Create my access'
+  }
+
+  function showSuccess(body) {
+    $('join-ready').hidden = true
+    $('join-success').hidden = false
+    $('join-success-text').textContent = body.existingAccount
+      ? 'Support access has been added to your existing account. You can now sign in with your current password.'
+      : 'Welcome' + (body.name ? ', ' + body.name.split(' ')[0] : '') + '. Your Support account is ready to use.'
+  }
+
+  $('join-form').addEventListener('submit', function (event) {
+    event.preventDefault()
+    clearMessage()
+
+    var email = $('join-email').value.trim().toLowerCase()
+    var code = $('join-code').value.trim()
+    var password = $('join-password').value
+
+    if (!base || base.indexOf('__') === 0) {
+      showMessage('Support activation is temporarily unavailable. Contact RideArrivo Administration.')
+      return
+    }
+    if (!email || !code) {
+      showMessage('Enter your email address and the one-time code from your invitation.')
+      return
+    }
+    if (password.length < 10) {
+      showMessage('Use at least 10 characters for your password.')
+      return
+    }
+    if (password !== $('join-confirm').value) {
+      showMessage('The two passwords do not match.')
+      return
+    }
+
+    setSubmitting(true)
+
     fetch(base.replace(/\/+$/, '') + '/support-invite', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'redeem', email: email, code: code, password: pw })
-    }).then(function (r) { return r.json().catch(function () { return {} }).then(function (b) { return { ok: r.ok, body: b } }) })
-      .then(function (res) {
-        if (!res.ok || res.body.error) { show(res.body.error || 'Something went wrong. Try again.'); return }
-        $('form-view').hidden = true; $('done-view').hidden = false
-        $('done-text').textContent = res.body.existingAccount
-          ? 'Support access has been added to your existing account.'
-          : 'Welcome' + (res.body.name ? ', ' + res.body.name.split(' ')[0] : '') + '. Your account is ready.'
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'redeem', email: email, code: code, password: password })
+    })
+      .then(function (response) {
+        return response.json().catch(function () { return {} }).then(function (body) {
+          return { ok: response.ok, body: body }
+        })
       })
-      .catch(function () { show('Could not reach the server. Check your connection and try again.') })
-      .then(function () { $('go').disabled = false; $('go').textContent = 'Create my access' })
+      .then(function (result) {
+        if (!result.ok || result.body.error) {
+          showMessage(result.body.error || 'Something went wrong. Check your invitation details and try again.')
+          return
+        }
+        showSuccess(result.body)
+      })
+      .catch(function () {
+        showMessage('Could not reach the server. Check your connection and try again.')
+      })
+      .finally(function () {
+        setSubmitting(false)
+      })
   })
-  $('signin').addEventListener('click', function () { location.href = '/' })
+
+  $('join-signin').addEventListener('click', function () { location.href = '/' })
+  $('join-continue').addEventListener('click', function () { location.href = '/' })
+  $('join-message').hidden = true
+  $('join-ready').hidden = false
+  $('join-success').hidden = true
 })()
 </script>
 </body>
