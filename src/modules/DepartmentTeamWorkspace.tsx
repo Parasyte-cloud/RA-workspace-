@@ -32,6 +32,7 @@ import SharedWorkspacesHub from './SharedWorkspacesHub'
 import { DataWorkbench } from './DataWorkbench'
 import EngineeringWorkbench from './EngineeringWorkbench'
 import FinancePaymentsPanel from './FinancePaymentsPanel'
+import DepartmentTrophyCabinet from '../components/DepartmentTrophyCabinet'
 
 import '../department-workspace.css'
 
@@ -397,6 +398,35 @@ export function DepartmentTeamWorkspace({
     normalisedDepartmentAliases
   ])
 
+  const canonicalDepartment=useMemo(()=>{
+    const own=profileBelongsHere
+      ? profile?.department?.trim()
+      : ''
+
+    if(own){
+      return own
+    }
+
+    const teamDepartment=team
+      .map(employee=>employee.department?.trim() || '')
+      .find(Boolean)
+
+    return teamDepartment
+      || departmentAliases
+        .map(alias=>alias.trim())
+        .find(Boolean)
+      || ''
+  },[
+    profileBelongsHere,
+    profile,
+    team,
+    departmentAliasKey
+  ])
+
+  const canViewAchievements=
+    profileBelongsHere
+    || normalise(profile?.role)==='admin'
+
   const workstationLinks=
     useMemo(()=>{
       const combined=[...sharedWorkspaceLinks,...workspaceLinks]
@@ -478,6 +508,12 @@ export function DepartmentTeamWorkspace({
         </div>
 
       </div>
+
+
+      <DepartmentTrophyCabinet
+        department={canonicalDepartment}
+        enabled={Boolean(canonicalDepartment) && canViewAchievements}
+      />
 
 
       {message &&

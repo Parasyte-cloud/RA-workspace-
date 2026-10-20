@@ -62,3 +62,11 @@ test('chat and ROOM 7 can give ribbons, and guests never import the database cli
   assert.doesNotMatch(shared, /lib\/supabase/)
   assert.match(shared, /MSG_BUZZ/)
 })
+
+test('department achievements do not disturb personal recognition contracts', () => {
+  const recognitionUi = readFileSync('src/components/Recognition.tsx', 'utf8')
+  assert.match(recognitionUi, /<WorkCelebration/)
+  assert.match(recognitionUi, /current_ribbon_champion|useChampion/)
+  assert.doesNotMatch(recognitionUi, /unseen_team_milestones|mark_team_milestones_seen/)
+  assert.match(recognitionUi, /unseen_department_achievements/)
+})
