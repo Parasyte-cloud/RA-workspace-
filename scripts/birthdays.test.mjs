@@ -43,3 +43,15 @@ test('the celebration shows once a day, respects reduced motion and mounts in th
   assert.match(app, /<BirthdayCelebration\/>/)
   assert.doesNotMatch(css + ui, /—/)
 })
+
+test('signed-in birthday takeover uses the shared premium birthday stage and keeps wishes', () => {
+  assert.match(ui, /PremiumCelebrationStage/)
+  assert.match(ui, /intensity="birthday"/)
+  assert.match(ui, /introMs=\{1700\}/)
+  assert.match(ui, /holdMs=\{8000\}/)
+  assert.doesNotMatch(ui, /function Confetti\s*\(/)
+  assert.match(ui, /get_my_birthday_wishes/)
+  assert.match(ui, /send_birthday_wish/)
+  assert.match(ui, /bdWishes/)
+  assert.match(ui, /hiddenKey/)
+})

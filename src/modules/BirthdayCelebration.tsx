@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Cake, Send, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { resolveEmployeeAvatarUrl } from '../lib/employeeAvatar'
+import PremiumCelebrationStage from '../components/PremiumCelebrationStage'
 import '../birthday.css'
 
 type Person = {
@@ -33,47 +34,6 @@ function remembered(key: string) {
 }
 function remember(key: string) {
   try { localStorage.setItem(key, '1') } catch { /* the card may show again after a reload */ }
-}
-
-// Confetti made of ribbon-coloured pieces. The numbers are derived from the
-// index so the pieces are spread out and do not change between renders.
-function Confetti() {
-  const pieces = useMemo(
-    () =>
-      Array.from({ length: 56 }, (_, i) => ({
-        left: (i * 37) % 100,
-        delay: ((i * 53) % 40) / 10,
-        duration: 4.5 + ((i * 29) % 35) / 10,
-        size: 7 + ((i * 11) % 9),
-        color: RIBBON[i % RIBBON.length],
-        shape: i % 3 === 0 ? 'round' : i % 3 === 1 ? 'strip' : 'square',
-        spin: 240 + ((i * 47) % 480),
-      })),
-    [],
-  )
-  return (
-    <div className="bdConfetti" aria-hidden="true">
-      {pieces.map((p, i) => (
-        <i
-          key={i}
-          className={p.shape}
-          style={{
-            left: `${p.left}%`,
-            width: p.shape === 'strip' ? p.size / 2.2 : p.size,
-            height: p.shape === 'strip' ? p.size * 1.8 : p.size,
-            background: p.color,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-            ['--spin' as string]: `${p.spin}deg`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('') || '?'
 }
 
 // Mounted once in the workspace shell. The birthday person gets a celebration
@@ -145,15 +105,6 @@ export default function BirthdayCelebration() {
     setOpen(false)
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') close() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // close only reads meId
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, meId])
-
   const hide = (person: Person) => {
     remember(hiddenKey(person.employee_id))
     setHidden(current => new Set(current).add(person.employee_id))
@@ -180,39 +131,31 @@ export default function BirthdayCelebration() {
 
   return (
     <>
-      {open && me && (
-        <div className="bdBack" role="dialog" aria-modal="true" aria-label={`Happy birthday ${first}`} onMouseDown={e => { if (e.target === e.currentTarget) close() }}>
-          <Confetti />
-          <div className="bdCard">
-            <div className="bdBands" aria-hidden="true">{RIBBON.map(c => <i key={c} style={{ background: c }} />)}</div>
-            <button type="button" className="bdClose" onClick={close} aria-label="Close"><X size={18} /></button>
-
-            <div className="bdBanner" aria-hidden="true"><span>MAKE A WISH</span></div>
-
-            <div className="bdAvatar">
-              {avatar ? <img src={avatar} alt="" /> : <span>{initials(me.full_name)}</span>}
+      {me && (
+        <PremiumCelebrationStage
+          open={open}
+          intensity="birthday"
+          kicker="RideArrivo celebrates you"
+          title={`Happy Birthday ${first}!`}
+          message="Everyone at RideArrivo is celebrating you today. Thank you for the energy, the ideas and the care you bring to the team."
+          detail={[me.job_title, me.department].filter(Boolean).join(' · ') || 'Make a wish'}
+          photoUrl={avatar || null}
+          icon={<Cake size={86} strokeWidth={1.5} />}
+          introMs={1700}
+          holdMs={8000}
+          onClose={close}
+        >
+          {wishes.length > 0 && (
+            <div className="bdWishes">
+              <strong>Wishes from your colleagues</strong>
+              <ul>
+                {wishes.map((w, i) => (
+                  <li key={i}><span>{w.from_name}</span>{w.message}</li>
+                ))}
+              </ul>
             </div>
-
-            <h2>Happy Birthday</h2>
-            <h1>{first}!</h1>
-            <p className="bdLead">
-              Everyone at RideArrivo is celebrating you today. Thank you for the energy, the ideas and the care you bring to the team.
-            </p>
-
-            {wishes.length > 0 && (
-              <div className="bdWishes">
-                <strong>Wishes from your colleagues</strong>
-                <ul>
-                  {wishes.map((w, i) => (
-                    <li key={i}><span>{w.from_name}</span>{w.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <button type="button" className="bdThanks" onClick={close}>Thank you</button>
-          </div>
-        </div>
+          )}
+        </PremiumCelebrationStage>
       )}
 
       {others.length > 0 && !open && (

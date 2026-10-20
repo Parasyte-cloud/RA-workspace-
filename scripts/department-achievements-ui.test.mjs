@@ -19,16 +19,16 @@ test('RecognitionHost uses secure department achievement RPCs and keeps personal
   match(recognition, /table:\s*'department_achievements'/, 'realtime signal must listen to department achievements')
 })
 
-test('department ceremony is dedicated, dismissible, timed, and reduced-motion aware', () => {
+test('department ceremony delegates the louder timing to PremiumCelebrationStage', () => {
   match(ceremony, /export type DepartmentAchievement/, 'DepartmentAchievement type missing')
-  match(ceremony, /DepartmentAchievementCeremony/, 'ceremony component missing')
+  match(ceremony, /PremiumCelebrationStage/, 'premium stage import missing')
   match(ceremony, /achievement\.department/, 'department label missing')
   match(ceremony, /achievement\.title/, 'achievement title missing')
   match(ceremony, /achievement\.description/, 'achievement description missing')
   match(ceremony, /achievement\.tier/, 'achievement tier missing')
-  match(ceremony, /4500/, 'default auto-close must be 4500ms')
-  match(ceremony, /Escape/, 'Escape dismissal missing')
-  match(ceremony, /prefers-reduced-motion/, 'reduced-motion handling missing')
+  match(ceremony, /intensity="trophy"/, 'trophy intensity missing')
+  match(ceremony, /introMs=\{1600\}/, 'trophy intro must be 1600ms')
+  match(ceremony, /holdMs=\{7000\}/, 'trophy hold must be 7000ms')
   match(ceremony, /Added to your department trophy cabinet/i, 'cabinet persistence message missing')
 })
 
