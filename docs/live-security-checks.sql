@@ -1,5 +1,6 @@
--- Read-only checks to run in the Supabase SQL Editor. Nothing here changes data.
--- Each query should return ZERO rows unless a note says otherwise. Send me any rows it returns.
+-- Security checks to run in the Supabase SQL Editor. Sections 1-8 are read-only.
+-- Section 9 includes an explicit, narrowly scoped cron repair step; run it only when needed.
+-- Each query should return ZERO rows unless a note says otherwise. Send me any unexpected rows.
 
 -- 1. Tables in public without row level security. (Any row here is readable by every signed-in user.)
 select c.relname as table_without_rls
@@ -55,8 +56,23 @@ where n.nspname = 'public' and c.relkind = 'v'
   and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'
 order by 1;
 
--- R7 AI hardening. Cron jobs that must authenticate with the Vault secret.
--- Every row should say 'ok'. 'needs_repair' means the job still sends the old key and answers 401:
--- create the Vault secret named cron_dispatch_secret (same value as the CRON_DISPATCH_SECRET function secret),
--- then run: select * from public.repair_cron_authentication();
+-- 9. Phase 2B cron authentication hardening.
+-- Safe status values are: ok, missing_secret, legacy_service_role, misconfigured.
+-- This query returns job names and states only; it never returns secret contents.
+select * from public.cron_authentication_status();
+
+-- Required final state:
+-- ridearrivo-dispatch-notification-emails -> ok
+-- ridearrivo-poll-bookings -> ok
+--
+-- If a row says missing_secret, configure the Vault secret named
+-- cron_dispatch_secret outside source control using the approved secret-management path.
+-- Do not paste, print, or query the secret value as part of diagnostics.
+--
+-- If a row says legacy_service_role, run the hardened repair. It rewrites only the
+-- two governed jobs, preserves their existing schedules, and fails closed if the
+-- Vault secret is unavailable. misconfigured means stop and inspect rather than guess.
+select * from public.repair_cron_authentication();
+
+-- Deployment is complete only when BOTH governed jobs report ok.
 select * from public.cron_authentication_status();
