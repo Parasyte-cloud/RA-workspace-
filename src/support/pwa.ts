@@ -9,6 +9,7 @@
 // PArAsYtE | RA-Workspace support module
 
 import { myPushDevices, pushConfig, registerPushDevice, unregisterPushDevice } from '../lib/supportCommandCentre'
+import { registerWorkspaceServiceWorker } from '../pwa/registerWorkspaceServiceWorker'
 
 export type PushState =
   | 'unsupported'        // this browser cannot do push
@@ -18,7 +19,6 @@ export type PushState =
   | 'off'                // can be turned on
   | 'on'                 // this device is registered
 
-const SW_URL = '/support-sw.js'
 const MANIFEST_URL = '/support.webmanifest'
 
 export const isIos = () => typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent)
@@ -37,8 +37,7 @@ export function ensureManifest(): void {
 }
 
 export async function registerWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null
-  try { return await navigator.serviceWorker.register(SW_URL, { scope: '/' }) } catch { return null }
+  return registerWorkspaceServiceWorker()
 }
 
 const pushCapable = () => typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
@@ -62,7 +61,7 @@ export async function currentPushState(): Promise<PushState> {
     const cfg = await pushConfig()
     if (!cfg.configured || !cfg.publicKey) return 'not_configured'
   } catch { /* offline or old server: fall through and let the button explain */ }
-  const reg = await navigator.serviceWorker.getRegistration(SW_URL) || await navigator.serviceWorker.getRegistration()
+  const reg = await registerWorkspaceServiceWorker() || await navigator.serviceWorker.getRegistration()
   const sub = await reg?.pushManager.getSubscription()
   if (sub && Notification.permission === 'granted') return 'on'
   return 'off'
@@ -75,8 +74,7 @@ export async function enablePush(): Promise<void> {
   if (!cfg.configured || !cfg.publicKey) throw new Error('Push alerts are not switched on for this workspace yet. Ask your administrator.')
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') throw new Error('Notifications are blocked. Allow them for this site in the browser settings, then try again.')
-  const reg = (await registerWorker()) || (await navigator.serviceWorker.ready)
-  await navigator.serviceWorker.ready
+  const reg = (await registerWorkspaceServiceWorker()) || (await navigator.serviceWorker.ready)
   const existing = await reg.pushManager.getSubscription()
   const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(cfg.publicKey) as unknown as BufferSource })
   const json = sub.toJSON()
@@ -86,7 +84,7 @@ export async function enablePush(): Promise<void> {
 }
 
 export async function disablePush(): Promise<void> {
-  const reg = await navigator.serviceWorker.getRegistration()
+  const reg = await registerWorkspaceServiceWorker() || await navigator.serviceWorker.getRegistration()
   const sub = await reg?.pushManager.getSubscription()
   if (sub) { await unregisterPushDevice(sub.endpoint).catch(() => undefined); await sub.unsubscribe().catch(() => undefined) }
 }

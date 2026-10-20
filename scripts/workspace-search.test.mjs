@@ -37,3 +37,13 @@ test('sensitive tables are not searchable', () => {
 test('front end renders every backend domain', () => {
   for (const key of keys) assert.ok(gs.includes(`r('${key}')`), `${key} not shown in GlobalSearch`)
 })
+
+test('sensitive result domains are queried with the caller client rather than the service role', () => {
+  for (const table of ['employee_profiles', 'support_cases', 'incidents', 'hr_requests', 'leave_requests', 'intake_submissions', 'social_conversation_members', 'social_messages']) {
+    assert.ok(fn.includes(`from("${table}")`), `${table} query missing`)
+  }
+  for (const table of ['support_cases', 'incidents', 'hr_requests', 'leave_requests', 'intake_submissions', 'social_conversation_members', 'social_messages']) {
+    assert.ok(!fn.includes(`admin.from("${table}")`), `${table} must not bypass RLS`)
+  }
+  assert.ok(!fn.includes('SUPABASE_SERVICE_ROLE_KEY'), 'workspace search must not require the service role for result visibility')
+})
