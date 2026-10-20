@@ -355,3 +355,6 @@
     grid-template-columns:1fr;
   }
 }
+
+/* Phase 2: department trophies sit between the hero and operational tabs. */
+.departmentWorkspace > .departmentTrophyCabinet{margin:0 0 18px}

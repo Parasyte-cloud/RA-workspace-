@@ -8,6 +8,8 @@ import { RIBBONS, ribbonStyle } from '../lib/workReactions'
 import type { RibbonKind } from '../lib/workReactions'
 import { flameTier, initialsOf, lagosWeekRange, ribbonCountLine, weekLabel } from '../lib/recognition'
 import { WorkCelebration } from './RibbonCelebration'
+import { DepartmentAchievementCeremony } from './DepartmentAchievementCeremony'
+import type { DepartmentAchievement } from './DepartmentAchievementCeremony'
 import type { RibbonBudget } from './WorkReactions'
 import '../work-reactions.css'
 import '../recognition.css'
@@ -466,8 +468,10 @@ const CHAMP_SEEN = 'ra-champion-celebrated'
 export function RecognitionHost() {
   const [signedIn, setSignedIn] = useState(false)
   const [queue, setQueue] = useState<Moment[]>([])
+  const [achievementQueue, setAchievementQueue] = useState<DepartmentAchievement[]>([])
   const { champion, photo } = useChampion()
   const queued = useRef<Set<string>>(new Set())
+  const achievementQueued = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!maybeSupabase) return
@@ -476,6 +480,12 @@ export function RecognitionHost() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)))
     return () => { live = false; sub.subscription.unsubscribe() }
   }, [])
+
+  useEffect(() => {
+    if (signedIn) return
+    setAchievementQueue([])
+    achievementQueued.current.clear()
+  }, [signedIn])
 
   const push = useCallback((moment: Moment) => {
     if (queued.current.has(moment.key)) return
@@ -505,38 +515,42 @@ export function RecognitionHost() {
     })
   }, [signedIn, champion, photo, push])
 
-  // Team milestones: now and live.
-  const loadMilestones = useCallback(async () => {
+  // Department achievements are separate from personal ribbon recognition.
+  // Realtime INSERT payloads are only a refresh signal; authorised RPC data
+  // is the only data allowed into the ceremony queue.
+  const loadDepartmentAchievements = useCallback(async () => {
     if (!maybeSupabase) return
-    const { data } = await supabase.rpc('unseen_team_milestones')
-    const rows = (data || []) as Array<{ id: string; kind: string; title: string }>
-    for (const row of rows) {
-      push({
-        key: `ms-${row.id}`,
-        kicker: 'Team milestone',
-        title: row.kind === 'project_complete' ? `${row.title} is complete` : `${row.title} cleared its overdue list`,
-        line: row.kind === 'project_complete' ? 'Every task is done. Well done, team.' : 'Nothing overdue. That is teamwork.',
-        kind: 'rainbow',
-        done: () => { void supabase.rpc('mark_team_milestones_seen', { p_ids: [row.id] }) },
-      })
-    }
-  }, [push])
+    const { data, error } = await supabase.rpc('unseen_department_achievements')
+    if (error) return
+    const rows = (data || []) as DepartmentAchievement[]
+    setAchievementQueue(current => {
+      const next = [...current]
+      for (const row of rows) {
+        if (achievementQueued.current.has(row.id)) continue
+        achievementQueued.current.add(row.id)
+        next.push(row)
+      }
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     if (!signedIn || !maybeSupabase) return
-    void loadMilestones()
+    void loadDepartmentAchievements()
     let timer: number | null = null
     const channel = supabase
-      .channel(`milestones-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'team_milestones' }, () => {
+      .channel(`department-achievements-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'department_achievements' }, () => {
         if (timer) window.clearTimeout(timer)
-        timer = window.setTimeout(() => { void loadMilestones() }, 500)
+        timer = window.setTimeout(() => { void loadDepartmentAchievements() }, 500)
       })
       .subscribe()
     return () => { if (timer) window.clearTimeout(timer); void supabase.removeChannel(channel) }
-  }, [signedIn, loadMilestones])
+  }, [signedIn, loadDepartmentAchievements])
 
   const current = queue[0] || null
+  const currentAchievement = achievementQueue[0] || null
+
   const close = useCallback(() => {
     setQueue(list => {
       list[0]?.done()
@@ -544,16 +558,38 @@ export function RecognitionHost() {
     })
   }, [])
 
-  if (!current) return null
-  return (
-    <WorkCelebration
-      ribbon={{ id: current.key, kind: current.kind, message: '' }}
-      giverName={current.line}
-      kicker={current.kicker}
-      title={current.title}
-      photoUrl={current.photo}
-      holdMs={7000}
-      onClose={close}
-    />
-  )
+  const closeAchievement = useCallback(() => {
+    setAchievementQueue(list => {
+      const closing = list[0]
+      if (closing) {
+        void supabase.rpc('mark_department_achievements_seen', { p_ids: [closing.id] })
+      }
+      return list.slice(1)
+    })
+  }, [])
+
+  if (current) {
+    return (
+      <WorkCelebration
+        ribbon={{ id: current.key, kind: current.kind, message: '' }}
+        giverName={current.line}
+        kicker={current.kicker}
+        title={current.title}
+        photoUrl={current.photo}
+        holdMs={7000}
+        onClose={close}
+      />
+    )
+  }
+
+  if (currentAchievement) {
+    return (
+      <DepartmentAchievementCeremony
+        achievement={currentAchievement}
+        onClose={closeAchievement}
+      />
+    )
+  }
+
+  return null
 }
