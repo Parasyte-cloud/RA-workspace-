@@ -89,7 +89,7 @@ export default function SupportInvites({ employees, agents, teams = [], onChange
 
   return <div className="supportAdminEditor sccPanel">
     <h4><MailPlus size={16} /> Invite someone to Support</h4>
-    <p className="sccHealthNote">For staff who have no RideArrivo email. They get a one-time code, open the join page, pick a password, and land in Support only. Codes work once, for one email, for 48 hours.</p>
+    <p className="sccHealthNote">For staff joining Support with a personal email. They verify a one-time code; new users create a password, while anyone with an existing RideArrivo account keeps their existing account password. Codes work once, for one email, for 48 hours.</p>
     {notice ? <div className="sccNotice" role="status">{notice}</div> : null}
 
     <div className="supportAdminForm">
@@ -123,11 +123,29 @@ export default function SupportInvites({ employees, agents, teams = [], onChange
     <h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Invites <button type="button" className="sccIconBtn" onClick={() => void load()}><RefreshCw size={14} />Refresh</button></h4>
     {invites.length === 0 ? <div className="sccEmpty">No invites yet.</div> : invites.map((inv) => <div key={inv.id} className="sccAuditRow">
       <span><b>{inv.full_name}</b><small>{inv.email}{inv.phone ? ` · ${inv.phone}` : ''}</small></span>
-      <span><b style={{ textTransform: 'capitalize' }}>{inv.status}</b><small>{inv.role_kind} · {inv.status === 'pending' ? `expires ${when(inv.expires_at)}` : inv.status === 'redeemed' ? `joined ${when(inv.redeemed_at)}` : `created ${when(inv.created_at)}`}</small></span>
       <span>
-        <small>Sent {inv.send_count} time{inv.send_count === 1 ? '' : 's'}; last {when(inv.last_sent_at)}. {Object.entries(inv.delivery || {}).map(([ch, r]) => `${ch}: ${r.ok ? 'ok' : r.detail}`).join('; ')}{inv.attempts ? ` Wrong guesses: ${inv.attempts}.` : ''}</small>
+        <b style={{ textTransform: 'capitalize' }}>
+          {inv.security_state === 'held' ? 'Security hold' : inv.security_state === 'cooldown' ? 'Cooling down' : inv.status}
+        </b>
+        <small>
+          {inv.role_kind} · {inv.security_state === 'held'
+            ? 'reissue required'
+            : inv.security_state === 'cooldown'
+              ? `retry after ${when(inv.cooldown_until)}`
+              : inv.status === 'pending'
+                ? `expires ${when(inv.expires_at)}`
+                : inv.status === 'redeemed'
+                  ? `joined ${when(inv.redeemed_at)}`
+                  : `created ${when(inv.created_at)}`}
+        </small>
+      </span>
+      <span>
+        <small>
+          Sent {inv.send_count} time{inv.send_count === 1 ? '' : 's'}; last {when(inv.last_sent_at)}. {Object.entries(inv.delivery || {}).map(([ch, r]) => `${ch}: ${r.ok ? 'ok' : r.detail}`).join('; ')}
+          {inv.security_state === 'held' ? ' Reissue this invitation to clear the security hold.' : inv.security_state === 'cooldown' ? ' Verification is temporarily paused.' : inv.attempts ? ` Wrong guesses: ${inv.attempts}.` : ''}
+        </small>
         {inv.status !== 'redeemed' ? <span style={{ display: 'flex', gap: 6 }}>
-          <button type="button" className="sccIconBtn" disabled={busy} onClick={() => void resend(inv)}><RotateCw size={14} />{inv.status === 'pending' ? 'New code' : 'Reissue'}</button>
+          <button type="button" className="sccIconBtn" disabled={busy} onClick={() => void resend(inv)}><RotateCw size={14} />{inv.security_state === 'held' || inv.status === 'locked' ? 'Reissue' : 'New code'}</button>
           {inv.status === 'pending' ? <button type="button" className="sccIconBtn" disabled={busy} onClick={() => void revoke(inv)}><Trash2 size={14} />Cancel</button> : null}
         </span> : null}
       </span>

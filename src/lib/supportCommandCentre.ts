@@ -647,6 +647,8 @@ export type StaffInvite = {
   status: 'pending' | 'redeemed' | 'revoked' | 'expired' | 'locked'; attempts: number; expires_at: string; created_at: string
   created_by_name: string | null; last_sent_at: string | null; send_count: number
   delivery: Record<string, { ok: boolean; at: string; detail: string }>; redeemed_at: string | null
+  security_state: 'normal' | 'cooldown' | 'held'; cooldown_until: string | null; held_at: string | null
+  failed_attempts_window: number
 }
 export type InviteOutcome = {
   ok: boolean; inviteId: string; expiresAt: string; code: string; joinUrl: string | null

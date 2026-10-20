@@ -24,7 +24,7 @@ const asText = (v: unknown, max = 200) => String(v ?? '').trim().slice(0, max)
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const GENERIC_FAIL = 'That email and code do not match, or the invite has expired. Check them, or ask your administrator for a new code.'
 
-// Best-effort brake per instance; the real limit is the 5-guess lockout in the database.
+// Best-effort per-instance IP brake. Per-invite cooldowns and holds are database-authoritative.
 const hits = new Map<string, number[]>()
 function tooMany(key: string, max: number, windowMs: number): boolean {
   const now = Date.now()
@@ -112,42 +112,62 @@ Deno.serve(async (req) => {
     // ------------------------------------------------------------- redeem (public)
     if (action === 'redeem') {
       const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
-      if (tooMany(`ip:${ip}`, 20, 10 * 60_000)) throw new HttpError(429, 'Too many attempts. Wait ten minutes and try again.')
+      if (tooMany(`ip:${ip}`, 20, 10 * 60_000)) throw new HttpError(429, GENERIC_FAIL)
       const email = asText(body?.email, 254).toLowerCase()
       const code = normalizeInviteCode(body?.code)
       if (!isValidEmail(email) || code.length < 8) throw new HttpError(400, GENERIC_FAIL)
-      const weak = validateJoinPassword(body?.password, email)
-      if (weak) throw new HttpError(400, weak)
 
       const admin = adminClient()
       const { data: chk, error: chkError } = await admin.rpc('support_invite_check', { p_email: email, p_code: code })
       if (chkError) throw chkError
       if (!chk?.ok) {
-        await new Promise((r) => setTimeout(r, 400))   // slow guessing without revealing which part was wrong
+        await new Promise((r) => setTimeout(r, 400))
         throw new HttpError(400, GENERIC_FAIL)
       }
 
-      const { data: existing } = await admin.from('employee_profiles').select('id').ilike('email', email.replace(/[\\%_]/g, (c) => '\\' + c)).maybeSingle()
-      let userId: string | null = existing?.id ?? null
-      let created = false
-      if (!userId) {
-        const { data: made, error: makeError } = await admin.auth.admin.createUser({
-          email, password: String(body.password), email_confirm: true, user_metadata: { full_name: chk.full_name },
-        })
-        if (makeError || !made?.user) {
-          console.error('createUser failed', makeError?.message)
-          throw new HttpError(409, 'An account with that email already exists. Sign in instead, or ask your administrator for help.')
+      const escapedEmail = email.replace(/[\\%_]/g, (c) => '\\' + c)
+      const { data: existing, error: existingError } = await admin
+        .from('employee_profiles')
+        .select('id')
+        .ilike('email', escapedEmail)
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      if (existing?.id) {
+        const { error: doneError } = await admin.rpc('support_invite_complete', { p_invite: chk.invite_id, p_user: existing.id })
+        if (doneError) {
+          console.error('invite complete failed', doneError.message)
+          throw new HttpError(500, 'Could not finish setting up your access. Ask your administrator to send a new code.')
         }
-        userId = made.user.id
-        created = true
+        return json(req, { ok: true, existingAccount: true, name: chk.full_name })
       }
+
+      if (!body?.password) {
+        return json(req, { ok: true, needsPassword: true, name: chk.full_name })
+      }
+
+      const weak = validateJoinPassword(body.password, email)
+      if (weak) throw new HttpError(400, weak)
+
+      const { data: made, error: makeError } = await admin.auth.admin.createUser({
+        email,
+        password: String(body.password),
+        email_confirm: true,
+        user_metadata: { full_name: chk.full_name },
+      })
+      if (makeError || !made?.user) {
+        console.error('createUser failed', makeError?.message)
+        throw new HttpError(409, 'An account with that email already exists. Sign in instead, or ask your administrator for help.')
+      }
+
+      const userId = made.user.id
       const { error: doneError } = await admin.rpc('support_invite_complete', { p_invite: chk.invite_id, p_user: userId })
       if (doneError) {
-        if (created) await admin.auth.admin.deleteUser(userId!).catch(() => undefined)
+        await admin.auth.admin.deleteUser(userId).catch(() => undefined)
         console.error('invite complete failed', doneError.message)
         throw new HttpError(500, 'Could not finish setting up your access. Ask your administrator to send a new code.')
       }
-      return json(req, { ok: true, existingAccount: !created, name: chk.full_name })
+      return json(req, { ok: true, existingAccount: false, name: chk.full_name })
     }
 
     // ------------------------------------------------------------- admin actions
