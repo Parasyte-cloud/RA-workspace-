@@ -5,6 +5,7 @@ import {
   Download, Plus, Redo2, Sigma, Undo2, Upload,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 import { Calc, SUPPORTED_FUNCTIONS, isErr } from '../lib/sheetFormula'
 import {
   DEFAULT_COL_WIDTH, MAX_COLS, MAX_COL_WIDTH, MAX_ROWS, MIN_COL_WIDTH,
@@ -67,6 +68,7 @@ export default function SheetEditor({ id, initialTitle, initialVersion, initialD
   const [title, setTitle] = useState(initialTitle)
   const titleRef = useRef(initialTitle)
   const [status, setStatus] = useState<Status>('saved')
+  useCelebrationBlocker('critical_unsaved_form', status !== 'saved')
   const [message, setMessage] = useState('')
   const [notice, setNotice] = useState('')
   const [menu, setMenu] = useState<Menu | null>(null)

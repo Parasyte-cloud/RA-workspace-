@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import '../premium-celebration.css'
 
-export type CelebrationIntensity = 'major' | 'birthday' | 'trophy'
+export type CelebrationIntensity = 'major' | 'birthday' | 'trophy' | 'seasonal_max'
 
 export type PremiumCelebrationStageProps = {
   open: boolean
@@ -18,6 +18,7 @@ export type PremiumCelebrationStageProps = {
   introMs: number
   onPresented?: () => void
   onClose: () => void
+  staticVisuals?: boolean
 }
 
 const PIECE_COUNT = 108
@@ -37,6 +38,7 @@ export function PremiumCelebrationStage({
   introMs,
   onPresented,
   onClose,
+  staticVisuals = false,
 }: PremiumCelebrationStageProps) {
   const [revealed, setRevealed] = useState(false)
   const presentationReported = useRef(false)
@@ -112,7 +114,7 @@ export function PremiumCelebrationStage({
 
   return (
     <div
-      className={`premiumCelebrationOverlay premiumCelebration-${intensity}${revealed ? ' isRevealed' : ''}`}
+      className={`premiumCelebrationOverlay premiumCelebration-${intensity}${revealed ? ' isRevealed' : ''}${staticVisuals ? ' isStaticVisuals' : ''}`}
       role="alertdialog"
       aria-modal="true"
       aria-label={`${kicker}: ${title}`}
@@ -120,8 +122,8 @@ export function PremiumCelebrationStage({
         if (event.currentTarget === event.target) onClose()
       }}
     >
-      <div className="premiumCelebrationGlow" aria-hidden="true" />
-      <div className="premiumCelebrationRibbons" aria-hidden="true">
+      {!staticVisuals && <div className="premiumCelebrationGlow" aria-hidden="true" />}
+      {!staticVisuals && <div className="premiumCelebrationRibbons" aria-hidden="true">
         {pieces.map(piece => (
           <i
             key={piece.id}
@@ -142,7 +144,7 @@ export function PremiumCelebrationStage({
         <span className="premiumCelebrationStreamer streamerB" />
         <span className="premiumCelebrationStreamer streamerC" />
         <span className="premiumCelebrationStreamer streamerD" />
-      </div>
+      </div>}
 
       <section ref={cardRef} className="premiumCelebrationCard">
         <button ref={closeButton} type="button" className="premiumCelebrationClose" onClick={onClose} aria-label="Close celebration">

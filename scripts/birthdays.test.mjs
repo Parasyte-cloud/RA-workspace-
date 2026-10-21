@@ -37,21 +37,41 @@ test('the email dispatcher renders a designed card for birthdays and escapes nam
   assert.match(fn, /RIBBON = \["#ff9900"/)
 })
 
-test('the celebration shows once a day, respects reduced motion and mounts in the shell', () => {
-  assert.match(ui, /ra\.bday\.seen\./)
+test('birthday colleague surface stays mounted while automatic takeover is durable and central', () => {
+  assert.doesNotMatch(ui, /ra\.bday\.seen\./)
   assert.match(css, /prefers-reduced-motion:reduce/)
   assert.match(app, /<BirthdayCelebration\/>/)
   assert.doesNotMatch(css + ui, /—/)
 })
 
-test('signed-in birthday takeover uses the shared premium birthday stage and keeps wishes', () => {
-  assert.match(ui, /PremiumCelebrationStage/)
-  assert.match(ui, /intensity="birthday"/)
-  assert.match(ui, /introMs=\{1700\}/)
-  assert.match(ui, /holdMs=\{8000\}/)
-  assert.doesNotMatch(ui, /function Confetti\s*\(/)
-  assert.match(ui, /get_my_birthday_wishes/)
+test('birthday module preserves coworker wishes while central host owns the takeover', () => {
+  assert.doesNotMatch(ui, /PremiumCelebrationStage/)
   assert.match(ui, /send_birthday_wish/)
-  assert.match(ui, /bdWishes/)
+  assert.match(ui, /get_birthdays_today/)
   assert.match(ui, /hiddenKey/)
+})
+
+import fs from 'node:fs'
+
+test('enhanced birthday takeover is central durable and preserves coworker wishes',()=>{ const host=fs.readFileSync('src/components/RecognitionCeremonyHost.tsx','utf8'); const scene=fs.readFileSync('src/components/celebrations/BirthdayCelebrationScene.tsx','utf8'); const module=fs.readFileSync('src/modules/BirthdayCelebration.tsx','utf8'); assert.match(host,/sourceKind === 'birthday'/); assert.match(scene,/holdMs=\{9000\}/); assert.match(scene,/fullCount=\{136\}/); assert.doesNotMatch(module,/ra\.bday\.seen/); assert.match(module,/send_birthday_wish/); assert.match(module,/get_birthdays_today/); })
+
+test('static Birthday profile uses the shared static fallback rather than animated balloons',()=>{
+  const scene=fs.readFileSync('src/components/celebrations/BirthdayCelebrationScene.tsx','utf8')
+  assert.match(scene,/SeasonalStaticFallback/)
+  assert.match(scene,/profile\s*===\s*['"]static['"]/)
+})
+
+test('explicit reduced Birthday preview suppresses balloons even without an OS reduced-motion setting',()=>{
+  const scene=fs.readFileSync('src/components/celebrations/BirthdayCelebrationScene.tsx','utf8')
+  const birthdayCss=fs.readFileSync('src/birthday.css','utf8')
+  assert.match(scene,/birthdayEnhancedScene[^\n]*isReduced/)
+  assert.match(birthdayCss,/isReduced[^}]*birthdayCornerBalloons|birthdayEnhancedScene\.isReduced[^{]*\{[^}]*animation:none|birthdayEnhancedScene\.isReduced[^\n]*birthdayCornerBalloons/)
+})
+
+test('birthday employee can manually replay the production scene without claiming another delivery',()=>{
+  const module=fs.readFileSync('src/modules/BirthdayCelebration.tsx','utf8')
+  assert.match(module,/lazy\(\(\)\s*=>\s*import\(['"]\.\.\/components\/celebrations\/BirthdayCelebrationScene['"]\)\)/)
+  assert.match(module,/Replay celebration/)
+  assert.match(module,/sourceKind:\s*['"]birthday['"]/)
+  assert.doesNotMatch(module,/claim_next_recognition_ceremony|mark_recognition_ceremony_presented|dismiss_recognition_ceremony/)
 })

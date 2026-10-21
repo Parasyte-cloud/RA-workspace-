@@ -1,0 +1,12 @@
+{
+  "family": "ridearrivo-recognition-christmas",
+  "mime": "image/webp",
+  "firstParty": true,
+  "textBakedIn": false,
+  "variants": {
+    "full": "santa-sleigh-full.b04b44ff40.webp",
+    "balanced": "santa-sleigh-balanced.5bff5fc781.webp",
+    "static": "santa-sleigh-static.fc7a71e638.webp"
+  },
+  "generationNote": "Photorealistic festive Santa in a red and gold sleigh with four reindeer, presents, garlands and warm cinematic lighting, isolated on transparency. No logo or text is embedded."
+}

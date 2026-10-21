@@ -18,6 +18,8 @@ const NEEDS_SUPABASE = new Set([
   'personal-awards-e2e.test.mjs',
   'recognition-ceremony-delivery-e2e.test.mjs',
   'recognition-governance-e2e.test.mjs',
+  'seasonal-campaigns-e2e.test.mjs',
+  'birthday-delivery-e2e.test.mjs',
 ])
 
 const files = readdirSync(new URL('.', import.meta.url))
