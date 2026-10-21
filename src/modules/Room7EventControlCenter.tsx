@@ -22,6 +22,10 @@ import {
 } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
+import {
+  cancelRoom7CalendarEvent,
+  saveRoom7CalendarEvent,
+} from '../lib/room7CalendarApi'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventEngagementManager from './Room7EventEngagementManager'
 import '../room7-event-control.css'
@@ -1146,10 +1150,67 @@ export default function Room7EventControlCenter({
           response,
         )
 
+        let calendarMessage = ''
+
+        try {
+          const event =
+            response.event
+
+          if (
+            event?.scheduled_start &&
+            event.scheduled_end
+          ) {
+            await saveRoom7CalendarEvent({
+              eventCode:
+                response.room.room_code,
+              meetingId:
+                response.room.id,
+              title:
+                response.room.title ||
+                roomTitle,
+              description:
+                event.public_summary ||
+                undefined,
+              startsAt:
+                event.scheduled_start,
+              endsAt:
+                event.scheduled_end,
+              timezone:
+                event.timezone ||
+                config.timezone ||
+                'Africa/Lagos',
+              joinUrl:
+                `https://room7.ridearrivo.com/r/${response.room.room_code}`,
+              organizerName:
+                'RideArrivo',
+              reminderMinutes:
+                [60, 15],
+            })
+
+            calendarMessage =
+              ' Calendar invitation updated.'
+          } else {
+            await cancelRoom7CalendarEvent(
+              response.room.room_code,
+            )
+          }
+        } catch (calendarError) {
+          console.error(
+            'ROOM 7 calendar synchronisation failed:',
+            calendarError,
+          )
+
+          calendarMessage =
+            ' Event saved, but calendar synchronisation needs attention.'
+        }
+
         const savedMessage =
-          response.event
-            ? 'External ROOM 7 event configuration saved.'
-            : 'ROOM 7 event configuration saved.'
+          (
+            response.event
+              ? 'External ROOM 7 event configuration saved.'
+              : 'ROOM 7 event configuration saved.'
+          ) +
+          calendarMessage
 
         if (
           response.event

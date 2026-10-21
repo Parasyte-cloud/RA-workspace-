@@ -578,3 +578,6 @@ verify_jwt = false
 [functions.recognition-seasonal-dispatch]
 verify_jwt = false
 entrypoint = "./functions/recognition-seasonal-dispatch/index.ts"
+
+[functions.room7-calendar]
+verify_jwt = false

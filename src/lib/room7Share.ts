@@ -11,6 +11,14 @@
 
 export const GUEST_ORIGIN = 'https://room7.ridearrivo.com'
 
+
+export function room7InviteCalendarUrl(code: string): string {
+  const normalized =
+    code.trim().toUpperCase()
+
+  return `https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1/room7-calendar?code=${encodeURIComponent(normalized)}`
+}
+
 // Same alphabet as room codes: no 0, 1, I or O, so nothing is misread on a phone.
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -64,6 +72,7 @@ export function invitationText(input: {
     '',
     `Join link: ${guestLink(input.code)}`,
     `Event code: ${input.code}`,
+    `Add to calendar: ${room7InviteCalendarUrl(input.code)}`,
   ]
   const needsPasscode = !!input.passcode || !!input.passcodeSeparate
   if (input.passcode) lines.push(`Passcode: ${input.passcode}`)
