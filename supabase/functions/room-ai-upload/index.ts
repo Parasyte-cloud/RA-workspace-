@@ -4,6 +4,7 @@
 // private storage (audio never passes through this function), then calls
 // `ack` with the size and SHA-256 so the server can prove nothing is missing.
 import { adminClient, authenticate, handle, json, loadManagedSession, HttpError } from "../_shared/roomAiAuth.ts"
+import { roomAiCors, roomAiJson } from "../_shared/roomAiCors.ts"
 import { baseMime, chunkPath, isSha256, isUuid, validSeq, MAX_CHUNK_BYTES } from "../_shared/roomAiCore.ts"
 
 const BUCKET = "room-ai-recordings"
@@ -34,7 +35,7 @@ Deno.serve(handle(async (req) => {
     // upsert lets a retried chunk replace a half-uploaded one.
     const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path, { upsert: true })
     if (error || !data) throw new HttpError(500, "Could not prepare the upload.")
-    return json(200, { path, token: data.token, signed_url: data.signedUrl })
+    return roomAiJson(req, 200, { path, token: data.token, signed_url: data.signedUrl })
   }
 
   if (body.action === "ack") {
@@ -58,8 +59,8 @@ Deno.serve(handle(async (req) => {
       ai_session_id: sessionId, seq, storage_path: path, bytes, sha256: sha, mime,
     }, { onConflict: "ai_session_id,seq" })
     if (error) throw new HttpError(500, "Could not record the chunk.")
-    return json(200, { ok: true, seq })
+    return roomAiJson(req, 200, { ok: true, seq })
   }
 
   throw new HttpError(400, "Unknown action.")
-}))
+}, roomAiCors))

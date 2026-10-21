@@ -8,6 +8,7 @@
 // database retention clock and room-ai-retention own that, so a meeting set to
 // "delete after finalize" only loses audio after this function succeeded.
 import { adminClient, authenticate, handle, json, loadManagedSession, HttpError } from "../_shared/roomAiAuth.ts"
+import { roomAiCors, roomAiJson } from "../_shared/roomAiCors.ts"
 import {
   baseMime, deepgramQuery, finalPath, isUuid, MAX_ASSEMBLED_BYTES, MAX_CHUNKS, missingChunks,
   normalizeUtterances, summaryFrom, topicsFrom,
@@ -33,7 +34,7 @@ Deno.serve(handle(async (req) => {
   const session = await loadManagedSession(admin, sessionId, me.id)
   if (session.audio_deleted_at) throw new HttpError(409, "The audio was deleted, so this meeting cannot be reprocessed.")
   if (session.state === "recording" || session.state === "paused") throw new HttpError(409, "End the meeting first.")
-  if (session.state === "ready" && body.reprocess !== true) return json(200, { state: "ready" })
+  if (session.state === "ready" && body.reprocess !== true) return roomAiJson(req, 200, { state: "ready" })
 
   // Retry from failed / incomplete / reprocess by moving back to finalizing.
   if (session.state !== "finalizing") {
@@ -49,14 +50,14 @@ Deno.serve(handle(async (req) => {
     .eq("id", sessionId).eq("state", "finalizing")
     .or(`finalize_claimed_at.is.null,finalize_claimed_at.lt.${staleBefore}`)
     .select("id")
-  if (!claimed?.length) return json(202, { state: "finalizing", note: "Already being processed." })
+  if (!claimed?.length) return roomAiJson(req, 202, { state: "finalizing", note: "Already being processed." })
 
   const fail = async (state: "failed" | "incomplete_upload", code: string, message: string, extra: Record<string, unknown> = {}) => {
     await admin.from("workspace_room_ai_sessions")
       .update({ state, error_code: code, error_message: message.slice(0, 500), finalize_claimed_at: null })
       .eq("id", sessionId)
     await admin.from("workspace_room_ai_audit").insert({ ai_session_id: sessionId, actor_id: me.id, event: "finalize_" + code, detail: extra })
-    return json(200, { state, error: message, ...extra })
+    return roomAiJson(req, 200, { state, error: message, ...extra })
   }
 
   const key = Deno.env.get("DEEPGRAM_API_KEY")
@@ -145,5 +146,5 @@ Deno.serve(handle(async (req) => {
     ai_session_id: sessionId, actor_id: me.id, event: "finalized",
     detail: { revision, segments: rows.length, bytes: total },
   })
-  return json(200, { state: "ready", revision, segments: rows.length })
-}))
+  return roomAiJson(req, 200, { state: "ready", revision, segments: rows.length })
+}, roomAiCors))

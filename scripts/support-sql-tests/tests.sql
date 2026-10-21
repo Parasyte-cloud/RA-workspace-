@@ -76,10 +76,26 @@ begin
   perform t.ok(public.support_is_employee_on_shift(b, '2026-10-21 18:59+01'), 'Wed 18:59 still on day shift');
   perform t.ok(not public.support_is_employee_on_shift(b, '2026-10-21 19:00+01'), 'Wed 19:00 day shift ended');
   perform t.ok(not public.support_is_employee_on_shift(b, '2026-10-22 10:00+01'), 'Thu not assigned');
-  update public.support_agents set shift_override_until = now() + interval '1 hour' where employee_id = b;
-  perform t.ok(public.support_is_employee_on_shift(b, now()), 'override grants cover now');
-  perform t.ok(not public.support_is_employee_on_shift(b, now() + interval '2 hours'), 'override expires');
-  update public.support_agents set shift_override_until = null where employee_id = b;
+  -- Use a deterministic Thursday window where B has no scheduled shift.
+  -- This proves the temporary override itself grants access and then expires,
+  -- without depending on the weekday/time when the test suite is executed.
+  update public.support_agents
+     set shift_override_until = '2026-10-22 12:00+01'
+   where employee_id = b;
+
+  perform t.ok(
+    public.support_is_employee_on_shift(b, '2026-10-22 11:00+01'),
+    'override grants access before expiry'
+  );
+
+  perform t.ok(
+    not public.support_is_employee_on_shift(b, '2026-10-22 13:00+01'),
+    'override expires'
+  );
+
+  update public.support_agents
+     set shift_override_until = null
+   where employee_id = b;
 end $$;
 
 -- 3. Privilege boundaries ----------------------------------------------------

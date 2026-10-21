@@ -4,6 +4,7 @@
 // store the result as PROVISIONAL text. Slices are never stored; the durable
 // recording is the chunk stream, and the final transcript replaces this one.
 import { adminClient, authenticate, handle, json, loadManagedSession, HttpError } from "../_shared/roomAiAuth.ts"
+import { roomAiCors, roomAiJson } from "../_shared/roomAiCors.ts"
 import { baseMime, deepgramQuery, isUuid, MAX_LIVE_SLICE_BYTES, normalizeUtterances } from "../_shared/roomAiCore.ts"
 
 Deno.serve(handle(async (req) => {
@@ -23,13 +24,13 @@ Deno.serve(handle(async (req) => {
 
   const session = await loadManagedSession(admin, sessionId, me.id)
   if (!session.live_transcript_enabled) throw new HttpError(409, "Live transcript is off for this meeting.")
-  if (session.state !== "recording") return json(200, { segments: 0, skipped: "not_recording" })
+  if (session.state !== "recording") return roomAiJson(req, 200, { segments: 0, skipped: "not_recording" })
 
   const key = Deno.env.get("DEEPGRAM_API_KEY")
   if (!key) throw new HttpError(503, "Transcription is not configured yet.")
 
   const audio = new Uint8Array(await req.arrayBuffer())
-  if (audio.byteLength < 800) return json(200, { segments: 0 })
+  if (audio.byteLength < 800) return roomAiJson(req, 200, { segments: 0 })
   if (audio.byteLength > MAX_LIVE_SLICE_BYTES) throw new HttpError(413, "That slice is too large.")
 
   const dg = await fetch(
@@ -44,11 +45,11 @@ Deno.serve(handle(async (req) => {
   if (!dg.ok) {
     console.error("deepgram live status", dg.status)
     // The recording is fine; only the live text is behind.
-    return json(200, { segments: 0, degraded: true })
+    return roomAiJson(req, 200, { segments: 0, degraded: true })
   }
   const result = await dg.json()
   const segs = normalizeUtterances(result?.results?.utterances, offsetMs)
-  if (!segs.length) return json(200, { segments: 0 })
+  if (!segs.length) return roomAiJson(req, 200, { segments: 0 })
 
   const rows = segs.map((s, i) => ({
     ai_session_id: sessionId,
@@ -65,5 +66,5 @@ Deno.serve(handle(async (req) => {
   const { error } = await admin.from("workspace_room_transcript_segments")
     .upsert(rows, { onConflict: "ai_session_id,revision,source,seq" })
   if (error) throw new HttpError(500, "Could not save the live transcript.")
-  return json(200, { segments: rows.length })
-}))
+  return roomAiJson(req, 200, { segments: rows.length })
+}, roomAiCors))
