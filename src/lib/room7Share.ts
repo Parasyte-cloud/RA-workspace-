@@ -60,22 +60,126 @@ export function stepsToOpen(state: string | null | undefined): string[] {
 export const isGuestOpen = (state: string | null | undefined) =>
   !!state && (JOIN_STATES as readonly string[]).includes(state)
 
+function invitationSchedule(input: {
+  startsAt: string
+  endsAt: string
+  timezone?: string
+}) {
+  const start =
+    new Date(input.startsAt)
+
+  const end =
+    new Date(input.endsAt)
+
+  const requestedTimezone =
+    input.timezone ||
+    'Africa/Lagos'
+
+  const timezone = (() => {
+    try {
+      new Intl.DateTimeFormat(
+        'en-NG',
+        {
+          timeZone:
+            requestedTimezone,
+        },
+      ).format(start)
+
+      return requestedTimezone
+    } catch {
+      return 'Africa/Lagos'
+    }
+  })()
+
+  const date =
+    new Intl.DateTimeFormat(
+      'en-NG',
+      {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: timezone,
+      },
+    ).format(start)
+
+  const time =
+    new Intl.DateTimeFormat(
+      'en-NG',
+      {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: timezone,
+      },
+    )
+
+  return {
+    date,
+    time:
+      `${time.format(start)} – ${time.format(end)}`,
+    timezone,
+  }
+}
+
 export function invitationText(input: {
   title: string
   code: string
   passcode?: string | null
   // A separate passcode exists but is not known here (set earlier).
   passcodeSeparate?: boolean
+  startsAt?: string | null
+  endsAt?: string | null
+  timezone?: string | null
 }): string {
+  const schedule =
+    input.startsAt &&
+    input.endsAt
+      ? invitationSchedule({
+          startsAt:
+            input.startsAt,
+          endsAt:
+            input.endsAt,
+          timezone:
+            input.timezone ||
+            undefined,
+        })
+      : null
+
   const lines = [
     `You are invited to join: ${input.title}`,
+  ]
+
+  if (schedule) {
+    lines.push(
+      '',
+      schedule.date,
+      `${schedule.time} · ${schedule.timezone}`,
+    )
+  }
+
+  lines.push(
     '',
     `Join link: ${guestLink(input.code)}`,
     `Event code: ${input.code}`,
-    `Add to calendar: ${room7InviteCalendarUrl(input.code)}`,
-  ]
-  const needsPasscode = !!input.passcode || !!input.passcodeSeparate
-  if (input.passcode) lines.push(`Passcode: ${input.passcode}`)
+  )
+
+  if (schedule) {
+    lines.push(
+      `Add to calendar: ${room7InviteCalendarUrl(input.code)}`,
+    )
+  }
+
+  const needsPasscode =
+    !!input.passcode ||
+    !!input.passcodeSeparate
+
+  if (input.passcode) {
+    lines.push(
+      `Passcode: ${input.passcode}`,
+    )
+  }
+
   lines.push(
     '',
     'How to join:',
@@ -83,6 +187,7 @@ export function invitationText(input: {
     `2. Enter your name and email${needsPasscode ? ', and the passcode' : ''}.`,
     '3. Press Join.',
   )
+
   return lines.join('\n')
 }
 
@@ -297,6 +402,7 @@ export function calendarEventFor(input: {
   passcodeSeparate?: boolean
   start: Date
   minutes: number
+  timezone?: string
 }): CalendarEvent {
   return {
     title: input.title,
@@ -308,6 +414,17 @@ export function calendarEventFor(input: {
       code: input.code,
       passcode: input.passcode,
       passcodeSeparate: input.passcodeSeparate,
+      startsAt: input.start.toISOString(),
+      endsAt: new Date(
+        input.start.getTime() +
+          input.minutes * 60000,
+      ).toISOString(),
+      timezone:
+        input.timezone ||
+        Intl.DateTimeFormat()
+          .resolvedOptions()
+          .timeZone ||
+        'Africa/Lagos',
     }),
   }
 }
