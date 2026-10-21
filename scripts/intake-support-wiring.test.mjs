@@ -11,21 +11,32 @@ const route =
     'utf8',
   )
 
+const hub =
+  readFileSync(
+    new URL(
+      '../src/modules/SupportWorkspaceHub.tsx',
+      import.meta.url,
+    ),
+    'utf8',
+  )
+
+const supportSurface = `${route}\n${hub}`
+
 test(
   'Support workstation mounts the reusable intake inbox',
   () => {
     assert.match(
-      route,
+      hub,
       /import IntakeSubmissionInbox from '\.\/IntakeSubmissionInbox'/,
     )
 
     assert.match(
-      route,
+      hub,
       /<IntakeSubmissionInbox[\s\S]*workstation="support"/,
     )
 
     assert.match(
-      route,
+      hub,
       /title="Support Form Submissions"/,
     )
   },
@@ -40,13 +51,13 @@ test(
     )
 
     assert.match(
-      route,
-      /<SupportWhatsAppPanel\/>/,
+      hub,
+      /<SupportWhatsAppPanel\s*\/>/,
     )
 
     assert.match(
-      route,
-      /<SupportAssistedBookingPanel\/>/,
+      hub,
+      /<SupportAssistedBookingPanel\s*\/>/,
     )
   },
 )
@@ -55,18 +66,18 @@ test(
   'intake inbox is additive and ordered before communication tools',
   () => {
     const inbox =
-      route.indexOf(
+      hub.indexOf(
         '<IntakeSubmissionInbox',
       )
 
     const whatsapp =
-      route.indexOf(
-        '<SupportWhatsAppPanel/>',
+      hub.indexOf(
+        '<SupportWhatsAppPanel />',
       )
 
     const booking =
-      route.indexOf(
-        '<SupportAssistedBookingPanel/>',
+      hub.indexOf(
+        '<SupportAssistedBookingPanel />',
       )
 
     assert.ok(inbox >= 0)
@@ -79,17 +90,17 @@ test(
   'Support route does not bypass the centralized intake client',
   () => {
     assert.doesNotMatch(
-      route,
+      supportSurface,
       /\.from\(\s*['"]intake_/,
     )
 
     assert.doesNotMatch(
-      route,
+      supportSurface,
       /updateIntakeSubmissionStatus/,
     )
 
     assert.doesNotMatch(
-      route,
+      supportSurface,
       /reassignIntakeSubmission/,
     )
   },
