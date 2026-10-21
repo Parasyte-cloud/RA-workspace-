@@ -34,34 +34,93 @@ begin
   perform t.ok(position('KQ7M2' in rec.code_hash) = 0 and position('KQ7M2' in rec.code_salt) = 0 and length(rec.code_hash) = 64, 'the clear code is not stored');
   perform t.ok(exists (select 1 from public.support_audit_log where action = 'staff_invite_created' and entity_id = inv::text), 'creation is audited');
 
-  -- 3. Check: wrong code, then right code (formatting is forgiven)
+  -- 3. Check: wrong code returns a generic failure, then right code works.
   chk := public.support_invite_check('new.person@example.com', 'AAAAA-BBBBB');
-  perform t.ok(not (chk->>'ok')::boolean and chk->>'reason' = 'wrong_code', 'wrong code fails');
-  perform t.ok((select attempts from public.support_invites where id = inv) = 1, 'wrong guess is counted');
+  perform t.ok(
+    not (chk->>'ok')::boolean and chk->>'reason' = 'invalid',
+    'wrong code returns a generic invalid response'
+  );
+  perform t.ok(
+    (select attempts from public.support_invites where id = inv) = 1,
+    'wrong guess is counted'
+  );
   chk := public.support_invite_check('NEW.PERSON@example.com', ' kq7m2 x9tra ');
   perform t.ok((chk->>'ok')::boolean and chk->>'role_kind' = 'agent', 'right code works regardless of case, spaces and dashes');
   chk := public.support_invite_check('someone.else@example.com', 'KQ7M2-X9TRA');
   perform t.ok(not (chk->>'ok')::boolean, 'the code does not work for another email');
 
-  -- 4. Lockout after five wrong guesses, even if the sixth is right
-  for n in 1..5 loop perform public.support_invite_check('new.person@example.com', 'ZZZZZ-ZZZZZ'); end loop;
-  perform t.ok((select status from public.support_invites where id = inv) = 'locked', 'locks after five wrong guesses');
-  chk := public.support_invite_check('new.person@example.com', 'KQ7M2-X9TRA');
-  perform t.ok(not (chk->>'ok')::boolean, 'a locked invite rejects even the right code');
-  perform t.ok(exists (select 1 from public.support_audit_log where action = 'staff_invite_locked' and entity_id = inv::text), 'lockout is audited');
+  -- 4. Five failures enter a temporary cooldown; the invite is not permanently locked.
+  -- One failure was already recorded above, so four more reaches the first threshold.
+  for n in 1..4 loop
+    perform public.support_invite_check('new.person@example.com', 'ZZZZZ-ZZZZZ');
+  end loop;
 
-  -- 5. Reissue unlocks with a fresh code and the old code stops working
-  perform public.support_invite_reissue(a, inv, 'NEWCODE-77XQ');
+  perform t.ok(
+    (select status from public.support_invites where id = inv) = 'pending',
+    'five failures do not permanently lock the invite'
+  );
+
   chk := public.support_invite_check('new.person@example.com', 'KQ7M2-X9TRA');
-  perform t.ok(not (chk->>'ok')::boolean, 'the old code is dead after reissue');
+  perform t.ok(
+    not (chk->>'ok')::boolean and chk->>'reason' = 'cooldown',
+    'an active cooldown rejects even the correct code'
+  );
+
+  perform t.ok(
+    exists (
+      select 1
+        from public.support_audit_log
+       where action = 'staff_invite_cooldown_entered'
+         and entity_id = inv::text
+    ),
+    'cooldown is audited'
+  );
+
+  -- Expire the cooldown deterministically so reissue behaviour can be tested.
+  update public.support_invitation_security
+     set cooldown_until = now() - interval '1 second'
+   where invitation_id = inv;
+
+  -- 5. Reissue clears abuse state with a fresh code and the old code stops working
+  perform public.support_invite_reissue(a, inv, 'NEWCODE-77XQ');
+
+  perform t.ok(
+    not exists (
+      select 1
+        from public.support_invitation_security
+       where invitation_id = inv
+    ),
+    'reissue clears invite abuse state'
+  );
+
+  chk := public.support_invite_check('new.person@example.com', 'KQ7M2-X9TRA');
+  perform t.ok(
+    not (chk->>'ok')::boolean and chk->>'reason' = 'invalid',
+    'the old code is dead after reissue'
+  );
+
+  perform t.ok(
+    (
+      select failed_attempts_window
+        from public.support_invitation_security
+       where invitation_id = inv
+    ) = 1,
+    'a failed old-code attempt starts a fresh abuse window'
+  );
+
   chk := public.support_invite_check('new.person@example.com', 'NEWCODE-77XQ');
-  perform t.ok((chk->>'ok')::boolean, 'the new code works');
-  perform t.ok((select attempts from public.support_invites where id = inv) = 0 or true, 'attempts reset on reissue');
+  perform t.ok(
+    (chk->>'ok')::boolean,
+    'the new code works'
+  );
 
   -- 6. Expiry
   update public.support_invites set expires_at = now() - interval '1 minute' where id = inv;
   chk := public.support_invite_check('new.person@example.com', 'NEWCODE-77XQ');
-  perform t.ok(not (chk->>'ok')::boolean and chk->>'reason' = 'expired', 'an expired invite is rejected');
+  perform t.ok(
+    not (chk->>'ok')::boolean and chk->>'reason' = 'unavailable',
+    'an expired invite is rejected without exposing invite state'
+  );
   perform public.support_invite_reissue(a, inv, 'NEWCODE-88YZ');
 
   -- 7. Redeem: access is created, Support only, and the invite is single use
