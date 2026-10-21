@@ -905,16 +905,11 @@ export function SupportTeamWorkspace({
       workstationTitle="Customer Support Workstation"
       workstationDescription="Everything required to resolve rider and booking issues while maintaining service context and escalation history."
       capabilities={[
-        {title:'Omnichannel Queue',description:'Email, WhatsApp and other support requests consolidated into one prioritised queue.'},
-        {title:'Ticketing & SLA',description:'Ownership, priority, routing, first-response targets, resolution clocks and escalations.'},
-        {title:'Customer 360',description:'Rider profile, bookings, payments, communication history and prior support context.'},
-        {title:'Live Ride Context',description:'Bookings, rides, drivers and operational exceptions from the RideArrivo backend.'},
-        {title:'Refund & Dispute Handoff',description:'Structured handoff to Finance for refunds, payment disputes and evidence.'},
-        {title:'Safety Escalation',description:'Panic/safety incidents routed to Operations with severity and audit trail.'},
-        {title:'Knowledge & Macros',description:'Approved responses, procedures, troubleshooting and reusable service guidance.'},
-        {title:'CSAT & Quality',description:'Customer feedback, resolution quality, repeat-contact patterns and coaching signals.'},
-        {title:'Capacity & Scheduling',description:'Agent availability, workload, handovers and queue coverage.'}
-    ]}
+        {title:'Command Centre',description:'Live queues, tickets, calls, callbacks, SLA risk and emergency handling in one operational console.'},
+        {title:'Customer & Trip Context',description:'Rider, booking, ride and communication context available without crowding the main support queue.'},
+        {title:'Service Recovery',description:'Escalations, refund handoff, safety incidents and governed assisted booking workflows.'},
+        {title:'Quality & Capacity',description:'Agent availability, workload, follow-up, knowledge, coaching and service-quality signals.'}
+      ]}
     tools={[
         {name:'ArrivoOps Ride Desk',purpose:'Your rides with the rider and driver profiles, in-app calling by name and who is on duty.',url:'https://admin.ridearrivo.com/#/ride-desk'},
         {name:'HubSpot Help Desk',purpose:'Omnichannel ticketing, SLA, routing and customer context when connected.',url:'https://app.hubspot.com/'},

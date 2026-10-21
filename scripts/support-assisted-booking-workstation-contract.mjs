@@ -6,6 +6,12 @@ const route =
     'utf8'
   )
 
+const hub =
+  fs.readFileSync(
+    'src/modules/SupportWorkspaceHub.tsx',
+    'utf8'
+  )
+
 const team =
   fs.readFileSync(
     'src/modules/DepartmentTeamWorkspace.tsx',
@@ -48,19 +54,19 @@ console.log(
 )
 
 check(
-  'Support route imports dedicated assisted-booking panel',
-  route.includes(
+  'Support hub imports dedicated assisted-booking panel',
+  hub.includes(
     "import SupportAssistedBookingPanel from './SupportAssistedBookingPanel'"
   )
 )
 
 check(
-  'assisted booking is rendered as workstation content',
+  'assisted booking is rendered through governed Support hub',
   route.includes(
-    'workstationContent={'
+    'workstationContent={<SupportWorkspaceHub/>}'
   ) &&
-  route.includes(
-    '<SupportAssistedBookingPanel/>'
+  hub.includes(
+    '<SupportAssistedBookingPanel />'
   )
 )
 
