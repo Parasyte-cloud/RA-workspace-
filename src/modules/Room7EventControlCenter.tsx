@@ -26,6 +26,7 @@ import {
   cancelRoom7CalendarEvent,
   saveRoom7CalendarEvent,
 } from '../lib/room7CalendarApi'
+import Room7CalendarActions from './Room7CalendarActions'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventEngagementManager from './Room7EventEngagementManager'
 import '../room7-event-control.css'
@@ -1898,6 +1899,31 @@ export default function Room7EventControlCenter({
                           </strong>
                         </article>
                       </div>
+
+                      {event.scheduled_start &&
+                      event.scheduled_end ? (
+                        <Room7CalendarActions
+                          event={{
+                            eventCode:
+                              control.room.room_code,
+                            title:
+                              control.room.title ||
+                              roomTitle,
+                            description:
+                              event.public_summary ||
+                              undefined,
+                            startsAt:
+                              event.scheduled_start,
+                            endsAt:
+                              event.scheduled_end,
+                            timezone:
+                              event.timezone ||
+                              'Africa/Lagos',
+                            joinUrl:
+                              control.public_url,
+                          }}
+                        />
+                      ) : null}
 
                       <div className="room7EventPublicUrlCard">
                         <div>
