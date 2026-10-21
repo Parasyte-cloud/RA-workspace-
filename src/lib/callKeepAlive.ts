@@ -1,19 +1,24 @@
 /*
  * Keeps a call usable while the person is in another app.
  *
- *  - The screen stays awake during the call (Wake Lock), and is asked for again
- *    when the app comes back to the front, because the browser drops it when
- *    the page is hidden.
- *  - The phone shows "Call with ..." in its media controls with a hang up
- *    button (Media Session), so the call can be ended without opening the app.
- *  - While the app is in the background a quiet "Call in progress" notification
- *    sits in the shade; tapping it returns to the app.
- *  - Video calls can float over other apps in a small window (Picture in
- *    Picture) where the phone allows it.
- *  - Sound is nudged to carry on when the app returns.
- *
- * Every part is optional: a browser without one of these simply skips it.
+ * Browser/PWA limits still apply: iOS/Android may suspend a web page after a
+ * manual phone lock or long background period. This helper makes the web path
+ * as resilient as the platform allows and restores media/reconnects on return.
  */
+type SearchRoot = Document | ShadowRoot | Element
+
+type SafariVideo = HTMLVideoElement & {
+  webkitPresentationMode?: string
+  webkitSupportsPresentationMode?: (mode: string) => boolean
+  webkitSetPresentationMode?: (mode: string) => void
+  requestPictureInPicture?: () => Promise<unknown>
+  disablePictureInPicture?: boolean
+}
+
+type WakeSentinel = {
+  release: () => Promise<void>
+  addEventListener?: (type: 'release', cb: () => void) => void
+}
 
 type Options = {
   name: string
@@ -24,22 +29,99 @@ type Options = {
 
 const NOTIFY_TAG = 'ra-call-live'
 
+function collectMedia(root: SearchRoot, out: HTMLMediaElement[]) {
+  root.querySelectorAll('audio,video').forEach(node => {
+    if (node instanceof HTMLMediaElement && !out.includes(node)) out.push(node)
+  })
+  root.querySelectorAll('*').forEach(node => {
+    const shadow = (node as HTMLElement).shadowRoot
+    if (shadow) collectMedia(shadow, out)
+  })
+}
+
+function mediaElements(root: SearchRoot = document): HTMLMediaElement[] {
+  const out: HTMLMediaElement[] = []
+  collectMedia(root, out)
+  return out
+}
+
+export function findCallVideo(root: SearchRoot = document): HTMLVideoElement | null {
+  const videos = mediaElements(root).filter(
+    (item): item is HTMLVideoElement => item instanceof HTMLVideoElement,
+  )
+  if (!videos.length) return null
+  return videos
+    .slice()
+    .sort((a, b) => {
+      const aReady = a.readyState >= 2 ? 1 : 0
+      const bReady = b.readyState >= 2 ? 1 : 0
+      if (aReady !== bReady) return bReady - aReady
+      return b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight
+    })[0]
+}
+
+export function resumeCallMedia(root: SearchRoot = document) {
+  for (const media of mediaElements(root)) {
+    if (media instanceof HTMLVideoElement) media.playsInline = true
+    const source = media as HTMLMediaElement & { srcObject?: MediaProvider | null }
+    if (!media.paused || (!source.srcObject && !media.currentSrc)) continue
+    void media.play().catch(() => undefined)
+  }
+}
+
 export function canFloatVideo(): boolean {
-  return typeof document !== 'undefined' && Boolean((document as Document & { pictureInPictureEnabled?: boolean }).pictureInPictureEnabled)
+  if (typeof document === 'undefined' || typeof HTMLVideoElement === 'undefined') return false
+  if (Boolean((document as Document & { pictureInPictureEnabled?: boolean }).pictureInPictureEnabled)) {
+    return true
+  }
+  const proto = HTMLVideoElement.prototype as SafariVideo
+  return typeof proto.webkitSetPresentationMode === 'function'
 }
 
 export async function floatVideo(el: HTMLVideoElement | null): Promise<boolean> {
-  if (!el || !canFloatVideo()) return false
+  if (!el) return false
+  const video = el as SafariVideo
+  video.playsInline = true
+  video.disablePictureInPicture = false
+
   try {
-    if ((document as Document & { pictureInPictureElement?: Element | null }).pictureInPictureElement) {
-      await (document as Document & { exitPictureInPicture: () => Promise<void> }).exitPictureInPicture()
-      return false
+    const doc = document as Document & {
+      pictureInPictureElement?: Element | null
+      exitPictureInPicture?: () => Promise<void>
     }
-    await (el as HTMLVideoElement & { requestPictureInPicture: () => Promise<unknown> }).requestPictureInPicture()
-    return true
+    if (doc.pictureInPictureElement) {
+      if (doc.pictureInPictureElement === el) {
+        await doc.exitPictureInPicture?.()
+        return false
+      }
+      await doc.exitPictureInPicture?.()
+    }
+    if (typeof video.requestPictureInPicture === 'function') {
+      await video.requestPictureInPicture()
+      return true
+    }
   } catch {
-    return false
+    // Safari's presentation-mode API below may still work.
   }
+
+  try {
+    if (typeof video.webkitSetPresentationMode === 'function') {
+      if (video.webkitPresentationMode === 'picture-in-picture') {
+        video.webkitSetPresentationMode('inline')
+        return false
+      }
+      if (
+        !video.webkitSupportsPresentationMode ||
+        video.webkitSupportsPresentationMode('picture-in-picture')
+      ) {
+        video.webkitSetPresentationMode('picture-in-picture')
+        return true
+      }
+    }
+  } catch {
+    // PiP is optional. The in-app mini call remains available.
+  }
+  return false
 }
 
 async function showLiveNotice(name: string) {
@@ -51,9 +133,11 @@ async function showLiveNotice(name: string) {
       body: `${name}. Tap to return to the call.`,
       tag: NOTIFY_TAG,
       silent: true,
-      data: { url: `${location.pathname}${location.search}` }
+      data: { url: `${location.pathname}${location.search}${location.hash}` },
     } as NotificationOptions)
-  } catch { /* the notice is a convenience only */ }
+  } catch {
+    // The notice is a convenience only.
+  }
 }
 
 async function clearLiveNotice() {
@@ -61,56 +145,107 @@ async function clearLiveNotice() {
     const reg = await navigator.serviceWorker?.getRegistration()
     const list = (await reg?.getNotifications({ tag: NOTIFY_TAG })) || []
     for (const item of list) item.close()
-  } catch { /* nothing to clear */ }
+  } catch {
+    // Nothing to clear.
+  }
 }
 
 export function startCallKeepAlive(options: Options): () => void {
   let stopped = false
-  let lock: { release: () => Promise<void> } | null = null
+  let lock: WakeSentinel | null = null
+  let acquiring = false
 
   const holdScreen = async () => {
+    if (stopped || acquiring || lock || document.visibilityState !== 'visible') return
     try {
-      const wake = (navigator as Navigator & { wakeLock?: { request: (kind: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock
-      if (!wake || stopped || document.visibilityState !== 'visible') return
-      lock = await wake.request('screen')
-    } catch { lock = null }
+      const wake = (navigator as Navigator & {
+        wakeLock?: { request: (kind: 'screen') => Promise<WakeSentinel> }
+      }).wakeLock
+      if (!wake) return
+      acquiring = true
+      const next = await wake.request('screen')
+      if (stopped) {
+        void next.release().catch(() => undefined)
+        return
+      }
+      lock = next
+      next.addEventListener?.('release', () => {
+        if (lock === next) lock = null
+        if (!stopped && document.visibilityState === 'visible') {
+          window.setTimeout(() => void holdScreen(), 0)
+        }
+      })
+    } catch {
+      lock = null
+    } finally {
+      acquiring = false
+    }
   }
 
   const session = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession
   const setHandler = (action: string, handler: (() => void) | null) => {
-    try { session?.setActionHandler(action as MediaSessionAction, handler) } catch { /* action not supported here */ }
-  }
-  try {
-    if (session && typeof MediaMetadata !== 'undefined') {
-      session.metadata = new MediaMetadata({ title: `Call with ${options.name}`, artist: 'RideArrivo Workspace' })
-      session.playbackState = 'playing'
+    try {
+      session?.setActionHandler(action as MediaSessionAction, handler)
+    } catch {
+      // Action not supported here.
     }
-  } catch { /* metadata is optional */ }
-  setHandler('hangup', options.onHangUp)
-  if (options.video) {
-    setHandler('enterpictureinpicture', () => { void floatVideo(options.findVideo()) })
   }
 
-  const onVisibility = () => {
+  try {
+    if (session && typeof MediaMetadata !== 'undefined') {
+      session.metadata = new MediaMetadata({
+        title: options.name,
+        artist: 'RideArrivo Workspace',
+      })
+      session.playbackState = 'playing'
+    }
+  } catch {
+    // Metadata is optional.
+  }
+
+  setHandler('hangup', options.onHangUp)
+  if (options.video) {
+    setHandler('enterpictureinpicture', () => {
+      void floatVideo(options.findVideo())
+    })
+  }
+
+  const onLifecycle = () => {
     if (document.visibilityState === 'hidden') {
       void showLiveNotice(options.name)
-    } else {
-      void clearLiveNotice()
-      void holdScreen()
-      // Bring sound back if the phone paused it while the app was away.
-      document.querySelectorAll('audio').forEach(audio => { if (audio.paused) void audio.play().catch(() => {}) })
+      return
     }
+    void clearLiveNotice()
+    void holdScreen()
+    resumeCallMedia()
   }
-  document.addEventListener('visibilitychange', onVisibility)
+
+  document.addEventListener('visibilitychange', onLifecycle)
+  window.addEventListener('pageshow', onLifecycle)
+  window.addEventListener('focus', onLifecycle)
+  window.addEventListener('online', onLifecycle)
   void holdScreen()
+  resumeCallMedia()
 
   return () => {
     stopped = true
-    document.removeEventListener('visibilitychange', onVisibility)
-    void lock?.release().catch(() => {})
+    document.removeEventListener('visibilitychange', onLifecycle)
+    window.removeEventListener('pageshow', onLifecycle)
+    window.removeEventListener('focus', onLifecycle)
+    window.removeEventListener('online', onLifecycle)
+    const held = lock
+    lock = null
+    if (held) void held.release().catch(() => undefined)
     setHandler('hangup', null)
     setHandler('enterpictureinpicture', null)
-    try { if (session) { session.metadata = null; session.playbackState = 'none' } } catch { /* ignore */ }
+    try {
+      if (session) {
+        session.metadata = null
+        session.playbackState = 'none'
+      }
+    } catch {
+      // Ignore cleanup failures.
+    }
     void clearLiveNotice()
   }
 }

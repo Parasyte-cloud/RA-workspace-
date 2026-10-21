@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import {
+  PictureInPicture2,
   Settings2,
   Wifi,
   WifiOff,
@@ -16,6 +17,14 @@ import {
   useRealtimeKitClient,
 } from '@cloudflare/realtimekit-react'
 import { useRetiredClients } from '../room7-shared/useRetiredClients'
+import {
+  canFloatVideo,
+  findCallVideo,
+  floatVideo,
+  resumeCallMedia,
+  startCallKeepAlive,
+} from '../lib/callKeepAlive'
+import { useWakeLock } from '../lib/useWakeLock'
 import {
   RtkMeeting,
   provideRtkDesignSystem,
@@ -175,6 +184,17 @@ export default function ExternalRoom7Meeting({
   const meetingRef =
     useRef(meeting)
   meetingRef.current = meeting
+
+  useWakeLock(Boolean(meeting))
+
+  const socketEventAtRef =
+    useRef(Date.now())
+
+  const backgroundAtRef =
+    useRef(0)
+
+  const foregroundProbeRef =
+    useRef<number[]>([])
 
   const shellRef =
     useRef<HTMLDivElement>(
@@ -398,6 +418,7 @@ export default function ExternalRoom7Meeting({
       if (isRetired(meeting)) {
         return
       }
+      socketEventAtRef.current = Date.now()
       rejoinInFlightRef.current = false
       setConnectionLost(false)
     }
@@ -724,6 +745,81 @@ export default function ExternalRoom7Meeting({
     }
   }, [])
 
+  const connectionStateRef =
+    useRef(connectionState)
+  connectionStateRef.current = connectionState
+
+  // Mobile browsers may freeze a hidden tab/PWA. On every foreground signal,
+  // resume media and probe the RealtimeKit session. A stale session gets a fresh
+  // guest token automatically instead of leaving the guest on a dead meeting.
+  useEffect(() => {
+    const clearProbes = () => {
+      for (const timer of foregroundProbeRef.current) {
+        window.clearTimeout(timer)
+      }
+      foregroundProbeRef.current = []
+    }
+
+    const lifecycle = () => {
+      if (document.visibilityState === 'hidden') {
+        if (!backgroundAtRef.current) backgroundAtRef.current = Date.now()
+        const current = meetingRef.current
+        if (current) {
+          mediaStateRef.current = {
+            audio: Boolean(current.self.audioEnabled),
+            video: Boolean(current.self.videoEnabled),
+          }
+        }
+        return
+      }
+
+      const resumedAt = Date.now()
+      const awayFor = backgroundAtRef.current
+        ? Math.max(0, resumedAt - backgroundAtRef.current)
+        : 0
+      backgroundAtRef.current = 0
+      resumeCallMedia(shellRef.current || document)
+      clearProbes()
+
+      const probe = (forceStale = false) => {
+        const current = meetingRef.current
+        if (!current || isRetired(current) || rejoinInFlightRef.current || !navigator.onLine) return
+        const joined = Boolean(
+          (current.self as unknown as { roomJoined?: boolean }).roomJoined,
+        )
+        const unhealthy = !joined || connectionStateRef.current !== 'online'
+        const noFreshSocket = socketEventAtRef.current < resumedAt
+        if (unhealthy || (forceStale && noFreshSocket)) void reconnect()
+      }
+
+      if (connectionLost || connectionStateRef.current === 'offline') {
+        foregroundProbeRef.current.push(window.setTimeout(() => probe(), 0))
+        return
+      }
+
+      if (awayFor > 1500) {
+        for (const delay of [350, 1400, 3500]) {
+          foregroundProbeRef.current.push(window.setTimeout(() => probe(), delay))
+        }
+        if (awayFor > 45000) {
+          foregroundProbeRef.current.push(window.setTimeout(() => probe(true), 5000))
+        }
+      }
+    }
+
+    window.addEventListener('online', lifecycle)
+    window.addEventListener('focus', lifecycle)
+    window.addEventListener('pageshow', lifecycle)
+    document.addEventListener('visibilitychange', lifecycle)
+    return () => {
+      clearProbes()
+      window.removeEventListener('online', lifecycle)
+      window.removeEventListener('focus', lifecycle)
+      window.removeEventListener('pageshow', lifecycle)
+      document.removeEventListener('visibilitychange', lifecycle)
+    }
+  }, [reconnect, isRetired, connectionLost])
+
   useEffect(() => {
     if (!meeting) {
       return
@@ -776,6 +872,8 @@ export default function ExternalRoom7Meeting({
         ) {
           return
         }
+
+        socketEventAtRef.current = Date.now()
 
         const state =
           String(
@@ -946,6 +1044,24 @@ export default function ExternalRoom7Meeting({
 
   const island = useMeetingIsland(shellRef, { menuOpen: settingsOpen, active: !!meeting })
 
+
+  useEffect(() => {
+    if (!meeting) return
+    return startCallKeepAlive({
+      name: `ROOM 7 - ${title}`,
+      video: true,
+      onHangUp: () => {
+        void meeting.leave().catch(() => undefined)
+      },
+      findVideo: () => findCallVideo(shellRef.current || document),
+    })
+  }, [meeting, title])
+
+  const floatMeeting = useCallback(() => {
+    if (!canFloatVideo()) return
+    void floatVideo(findCallVideo(shellRef.current || document))
+  }, [])
+
   if (error) {
     return (
       <div className="room7PublicMeetingError">
@@ -1108,6 +1224,19 @@ export default function ExternalRoom7Meeting({
             extras={extras}
             compact
           />
+
+          {canFloatVideo() && (
+            <button
+              type="button"
+              className="room7ExperienceSettingsButton"
+              onClick={floatMeeting}
+              aria-label="Float ROOM 7 over other apps"
+              title="Float ROOM 7 over other apps"
+            >
+              <PictureInPicture2 size={16} />
+              Float
+            </button>
+          )}
 
           <button
             type="button"
