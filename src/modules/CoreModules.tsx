@@ -292,10 +292,10 @@ export function PeopleModule({
   </section>
 }
 
-export function AdminModule(){
+export function AdminModule({onNavigate}:{onNavigate?:(target:string)=>void}={}){
   return (
     <div style={{display:'grid',gap:14}}>
-      <AdministrationControlPlane/>
+      <AdministrationControlPlane onNavigate={onNavigate}/>
       <OperationsExportsCard/>
     </div>
   )

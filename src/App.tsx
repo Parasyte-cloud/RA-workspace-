@@ -1483,7 +1483,7 @@ function App(){
         {section==='partnerships'&&<PartnershipsTeamWorkspace execution={<PartnershipsModule/>} onNavigate={navigateToSection}/>}
         {section==='legal'&&<LegalTeamWorkspace execution={<LegalModule/>} onNavigate={navigateToSection}/>}
         {section==='settings'&&<><AppearanceSettings/><NotificationSettings onSignOut={()=>void signOut()} onSignOutEverywhere={()=>void signOutEverywhere(supabase)}/></>}
-        {section==='admin'&&<AdminModule/>}
+        {section==='admin'&&<AdminModule onNavigate={navigateToSection}/>}
         {section==='deptadmin'&&<DepartmentAdminView onNavigate={navigateToSection}/>}
         {section==='parasyte'&&<ParasyteBrowser initialUrl={parasyteUrl}/>}
         {section==='apps'&&<ApplicationsHub/>}

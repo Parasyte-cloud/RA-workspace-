@@ -22,6 +22,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { ADMIN_DEPARTMENT_WORKSPACES } from '../lib/adminDepartmentWorkspaces'
 import { invokeWorkspaceAdmin } from '../lib/workspaceAdmin'
 import WorkstationGuideCard from '../components/WorkstationGuideCard'
 import AdminAccessManager from './AdminAccessManager'
@@ -555,7 +556,56 @@ function OperationsPanel(){
   </div>
 }
 
-export default function AdministrationControlPlane(){
+
+function AdminDepartmentWorkspaces({
+  onNavigate,
+}:{
+  onNavigate?:(target:string)=>void
+}){
+  return (
+    <section className="glassCard adminDepartmentWorkspaceLauncher">
+      <div className="adminDepartmentWorkspaceHead">
+        <div>
+          <span className="eyebrow">DEPARTMENT ACCESS</span>
+          <h3>All Department Workspaces</h3>
+          <p>
+            Open any department control centre available to Administration.
+            Existing workspace authorization and Supabase security boundaries
+            remain authoritative.
+          </p>
+        </div>
+
+        <span className="adminAuthorityBadge">
+          <ShieldCheck size={14}/>
+          Admin access
+        </span>
+      </div>
+
+      <div className="adminDepartmentWorkspaceGrid">
+        {ADMIN_DEPARTMENT_WORKSPACES.map(workspace=>(
+          <button
+            type="button"
+            key={workspace.section}
+            className="adminDepartmentWorkspaceCard"
+            disabled={!onNavigate}
+            onClick={()=>onNavigate?.(workspace.section)}
+          >
+            <span className="adminDepartmentWorkspaceCardCopy">
+              <strong>{workspace.label}</strong>
+              <small>{workspace.description}</small>
+            </span>
+
+            <span className="adminDepartmentWorkspaceOpen">
+              Open workspace
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export default function AdministrationControlPlane({onNavigate}:{onNavigate?:(target:string)=>void}={}){
   const [tab,setTab]=useState<AdminTab>('overview')
 
   return <section className="administrationControlPlane">
@@ -571,7 +621,12 @@ export default function AdministrationControlPlane(){
       {tab==='people'&&<AdminPeopleIntelligence onOpenTab={setTab}/>}
       {tab==='attendance'&&<AttendanceAdminPanel/>}
       {tab==='access'&&<AdminAccessManager/>}
-      {tab==='workstations'&&<WorkstationAssignmentManager/>}
+      {tab==='workstations'&&
+        <div className="adminWorkstationsStack">
+          <AdminDepartmentWorkspaces onNavigate={onNavigate}/>
+          <WorkstationAssignmentManager/>
+        </div>
+      }
       {tab==='performance'&&<KpiManagementPanel/>}
       {tab==='recognition-celebrations'&&<Suspense fallback={<div className="moduleNotice" role="status">Loading recognition governance...</div>}><RecognitionCelebrationsAdmin/></Suspense>}
       {tab==='assets'&&<DeviceAssetCenter/>}

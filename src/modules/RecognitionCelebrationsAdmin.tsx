@@ -10,6 +10,8 @@ import CompanyMilestoneScene from '../components/celebrations/CompanyMilestoneSc
 import ChristmasCelebrationScene from '../components/celebrations/ChristmasCelebrationScene'
 import NewYearCelebrationScene from '../components/celebrations/NewYearCelebrationScene'
 import BirthdayCelebrationScene from '../components/celebrations/BirthdayCelebrationScene'
+import DepartmentTrophyCabinet from '../components/DepartmentTrophyCabinet'
+import { ADMIN_DEPARTMENT_WORKSPACES } from '../lib/adminDepartmentWorkspaces'
 import type { CelebrationMotionProfile } from '../components/celebrations/useCelebrationMotionProfile'
 import '../recognition-admin.css'
 
@@ -23,7 +25,7 @@ type HealthRow={
 type DirectoryRow={employee_id:string;full_name:string;department:string;job_title:string}
 type AuditRow={event_id:number|string;action:string;entity_type:string;entity_id:string;actor_id:string;actor_name:string|null;target_employee_id:string|null;target_name:string|null;reason:string;metadata:Record<string,unknown>;created_at:string}
 type CampaignRow={campaign_id:string;campaign_type:'christmas'|'new_year';campaign_year:number;audience_scope:'company';state:string;timezone:string;starts_at:string;ends_at:string;live_window_starts_at:string|null;live_window_ends_at:string|null;greeting_title:string;greeting_message:string;enabled:boolean;recipient_count:number|string;presented_count:number|string;updated_at:string}
-type AdminView='health'|'issue'|'govern'|'audit'|'seasonal'|'preview'
+type AdminView='health'|'cabinets'|'issue'|'govern'|'audit'|'seasonal'|'preview'
 type PreviewTheme='department_trophy'|'personal_award'|'company_recognition'|'company_milestone'|'christmas'|'new_year_live'|'new_year_delayed'|'birthday'
 type PreviewDevice='desktop'|'tablet'|'mobile'
 
@@ -94,6 +96,7 @@ export default function RecognitionCelebrationsAdmin(){
   const [selectedCampaign,setSelectedCampaign]=useState<CampaignRow|null>(null)
   const [seasonalProfile,setSeasonalProfile]=useState<CelebrationMotionProfile>('full')
   const [seasonalAssetHealth,setSeasonalAssetHealth]=useState<'not_checked'|'checking'|'ready'|'fallback'>('not_checked')
+  const [selectedDepartment,setSelectedDepartment]=useState(ADMIN_DEPARTMENT_WORKSPACES[0]?.department || '')
 
   const load=useCallback(async()=>{
     const client=supabase
@@ -137,6 +140,16 @@ export default function RecognitionCelebrationsAdmin(){
     image.src=src
     return()=>{cancelled=true;image.onload=null;image.onerror=null}
   },[view,previewTheme,seasonalProfile])
+
+  const departmentOptions=useMemo(()=>{
+    const configured=ADMIN_DEPARTMENT_WORKSPACES.map(item=>item.department)
+    const live=directory
+      .map(row=>row.department?.trim() || '')
+      .filter(Boolean)
+
+    return Array.from(new Set([...configured,...live]))
+      .sort((a,b)=>a.localeCompare(b))
+  },[directory])
 
   const totalPending=useMemo(()=>health.filter(row=>row.state==='pending').reduce((sum,row)=>sum+Number(row.delivery_count||0),0),[health])
   const totalPresented=useMemo(()=>health.filter(row=>row.state==='presented'||row.state==='dismissed').reduce((sum,row)=>sum+Number(row.delivery_count||0),0),[health])
@@ -250,9 +263,49 @@ export default function RecognitionCelebrationsAdmin(){
     </div>
 
     <nav className="recognitionAdminNav" aria-label="Recognition administration">
-      {([['health','Delivery health',ShieldCheck],['issue','Issue award',Award],['govern','Govern awards',RotateCcw],['audit','Audit history',ShieldCheck],['seasonal','Seasonal campaigns',Gift],['preview','Preview ceremonies',Eye]] as const).map(([id,label,Icon])=><button type="button" key={id} className={view===id?'active':''} onClick={()=>setView(id)}><Icon size={15}/>{label}</button>)}
+      {([['health','Delivery health',ShieldCheck],['cabinets','Trophy cabinets',Award],['issue','Issue award',Award],['govern','Govern awards',RotateCcw],['audit','Audit history',ShieldCheck],['seasonal','Seasonal campaigns',Gift],['preview','Preview ceremonies',Eye]] as const).map(([id,label,Icon])=><button type="button" key={id} className={view===id?'active':''} onClick={()=>setView(id)}><Icon size={15}/>{label}</button>)}
     </nav>
     {notice&&<div className="moduleNotice" role="status">{notice}</div>}
+
+    {view==='cabinets'&&
+      <div className="recognitionAdminCabinetBrowser">
+        <article className="recognitionAdminCard recognitionAdminCabinetSelector">
+          <div className="recognitionAdminSectionTitle">
+            <div>
+              <span className="eyebrow">DEPARTMENT RECOGNITION</span>
+              <h4>Department Trophy Cabinets</h4>
+            </div>
+            <Award size={22}/>
+          </div>
+
+          <p>
+            Browse persistent department recognition without bypassing the
+            governed trophy authorization and history RPCs.
+          </p>
+
+          <label>
+            <span>Department</span>
+            <select
+              value={selectedDepartment}
+              onChange={event=>setSelectedDepartment(event.target.value)}
+            >
+              {departmentOptions.map(department=>(
+                <option key={department} value={department}>
+                  {department}
+                </option>
+              ))}
+            </select>
+          </label>
+        </article>
+
+        {selectedDepartment
+          ? <DepartmentTrophyCabinet department={selectedDepartment}/>
+          : <div className="recognitionAdminEmpty">
+              No departments are available yet.
+            </div>
+        }
+      </div>
+    }
 
     {view==='health'&&<div className="recognitionAdminHealth">
       <div className="recognitionAdminSectionTitle"><div><span className="eyebrow">DELIVERY LEDGER</span><h4>Aggregate ceremony health</h4></div><small>No private award payloads are exposed here.</small></div>
