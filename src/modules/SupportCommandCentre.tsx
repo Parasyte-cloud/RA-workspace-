@@ -12,6 +12,7 @@ import SupportEmergencyBanner from './SupportEmergencyBanner'
 import SupportEmergencyConsole from './SupportEmergencyConsole'
 import SupportLookup from './SupportLookup'
 import SupportInsights from './SupportInsights'
+import SupportDriverOutreach from './SupportDriverOutreach'
 import { useSupportIncidents } from '../support/useSupportIncidents'
 import { useSupportNotifications } from '../support/useSupportNotifications'
 import { ensureManifest, onWorkerOpen, registerWorker } from '../support/pwa'
@@ -19,7 +20,7 @@ import SupportNotificationCentre from './SupportNotificationCentre'
 import type { NotificationRow } from '../lib/supportCommandCentre'
 import '../support-command-centre.css'
 
-type Tab = 'mine' | 'queue' | 'calls' | 'callbacks' | 'emergency' | 'lookup' | 'tower' | 'insights'
+type Tab = 'mine' | 'queue' | 'calls' | 'callbacks' | 'outreach' | 'emergency' | 'lookup' | 'tower' | 'insights'
 const CHANNELS: Array<'all' | SupportChannel> = ['all', 'voice', 'whatsapp', 'web_chat', 'email', 'sms', 'form']
 
 function TicketCard({ t, onOpen }: { t: SupportTicketSummary; onOpen: (id: string) => void }) {
@@ -46,7 +47,7 @@ export default function SupportCommandCentre() {
   // Alerts outside the screen: installable app, service worker, notification centre.
   const jumpTo = useCallback((t: { tab: string | null; entityId?: string | null; entityType?: string | null }) => {
     const wanted = t.tab as Tab | null
-    if (wanted && ['mine', 'queue', 'calls', 'callbacks', 'emergency', 'lookup', 'tower', 'insights'].includes(wanted)) setTab(wanted)
+    if (wanted && ['mine', 'queue', 'calls', 'callbacks', 'outreach', 'emergency', 'lookup', 'tower', 'insights'].includes(wanted)) setTab(wanted)
     if (t.entityType === 'incident' && t.entityId) { setFocusIncident(t.entityId); setTab('emergency') }
     else if (t.entityType === 'ticket' && t.entityId) setOpenId(t.entityId)
   }, [])
@@ -145,7 +146,7 @@ export default function SupportCommandCentre() {
     </div>
 
     <nav className="sccTabs" aria-label="Views">
-      {([['mine', `My work (${mine.length})`], ['queue', `Queue (${queue.length})`], ['calls', 'Calls'], ['callbacks', 'Callbacks']] as Array<[Tab, string]>).map(([id, text]) => <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{text}</button>)}
+      {([['mine', `My work (${mine.length})`], ['queue', `Queue (${queue.length})`], ['calls', 'Calls'], ['callbacks', 'Callbacks'], ['outreach', 'Driver outreach']] as Array<[Tab, string]>).map(([id, text]) => <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{text}</button>)}
       <button type="button" className={`${tab === 'emergency' ? 'active' : ''} ${incidents.open.length ? 'alert' : ''}`} onClick={() => setTab('emergency')}>Emergency{incidents.open.length ? ` (${incidents.open.length})` : ''}</button>
       {incidents.sensitive ? <button type="button" className={tab === 'lookup' ? 'active' : ''} onClick={() => setTab('lookup')}>Lookup</button> : null}
       {isSupervisor ? <button type="button" className={tab === 'tower' ? 'active' : ''} onClick={() => setTab('tower')}>Control tower</button> : null}
@@ -165,6 +166,8 @@ export default function SupportCommandCentre() {
       <span><b>{c.customer_name || c.phone_number}</b><small>{label(c.origin)} · {label(c.status)}{c.attempts ? ` · attempt ${c.attempts}/${c.max_attempts}` : ''}{c.last_error ? ` · ${c.last_error}` : ''}</small></span>
       <span className="sccQueueNumbers"><b>{c.public_id || ''}</b><small>{c.not_before ? dueLabel(c.not_before) : timeAgo(c.requested_at)}</small></span>
     </button>) : <div className="sccEmpty">No callbacks.</div>}</div> : null}
+
+    {tab === 'outreach' ? <SupportDriverOutreach isSupervisor={isSupervisor} onOpenTicket={setOpenId} onCall={(to, ticketId) => setDial({ to, ticketId, nonce: Date.now() })} /> : null}
 
     {tab === 'emergency' ? <SupportEmergencyConsole incidents={incidents.incidents} canAct={incidents.sensitive} isSupervisor={isSupervisor} meId={meId}
       agents={snapshot.agents} focusId={focusIncident} onChanged={incidents.reload} /> : null}
