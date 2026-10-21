@@ -21,6 +21,7 @@ import {
   Minimize2,
   NotebookPen,
   PhoneOff,
+  PictureInPicture2,
   RefreshCw,
   ShieldCheck,
   WifiOff
@@ -50,6 +51,13 @@ import { supabase } from '../lib/supabase'
 import { useCanGiveRibbon } from '../components/Recognition'
 import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 import { noShowDelay } from '../lib/callTimers'
+import {
+  canFloatVideo,
+  findCallVideo,
+  floatVideo,
+  resumeCallMedia,
+  startCallKeepAlive
+} from '../lib/callKeepAlive'
 import { MAX_JOIN_RETRIES, isRetryableJoinFailure, joinFailureMessage, joinRetryDelay } from '../lib/joinFailure'
 
 type RoomStatus='active'|'ended'
@@ -129,6 +137,9 @@ export default function RoomMeeting({
   const {retire,isRetired}=useRetiredClients()
   const meetingRef=useRef(meeting)
   meetingRef.current=meeting
+  const socketEventAtRef=useRef(Date.now())
+  const backgroundAtRef=useRef(0)
+  const foregroundProbeRef=useRef<number[]>([])
   const [initError,setInitError]=useState('')
   const [ending,setEnding]=useState(false)
   const [copied,setCopied]=useState<''|'staff'|'guest'>('')
@@ -376,6 +387,7 @@ export default function RoomMeeting({
 
     const handleJoined=()=>{
       if(isRetired(meeting))return
+      socketEventAtRef.current=Date.now()
       if(joinWatchRef.current){window.clearTimeout(joinWatchRef.current);joinWatchRef.current=0}
       rejoinInFlightRef.current=false
       joinRetryRef.current=0
@@ -419,8 +431,10 @@ export default function RoomMeeting({
     }
 
     const handleSocket=(update:{state:string})=>{
+      socketEventAtRef.current=Date.now()
       if(update.state==='reconnecting')setConnection('reconnecting')
       if(update.state==='connected')setConnection('connected')
+      if(update.state==='disconnected'||update.state==='failed')setConnection('reconnecting')
     }
 
     const markAnswered=()=>{
@@ -442,25 +456,73 @@ export default function RoomMeeting({
     }
   },[meeting,reconnect,session.role,isRetired])
 
-  // When the network or the app comes back after the connection was given up
-  // on, try again by itself instead of waiting for a tap.
+  // Phones can freeze a hidden PWA without delivering timers or socket events.
+  // Remember when we went away, restart media on return, and probe the live
+  // RealtimeKit client. A stale client gets a fresh governed Room7 token rather
+  // than making the person tap Join again.
   const connectionRef=useRef(connection)
   connectionRef.current=connection
   useEffect(()=>{
-    const again=()=>{
-      if(document.visibilityState==='hidden')return
-      if(connectionRef.current==='lost'&&!rejoinInFlightRef.current){
-        setConnection('connected')
-        window.setTimeout(()=>void reconnect(),0)
+    const clearProbes=()=>{
+      for(const timer of foregroundProbeRef.current)window.clearTimeout(timer)
+      foregroundProbeRef.current=[]
+    }
+    const lifecycle=()=>{
+      if(document.visibilityState==='hidden'){
+        if(!backgroundAtRef.current)backgroundAtRef.current=Date.now()
+        const current=meetingRef.current
+        if(current){
+          mediaStateRef.current={
+            audio:Boolean(current.self.audioEnabled),
+            video:Boolean(current.self.videoEnabled)
+          }
+        }
+        return
+      }
+
+      const resumedAt=Date.now()
+      const awayFor=backgroundAtRef.current?Math.max(0,resumedAt-backgroundAtRef.current):0
+      backgroundAtRef.current=0
+      resumeCallMedia()
+      clearProbes()
+
+      const probe=(forceStale=false)=>{
+        const current=meetingRef.current
+        if(!current||isRetired(current)||rejoinInFlightRef.current||!navigator.onLine)return
+        const joined=Boolean((current.self as unknown as {roomJoined?:boolean}).roomJoined)
+        const unhealthy=!joined||connectionRef.current!=='connected'
+        const noFreshSocket=socketEventAtRef.current<resumedAt
+        if(unhealthy||(forceStale&&noFreshSocket))void reconnect()
+      }
+
+      if(connectionRef.current==='lost'){
+        foregroundProbeRef.current.push(window.setTimeout(()=>probe(),0))
+        return
+      }
+      if(awayFor>1500){
+        for(const delay of [350,1400,3500]){
+          foregroundProbeRef.current.push(window.setTimeout(()=>probe(),delay))
+        }
+        // After a long phone lock/app switch the SDK can still report
+        // roomJoined=true even though its socket was frozen. Refresh it once.
+        if(awayFor>45000){
+          foregroundProbeRef.current.push(window.setTimeout(()=>probe(true),5000))
+        }
       }
     }
-    window.addEventListener('online',again)
-    document.addEventListener('visibilitychange',again)
+
+    window.addEventListener('online',lifecycle)
+    window.addEventListener('focus',lifecycle)
+    window.addEventListener('pageshow',lifecycle)
+    document.addEventListener('visibilitychange',lifecycle)
     return()=>{
-      window.removeEventListener('online',again)
-      document.removeEventListener('visibilitychange',again)
+      clearProbes()
+      window.removeEventListener('online',lifecycle)
+      window.removeEventListener('focus',lifecycle)
+      window.removeEventListener('pageshow',lifecycle)
+      document.removeEventListener('visibilitychange',lifecycle)
     }
-  },[reconnect])
+  },[reconnect,isRetired])
 
   // Closing the tab or the installed app leaves the meeting properly, so the
   // person does not stay in the room as a ghost for minutes.
@@ -581,6 +643,37 @@ export default function RoomMeeting({
     void meeting?.leave().catch(()=>{})
     onLeft('left')
   }
+
+  // ROOM 7 now gets the same OS integration as one-to-one calls: wake lock,
+  // media-session controls, a background notification and video PiP. Chat calls
+  // already start this helper inside FaceTimeStage, so do not start it twice.
+  useEffect(()=>{
+    if(!meeting||chatCall)return
+    return startCallKeepAlive({
+      name:`ROOM 7 - ${session.room.title}`,
+      video:!audioOnly,
+      onHangUp:()=>{
+        if(session.role==='host')void onEndedRef.current().catch(()=>undefined)
+        else{
+          void meetingRef.current?.leave().catch(()=>undefined)
+          onLeftRef.current('left')
+        }
+      },
+      findVideo:()=>findCallVideo()
+    })
+  },[meeting,chatCall,audioOnly,session.room.title,session.role])
+
+  const floatRoom7=useCallback(()=>{
+    if(chatCall||audioOnly||!canFloatVideo())return
+    void floatVideo(findCallVideo())
+  },[chatCall,audioOnly])
+
+  const minimizeRoom7=useCallback(()=>{
+    // PiP must be requested directly from the tap/click gesture. Try it before
+    // shrinking the in-app window; unsupported phones simply keep the mini card.
+    floatRoom7()
+    onMinimize()
+  },[floatRoom7,onMinimize])
   const clock=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`
   const callTitle=session.room.title.replace(/^Call with /,'')
 
@@ -729,6 +822,9 @@ export default function RoomMeeting({
               <Link2 size={16}/>{copied==='guest'?'Copied':'Guest link'}
             </button>
           }
+          {!chatCall&&!audioOnly&&canFloatVideo()&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={floatRoom7} title="Float ROOM 7 over other apps">
+            <PictureInPicture2 size={16}/>Float
+          </button>}
           {!chatCall&&<button type="button" className="glassButton roomSecondaryCallAction" onClick={onShowList} title="Open the ROOM 7 list while the call continues in the corner">
             <LayoutList size={16}/>Rooms
           </button>}
@@ -746,7 +842,7 @@ export default function RoomMeeting({
           <button
             type="button"
             className="glassButton roomMinimizeButton"
-            onClick={minimized?onRestore:onMinimize}
+            onClick={minimized?onRestore:minimizeRoom7}
             aria-label={minimized?(chatCall?'Return to call':'Return to ROOM 7 call'):(chatCall?'Minimize call':'Minimize ROOM 7 call')}
           >
             {minimized?<Maximize2 size={16}/>:<Minimize2 size={16}/>}
