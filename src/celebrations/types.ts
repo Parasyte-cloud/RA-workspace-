@@ -3,6 +3,8 @@ export type CeremonySourceKind =
   | 'personal_award'
   | 'company_recognition'
   | 'company_milestone'
+  | 'seasonal_campaign'
+  | 'birthday'
 
 export type CeremonyPresentation = {
   deliveryId: string
@@ -22,6 +24,11 @@ export type CeremonyPresentation = {
   badgeLabel?: string | null
   earnedAt?: string | null
   awardedAt?: string | null
+  campaignType?: 'christmas' | 'new_year' | null
+  campaignYear?: number | null
+  variant?: 'christmas' | 'live_midnight' | 'delayed' | null
+  employeeName?: string | null
+  photoUrl?: string | null
 }
 
 export type CeremonyClaimRow = {
@@ -42,6 +49,11 @@ export type CeremonyClaimRow = {
   badge_label?: string | null
   earned_at?: string | null
   awarded_at?: string | null
+  campaign_type?: 'christmas' | 'new_year' | null
+  campaign_year?: number | null
+  variant?: 'christmas' | 'live_midnight' | 'delayed' | null
+  employee_name?: string | null
+  photo_url?: string | null
 }
 
 export function normalizeCeremonyClaim(row: CeremonyClaimRow): CeremonyPresentation {
@@ -63,5 +75,10 @@ export function normalizeCeremonyClaim(row: CeremonyClaimRow): CeremonyPresentat
     badgeLabel: row.badge_label ?? null,
     earnedAt: row.earned_at ?? null,
     awardedAt: row.awarded_at ?? null,
+    campaignType: row.campaign_type ?? null,
+    campaignYear: row.campaign_year == null ? null : Number(row.campaign_year),
+    variant: row.variant ?? null,
+    employeeName: row.employee_name ?? null,
+    photoUrl: row.photo_url ?? null,
   }
 }

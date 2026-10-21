@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "node scripts/run-tests.mjs",
-    "test:supabase": "node --test --test-concurrency=1 scripts/intake-platform-security.test.mjs scripts/intake-service-e2e.test.mjs scripts/chat-department-sync.test.mjs scripts/chat-message-security.test.mjs scripts/chat-room-administration.test.mjs scripts/chat-admin-management.test.mjs scripts/department-achievements-e2e.test.mjs scripts/recognition-department-access-e2e.test.mjs scripts/personal-awards-e2e.test.mjs scripts/recognition-ceremony-delivery-e2e.test.mjs scripts/recognition-governance-e2e.test.mjs",
+    "test:supabase": "node --test --test-concurrency=1 scripts/intake-platform-security.test.mjs scripts/intake-service-e2e.test.mjs scripts/chat-department-sync.test.mjs scripts/chat-message-security.test.mjs scripts/chat-room-administration.test.mjs scripts/chat-admin-management.test.mjs scripts/department-achievements-e2e.test.mjs scripts/recognition-department-access-e2e.test.mjs scripts/personal-awards-e2e.test.mjs scripts/recognition-ceremony-delivery-e2e.test.mjs scripts/recognition-governance-e2e.test.mjs scripts/seasonal-campaigns-e2e.test.mjs scripts/birthday-delivery-e2e.test.mjs",
     "prepare-brand": "node scripts/prepare-brand-assets.mjs",
     "gateway:build": "npm --prefix gateway run build",
     "gateway:test": "npm --prefix gateway test"

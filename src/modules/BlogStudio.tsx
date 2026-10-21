@@ -13,6 +13,7 @@ import { parseBlogImport } from '../lib/blogImport'
 import type { ImportedDraft } from '../lib/blogImport'
 import { BLOG_CATEGORIES, BLOG_ROLE_LABELS, fromLagosInput, toLagosInput } from '../lib/blogPolicy'
 import type { BlogRole } from '../lib/blogPolicy'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 import '../blog-studio.css'
 
 type Tab = 'articles' | 'media' | 'access' | 'activity'
@@ -64,6 +65,7 @@ export default function BlogStudio(){
   const refreshIdentity=useCallback(async()=>{const result=await blogRequest<BlogMe>('me');if(activeRef.current)setMe(result);return result},[])
   const refreshAssets=useCallback(async()=>{const value=await listBlogAssets();if(activeRef.current)setAssets(value.assets);return value.assets},[])
   useEffect(()=>{activeRef.current=true;void refreshIdentity().then(result=>{if(activeRef.current&&!result.permissions.write&&result.permissions.manage_access)setTab('access')}).catch(e=>setError(errorText(e))).finally(()=>setInitializing(false));return()=>{activeRef.current=false;generation.current++}},[refreshIdentity])
+  useCelebrationBlocker('critical_unsaved_form', dirty)
   useEffect(()=>{dirtyRef.current=dirty},[dirty])
   useEffect(()=>{setArchiveConfirming(false)},[draft?.id,draft?.status])
   useEffect(()=>{const handler=(e:BeforeUnloadEvent)=>{if(dirtyRef.current){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',handler);return()=>window.removeEventListener('beforeunload',handler)},[])

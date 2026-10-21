@@ -48,6 +48,7 @@ import { useRoomChat } from '../room7-shared/useRoomChat'
 import '../room7-shared/room7-chat.css'
 import { supabase } from '../lib/supabase'
 import { useCanGiveRibbon } from '../components/Recognition'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 import { noShowDelay } from '../lib/callTimers'
 import { MAX_JOIN_RETRIES, isRetryableJoinFailure, joinFailureMessage, joinRetryDelay } from '../lib/joinFailure'
 
@@ -124,6 +125,7 @@ export default function RoomMeeting({
   const [meeting,initMeeting]=useRealtimeKitClient()
   useHoldIdleSignOut(Boolean(meeting))
   useWakeLock(Boolean(meeting))
+  useCelebrationBlocker('room7_live', Boolean(meeting))
   const {retire,isRetired}=useRetiredClients()
   const meetingRef=useRef(meeting)
   meetingRef.current=meeting

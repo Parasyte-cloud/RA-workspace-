@@ -30,3 +30,6 @@
 @media (prefers-reduced-motion: reduce){.premiumCelebrationGlow,.premiumCelebrationRibbons{display:none}.premiumCelebrationCard{opacity:1;transform:none;transition:none}.premiumCelebrationOverlay{backdrop-filter:none}}
 
 .recognitionCeremonyFallback{position:fixed;right:18px;bottom:18px;z-index:1750;max-width:340px;padding:12px 15px;border-radius:14px;background:rgba(7,26,56,.94);color:#fff;border:1px solid rgba(255,177,59,.35);box-shadow:0 16px 50px rgba(0,0,0,.24);font-size:12px;line-height:1.45}
+.premiumCelebration-seasonal_max .premiumCelebrationCard{box-shadow:0 34px 140px rgba(255,184,64,.3),0 34px 110px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2)}
+
+.isStaticVisuals{backdrop-filter:none}.isStaticVisuals .premiumCelebrationCard{opacity:1;transform:none;transition:none}

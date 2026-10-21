@@ -19,6 +19,8 @@ import type {
   AssistedBookingResult
 } from '../lib/ridearrivoSupport'
 
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
+
 import '../support-assisted-booking.css'
 
 type BookingType =
@@ -122,6 +124,8 @@ export default function SupportAssistedBookingPanel() {
 
   const [submitting, setSubmitting] =
     useState(false)
+
+  useCelebrationBlocker('payment_flow', submitting)
 
   const [error, setError] =
     useState('')

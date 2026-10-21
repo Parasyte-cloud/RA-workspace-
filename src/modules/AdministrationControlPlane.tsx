@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AppWindow,
@@ -42,10 +42,10 @@ import Room7MinutesPanel from './Room7MinutesPanel'
 import AdminKnowledgeAi from './AdminKnowledgeAi'
 import SupportOfficerAdminPanel from './SupportOfficerAdminPanel'
 import AdminDataAllocation from './AdminDataAllocation'
-import RecognitionCelebrationsAdmin from './RecognitionCelebrationsAdmin'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
+const RecognitionCelebrationsAdmin = lazy(() => import('./RecognitionCelebrationsAdmin'))
 type AdminTab=
   | 'overview'
   | 'people'
@@ -573,7 +573,7 @@ export default function AdministrationControlPlane(){
       {tab==='access'&&<AdminAccessManager/>}
       {tab==='workstations'&&<WorkstationAssignmentManager/>}
       {tab==='performance'&&<KpiManagementPanel/>}
-      {tab==='recognition-celebrations'&&<RecognitionCelebrationsAdmin/>}
+      {tab==='recognition-celebrations'&&<Suspense fallback={<div className="moduleNotice" role="status">Loading recognition governance...</div>}><RecognitionCelebrationsAdmin/></Suspense>}
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
       {tab==='letterhead'&&<AdminLetterheadAccess/>}

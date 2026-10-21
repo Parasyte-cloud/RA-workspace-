@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Delete, Headphones, Mic, MicOff, Phone, PhoneCall, PhoneIncoming, PhoneOff, Signal } from 'lucide-react'
 import { RASupportSoftphone, type VoiceDeviceState, type VoiceQuality } from '../support/twilioVoice'
 import { formatDuration, type SupportCall } from '../lib/supportCommandCentre'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 
 export type DialRequest = { to: string; ticketId?: string; nonce: number }
 
@@ -32,6 +33,7 @@ export default function SupportSoftphone({ ringing, dialRequest, onStateChange, 
   const [active, setActive] = useState(false)
   const [seconds, setSeconds] = useState(0)
   const [quality, setQuality] = useState<VoiceQuality | null>(null)
+  useCelebrationBlocker('support_call', active)
   const phone = useRef<RASupportSoftphone | null>(null)
   const lastDial = useRef(0)
 

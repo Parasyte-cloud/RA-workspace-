@@ -12,6 +12,7 @@ import {
 import type { ClosingKind, DocKind, LetterheadInput } from '../lib/letterhead'
 import { canUseLetterhead } from '../lib/letterheadAccess'
 import CompanyContactCard from '../components/CompanyContactCard'
+import { useCelebrationBlocker } from '../celebrations/CelebrationBlockerContext'
 
 import '../letterhead.css'
 
@@ -71,6 +72,7 @@ export default function LetterheadStudio({ role, fullName, jobTitle, email, gran
   })
 
   const hasContent = input.body.trim().length > 0
+  useCelebrationBlocker('critical_unsaved_form', hasContent)
 
   // Re-draw the preview a moment after the last keystroke.
   useEffect(() => {
