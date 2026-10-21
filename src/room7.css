@@ -1,0 +1,79 @@
+
+.room7CalendarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.room7CalendarPrimary,
+.room7CalendarMenu a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.room7CalendarPrimary {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid
+    rgba(255, 255, 255, 0.16);
+  background:
+    rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px);
+}
+
+.room7CalendarMore {
+  position: relative;
+}
+
+.room7CalendarMore summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid
+    rgba(255, 255, 255, 0.14);
+}
+
+.room7CalendarMenu {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 210px;
+  padding: 8px;
+  border-radius: 16px;
+  background:
+    rgba(12, 17, 27, 0.94);
+  border: 1px solid
+    rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px);
+}
+
+.room7CalendarMenu a {
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.room7CalendarMenu a:hover {
+  background:
+    rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 640px) {
+  .room7CalendarActions {
+    align-items: stretch;
+  }
+
+  .room7CalendarPrimary {
+    justify-content: center;
+    width: 100%;
+  }
+}
