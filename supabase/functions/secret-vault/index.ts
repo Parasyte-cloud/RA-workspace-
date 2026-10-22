@@ -52,20 +52,37 @@ Deno.serve(async(req)=>{
       const bytes=unb64(value); if(!label||!['text','number','document'].includes(kind)) return json({error:'Invalid vault item'},400)
       if(bytes.byteLength===0||bytes.byteLength>15*1024*1024) return json({error:'Vault item must be between 1 byte and 15 MB'},400)
       const max=Math.max(5,Math.min(600,Number(body.reveal_max_seconds||60)))
-      const {data:item,error}=await userClient.from('secret_vault_items').insert({owner_id:user.id,label,kind,classification:body.classification||'restricted',mime_type:body.mime_type||null,original_filename:body.original_filename||null,byte_size:bytes.byteLength,last_four:body.last_four||null,reveal_max_seconds:max,owner_approval_for_others:body.owner_approval_for_others!==false}).select('id').single()
-      if(error||!item) throw error||new Error('Unable to create metadata')
-      try{
-        const aad=`ra-vault:${item.id}:${user.id}:v1`; const enc=await encrypt(bytes,aad)
-        const {error:payloadError}=await admin.rpc('vault_store_encrypted_payload',{
-          target_item:item.id,
-          ciphertext_base64:b64(enc.ciphertext),
-          iv_base64:b64(enc.iv),
-          payload_aad:aad,
-        })
-        if(payloadError) throw payloadError
-        await admin.from('secret_vault_audit_events').insert({item_id:item.id,actor_id:user.id,event_type:'created',metadata:{kind,byte_size:bytes.byteLength}})
-        return json({id:item.id})
-      }catch(e){await admin.from('secret_vault_items').delete().eq('id',item.id);throw e}
+      const itemId=crypto.randomUUID()
+      const aad=`ra-vault:${itemId}:${user.id}:v1`
+      const enc=await encrypt(bytes,aad)
+
+      const {data:createdId,error:createError}=await admin.rpc('vault_create_encrypted_item',{
+        target_item:itemId,
+        target_owner:user.id,
+        item_label:label,
+        item_kind:kind,
+        item_classification:body.classification||'restricted',
+        item_mime_type:body.mime_type||null,
+        item_original_filename:body.original_filename||null,
+        item_byte_size:bytes.byteLength,
+        item_last_four:body.last_four||null,
+        item_reveal_max_seconds:max,
+        item_owner_approval_for_others:body.owner_approval_for_others!==false,
+        ciphertext_base64:b64(enc.ciphertext),
+        iv_base64:b64(enc.iv),
+        payload_aad:aad,
+      })
+
+      if(createError||!createdId) throw createError||new Error('Unable to create encrypted Vault item')
+
+      await admin.from('secret_vault_audit_events').insert({
+        item_id:createdId,
+        actor_id:user.id,
+        event_type:'created',
+        metadata:{kind,byte_size:bytes.byteLength},
+      })
+
+      return json({id:createdId})
     }
 
     if(action==='authorize_reveal'){

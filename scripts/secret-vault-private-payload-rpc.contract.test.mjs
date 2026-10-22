@@ -17,7 +17,7 @@ const migration = fs.readFileSync(
 
 test('Edge Function does not expose the private Vault schema through PostgREST', () => {
   assert.doesNotMatch(edge, /\.schema\(['"]private['"]\)/)
-  assert.match(edge, /vault_store_encrypted_payload/)
+  assert.match(edge, /vault_create_encrypted_item/)
   assert.match(edge, /vault_read_encrypted_payload/)
 })
 
