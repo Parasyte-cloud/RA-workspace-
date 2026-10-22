@@ -2,7 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const html = readFileSync(new URL('../public/support-join.html', import.meta.url), 'utf8')
+const markup = readFileSync(new URL('../public/support-join.html', import.meta.url), 'utf8')
+const script = readFileSync(new URL('../public/support-join.js', import.meta.url), 'utf8')
+// The page logic lives in public/support-join.js (an inline script is blocked by the host CSP),
+// so the contract checks the markup and the script together.
+const html = markup + '\n' + script
 const requiredIds = [
   'join-form','join-email','join-code','join-password-stage','join-password','join-confirm','join-submit',
   'join-message','join-ready','join-success','join-success-text','join-continue'
@@ -62,4 +66,15 @@ test('join page keeps recoverable query stripping and network errors', () => {
 
 test('join page has an explicit configured functions endpoint', () => {
   assert.match(html, /meta name=["']support-functions-url["'] content=["']https:\/\/fkkxcivxnwshahnbatnp\.supabase\.co\/functions\/v1["']/)
+})
+
+test('join page has no inline script: the support and intranet hosts enforce script-src self', () => {
+  assert.doesNotMatch(markup, /<script(?![^>]*\bsrc=)[^>]*>/i, 'an inline <script> would be blocked by the enforced policy')
+  assert.match(markup, /<script src="\/support-join\.js"><\/script>/)
+  const headers = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8')
+  assert.match(headers, /https:\/\/support\.ridearrivo\.com\/\*[\s\S]*?script-src 'self'(?! 'unsafe-inline')/)
+})
+
+test('join page form cannot fall back to a GET that puts the invitation code in the URL', () => {
+  assert.match(markup, /<form id="join-form" method="post"/)
 })

@@ -437,28 +437,45 @@ async function intakeRequest<T>(
           hasBody,
         )
 
-  const response =
-    await fetch(
-      url.toString(),
-      {
-        method,
-        headers,
-        ...(
-          hasBody
-            ? {
-                body:
-                  JSON.stringify(
-                    options.body,
-                  ),
-              }
-            : {}
-        ),
-      },
-    )
+  // Without a limit a stalled connection leaves the form on "Submitting..."
+  // forever. 30 s is long enough for a cold start of the function.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 30_000)
 
-  return parseIntakeResponse<T>(
-    response,
-  )
+  try {
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          method,
+          headers,
+          signal: controller.signal,
+          ...(
+            hasBody
+              ? {
+                  body:
+                    JSON.stringify(
+                      options.body,
+                    ),
+                }
+              : {}
+          ),
+        },
+      )
+
+    return await parseIntakeResponse<T>(
+      response,
+    )
+  } catch (cause) {
+    if (controller.signal.aborted) {
+      throw new Error(
+        'The request took too long. Check your connection and try again.',
+      )
+    }
+    throw cause
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function getPublicIntakeForm(
@@ -537,7 +554,17 @@ export async function submitPublicIntakeForm(
       )
 
     trackFormSubmit(slug, true)
-    return response.submission
+    // The server answers a honeypot (spam trap) hit with ok:true and no
+    // submission. Callers read .reference, so hand back an empty receipt
+    // instead of undefined, which used to crash the page.
+    return (
+      response.submission ?? {
+        id: '',
+        reference: '',
+        status: 'new' as IntakeStatus,
+        submittedAt: new Date().toISOString(),
+      }
+    )
   } catch (cause) {
     trackFormSubmit(
       slug,

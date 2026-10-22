@@ -81,6 +81,8 @@ export default function LateBookingDialog({
   const message = supportMessage(summary, serviceName)
 
   function requestClose() {
+    // Closing mid-send would drop the receipt and invite a second submit.
+    if (busy) return
     if (sent) onDone()
     else onClose()
   }

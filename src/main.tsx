@@ -1,6 +1,8 @@
 import React, {
+  Component,
   lazy,
   Suspense,
+  type ReactNode,
 } from 'react'
 import ReactDOM from 'react-dom/client'
 import './lib/safeIntlDate'
@@ -156,6 +158,70 @@ function EntryLoading({
   )
 }
 
+// A deploy replaces hashed chunk files. A tab opened before it then fails to
+// fetch the lazy chunk and, with no boundary, shows a blank page. Reload once
+// to pick up the new build; the flag stops an endless reload loop.
+const RELOAD_FLAG = 'ra:chunk-reload'
+
+function reloadOnceForNewBuild() {
+  try {
+    if (sessionStorage.getItem(RELOAD_FLAG)) return false
+    sessionStorage.setItem(RELOAD_FLAG, String(Date.now()))
+  } catch {
+    return false
+  }
+  window.location.reload()
+  return true
+}
+
+window.addEventListener('vite:preloadError', event => {
+  if (reloadOnceForNewBuild()) event.preventDefault()
+})
+
+class EntryErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[RideArrivo] entry failure', error)
+    if (/dynamically imported module|Importing a module script failed|Failed to fetch/i.test(String(error?.message))) {
+      reloadOnceForNewBuild()
+    }
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div
+        role="alert"
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          textAlign: 'center',
+          padding: '24px',
+          background: '#07111f',
+          color: '#f5f7fa',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}
+      >
+        <div>
+          <p>This page could not be loaded. Check your connection and reload.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Reload
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+
 const publicForms =
   isPublicFormsSurface()
 
@@ -175,6 +241,7 @@ ReactDOM.createRoot(
   document.getElementById('root')!,
 ).render(
   <React.StrictMode>
+    <EntryErrorBoundary>
     <Suspense
       fallback={
         <EntryLoading
@@ -189,5 +256,6 @@ ReactDOM.createRoot(
           ? <ExternalRoom7App />
           : <InternalApp />}
     </Suspense>
+    </EntryErrorBoundary>
   </React.StrictMode>,
 )
