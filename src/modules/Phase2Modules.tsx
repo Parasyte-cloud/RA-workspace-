@@ -430,7 +430,10 @@ export function CompanyFilesModule() {
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
   const inputRef = useRef<HTMLInputElement|null>(null)
-  const previewBackfillStarted = useRef(false)
+  // 'none' is the default on purpose: a picture only gets a preview when the
+  // uploader says it has no numbers in it (photo, signature, passport page).
+  const [previewMode, setPreviewMode] = useState<'none'|'picture'>('none')
+  const [previewBusy, setPreviewBusy] = useState('')
 
   const canUpload = role === 'legal' || role === 'admin'
 
@@ -483,81 +486,57 @@ export function CompanyFilesModule() {
     setLoading(false)
   }
 
-  async function backfillMissingCompanyPreviews() {
-    if (!supabase || role !== 'admin' || previewBackfillStarted.current) return
-
-    const missing = items.filter(file =>
-      !file.preview_path &&
-      workspaceFileLooksImage(file)
-    )
-
-    if (!missing.length) return
-
-    previewBackfillStarted.current = true
-
+  // Show a watermarked preview for ONE picture, chosen by a person. Nothing
+  // generates previews on its own any more: a scan of a card or an ID has
+  // numbers on it, and no code can tell that from a photo of a signature.
+  async function showPreview(file: WorkspaceFile) {
+    if (!supabase || !canUpload || previewBusy) return
+    setPreviewBusy(file.id)
+    setNotice('')
     try {
-      for (const file of missing) {
-        const { data: location, error: locationError } = await supabase.rpc(
-          'get_workspace_file_download_location',
-          { p_file_id: file.id }
-        )
-        if (locationError) throw locationError
-
-        const payload = location as {
-          provider?: string
-          storage_path?: string|null
-        } | null
-
-        if (payload?.provider !== 'supabase' || !payload.storage_path) continue
-
-        const { data: blob, error: downloadError } = await supabase.storage
-          .from('company-files')
-          .download(payload.storage_path)
-        if (downloadError) throw downloadError
-
-        const source = new File(
-          [blob],
-          file.name,
-          { type: blob.type || (String(file.file_type || '').startsWith('image/') ? file.file_type : 'image/png') }
-        )
-        const preview = await createInternalImagePreview(source)
-        if (!preview) continue
-
-        const previewPath = `company/${file.id}/preview.webp`
-        const { error: previewError } = await supabase.storage
-          .from('workspace-previews')
-          .upload(previewPath, preview, {
-            upsert: true,
-            contentType: 'image/webp',
-            cacheControl: '900',
-          })
-        if (previewError) throw previewError
-
-        const { error: updateError } = await supabase
-          .from('workspace_files')
-          .update({ preview_path: previewPath })
-          .eq('id', file.id)
-        if (updateError) throw updateError
-      }
-
+      const { data: location, error: locationError } = await supabase.rpc(
+        'get_workspace_file_download_location',
+        { p_file_id: file.id }
+      )
+      if (locationError) throw locationError
+      const payload = location as { provider?: string; storage_path?: string|null } | null
+      if (payload?.provider !== 'supabase' || !payload.storage_path) throw new Error('This file has no stored original to preview.')
+      const { data: blob, error: downloadError } = await supabase.storage.from('company-files').download(payload.storage_path)
+      if (downloadError) throw downloadError
+      const source = new File([blob], file.name, { type: blob.type || (String(file.file_type || '').startsWith('image/') ? String(file.file_type) : 'image/png') })
+      const preview = await createInternalImagePreview(source)
+      if (!preview) throw new Error('A preview could not be made from this picture.')
+      const previewPath = `company/${file.id}/preview.webp`
+      const { error: previewError } = await supabase.storage.from('workspace-previews').upload(previewPath, preview, { upsert: true, contentType: 'image/webp', cacheControl: '900' })
+      if (previewError) throw previewError
+      const { error: updateError } = await supabase.from('workspace_files').update({ preview_path: previewPath }).eq('id', file.id)
+      if (updateError) throw updateError
       await load()
     } catch (error) {
-      console.error('Company preview backfill', error)
+      setNotice(error instanceof Error ? error.message : 'Unable to show the preview.')
+    } finally {
+      setPreviewBusy('')
     }
   }
 
-  useEffect(() => {
-    if (
-      role === 'admin' &&
-      !loading &&
-      items.some(file =>
-        !file.preview_path &&
-        workspaceFileLooksImage(file)
-      )
-    ) {
-      void backfillMissingCompanyPreviews()
+  // Hide the preview of ONE file and delete the preview copy from storage, so
+  // it cannot be fetched again. The protected original is not touched.
+  async function hidePreview(file: WorkspaceFile) {
+    if (!supabase || !canUpload || previewBusy) return
+    setPreviewBusy(file.id)
+    setNotice('')
+    try {
+      const path = file.preview_path
+      const { error: updateError } = await supabase.from('workspace_files').update({ preview_path: null }).eq('id', file.id)
+      if (updateError) throw updateError
+      if (path) await supabase.storage.from('workspace-previews').remove([path])
+      await load()
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unable to hide the preview.')
+    } finally {
+      setPreviewBusy('')
     }
-  }, [items, loading, role])
+  }
 
   async function uploadCompanyFile(event: React.FormEvent) {
     event.preventDefault()
@@ -574,7 +553,7 @@ export function CompanyFilesModule() {
       const fileId = crypto.randomUUID()
       const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]+/g, '-')
       const storagePath = `${fileId}/${safeName}`
-      const previewBlob = isPreviewableImage(selectedFile)
+      const previewBlob = previewMode === 'picture' && isPreviewableImage(selectedFile)
         ? await createInternalImagePreview(selectedFile)
         : null
       const previewPath = previewBlob
@@ -639,6 +618,7 @@ export function CompanyFilesModule() {
       setDescription('')
       setFolderPath('')
       setDepartment('Company-wide')
+      setPreviewMode('none')
       setShowUpload(false)
       setNotice('File uploaded. Employees can see the record, but downloading still requires administrator approval.')
       await load()
@@ -776,26 +756,18 @@ export function CompanyFilesModule() {
               </div>
             </div>
 
-            {workspaceFileLooksImage(file) ? (
+            {file.preview_url ? (
               <div
                 className="companyFilePreview"
                 onContextMenu={(event) => event.preventDefault()}
                 title="Internal preview. Original download requires approval."
               >
-                {file.preview_url ? (
-                  <img
-                    src={file.preview_url}
-                    alt={`${file.name} preview`}
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="companyFilePreviewPending">
-                    <FileText size={30}/>
-                    <strong>Preview preparing</strong>
-                    <small>The protected original is not exposed.</small>
-                  </div>
-                )}
+                <img
+                  src={file.preview_url}
+                  alt={`${file.name} preview`}
+                  loading="lazy"
+                  draggable={false}
+                />
                 <span>Internal preview</span>
               </div>
             ) : (
@@ -806,6 +778,17 @@ export function CompanyFilesModule() {
                   <small>{file.name}</small>
                 </div>
               </div>
+            )}
+
+            {canUpload && file.preview_url && (
+              <button type="button" className="glassButton" disabled={previewBusy === file.id} onClick={() => void hidePreview(file)}>
+                Hide preview
+              </button>
+            )}
+            {canUpload && !file.preview_url && workspaceFileLooksImage(file) && (
+              <button type="button" className="glassButton" disabled={previewBusy === file.id} onClick={() => void showPreview(file)}>
+                Show watermarked preview
+              </button>
             )}
 
             {file.description && <p>{file.description}</p>}
@@ -875,6 +858,15 @@ export function CompanyFilesModule() {
             <label>
               Description
               <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What is this document for?" />
+              {selectedFile && isPreviewableImage(selectedFile) && (
+                <label>
+                  Preview
+                  <select value={previewMode} onChange={(event) => setPreviewMode(event.target.value as 'none' | 'picture')}>
+                    <option value="none">No preview (ID, card, statement or anything with numbers)</option>
+                    <option value="picture">Show watermarked preview (photo, signature or passport page)</option>
+                  </select>
+                </label>
+              )}
             </label>
 
             <label>
