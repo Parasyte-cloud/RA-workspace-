@@ -29,6 +29,7 @@ import {
   type VaultItem,
 } from '../lib/secretVault'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import SecretVaultSharing from './SecretVaultSharing'
 import './secret-vault.css'
 
 type SecretKind = 'text' | 'number' | 'document'
@@ -480,6 +481,8 @@ export default function SecretVaultPanel() {
           </button>
         </div>
       )}
+
+      <SecretVaultSharing items={items} onChanged={() => void load(true)} />
 
       <div className="secretVaultWorkspace">
         <main className="secretVaultMain">
