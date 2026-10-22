@@ -144,7 +144,12 @@ const PLANS: Plan[] = [
 // 422 every submission. Wire this back in once a migration adds the
 // field to both membership-signup and move-booking's schemas.
 function getMembershipIdempotencyKey(): string {
-  const key = window.sessionStorage.getItem('ra_membership_idempotency_key')
+  let key: string | null = null
+  try {
+    key = window.sessionStorage.getItem('ra_membership_idempotency_key')
+  } catch {
+    /* storage blocked: a key that lives for this page load is enough */
+  }
   if (key) return key
   const fresh =
     typeof crypto.randomUUID === 'function'
@@ -154,7 +159,11 @@ function getMembershipIdempotencyKey(): string {
           const value = char === 'x' ? random : (random & 0x3) | 0x8
           return value.toString(16)
         })
-  window.sessionStorage.setItem('ra_membership_idempotency_key', fresh)
+  try {
+    window.sessionStorage.setItem('ra_membership_idempotency_key', fresh)
+  } catch {
+    /* see above */
+  }
   return fresh
 }
 
@@ -273,6 +282,16 @@ export default function MembershipApp() {
     }
     if (!identity.phone.trim()) {
       setIdentifyError('A phone number is required so we can reach you about your membership.')
+      return
+    }
+
+    const email = identity.email.trim()
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      setIdentifyError('That email address does not look right. Please check it.')
+      return
+    }
+    if (identity.phone.replace(/\D/g, '').length < 7) {
+      setIdentifyError('Please enter a phone number we can call, with at least 7 digits.')
       return
     }
 
@@ -445,8 +464,16 @@ export default function MembershipApp() {
             <span className="formsEyebrow">WELCOME, {identity.fullName.split(' ')[0].toUpperCase()}</span>
             <h1>Choose your plan.</h1>
             <p className="membershipLead">
-              Tap a plan to see everything it includes. You can compare all four before deciding.
+              Tap a plan to see everything it includes. You can compare all {PLANS.length} before deciding.
             </p>
+
+            <button
+              type="button"
+              className="formsBackLink"
+              onClick={() => setStep('identify')}
+            >
+              Back to your details
+            </button>
 
             <div className="planGrid">
               {PLANS.map(plan => {

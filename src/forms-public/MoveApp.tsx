@@ -206,7 +206,12 @@ function computeEstimate(details: MoveDetails): Estimate | null {
 // function's validateSubmission() would reject it as an unrecognized
 // payload key (see validation.mjs's "Unknown field" check).
 function getMoveIdempotencyKey(): string {
-  const key = window.sessionStorage.getItem('ra_move_idempotency_key')
+  let key: string | null = null
+  try {
+    key = window.sessionStorage.getItem('ra_move_idempotency_key')
+  } catch {
+    /* storage blocked: a key that lives for this page load is enough */
+  }
   if (key) return key
   const fresh =
     typeof crypto.randomUUID === 'function'
@@ -216,7 +221,11 @@ function getMoveIdempotencyKey(): string {
           const value = char === 'x' ? random : (random & 0x3) | 0x8
           return value.toString(16)
         })
-  window.sessionStorage.setItem('ra_move_idempotency_key', fresh)
+  try {
+    window.sessionStorage.setItem('ra_move_idempotency_key', fresh)
+  } catch {
+    /* see above */
+  }
   return fresh
 }
 
@@ -390,7 +399,7 @@ export default function MoveApp() {
       // A later, separate booking should get its own fresh key rather than
       // reusing this one -- otherwise the backend would see it as a retry
       // of this already-successful submission and dedupe it away.
-      window.sessionStorage.removeItem('ra_move_idempotency_key')
+      try { window.sessionStorage.removeItem('ra_move_idempotency_key') } catch { /* storage blocked */ }
       setStep('success')
     } catch (cause) {
       setSubmitError(
@@ -857,7 +866,7 @@ export default function MoveApp() {
               setContact(current => ({ ...current, fullName: who.fullName, phone: who.phone }))
               setLateSent(true)
               // A later, separate booking needs a fresh key, same as a normal submit.
-              window.sessionStorage.removeItem('ra_move_idempotency_key')
+              try { window.sessionStorage.removeItem('ra_move_idempotency_key') } catch { /* storage blocked */ }
             }}
             onDone={() => {
               setLateOpen(false)

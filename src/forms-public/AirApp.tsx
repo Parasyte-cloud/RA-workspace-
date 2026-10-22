@@ -451,6 +451,10 @@ export default function AirApp() {
     if (!details.departureDate) return setTripError('Please choose a departure date.')
     if (!details.departureTime) return setTripError('Please choose a departure time.')
     if (isRoundTrip && !details.returnDate) return setTripError('Please choose a return date.')
+    // ISO dates (YYYY-MM-DD) compare correctly as text.
+    if (isRoundTrip && details.returnDate < details.departureDate) {
+      return setTripError('The return date cannot be before the departure date.')
+    }
     if (!details.passengers) return setTripError('Please choose how many passengers.')
 
     // Checked last, so a late request carries every other answer complete.
@@ -636,6 +640,7 @@ export default function AirApp() {
                   <input
                     type="date"
                     required
+                    min={details.departureDate || lagosToday()}
                     value={details.returnDate}
                     onChange={event => updateDetails('returnDate', event.target.value)}
                   />

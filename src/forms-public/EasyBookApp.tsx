@@ -99,7 +99,12 @@ type SubmitResult = {
 }
 
 function getIdempotencyKey(): string {
-  const key = window.sessionStorage.getItem('ra_easybook_idempotency_key')
+  let key: string | null = null
+  try {
+    key = window.sessionStorage.getItem('ra_easybook_idempotency_key')
+  } catch {
+    /* storage blocked: a key that lives for this page load is enough */
+  }
   if (key) return key
   const fresh =
     typeof crypto.randomUUID === 'function'
@@ -109,7 +114,11 @@ function getIdempotencyKey(): string {
           const value = char === 'x' ? random : (random & 0x3) | 0x8
           return value.toString(16)
         })
-  window.sessionStorage.setItem('ra_easybook_idempotency_key', fresh)
+  try {
+    window.sessionStorage.setItem('ra_easybook_idempotency_key', fresh)
+  } catch {
+    /* see above */
+  }
   return fresh
 }
 
@@ -331,7 +340,7 @@ export default function EasyBookApp() {
     setResult(null)
     setSubmitError('')
     setStep('book')
-    window.sessionStorage.removeItem('ra_easybook_idempotency_key')
+    try { window.sessionStorage.removeItem('ra_easybook_idempotency_key') } catch { /* storage blocked */ }
   }
 
   function switchAccount() {

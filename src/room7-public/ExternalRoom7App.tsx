@@ -164,7 +164,7 @@ function parseLocator(): Locator | null {
     window.location.pathname
       .split('/')
       .filter(Boolean)
-      .map(part => decodeURIComponent(part))
+      .map(safeDecode)
 
   if (
     parts[0] === 'r' &&
@@ -243,10 +243,14 @@ function captureInvitation(
     `ridearrivo:room7:invite:${locatorKey(locator)}`
 
   if (invite) {
-    sessionStorage.setItem(
-      key,
-      invite,
-    )
+    try {
+      sessionStorage.setItem(
+        key,
+        invite,
+      )
+    } catch {
+      /* storage blocked: the invite still works for this page load */
+    }
 
     // Backward compatibility:
     // remove legacy ?invite= links too.
@@ -275,11 +279,13 @@ function captureInvitation(
     )
   }
 
-  return (
-    invite ||
-    sessionStorage.getItem(key) ||
-    ''
-  )
+  if (invite) return invite
+
+  try {
+    return sessionStorage.getItem(key) || ''
+  } catch {
+    return ''
+  }
 }
 
 async function room7Request<T>(
@@ -470,6 +476,16 @@ function useCountdown(
       seconds % 60,
     complete:
       distance === 0,
+  }
+}
+
+// A stray "%" in a pasted link makes decodeURIComponent throw URIError, which
+// used to blank the whole page. Keep the raw text instead.
+function safeDecode(part: string) {
+  try {
+    return decodeURIComponent(part)
+  } catch {
+    return part
   }
 }
 
