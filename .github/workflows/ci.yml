@@ -49,7 +49,33 @@ jobs:
         with:
           version: 2.116.0
       - name: Start local Supabase (applies every migration)
-        run: supabase start -x studio,imgproxy,vector,logflare
+        run: |
+          set -euo pipefail
+        
+          max_attempts=4
+          attempt=1
+        
+          while true; do
+            echo "Starting local Supabase (attempt $attempt/$max_attempts)"
+        
+            if supabase start -x studio,imgproxy,vector,logflare; then
+              echo "Local Supabase started successfully"
+              break
+            fi
+        
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "Local Supabase failed after $max_attempts attempts"
+              exit 1
+            fi
+        
+            supabase stop --no-backup || true
+        
+            delay=$((attempt * 30))
+            echo "Registry/image pull failed; retrying in $delay seconds"
+            sleep "$delay"
+        
+            attempt=$((attempt + 1))
+          done
       # The intake Edge Function refuses to run without a rate-limit secret of
       # at least 32 characters, and `supabase start` does not pass one in, so
       # every public submission answered 500. Serve the functions with a
