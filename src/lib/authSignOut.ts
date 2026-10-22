@@ -54,6 +54,14 @@ export async function signOutThisDevice(client: SupabaseClient | null, reason: S
   return result
 }
 
+// Ends every session EXCEPT this one. Used after a password reset: the usual
+// reason for a reset is a suspected compromise, and a local-only sign-out left
+// every other session and refresh token alive.
+export async function signOutOtherDevices(client: SupabaseClient | null) {
+  if (!client) return { error: null }
+  return client.auth.signOut({ scope: 'others' })
+}
+
 export async function signOutEverywhere(client: SupabaseClient | null) {
   if (!client) return { error: null }
   markDeliberateSignOut()

@@ -38,6 +38,7 @@ import type {
 } from '../lib/operationsReceipts'
 
 import { supabase } from '../lib/supabase'
+import { lagosToday } from '../lib/lagosDate'
 
 
 type UploadDraft = {
@@ -54,8 +55,7 @@ type UploadDraft = {
 }
 
 
-const today = () =>
-  new Date().toISOString().slice(0, 10)
+const today = () => lagosToday()
 
 
 const newDraft = (): UploadDraft => ({

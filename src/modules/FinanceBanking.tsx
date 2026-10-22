@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Download, ExternalLink, FileSpreadsheet, FileText, Landmark, RefreshCw, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { textOf, toAmount, toDate, toSignedAmount } from '../lib/bankStatementParse'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
 
 type BankTransaction = {
@@ -25,35 +26,6 @@ type BankTransaction = {
 const PROVIDUS_URL = 'https://ibank.providusbank.com/provipay#/login'
 const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 })
 const money = (value: number) => NGN.format(value || 0)
-
-const textOf = (value: unknown) => {
-  if (value === null || value === undefined) return ''
-  if (typeof value === 'object' && value && 'text' in value) return String((value as { text?: unknown }).text ?? '')
-  if (typeof value === 'object' && value && 'result' in value) return String((value as { result?: unknown }).result ?? '')
-  return String(value)
-}
-
-const toAmount = (value: unknown) => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
-  const cleaned = textOf(value).replace(/[₦NGN,\s]/gi, '').replace(/\(([^)]+)\)/, '-$1')
-  const n = Number(cleaned)
-  return Number.isFinite(n) ? Math.abs(n) : 0
-}
-
-const toDate = (value: unknown) => {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10)
-  const raw = textOf(value).trim()
-  if (!raw) return ''
-  const parsed = new Date(raw)
-  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
-  const match = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/)
-  if (match) {
-    const [, d, m, y] = match
-    const year = y.length === 2 ? `20${y}` : y
-    return `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
-  }
-  return raw
-}
 
 const normaliseHeader = (value: unknown) => textOf(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 const pickIndex = (headers: string[], aliases: string[]) => {
@@ -175,6 +147,7 @@ async function parseStatement(file: File): Promise<BankTransaction[]> {
   if (headerRow < 0) throw new Error('Could not recognise the statement columns. Export the Providus statement as CSV or XLSX with date, narration/description and amount columns.')
 
   const output: BankTransaction[] = []
+  const seenKeys = new Map<string, number>()
   for (const row of rows.slice(headerRow + 1)) {
     const transactionDate = indexes.date >= 0 ? toDate(row[indexes.date]) : ''
     const description = indexes.description >= 0 ? textOf(row[indexes.description]).trim() : ''
@@ -194,9 +167,16 @@ async function parseStatement(file: File): Promise<BankTransaction[]> {
     if (!debit && !credit) continue
 
     const reference = indexes.reference >= 0 ? textOf(row[indexes.reference]).trim() : ''
-    const balance = indexes.balance >= 0 ? toAmount(row[indexes.balance]) : 0
+    const balance = indexes.balance >= 0 ? toSignedAmount(row[indexes.balance]) : 0
     const auto = categorise(description, debit, credit)
-    const sourceHash = await sha256([transactionDate, reference, description, debit, credit, balance].join('|').toLowerCase())
+    // Two genuinely identical rows in one file (same day, same amount, no
+    // reference or balance column) must both be kept. The first keeps the hash
+    // it always had, so re-importing an old statement still matches; a repeat
+    // gets a counter.
+    const baseKey = [transactionDate, reference, description, debit, credit, balance].join('|').toLowerCase()
+    const seenBefore = seenKeys.get(baseKey) || 0
+    seenKeys.set(baseKey, seenBefore + 1)
+    const sourceHash = await sha256(seenBefore ? `${baseKey}|#${seenBefore + 1}` : baseKey)
 
     output.push({
       transaction_date: transactionDate,

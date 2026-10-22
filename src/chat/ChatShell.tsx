@@ -2219,10 +2219,17 @@ export function ChatShell(){
     void client.storage.from(ATTACH_BUCKET).createSignedUrls(need,SIGNED_SECONDS).then(({data})=>{
       if(cancelled || !data)return
       setImageUrls(current=>{
-        const next={...current}
+        let next=current
         for(const row of data){
-          if(row.path && row.signedUrl)next[row.path]=row.signedUrl
+          if(row.path && row.signedUrl && current[row.path]!==row.signedUrl){
+            if(next===current)next={...current}
+            next[row.path]=row.signedUrl
+          }
         }
+        // Return the SAME object when nothing was added. A file that no longer
+        // exists comes back without a URL; always returning a new object made
+        // this effect run again after every response, so one missing image
+        // kept the signing call looping for as long as the chat was open.
         return next
       })
     })
@@ -3466,7 +3473,11 @@ export function ChatShell(){
                   <Paperclip size={19}/>
                 </button>
                 {vaultSettings&&(
-                  <LockButton on={vaultOn} disabled={vaultSending} onToggle={()=>setVaultOn(current=>!current)}/>
+                  <LockButton on={vaultOn} disabled={vaultSending} onToggle={()=>{
+                    // Switching the lock on removes any draft already saved for this chat.
+                    if(!vaultOn && selectedId)rememberDraft(selectedId,'')
+                    setVaultOn(current=>!current)
+                  }}/>
                 )}
                 <button
                   type="button"
@@ -3523,7 +3534,8 @@ export function ChatShell(){
                     )
 
                     setMessageText(next)
-                    if(selectedId)rememberDraft(selectedId,next)
+                    // Text typed for a confidential message must not be saved as a normal draft.
+                    if(selectedId && !vaultOn)rememberDraft(selectedId,next)
                     setSelectedMentions(current=>
                       current.filter(item=>
                         next.includes(item.token)
