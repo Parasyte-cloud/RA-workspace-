@@ -45,7 +45,7 @@ jobs:
           node-version: 22.23.2
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+      - uses: supabase/setup-cli@v2.1.2 # v2.1.2
         with:
           version: 2.116.0
       - name: Start local Supabase (applies every migration)
