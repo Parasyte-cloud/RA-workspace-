@@ -110,11 +110,30 @@ test('chat refresh from realtime is coalesced, not one reload per event', () => 
   assert.doesNotMatch(src, /table:'social_conversation_members'\},\s*\(\)=>\{void loadBase\(\)\}/)
 })
 
-test('file and voice sends carry a client id and a retry finds the first copy', () => {
-  const src = read('src/chat/ChatShell.tsx')
-  assert.match(src, /client_message_id:clientMessageId,\s*\.\.\.\(replyId/)
-  assert.match(src, /\.code==='23505'/)
-  assert.match(src, /\.eq\('client_message_id',clientMessageId\)/)
+test('file and voice sends preserve client ids through governed sends and retries', () => {
+  const shell = read('src/chat/ChatShell.tsx')
+  const api = read('src/chat/api/chatApi.ts')
+
+  assert.match(
+    shell,
+    /const clientMessageId=opts\.clientMessageId \|\| crypto\.randomUUID\(\)/,
+  )
+  assert.match(
+    shell,
+    /sendChatAttachmentMessage\(\{[\s\S]*?clientMessageId,[\s\S]*?\}\)/,
+  )
+  assert.match(
+    shell,
+    /savePendingFileRetry\(\{[\s\S]*?clientMessageId,[\s\S]*?file/,
+  )
+  assert.match(
+    shell,
+    /clientMessageId:message\.client_message_id\|\|undefined/,
+  )
+  assert.match(
+    api,
+    /p_client_message_id:\s*input\.clientMessageId/,
+  )
 })
 
 test('deleted messages stay readable as a tombstone, and alerts that quote them are scrubbed', () => {

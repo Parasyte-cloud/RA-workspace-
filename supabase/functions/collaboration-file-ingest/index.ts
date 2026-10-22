@@ -70,17 +70,22 @@ async function sha256(bytes:Uint8Array){
   return [...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,"0")).join("")
 }
 async function scan(bytes:Uint8Array, name:string, mime:string){
-  const url=Deno.env.get("COLLAB_FILE_SCAN_URL")
-  const token=Deno.env.get("COLLAB_FILE_SCAN_TOKEN")
-  if(!url) throw new Error("Malware scanner is not configured")
+  const apiKey=Deno.env.get("CLOUDMERSIVE_API_KEY")
+  if(!apiKey) throw new Error("Cloudmersive malware scanning is not configured")
+  const url=Deno.env.get("CLOUDMERSIVE_SCAN_URL") || "https://api.cloudmersive.com/virus/scan/file"
   const form=new FormData()
-  form.set("file",new Blob([bytes],{type:mime}),name)
-  const res=await fetch(url,{method:"POST",headers:token?{Authorization:`Bearer ${token}`}:{},body:form})
-  if(!res.ok) throw new Error(`Scanner failed (${res.status})`)
-  const data=await res.json().catch(()=>({})) as Record<string,unknown>
-  const verdict=String(data.verdict ?? data.status ?? "").toLowerCase()
-  if(!["clean","safe","ok"].includes(verdict)) return {clean:false,provider:String(data.provider??"configured-scanner"),details:data}
-  return {clean:true,provider:String(data.provider??"configured-scanner"),details:data}
+  form.set("inputFile",new Blob([bytes],{type:mime}),name)
+  const controller=new AbortController()
+  const timeout=setTimeout(()=>controller.abort(),20_000)
+  try {
+    const res=await fetch(url,{method:"POST",headers:{Apikey:apiKey},body:form,signal:controller.signal})
+    if(!res.ok) throw new Error(`Cloudmersive scanner failed (${res.status})`)
+    const data=await res.json().catch(()=>null) as Record<string,unknown>|null
+    if(!data || typeof data.CleanResult!=="boolean") throw new Error("Cloudmersive scanner returned an invalid response")
+    return {clean:data.CleanResult===true,provider:"cloudmersive",details:data}
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 Deno.serve(async req=>{

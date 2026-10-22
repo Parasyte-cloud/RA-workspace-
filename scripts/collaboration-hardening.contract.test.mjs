@@ -35,7 +35,11 @@ test('browser cannot upload directly into final chat attachment storage',()=>{
 test('file ingest verifies bytes, checksum and malware verdict before promotion',()=>{
   assert.match(ingest,/function sniff\(/)
   assert.match(ingest,/crypto\.subtle\.digest\("SHA-256"/)
-  assert.match(ingest,/COLLAB_FILE_SCAN_URL/)
+  assert.match(ingest,/CLOUDMERSIVE_API_KEY/)
+  assert.match(ingest,/https:\/\/api\.cloudmersive\.com\/virus\/scan\/file/)
+  assert.match(ingest,/headers:\{Apikey:apiKey\}/)
+  assert.match(ingest,/form\.set\("inputFile"/)
+  assert.match(ingest,/typeof data\.CleanResult!=="boolean"/)
   assert.match(ingest,/scan_status:\s*"clean"/)
   assert.match(ingest,/collaboration-quarantine/)
 })
