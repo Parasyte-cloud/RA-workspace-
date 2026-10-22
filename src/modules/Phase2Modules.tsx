@@ -19,7 +19,6 @@ import { supabase } from '../lib/supabase'
 import { safeHttpUrl } from '../lib/safeUrl'
 import WorkspaceCalendar from './WorkspaceCalendar'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
-import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
 
 type Announcement = {
   id: string
@@ -82,10 +81,6 @@ type WorkspaceFile = {
   preview_url?: string|null
 }
 
-function workspaceFileLooksImage(file: WorkspaceFile) {
-  const type=String(file.file_type || '').toLowerCase()
-  return type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
-}
 
 function ModuleHeader({
   eyebrow,
@@ -430,7 +425,6 @@ export function CompanyFilesModule() {
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
   const inputRef = useRef<HTMLInputElement|null>(null)
-  const previewBackfillStarted = useRef(false)
 
   const canUpload = role === 'legal' || role === 'admin'
 
@@ -463,101 +457,17 @@ export function CompanyFilesModule() {
       setNotice(catalogResult.error.message)
       setItems([])
     } else {
-      const rows = (catalogResult.data || []) as WorkspaceFile[]
-      const resolved = await Promise.all(
-        rows.map(async (file) => {
-          if (!file.preview_path) return file
-          const { data, error } = await client.storage
-            .from('workspace-previews')
-            .createSignedUrl(file.preview_path, 15 * 60)
-          return {
-            ...file,
-            preview_url: error ? null : data?.signedUrl || null,
-          }
-        })
-      )
-      setItems(resolved)
+      // Company Files never shows what is inside a file, not even as a
+      // reduced or watermarked picture: IDs, passports, signatures and bank
+      // statements carry numbers and marks that must not be readable on screen.
+      // Every file is a plain card; the original opens only through an
+      // approved download. So no preview URL is created here.
+      setItems((catalogResult.data || []) as WorkspaceFile[])
     }
 
     setRole(String(profileResult.data?.role || 'employee').toLowerCase())
     setLoading(false)
   }
-
-  async function backfillMissingCompanyPreviews() {
-    if (!supabase || role !== 'admin' || previewBackfillStarted.current) return
-
-    const missing = items.filter(file =>
-      !file.preview_path &&
-      workspaceFileLooksImage(file)
-    )
-
-    if (!missing.length) return
-
-    previewBackfillStarted.current = true
-
-    try {
-      for (const file of missing) {
-        const { data: location, error: locationError } = await supabase.rpc(
-          'get_workspace_file_download_location',
-          { p_file_id: file.id }
-        )
-        if (locationError) throw locationError
-
-        const payload = location as {
-          provider?: string
-          storage_path?: string|null
-        } | null
-
-        if (payload?.provider !== 'supabase' || !payload.storage_path) continue
-
-        const { data: blob, error: downloadError } = await supabase.storage
-          .from('company-files')
-          .download(payload.storage_path)
-        if (downloadError) throw downloadError
-
-        const source = new File(
-          [blob],
-          file.name,
-          { type: blob.type || (String(file.file_type || '').startsWith('image/') ? file.file_type : 'image/png') }
-        )
-        const preview = await createInternalImagePreview(source)
-        if (!preview) continue
-
-        const previewPath = `company/${file.id}/preview.webp`
-        const { error: previewError } = await supabase.storage
-          .from('workspace-previews')
-          .upload(previewPath, preview, {
-            upsert: true,
-            contentType: 'image/webp',
-            cacheControl: '900',
-          })
-        if (previewError) throw previewError
-
-        const { error: updateError } = await supabase
-          .from('workspace_files')
-          .update({ preview_path: previewPath })
-          .eq('id', file.id)
-        if (updateError) throw updateError
-      }
-
-      await load()
-    } catch (error) {
-      console.error('Company preview backfill', error)
-    }
-  }
-
-  useEffect(() => {
-    if (
-      role === 'admin' &&
-      !loading &&
-      items.some(file =>
-        !file.preview_path &&
-        workspaceFileLooksImage(file)
-      )
-    ) {
-      void backfillMissingCompanyPreviews()
-    }
-  }, [items, loading, role])
 
   async function uploadCompanyFile(event: React.FormEvent) {
     event.preventDefault()
@@ -574,13 +484,6 @@ export function CompanyFilesModule() {
       const fileId = crypto.randomUUID()
       const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]+/g, '-')
       const storagePath = `${fileId}/${safeName}`
-      const previewBlob = isPreviewableImage(selectedFile)
-        ? await createInternalImagePreview(selectedFile)
-        : null
-      const previewPath = previewBlob
-        ? `company/${fileId}/preview.webp`
-        : null
-
       const { error: uploadError } = await supabase.storage
         .from('company-files')
         .upload(storagePath, selectedFile, {
@@ -596,20 +499,6 @@ export function CompanyFilesModule() {
         throw uploadError
       }
 
-      if (previewBlob && previewPath) {
-        const { error: previewError } = await supabase.storage
-          .from('workspace-previews')
-          .upload(previewPath, previewBlob, {
-            upsert: false,
-            contentType: 'image/webp',
-            cacheControl: '900',
-          })
-        if (previewError) {
-          await supabase.storage.from('company-files').remove([storagePath])
-          throw previewError
-        }
-      }
-
       const { error: rowError } = await supabase
         .from('workspace_files')
         .insert({
@@ -623,14 +512,13 @@ export function CompanyFilesModule() {
           department,
           file_type: selectedFile.type || selectedFile.name.split('.').pop() || 'file',
           size_bytes: selectedFile.size,
-          preview_path: previewPath,
+          preview_path: null,
           uploaded_by: authData.user.id,
           is_active: true,
         })
 
       if (rowError) {
         await supabase.storage.from('company-files').remove([storagePath])
-        if (previewPath) await supabase.storage.from('workspace-previews').remove([previewPath])
         throw rowError
       }
 
@@ -776,37 +664,13 @@ export function CompanyFilesModule() {
               </div>
             </div>
 
-            {workspaceFileLooksImage(file) ? (
-              <div
-                className="companyFilePreview"
-                onContextMenu={(event) => event.preventDefault()}
-                title="Internal preview. Original download requires approval."
-              >
-                {file.preview_url ? (
-                  <img
-                    src={file.preview_url}
-                    alt={`${file.name} preview`}
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="companyFilePreviewPending">
-                    <FileText size={30}/>
-                    <strong>Preview preparing</strong>
-                    <small>The protected original is not exposed.</small>
-                  </div>
-                )}
-                <span>Internal preview</span>
+            <div className="companyFileDocumentCard">
+              <FileText size={28}/>
+              <div>
+                <strong>{file.file_type || 'Document'}</strong>
+                <small>{file.name}</small>
               </div>
-            ) : (
-              <div className="companyFileDocumentCard">
-                <FileText size={28}/>
-                <div>
-                  <strong>{file.file_type || 'Document'}</strong>
-                  <small>{file.name}</small>
-                </div>
-              </div>
-            )}
+            </div>
 
             {file.description && <p>{file.description}</p>}
 
