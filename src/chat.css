@@ -2413,3 +2413,13 @@ html[data-ra-theme='dark'] .cm .cmCallBack.cmCallEnd{background:#d33;color:#fff}
     outline:0
   }
 }
+
+/* Composer shape. 999px turned a tall, multi-line composer into a huge oval.
+   28px is still a full pill for one line (the bar is about 54px high) and stays
+   a softly rounded rectangle as the text grows. The text area itself has no
+   box; the focus ring is drawn once around the whole pill (see chat-dark.css
+   for the dark theme). */
+.cm .cmComposer { border-radius: 28px; }
+.cm .cmComposer textarea,
+.cm .cmComposer textarea:focus { background: transparent; box-shadow: none; border-radius: 20px; }
+.cm .cmComposer:focus-within { border-color: rgba(255, 153, 0, .55); }
