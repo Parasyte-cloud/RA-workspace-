@@ -48,8 +48,22 @@ jobs:
       - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
         with:
           version: 2.116.0
+      # `supabase start` pulls about a dozen images. When ghcr.io answers
+      # "toomanyrequests" the pull fails and the whole job goes red even though
+      # nothing in the repo is wrong (it did, for every branch, on 2026-10-22).
+      # Layers that already downloaded are kept, so each retry gets further.
+      # A real migration error fails every attempt and the job still fails.
       - name: Start local Supabase (applies every migration)
-        run: supabase start -x studio,imgproxy,vector,logflare
+        run: |
+          for attempt in 1 2 3 4; do
+            if supabase start -x studio,imgproxy,vector,logflare; then
+              exit 0
+            fi
+            echo "supabase start failed (attempt $attempt of 4), retrying after a pause"
+            supabase stop --no-backup > /dev/null 2>&1 || true
+            sleep $((attempt * 45))
+          done
+          exit 1
       # The intake Edge Function refuses to run without a rate-limit secret of
       # at least 32 characters, and `supabase start` does not pass one in, so
       # every public submission answered 500. Serve the functions with a
