@@ -9,7 +9,9 @@ const corsHeaders = {
 function escapeIcs(value: string) {
   return String(value || '')
     .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
+    // A bare CR ends a line in iCalendar too. Without this a title could add
+    // its own properties (ATTACH, ATTENDEE) after a carriage return.
+    .replace(/\r\n|\r|\n/g, '\\n')
     .replace(/,/g, '\\,')
     .replace(/;/g, '\\;')
 }
