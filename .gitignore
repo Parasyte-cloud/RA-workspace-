@@ -23,3 +23,5 @@ dist/
 
 .env.support.private
 vapid.private.env
+
+supabase/.env.local

@@ -1,0 +1,6 @@
+import fs from 'node:fs';import test from 'node:test';import assert from 'node:assert/strict'
+const migration=fs.readFileSync('supabase/migrations/20261022133000_secret_vault_task_delete_governance.sql','utf8');const edge=fs.readFileSync('supabase/functions/secret-vault/index.ts','utf8');const panel=fs.readFileSync('src/modules/SecretVaultPanel.tsx','utf8')
+test('vault payload is isolated in private schema and browser never selects it',()=>{assert.match(migration,/private\.secret_vault_payloads/);assert.match(migration,/revoke all on private\.secret_vault_payloads/);assert.doesNotMatch(panel,/secret_vault_payloads/)})
+test('reveals are time bound and token hashed',()=>{assert.match(edge,/tokenHash=await hex/);assert.match(migration,/expires_at timestamptz not null/);assert.match(edge,/Reveal authorization expired/)})
+test('task delete is capability gated and audited',()=>{assert.match(migration,/has_workspace_capability\('work_item\.delete'\)/);assert.match(migration,/work_item_deletion_audit/);assert.match(migration,/revoke delete on public\.work_items from authenticated/)})
+test('vault has anti-copy and auto-hide client controls',()=>{assert.match(panel,/visibilitychange/);assert.match(panel,/document\.addEventListener\('copy'/);assert.match(panel,/window\.addEventListener\('blur'/)})
