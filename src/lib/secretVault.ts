@@ -15,3 +15,26 @@ export const readReveal=(item_id:string,token:string)=>vaultCall<{value_base64:s
 export const hideReveal=(token:string)=>vaultCall<{ok:boolean}>({action:'hide',token})
 export const deleteVaultItem=(item_id:string)=>vaultCall<{ok:boolean}>({action:'delete',item_id})
 export const decodeBase64=(v:string)=>{const s=atob(v);const out=new Uint8Array(s.length);for(let i=0;i<s.length;i++)out[i]=s.charCodeAt(i);return out}
+
+// What a revealed document may be shown as. The stored mime type was chosen by
+// whoever uploaded the file, and a blob: URL runs with the WORKSPACE's own
+// origin. An uploaded "text/html" file shown in an iframe would run its script
+// next to the signed-in session. So the type is decided here from a short
+// allowlist AND the file's first bytes, and the blob is always built with that
+// type, never the stored one. Anything else is not previewed.
+export type VaultPreview =
+  | { kind: 'pdf'; type: 'application/pdf' }
+  | { kind: 'image'; type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' }
+  | { kind: 'text'; type: 'text/plain' }
+  | { kind: 'none' }
+const startsWith=(bytes:Uint8Array,sig:number[],at=0)=>sig.every((b,i)=>bytes[at+i]===b)
+export function vaultPreview(bytes:Uint8Array,declaredMime:string|null):VaultPreview{
+  const mime=(declaredMime||'').toLowerCase().split(';')[0].trim()
+  if(mime==='application/pdf'&&startsWith(bytes,[0x25,0x50,0x44,0x46,0x2d])) return {kind:'pdf',type:'application/pdf'}
+  if(mime==='image/png'&&startsWith(bytes,[0x89,0x50,0x4e,0x47])) return {kind:'image',type:'image/png'}
+  if(mime==='image/jpeg'&&startsWith(bytes,[0xff,0xd8,0xff])) return {kind:'image',type:'image/jpeg'}
+  if(mime==='image/gif'&&startsWith(bytes,[0x47,0x49,0x46,0x38])) return {kind:'image',type:'image/gif'}
+  if(mime==='image/webp'&&startsWith(bytes,[0x52,0x49,0x46,0x46])&&startsWith(bytes,[0x57,0x45,0x42,0x50],8)) return {kind:'image',type:'image/webp'}
+  if(mime==='text/plain') return {kind:'text',type:'text/plain'}
+  return {kind:'none'}
+}

@@ -25,6 +25,7 @@ import {
   hideReveal,
   listVault,
   readReveal,
+  vaultPreview,
   type VaultItem,
 } from '../lib/secretVault'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -39,6 +40,7 @@ type RevealedState = {
   expiresAt: string
   value?: string
   documentUrl?: string
+  preview?: 'pdf' | 'image' | 'none'
 }
 
 const friendlyVaultError = (error: unknown) => {
@@ -331,15 +333,34 @@ export default function SecretVaultPanel() {
       let next: RevealedState
 
       if (revealItem.kind === 'document') {
-        const blob = new Blob([bytes], {
-          type: result.mime_type || 'application/octet-stream',
-        })
+        const preview = vaultPreview(bytes, result.mime_type)
 
-        next = {
-          item: revealItem,
-          token: auth.token,
-          expiresAt: result.expires_at,
-          documentUrl: URL.createObjectURL(blob),
+        if (preview.kind === 'text') {
+          next = {
+            item: revealItem,
+            token: auth.token,
+            expiresAt: result.expires_at,
+            value: new TextDecoder().decode(bytes),
+          }
+        } else if (preview.kind === 'none') {
+          next = {
+            item: revealItem,
+            token: auth.token,
+            expiresAt: result.expires_at,
+            preview: 'none',
+          }
+        } else {
+          // The type comes from vaultPreview (allowlist + file signature),
+          // never from the stored mime type. See the note there.
+          next = {
+            item: revealItem,
+            token: auth.token,
+            expiresAt: result.expires_at,
+            preview: preview.kind,
+            documentUrl: URL.createObjectURL(
+              new Blob([bytes], { type: preview.type }),
+            ),
+          }
         }
       } else {
         next = {
@@ -938,12 +959,25 @@ export default function SecretVaultPanel() {
             </div>
 
             <div className="secretVaultRevealContent">
-              {revealed.item.kind === 'document' && revealed.documentUrl ? (
+              {revealed.preview === 'image' && revealed.documentUrl ? (
+                <img
+                  src={revealed.documentUrl}
+                  alt={revealed.item.label}
+                  className="secretVaultDocumentPreview"
+                  referrerPolicy="no-referrer"
+                />
+              ) : revealed.preview === 'pdf' && revealed.documentUrl ? (
                 <iframe
                   src={revealed.documentUrl}
                   title={revealed.item.label}
                   className="secretVaultDocumentPreview"
+                  referrerPolicy="no-referrer"
                 />
+              ) : revealed.preview === 'none' ? (
+                <div className="secretVaultPlaintext" aria-live="polite">
+                  This file type cannot be previewed safely. Only PDF, images
+                  and plain text open in the Vault.
+                </div>
               ) : (
                 <div className="secretVaultPlaintext" aria-live="polite">
                   {revealed.value}

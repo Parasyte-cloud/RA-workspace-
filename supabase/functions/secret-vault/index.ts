@@ -74,7 +74,9 @@ Deno.serve(async(req)=>{
       const {data:item,error}=await userClient.from('secret_vault_items').select('id,reveal_max_seconds').eq('id',itemId).maybeSingle(); if(error||!item) return json({error:'Vault item not accessible'},403)
       const seconds=Math.min(requested,item.reveal_max_seconds); const token=b64(crypto.getRandomValues(new Uint8Array(32))); const tokenHash=await hex(new TextEncoder().encode(token)); const expires=new Date(Date.now()+seconds*1000).toISOString()
       const {error:sessionError}=await admin.from('secret_vault_reveal_sessions').insert({item_id:itemId,employee_id:user.id,token_hash:tokenHash,purpose,expires_at:expires}); if(sessionError) throw sessionError
-      await admin.from('secret_vault_audit_events').insert({item_id:itemId,actor_id:user.id,event_type:'reveal_authorized',metadata:{seconds,purpose}})
+      // Fail closed: a reveal that cannot be recorded must not happen.
+      const {error:authAuditError}=await admin.from('secret_vault_audit_events').insert({item_id:itemId,actor_id:user.id,event_type:'reveal_authorized',metadata:{seconds,purpose}})
+      if(authAuditError){await admin.from('secret_vault_reveal_sessions').delete().eq('token_hash',tokenHash);throw authAuditError}
       return json({token,expires_at:expires,seconds})
     }
 
@@ -85,10 +87,17 @@ Deno.serve(async(req)=>{
       if(!session||session.employee_id!==user.id||session.revoked_at||new Date(session.expires_at).getTime()<=Date.now()) return json({error:'Reveal authorization expired'},403)
       const {data:allowed}=await userClient.rpc('can_access_secret_vault_item',{target_item:itemId,need_manage:false}); if(!allowed) return json({error:'Vault item not accessible'},403)
       const {data:item}=await userClient.from('secret_vault_items').select('kind,mime_type,original_filename').eq('id',itemId).single()
+      // Single use. The token is claimed in one conditional UPDATE, so two
+      // requests racing with the same token cannot both pass: only the one
+      // that flips use_count from 0 gets a row back. Before this, use_count was
+      // written but never checked, and a token could be replayed until expiry.
+      const {data:claimed}=await admin.from('secret_vault_reveal_sessions').update({last_used_at:new Date().toISOString(),use_count:1}).eq('id',session.id).eq('use_count',0).is('revoked_at',null).gt('expires_at',new Date().toISOString()).select('id')
+      if(!claimed||claimed.length!==1) return json({error:'Reveal authorization expired'},403)
+      // Record the reveal before any plaintext leaves the function.
+      const {error:auditError}=await admin.from('secret_vault_audit_events').insert({item_id:itemId,actor_id:user.id,event_type:'revealed',metadata:{}})
+      if(auditError) throw auditError
       const {data:payload,error}=await admin.rpc('vault_read_encrypted_payload',{target_item:itemId}).single(); if(error||!payload) throw error||new Error('Encrypted payload missing')
       const plain=await decrypt(unb64(payload.ciphertext_base64),unb64(payload.iv_base64),payload.aad)
-      await admin.from('secret_vault_reveal_sessions').update({last_used_at:new Date().toISOString(),use_count:1}).eq('id',session.id)
-      await admin.from('secret_vault_audit_events').insert({item_id:itemId,actor_id:user.id,event_type:'revealed',metadata:{}})
       return json({value_base64:b64(plain),kind:item?.kind,mime_type:item?.mime_type,original_filename:item?.original_filename,expires_at:session.expires_at})
     }
 
