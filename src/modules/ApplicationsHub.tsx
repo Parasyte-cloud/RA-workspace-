@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { safeHttpUrl } from '../lib/safeUrl'
 
 type WorkspaceApp = {
   id?: string
@@ -87,11 +88,18 @@ export default function ApplicationsHub() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem('ridearrivo-app-favorites')
+    let stored: string | null = null
+    try {
+      stored = localStorage.getItem('ridearrivo-app-favorites')
+    } catch {
+      stored = null // storage blocked: start with no favourites
+    }
 
     if (stored) {
       try {
-        setFavorites(JSON.parse(stored))
+        const parsed: unknown = JSON.parse(stored)
+        // Anything other than a list of text (an old or edited value) would break favorites.includes().
+        setFavorites(Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [])
       } catch {
         setFavorites([])
       }
@@ -219,10 +227,12 @@ export default function ApplicationsHub() {
   }
 
   function openApp(app: WorkspaceApp) {
-    if (!app.url) return
+    // The address is text from the database: only a plain web link may be opened.
+    const target = safeHttpUrl(app.url)
+    if (!target) return
 
     window.open(
-      app.url,
+      target,
       '_blank',
       'noopener,noreferrer'
     )

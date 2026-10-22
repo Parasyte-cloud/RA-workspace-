@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { safeHttpUrl } from '../lib/safeUrl'
 import WorkspaceCalendar from './WorkspaceCalendar'
 import ControlledDownloadButton from '../components/ControlledDownloadButton'
 import { createInternalImagePreview, isPreviewableImage } from '../lib/workspacePreviews'
@@ -683,8 +684,9 @@ export function CompanyFilesModule() {
       return
     }
 
-    if (payload?.provider_url) {
-      window.open(payload.provider_url, '_blank', 'noopener,noreferrer')
+    const providerUrl = safeHttpUrl(payload?.provider_url)
+    if (providerUrl) {
+      window.open(providerUrl, '_blank', 'noopener,noreferrer')
       return
     }
 

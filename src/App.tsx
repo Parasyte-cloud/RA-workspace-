@@ -108,7 +108,7 @@ import {
   writeList,
 } from './lib/workspaceNav'
 import { useIdleSignOut } from './lib/useIdleSignOut'
-import { protectSavedSignIn, resetDeliberateSignOut, signOutEverywhere, signOutMessage, signOutThisDevice, takeSignOutReason, wasDeliberateSignOut } from './lib/authSignOut'
+import { protectSavedSignIn, resetDeliberateSignOut, signOutEverywhere, signOutMessage, signOutOtherDevices, signOutThisDevice, takeSignOutReason, wasDeliberateSignOut } from './lib/authSignOut'
 
 import { HeaderAvatar } from './components/HeaderAvatar'
 import ControlledDownloadButton from './components/ControlledDownloadButton'
@@ -1547,6 +1547,9 @@ function PasswordRecoveryGate({onDone,mode}:{onDone:()=>void;mode:'recovery'|'in
       const {error}=await supabase.auth.updateUser({password})
       if(error) throw error
       setMessage('Password saved. Taking you to sign in...')
+      // A reset usually follows a suspected compromise. Ending only this device's
+      // session left every other session and refresh token alive, so end the rest too.
+      try{await signOutOtherDevices(supabase)}catch{/* the local sign-out below still runs */}
       await signOutThisDevice(supabase,'password')
       onDone()
     }catch(error){

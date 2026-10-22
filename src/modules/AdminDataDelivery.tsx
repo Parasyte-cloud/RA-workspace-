@@ -20,6 +20,7 @@ import {
   type TopupOverview,
   type TopupRow,
 } from '../lib/dataAllocation'
+import { csvEscape } from '../lib/dataAllocationModel'
 import '../data-allocation.css'
 
 function stamp(value: string) {
@@ -103,7 +104,7 @@ export default function AdminDataDelivery({ onChanged }: { onChanged: () => void
     const header = 'Day,Person,Number,Plan,Status,Amount,Note\n'
     const body = rows
       .map((r) => [r.day, r.full_name, r.msisdn_masked ?? '', r.tier_code, r.status, r.amount_ngn ?? '', r.message]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+        .map((v) => csvEscape(v)).join(','))
       .join('\n')
     const url = URL.createObjectURL(new Blob([header + body], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')

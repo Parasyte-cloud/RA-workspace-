@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { CalendarDays, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { lagosToday } from '../lib/lagosDate'
 import '../my-leave.css'
 
 type Leave = {
@@ -31,7 +32,7 @@ const dayCount = (a: string, b: string) =>
 // Request leave and follow it afterwards. Lives on My Profile so a person can
 // always find their own requests and see the decision.
 export default function MyLeave() {
-  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayKey = lagosToday()
   const [rows, setRows] = useState<Leave[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)

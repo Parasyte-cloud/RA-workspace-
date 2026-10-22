@@ -74,6 +74,12 @@ test('filtering, commitment and csv', () => {
   assert.equal(commitmentFor(rows, { 3: 'gb3', 2: null }), 4 * GB)
   assert.equal(csvEscape('a,b'), '"a,b"')
   assert.equal(csvEscape('say "hi"'), '"say ""hi"""')
+  // text that starts like a formula is stored as text; real numbers are untouched
+  assert.equal(csvEscape('+234 801 000 0000'), "'+234 801 000 0000")
+  assert.equal(csvEscape('@cmd'), "'@cmd")
+  assert.equal(csvEscape('=1+1'), "'=1+1")
+  assert.equal(csvEscape(-5), '-5')
+  assert.equal(csvEscape('line1\rline2'), '"line1\rline2"')
   assert.match(usageCsv(rows), /^Name,Email,Department,Plan,Status,Allowance today,Used today,Remaining today\nAda,ada@x\.test,Ops,1 GB,active/)
 })
 

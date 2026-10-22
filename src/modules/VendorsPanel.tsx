@@ -53,6 +53,7 @@ import type {
   VendorStatus,
 } from '../lib/vendors'
 
+import { lagosDayOffset, lagosToday } from '../lib/lagosDate'
 import '../vendors.css'
 
 type Detail = {
@@ -511,8 +512,8 @@ function Stat({
 
 function ContractNote({ vendor }: { vendor: Vendor }) {
   if (!vendor.contract_end) return null
-  const today = new Date().toISOString().slice(0, 10)
-  const soon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const today = lagosToday()
+  const soon = lagosDayOffset(30)
 
   if (vendor.contract_end < today) {
     return (

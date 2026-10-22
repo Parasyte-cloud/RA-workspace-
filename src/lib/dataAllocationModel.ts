@@ -158,8 +158,12 @@ export function commitmentFor(rows: UserRow[], overrides: Record<string, DataTie
 export type HistoryPoint = { day: string; used_bytes: number; allowance_bytes: number; active_users: number }
 
 export function csvEscape(value: string | number): string {
-  const text = String(value)
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  const raw = String(value)
+  // A text cell that starts with = + - @ is run as a formula by spreadsheets,
+  // and these cells hold names, emails and messages people typed. Real numbers
+  // (which may be negative) are left alone.
+  const text = typeof value === 'string' && /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
 export function usageCsv(rows: UserRow[]): string {
