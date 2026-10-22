@@ -56,7 +56,12 @@ Deno.serve(async(req)=>{
       if(error||!item) throw error||new Error('Unable to create metadata')
       try{
         const aad=`ra-vault:${item.id}:${user.id}:v1`; const enc=await encrypt(bytes,aad)
-        const {error:payloadError}=await admin.schema('private').from('secret_vault_payloads').insert({item_id:item.id,ciphertext:'\\x'+Array.from(enc.ciphertext).map(x=>x.toString(16).padStart(2,'0')).join(''),iv:'\\x'+Array.from(enc.iv).map(x=>x.toString(16).padStart(2,'0')).join(''),aad})
+        const {error:payloadError}=await admin.rpc('vault_store_encrypted_payload',{
+          target_item:item.id,
+          ciphertext_base64:b64(enc.ciphertext),
+          iv_base64:b64(enc.iv),
+          payload_aad:aad,
+        })
         if(payloadError) throw payloadError
         await admin.from('secret_vault_audit_events').insert({item_id:item.id,actor_id:user.id,event_type:'created',metadata:{kind,byte_size:bytes.byteLength}})
         return json({id:item.id})
@@ -80,9 +85,8 @@ Deno.serve(async(req)=>{
       if(!session||session.employee_id!==user.id||session.revoked_at||new Date(session.expires_at).getTime()<=Date.now()) return json({error:'Reveal authorization expired'},403)
       const {data:allowed}=await userClient.rpc('can_access_secret_vault_item',{target_item:itemId,need_manage:false}); if(!allowed) return json({error:'Vault item not accessible'},403)
       const {data:item}=await userClient.from('secret_vault_items').select('kind,mime_type,original_filename').eq('id',itemId).single()
-      const {data:payload,error}=await admin.schema('private').from('secret_vault_payloads').select('ciphertext,iv,aad').eq('item_id',itemId).single(); if(error||!payload) throw error||new Error('Encrypted payload missing')
-      const parseBytea=(v:string)=>unb64(v.startsWith('\\x')?btoa(String.fromCharCode(...new Uint8Array(v.slice(2).match(/.{1,2}/g)!.map((x:string)=>parseInt(x,16))))):v)
-      const plain=await decrypt(parseBytea(payload.ciphertext),parseBytea(payload.iv),payload.aad)
+      const {data:payload,error}=await admin.rpc('vault_read_encrypted_payload',{target_item:itemId}).single(); if(error||!payload) throw error||new Error('Encrypted payload missing')
+      const plain=await decrypt(unb64(payload.ciphertext_base64),unb64(payload.iv_base64),payload.aad)
       await admin.from('secret_vault_reveal_sessions').update({last_used_at:new Date().toISOString(),use_count:1}).eq('id',session.id)
       await admin.from('secret_vault_audit_events').insert({item_id:itemId,actor_id:user.id,event_type:'revealed',metadata:{}})
       return json({value_base64:b64(plain),kind:item?.kind,mime_type:item?.mime_type,original_filename:item?.original_filename,expires_at:session.expires_at})
