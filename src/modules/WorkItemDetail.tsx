@@ -29,6 +29,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { WorkCelebration, WorkReactionBar, useWorkReactions } from '../components/WorkReactions'
 import { formatWorkTime, isWorkOverdue } from '../lib/workTime'
+import GovernedTaskDeleteButton from './GovernedTaskDeleteButton'
 
 
 type Employee = {
@@ -1095,6 +1096,7 @@ export function WorkItemDetail({
             </div>
 
             <div className="workPeopleList">
+              <GovernedTaskDeleteButton workItemId={item.id} onDeleted={()=>window.history.back()}/>
               {assignees.map(a=>
                 <div key={a.assignee_id}>
                   <span>

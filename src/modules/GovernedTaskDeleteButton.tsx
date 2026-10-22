@@ -1,0 +1,4 @@
+import { useEffect,useState } from 'react'
+import { Trash2 } from 'lucide-react'
+import { canDeleteWorkItems,deleteWorkItemGoverned } from '../lib/workGovernance'
+export default function GovernedTaskDeleteButton({workItemId,onDeleted}:{workItemId:string;onDeleted?:()=>void}){const [allowed,setAllowed]=useState(false),[busy,setBusy]=useState(false);useEffect(()=>{void canDeleteWorkItems().then(setAllowed)},[]);if(!allowed)return null;const remove=async()=>{const reason=window.prompt('Reason for deleting this task (required):');if(!reason)return;const ok=window.confirm('Delete this task? This action is audited.');if(!ok)return;setBusy(true);try{await deleteWorkItemGoverned(workItemId,reason);onDeleted?.()}finally{setBusy(false)}};return <button className="glassButton danger" disabled={busy} onClick={()=>void remove()}><Trash2 size={16}/>{busy?'Deleting…':'Delete task'}</button>}

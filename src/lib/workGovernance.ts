@@ -1,0 +1,4 @@
+import { supabase } from './supabase'
+export async function canDeleteWorkItems(){if(!supabase)return false;const {data,error}=await supabase.rpc('has_workspace_capability',{required_capability:'work_item.delete'});if(error)return false;return data===true}
+export async function deleteWorkItemGoverned(id:string,reason:string){if(!supabase)throw new Error('Supabase unavailable');const {error}=await supabase.rpc('delete_work_item_governed',{target_work_item:id,delete_reason:reason});if(error)throw error}
+export async function setWorkspaceCapability(employeeId:string,capability:'work_item.delete'|'vault.reveal'|'vault.manage',enabled:boolean,reason?:string,expiresAt?:string|null){if(!supabase)throw new Error('Supabase unavailable');const {error}=await supabase.rpc('admin_set_workspace_capability',{target_employee:employeeId,target_capability:capability,enabled,grant_reason:reason||null,grant_expires_at:expiresAt||null});if(error)throw error}

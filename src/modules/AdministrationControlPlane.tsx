@@ -46,6 +46,8 @@ import AdminDataAllocation from './AdminDataAllocation'
 import '../admin-control-plane.css'
 
 import AttendanceAdminPanel from './AttendanceAdminPanel'
+import SecretVaultPanel from './SecretVaultPanel'
+import AdminSecurityPermissionsPanel from './AdminSecurityPermissionsPanel'
 const RecognitionCelebrationsAdmin = lazy(() => import('./RecognitionCelebrationsAdmin'))
 type AdminTab=
   | 'overview'
@@ -53,6 +55,8 @@ type AdminTab=
   
   | 'attendance'| 'access'| 'chat'| 'confidential'
   | 'workstations'
+  | 'vault'
+  | 'security-permissions'
   | 'performance'
   | 'assets'
   | 'downloads'
@@ -174,6 +178,8 @@ const tabs:Array<[AdminTab,string,typeof Users]>=[
   ['access','Access',KeyRound],
   ['workstations','Workstations',Workflow],
   ['performance','Performance',BarChart3],
+  ['vault','Secret Vault',ShieldCheck],
+  ['security-permissions','Security Permissions',KeyRound],
   ['recognition-celebrations','Recognition & Celebrations',Award],
   ['assets','Assets & Support',Laptop],
   ['downloads','Downloads',ShieldCheck],
@@ -628,6 +634,8 @@ export default function AdministrationControlPlane({onNavigate}:{onNavigate?:(ta
         </div>
       }
       {tab==='performance'&&<KpiManagementPanel/>}
+      {tab==='vault'&&<SecretVaultPanel/>}
+      {tab==='security-permissions'&&<AdminSecurityPermissionsPanel/>}
       {tab==='recognition-celebrations'&&<Suspense fallback={<div className="moduleNotice" role="status">Loading recognition governance...</div>}><RecognitionCelebrationsAdmin/></Suspense>}
       {tab==='assets'&&<DeviceAssetCenter/>}
       {tab==='downloads'&&<AdminDownloadAccessManager/>}
