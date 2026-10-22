@@ -971,6 +971,14 @@ serve(async(req)=>{
         )
       }
 
+      /*
+       * A revoked person is banned at the Auth layer (see REVOKE below), so a
+       * re-approval has to lift that ban or they could never sign in again.
+       * Best effort: a failure here is logged and reported, not fatal.
+       */
+      const unban=await admin.auth.admin.updateUserById(userId,{ban_duration:"none"})
+      if(unban.error) console.warn("workspace-user-admin unban",unban.error.message)
+
       await admin
         .from("admin_audit_log")
         .insert({
@@ -1072,6 +1080,18 @@ serve(async(req)=>{
         )
       }
 
+      /*
+       * Setting active=false only changes what the database lets this person
+       * do. Their refresh token would keep minting new access tokens for as
+       * long as it lives, so also ban the Auth user. A banned user cannot
+       * refresh or sign in; an access token already issued stops working on
+       * its own within the token lifetime, and the database already refuses
+       * it because the profile is inactive. Approving again lifts the ban.
+       * A failure is reported to the administrator, who can retry.
+       */
+      const ban=await admin.auth.admin.updateUserById(userId,{ban_duration:"876000h"})
+      if(ban.error) console.warn("workspace-user-admin revoke ban",ban.error.message)
+
       await admin
         .from("admin_audit_log")
         .insert({
@@ -1081,13 +1101,14 @@ serve(async(req)=>{
           entity_type:"employee_profiles",
           entity_id:userId,
           source:"workspace-user-admin",
-          metadata:{active:false},
+          metadata:{active:false,sessions_blocked:!ban.error},
         })
         .then(({error})=>{if(error) console.warn("workspace-user-admin audit",error.message)})
 
       return json({
         success:true,
         userId,
+        sessionsBlocked:!ban.error,
       })
     }
 

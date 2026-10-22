@@ -283,7 +283,9 @@ export async function loadLegalWorkspaceRole(){
 
   throwIfError(error)
 
-  return (data || null) as LegalWorkspaceRole
+  // The database answers 'inactive' for a signed-in account without an active
+  // employee profile. This panel has always treated "no role" as no access.
+  return (data && data !== 'inactive' ? data : null) as LegalWorkspaceRole
 }
 
 export async function loadLawReports(){
