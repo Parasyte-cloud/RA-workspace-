@@ -71,6 +71,10 @@ html[data-ra-theme='dark'] .cm .cmLock { background: rgba(255,153,0,.14); color:
 html[data-ra-theme='dark'] .cm .cmLoading,
 html[data-ra-theme='dark'] .cm .cmEmpty { color: var(--cm-muted); }
 
-html[data-ra-theme='dark'] .cm .cmComposer textarea { background: rgba(8, 20, 36, .7); color: var(--cm-text); box-shadow: inset 0 0 0 1px var(--cm-line); }
-html[data-ra-theme='dark'] .cm .cmComposer textarea:focus { background: rgba(8, 20, 36, .9); box-shadow: inset 0 0 0 2px var(--cm-accent); }
+/* The composer is ONE rounded field: the text area has no box of its own, and
+   the focus ring is drawn once, around the whole pill, in a thin line. A boxed
+   text area inside a pill read as two nested shapes and a heavy orange frame. */
+html[data-ra-theme='dark'] .cm .cmComposer textarea { background: transparent; color: var(--cm-text); box-shadow: none; }
+html[data-ra-theme='dark'] .cm .cmComposer textarea:focus { background: transparent; box-shadow: none; }
+html[data-ra-theme='dark'] .cm .cmComposer:focus-within { border-color: var(--cm-accent); box-shadow: 0 0 0 1px var(--cm-accent), 0 12px 36px rgba(0, 0, 0, .30); }
 html[data-ra-theme='dark'] .cm .cmComposer textarea::placeholder { color: var(--cm-muted); opacity: 1; }
