@@ -215,6 +215,35 @@ const USER_SCOPED_DOMAINS: Domain[] = [
     select: "id,room_code,title,status,started_at,created_at",
     columns: ["title", "room_code"], titleColumn: "title", sortKey: "created_at", limit: 5,
   },
+  {
+    key: "collaborationFiles", table: "collaboration_files",
+    select: "id,space_id,conversation_id,room_id,display_name,classification,preview_policy,download_policy,updated_at",
+    columns: ["display_name"], titleColumn: "display_name", sortKey: "updated_at", limit: 8,
+    filter: (query) => query.is("deleted_at", null),
+  },
+  {
+    key: "sharedNotes", table: "workspace_notes",
+    select: "id,owner_id,title,updated_at",
+    columns: ["title", "body"], titleColumn: "title", sortKey: "updated_at", limit: 6,
+    filter: (query) => query.is("deleted_at", null),
+  },
+  {
+    key: "spaceMessages", table: "collaboration_messages",
+    select: "id,space_id,author_id,body,updated_at",
+    columns: ["body"], titleColumn: "body", sortKey: "updated_at", limit: 8,
+  },
+  {
+    key: "roomMessages", table: "workspace_room_messages",
+    select: "id,room_id,sender_id,body,created_at",
+    columns: ["body"], titleColumn: "body", sortKey: "created_at", limit: 8,
+    filter: (query) => query.is("deleted_at", null),
+  },
+  {
+    key: "meetingTranscripts", table: "workspace_room_transcript_segments",
+    select: "id,ai_session_id,speaker_key,start_ms,end_ms,text,created_at",
+    columns: ["text"], titleColumn: "text", sortKey: "created_at", limit: 8,
+    filter: (query) => query.eq("is_final", true),
+  },
 ]
 
 // 0 = exact title, 1 = title starts with the term, 2 = title contains it,

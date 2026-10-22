@@ -9,6 +9,8 @@ with searched(tbl) as (
     ('brand_assets'),('crm_accounts'),('crm_contacts'),
     ('legal_statutes_regulations'),('legal_research_opinions'),
     ('legal_contracts'),('workspace_rooms'),
+    ('collaboration_files'),('workspace_notes'),('collaboration_messages'),
+    ('workspace_room_messages'),('workspace_room_transcript_segments'),
     ('employee_profiles'),('support_cases'),('incidents'),('hr_requests'),
     ('leave_requests'),('intake_submissions'),('social_conversation_members'),
     ('social_messages')
