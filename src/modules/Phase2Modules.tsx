@@ -416,6 +416,13 @@ export function KnowledgeBaseModule() {
   )
 }
 
+// Supabase returns plain objects with a message, not Error instances, so a
+// bare instanceof check throws the real reason away.
+function readableError(error: unknown, fallback: string) {
+  const message = (error as { message?: unknown } | null)?.message
+  return typeof message === 'string' && message ? message : fallback
+}
+
 export function CompanyFilesModule() {
   const [items, setItems] = useState<WorkspaceFile[]>([])
   const [query, setQuery] = useState('')
@@ -509,11 +516,11 @@ export function CompanyFilesModule() {
       const previewPath = `company/${file.id}/preview.webp`
       const { error: previewError } = await supabase.storage.from('workspace-previews').upload(previewPath, preview, { upsert: true, contentType: 'image/webp', cacheControl: '900' })
       if (previewError) throw previewError
-      const { error: updateError } = await supabase.from('workspace_files').update({ preview_path: previewPath }).eq('id', file.id)
+      const { error: updateError } = await supabase.rpc('set_company_file_preview', { target_file: file.id, show_preview: true })
       if (updateError) throw updateError
       await load()
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Unable to show the preview.')
+      setNotice(readableError(error, 'Unable to show the preview.'))
     } finally {
       setPreviewBusy('')
     }
@@ -527,12 +534,15 @@ export function CompanyFilesModule() {
     setNotice('')
     try {
       const path = file.preview_path
-      const { error: updateError } = await supabase.from('workspace_files').update({ preview_path: null }).eq('id', file.id)
+      const { error: updateError } = await supabase.rpc('set_company_file_preview', { target_file: file.id, show_preview: false })
       if (updateError) throw updateError
-      if (path) await supabase.storage.from('workspace-previews').remove([path])
+      if (path) {
+        const { error: removeError } = await supabase.storage.from('workspace-previews').remove([path])
+        if (removeError) setNotice('Preview hidden for everyone. The stored copy could not be deleted, so remove it in Supabase Storage (workspace-previews).')
+      }
       await load()
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Unable to hide the preview.')
+      setNotice(readableError(error, 'Unable to hide the preview.'))
     } finally {
       setPreviewBusy('')
     }

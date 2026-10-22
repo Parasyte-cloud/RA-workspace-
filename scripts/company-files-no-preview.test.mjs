@@ -21,3 +21,12 @@ test('originals still need an approved download',()=>{
   assert.match(mod,/Download approved file/)
 })
 test('no em dash',()=>{assert.ok(!mod.includes('—'))})
+test('preview toggle goes through the definer function, not a table update (select is revoked)',()=>{
+  const sql=fs.readFileSync('supabase/migrations/20261022200000_company_file_preview_toggle.sql','utf8')
+  assert.doesNotMatch(mod,/from\('workspace_files'\)\s*\.update\(\{ preview_path/)
+  assert.match(mod,/rpc\('set_company_file_preview', \{ target_file: file\.id, show_preview: (true|false) \}/)
+  assert.match(sql,/can_upload_company_files\(\)/)
+  assert.match(sql,/security definer/)
+  assert.match(sql,/revoke all on function public\.set_company_file_preview/)
+  assert.ok(!sql.includes('—'))
+})
