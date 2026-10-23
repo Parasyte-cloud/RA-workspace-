@@ -911,6 +911,7 @@ export function SupportTeamWorkspace({
         {title:'Quality & Capacity',description:'Agent availability, workload, follow-up, knowledge, coaching and service-quality signals.'}
       ]}
     tools={[
+        {name:'ArrivoOps Live Dispatch',purpose:'Live bookings, riders, drivers, trips and panic alerts, read only. Sign in with your ArrivoOps support account.',url:'https://admin.ridearrivo.com/'},
         {name:'ArrivoOps Ride Desk',purpose:'Your rides with the rider and driver profiles, in-app calling by name and who is on duty.',url:'https://admin.ridearrivo.com/#/ride-desk'},
         {name:'HubSpot Help Desk',purpose:'Omnichannel ticketing, SLA, routing and customer context when connected.',url:'https://app.hubspot.com/'},
         {name:'Zoho Mail',purpose:'RideArrivo company email and case communication.',url:'https://mail.zoho.com/'},

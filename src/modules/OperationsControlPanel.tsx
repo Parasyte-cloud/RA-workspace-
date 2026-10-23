@@ -755,7 +755,11 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
           subtitle="Live bookings, riders, drivers, trips and operational status."
           badge="ARRIVOOPS"
           url={
-            accessMode === 'operations'
+            // The operations-only surface signs in Operations accounts only.
+            // Supervisors who are not on the operations role (for example a
+            // support supervisor) use the standard console, which admits
+            // support staff and shows them every page read only.
+            accessMode === 'operations' && !readOnly
               ? 'https://admin.ridearrivo.com/?surface=operations'
               : 'https://admin.ridearrivo.com'
           }
