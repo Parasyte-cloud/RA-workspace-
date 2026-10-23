@@ -15,6 +15,7 @@ import {
   Eye,
   Plus,
   RefreshCw,
+  ShieldAlert,
   UserRound,
   UsersRound,
   X
@@ -795,6 +796,18 @@ export function WorkDesk(){
             const assignees=
               item.work_item_assignees || []
 
+            // Work somebody else gave you is finished only when the person it
+            // came from approves it. The database enforces this too.
+            const needsSignoff=
+              !!item.created_by &&
+              assignees.some(a=>a.assignee_id!==item.created_by)
+            const iAmCreator=item.created_by===profile?.id
+            const creatorName=
+              peoplePool.find(person=>person.id===item.created_by)?.full_name ||
+              'the person who assigned it'
+            const awaitingSignoff=
+              needsSignoff && item.status==='review'
+
             return (
               <article
                 className="glassCard workCard"
@@ -828,6 +841,22 @@ export function WorkDesk(){
                   <p className="workDescription">
                     {item.description}
                   </p>
+                }
+
+                {awaitingSignoff&&
+                  <div className="workSignoffBanner" role="alert">
+                    <ShieldAlert size={17}/>
+                    {iAmCreator
+                      ? 'Needs YOUR approval before it can move on. Open details to approve or reject.'
+                      : `Waiting for approval from ${creatorName}. It cannot be completed until they approve.`}
+                  </div>
+                }
+
+                {needsSignoff && !iAmCreator && item.status!=='review' && item.status!=='completed' &&
+                  <div className="workSignoffNote">
+                    <ShieldAlert size={15}/>
+                    When you finish, send it for approval to {creatorName}. Only they can complete it.
+                  </div>
                 }
 
                 <div className="workMeta">
@@ -919,12 +948,16 @@ export function WorkDesk(){
                     </option>
 
                     <option value="review">
-                      Review
+                      {needsSignoff && !iAmCreator
+                        ? 'Send for approval'
+                        : 'Review'}
                     </option>
 
-                    <option value="completed">
-                      Completed
-                    </option>
+                    {(!needsSignoff || iAmCreator || item.status==='completed') &&
+                      <option value="completed">
+                        Completed
+                      </option>
+                    }
 
                     <option value="cancelled">
                       Cancelled

@@ -19,6 +19,7 @@ import {
   Paperclip,
   Plus,
   Send,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
   UserPlus,
@@ -1461,6 +1462,30 @@ export function WorkItemDetail({
               <ShieldCheck size={17}/>
               Approvals
             </h3>
+
+            {(()=>{
+              const creatorPending=approvals.find(
+                approval=>
+                  approval.status==='pending' &&
+                  approval.approver_id===item.created_by &&
+                  assignees.some(a=>a.assignee_id!==item.created_by)
+              )
+
+              if(!creatorPending){
+                return null
+              }
+
+              const mine=item.created_by===currentUserId
+
+              return (
+                <div className="workSignoffBanner" role="alert">
+                  <ShieldAlert size={17}/>
+                  {mine
+                    ? 'This needs YOUR approval before it can move on. Approve or reject below.'
+                    : `Waiting for approval from ${creatorPending.approver?.full_name || 'the person who assigned it'}. It cannot be completed until they approve.`}
+                </div>
+              )
+            })()}
 
             <div className="workApprovalList">
               {approvals.map(approval=>{

@@ -520,9 +520,12 @@ useEffect(
               <button
                 type="button"
                 className={
-                  item.read_at
+                  (item.read_at
                     ? 'notificationItem'
-                    : 'notificationItem unread'
+                    : 'notificationItem unread')+
+                  (item.type==='approval_required' && !item.read_at
+                    ? ' approvalRequired'
+                    : '')
                 }
                 onClick={()=>
                   void openNotification(item)
