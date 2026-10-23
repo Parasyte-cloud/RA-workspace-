@@ -6259,3 +6259,27 @@ textarea {
   --ra-z-modal: 100;
   --ra-z-toast: 120;
 }
+
+/* Task attachments: drop zone and image previews. */
+.workDropZone{
+  display:grid;
+  gap:8px;
+  justify-items:start;
+  padding:12px;
+  margin-bottom:10px;
+  border:1.5px dashed var(--line,rgba(255,255,255,.22));
+  border-radius:14px;
+}
+.workDropZone.over,
+.workDropZone:focus-visible{
+  border-color:var(--accent,#f5a623);
+  background:rgba(245,166,35,.08);
+  outline:none;
+}
+.workAttachmentThumb{
+  width:44px;
+  height:44px;
+  object-fit:cover;
+  border-radius:8px;
+  flex:none;
+}
