@@ -6283,3 +6283,32 @@ textarea {
   border-radius:8px;
   flex:none;
 }
+
+/* Compulsory task sign-off: always red so nobody misses it. */
+.workSignoffBanner{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:10px 0;
+  padding:11px 14px;
+  border-radius:12px;
+  border:1.5px solid #ff4d4f;
+  background:rgba(255,77,79,.16);
+  color:#ff8a8c;
+  font-weight:700;
+  line-height:1.35;
+}
+.workSignoffBanner svg{flex:none;color:#ff4d4f}
+.workSignoffNote{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:8px 0;
+  color:#ff8a8c;
+  font-size:.86rem;
+}
+.notificationItem.approvalRequired{
+  border-left:4px solid #ff4d4f;
+  background:rgba(255,77,79,.12);
+}
+.notificationItem.approvalRequired strong{color:#ff8a8c}
