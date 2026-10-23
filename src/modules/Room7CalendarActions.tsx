@@ -283,7 +283,24 @@ export default function Room7CalendarActions({
               size={15}
             />
 
-            Outlook
+            Outlook (work or school)
+          </a>
+
+          <a
+            href={
+              outlookCalendarUrl(
+                event,
+                'personal',
+              )
+            }
+            target="_blank"
+            rel="noreferrer"
+          >
+            <ExternalLink
+              size={15}
+            />
+
+            Outlook.com (personal)
           </a>
 
           <a

@@ -27,7 +27,7 @@ test('ics file is valid: CRLF, escaped text, folded lines, reminder', () => {
   assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.endsWith('END:VCALENDAR\r\n'))
   assert.match(ics, /DTSTART:20261014T133000Z\r\n/)
   assert.match(ics, /DTEND:20261014T141500Z\r\n/)
-  assert.match(ics, /SUMMARY:Weekly sync\\, ops\; "all hands"\r\n/)
+  assert.match(ics, /SUMMARY:Weekly sync\\, ops\\; "all hands"\r\n/)
   assert.match(ics, /TRIGGER:-PT10M/)
   for (const line of ics.split('\r\n')) assert.ok(new TextEncoder().encode(line).length <= 75, line)
   assert.equal(/[^\r]\n/.test(ics), false)

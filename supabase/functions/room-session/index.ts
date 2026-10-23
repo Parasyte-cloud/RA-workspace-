@@ -200,7 +200,9 @@ async function kickExistingPeers(config: MediaConfig, meetingId: string, partici
 
 // Moves an existing participant onto a preset. Used so an administrator who
 // is not the meeting creator still gets the host controls (mute, video off)
-// in the call. Best effort: if the provider refuses, they join as before.
+// in the call, and so someone who lost those rights loses the controls too.
+// Returns false when the provider refused; the caller must not leave the old
+// privileges in place (see the join action).
 async function setParticipantPreset(config: MediaConfig, meetingId: string, participantId: string, preset: string) {
   try {
     await realtimeRequest(
@@ -208,14 +210,18 @@ async function setParticipantPreset(config: MediaConfig, meetingId: string, part
       `/meetings/${encodeURIComponent(meetingId)}/participants/${encodeURIComponent(participantId)}`,
       { method: "PATCH", body: JSON.stringify({ preset_name: preset }) },
     )
+    return true
   } catch (error) {
-    console.warn("ROOM 7 preset update skipped:", error)
+    console.warn("ROOM 7 preset update failed:", error)
+    return false
   }
 }
 
 // Deletes the provider participant so its old token can no longer be used
 // to get back in. A new participant is created if they are let back in.
-async function deleteParticipant(config: MediaConfig, meetingId: string, participantId: string) {
+// With strict set, a failure is thrown instead of ignored: used when the
+// deletion is what takes old privileges away.
+async function deleteParticipant(config: MediaConfig, meetingId: string, participantId: string, strict = false) {
   try {
     await realtimeRequest(
       config,
@@ -223,6 +229,7 @@ async function deleteParticipant(config: MediaConfig, meetingId: string, partici
       { method: "DELETE" },
     )
   } catch (error) {
+    if (strict) throw error
     console.warn("ROOM 7 participant delete skipped:", error)
   }
 }
@@ -524,10 +531,22 @@ serve(async req => {
         // Always re-assert the preset the person should have NOW, so a
         // revoked admin loses moderator controls on rejoin instead of keeping
         // a stale provider-side preset (sweep RA-014). Fails closed: if the
-        // provider cannot apply it, the join fails rather than leaving the
-        // old privileges in place.
-        await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
-        participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
+        // provider cannot apply it, the old participant is deleted (strictly,
+        // so its token dies too) and a fresh one is created with the right
+        // preset. If that also fails, the join fails.
+        const presetApplied = await setParticipantPreset(config, room.cloudflare_meeting_id, participantId, preset)
+        if (presetApplied) {
+          participantToken = await refreshParticipant(config, room.cloudflare_meeting_id, participantId)
+        } else {
+          await deleteParticipant(config, room.cloudflare_meeting_id, participantId, true)
+          const replacement = await addParticipant(config, room.cloudflare_meeting_id, {
+            userId: employeeId,
+            name: cleanText(profile.full_name, 160) || "RideArrivo Employee",
+            preset,
+          })
+          participantId = replacement.participantId
+          participantToken = replacement.token
+        }
       } else {
         const participant = await addParticipant(config, room.cloudflare_meeting_id, {
           userId: employeeId,

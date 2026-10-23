@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isValidTimeZone } from './room7Calendar'
 
 export type SaveRoom7CalendarInput = {
   eventCode: string
@@ -44,6 +45,34 @@ export async function saveRoom7CalendarEvent(
     )
   }
 
+  const title = input.title.trim()
+  if (title.length < 2) {
+    throw new Error('Give the meeting a title before scheduling it.')
+  }
+
+  const start = new Date(input.startsAt)
+  const end = new Date(input.endsAt)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new Error('Enter a valid start and end time.')
+  }
+  if (end.getTime() <= start.getTime()) {
+    throw new Error('The meeting must end after it starts.')
+  }
+
+  const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const timezone = [input.timezone, browserZone, 'Africa/Lagos'].find(
+    zone => isValidTimeZone(zone),
+  ) as string
+
+  // Keep only sensible reminders: whole minutes, one day at most, no repeats.
+  const reminders = Array.from(
+    new Set(
+      (input.reminderMinutes || [60, 15])
+        .map(value => Math.round(Number(value)))
+        .filter(value => Number.isFinite(value) && value >= 1 && value <= 1440),
+    ),
+  ).slice(0, 5)
+
   const payload = {
     event_code:
       input.eventCode
@@ -51,8 +80,7 @@ export async function saveRoom7CalendarEvent(
         .toUpperCase(),
     meeting_id:
       input.meetingId || null,
-    title:
-      input.title.trim(),
+    title,
     description:
       input.description?.trim() ||
       null,
@@ -60,12 +88,7 @@ export async function saveRoom7CalendarEvent(
       input.startsAt,
     ends_at:
       input.endsAt,
-    timezone:
-      input.timezone ||
-      Intl.DateTimeFormat()
-        .resolvedOptions()
-        .timeZone ||
-      'Africa/Lagos',
+    timezone,
     join_url:
       input.joinUrl,
     organizer_name:
@@ -75,8 +98,7 @@ export async function saveRoom7CalendarEvent(
       input.organizerEmail ||
       null,
     reminder_minutes:
-      input.reminderMinutes ||
-      [60, 15],
+      reminders.length ? reminders : [60, 15],
     status:
       'confirmed',
     created_by:

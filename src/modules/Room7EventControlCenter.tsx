@@ -27,6 +27,7 @@ import {
   saveRoom7CalendarEvent,
 } from '../lib/room7CalendarApi'
 import Room7CalendarActions from './Room7CalendarActions'
+import { isValidTimeZone } from '../lib/room7Calendar'
 import RoomEventDocumentsManager from './RoomEventDocumentsManager'
 import Room7EventEngagementManager from './Room7EventEngagementManager'
 import '../room7-event-control.css'
@@ -1072,6 +1073,17 @@ export default function Room7EventControlCenter({
         ) {
           throw new Error(
             'Scheduled end must be after scheduled start.',
+          )
+        }
+
+        if (
+          config.timezone.trim() &&
+          !isValidTimeZone(
+            config.timezone,
+          )
+        ) {
+          throw new Error(
+            'Timezone must be a real zone name such as Africa/Lagos, UTC or Europe/London.',
           )
         }
 
