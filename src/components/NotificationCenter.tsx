@@ -333,6 +333,18 @@ useEffect(
       return
     }
 
+    // Vault requests, approvals and shares open the Secret Vault itself. The
+    // notification carries no item name or value, only that something is waiting.
+    if(
+      typeof item.entity_type==='string' &&
+      item.entity_type.startsWith('secret_vault') &&
+      onOpenSection
+    ){
+      setOpen(false)
+      onOpenSection('vault')
+      return
+    }
+
     if(
       item.entity_type==='collaboration_space' &&
       onOpenSection

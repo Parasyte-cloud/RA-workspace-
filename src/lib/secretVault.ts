@@ -5,8 +5,17 @@ export async function vaultCall<T>(body:Record<string,unknown>):Promise<T>{
   if(!supabase) throw new Error('Supabase unavailable')
   const {data:{session}}=await supabase.auth.getSession(); if(!session) throw new Error('Sign in required')
   const {data,error}=await supabase.functions.invoke('secret-vault',{body,headers:{Authorization:`Bearer ${session.access_token}`}})
-  if(error) throw error; if(data?.error) throw new Error(data.error); return data as T
+  if(error){const message=await serverMessage(error); throw message?new Error(message):error}
+  if(data?.error) throw new Error(data.error); return data as T
 }
+// A non-2xx answer arrives as a generic "Edge Function returned a non-2xx
+// status code". The real reason (file too large, not allowed) is in the body.
+async function serverMessage(error:unknown):Promise<string|null>{
+  const response=(error as {context?:Response}|null)?.context
+  if(!response||typeof response.json!=='function') return null
+  try{const body=await response.json();return typeof body?.error==='string'&&body.error?body.error:null}catch{return null}
+}
+export const MAX_VAULT_FILE_BYTES=15*1024*1024
 export const listVault=()=>vaultCall<{items:VaultItem[]}>({action:'list'})
 export const createTextSecret=(input:{label:string;value:string;kind:'text'|'number';classification:string;reveal_max_seconds:number;last_four?:string})=>vaultCall<{id:string}>({action:'create',...input,value_base64:toBase64(new TextEncoder().encode(input.value))})
 export async function createDocumentSecret(input:{label:string;file:File;classification:string;reveal_max_seconds:number}){const bytes=new Uint8Array(await input.file.arrayBuffer());return vaultCall<{id:string}>({action:'create',label:input.label,kind:'document',classification:input.classification,reveal_max_seconds:input.reveal_max_seconds,mime_type:input.file.type||'application/octet-stream',original_filename:input.file.name,value_base64:toBase64(bytes)})}
