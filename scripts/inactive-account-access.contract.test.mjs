@@ -84,7 +84,7 @@ test('revoking an employee also bans the Auth user, and approving lifts the ban'
 })
 
 test('the calendar feed cannot be given extra properties through a carriage return', () => {
-  const src = readFileSync(new URL('../supabase/functions/room7-calendar/index.ts', import.meta.url), 'utf8')
+  const src = readFileSync(new URL('../supabase/functions/room7-calendar/ics.ts', import.meta.url), 'utf8')
   const fn = src.slice(src.indexOf('function escapeIcs'), src.indexOf('function toIcsUtc'))
   assert.match(fn, /\\r\\n\|\\r\|\\n/)
 })

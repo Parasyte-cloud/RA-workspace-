@@ -8,6 +8,38 @@ export type Room7CalendarEvent = {
   joinUrl: string
 }
 
+// True for a real IANA zone such as Africa/Lagos. Free text like "Lagos" is not.
+export function isValidTimeZone(value: string | null | undefined) {
+  const zone = String(value || '').trim()
+  if (!zone) return false
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: zone }).format(new Date())
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Calendar links carry everything in the address. Browsers and the calendar
+// sites cut very long addresses, so the description is trimmed and the join
+// link, the part that matters, always survives.
+const MAX_LINK_DESCRIPTION = 900
+
+function linkDetails(event: Room7CalendarEvent) {
+  const description = (event.description || '').trim()
+  const trimmed =
+    description.length > MAX_LINK_DESCRIPTION
+      ? `${description.slice(0, MAX_LINK_DESCRIPTION - 1).trimEnd()}…`
+      : description
+
+  return [
+    trimmed,
+    '',
+    `Join Room7: ${event.joinUrl}`,
+    `Event code: ${event.eventCode}`,
+  ].join('\n')
+}
+
 function compactGoogleDate(value: string) {
   return new Date(value)
     .toISOString()
@@ -19,7 +51,7 @@ export function room7IcsUrl(
   eventCode: string,
 ) {
   const supabaseUrl =
-    import.meta.env.VITE_SUPABASE_URL
+    String(import.meta.env?.VITE_SUPABASE_URL || '').replace(/\/+$/, '')
 
   return (
     `${supabaseUrl}/functions/v1/room7-calendar` +
@@ -39,12 +71,7 @@ export function googleCalendarUrl(
       dates:
         `${compactGoogleDate(event.startsAt)}/` +
         `${compactGoogleDate(event.endsAt)}`,
-      details: [
-        event.description || '',
-        '',
-        `Join Room7: ${event.joinUrl}`,
-        `Event code: ${event.eventCode}`,
-      ].join('\n'),
+      details: linkDetails(event),
       location: event.joinUrl,
     })
 
@@ -56,6 +83,9 @@ export function googleCalendarUrl(
 
 export function outlookCalendarUrl(
   event: Room7CalendarEvent,
+  // Work and school accounts use outlook.office.com. Personal Outlook.com,
+  // Hotmail and Live accounts use outlook.live.com and cannot open the other.
+  account: 'work' | 'personal' = 'work',
 ) {
   const params =
     new URLSearchParams({
@@ -70,17 +100,17 @@ export function outlookCalendarUrl(
         new Date(
           event.endsAt,
         ).toISOString(),
-      body: [
-        event.description || '',
-        '',
-        `Join Room7: ${event.joinUrl}`,
-        `Event code: ${event.eventCode}`,
-      ].join('\n'),
+      body: linkDetails(event),
       location: event.joinUrl,
     })
 
+  const host =
+    account === 'personal'
+      ? 'outlook.live.com'
+      : 'outlook.office.com'
+
   return (
-    'https://outlook.office.com/calendar/0/deeplink/compose?' +
+    `https://${host}/calendar/0/deeplink/compose?` +
     params.toString()
   )
 }

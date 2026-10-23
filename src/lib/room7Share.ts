@@ -16,7 +16,12 @@ export function room7InviteCalendarUrl(code: string): string {
   const normalized =
     code.trim().toUpperCase()
 
-  return `https://fkkxcivxnwshahnbatnp.supabase.co/functions/v1/room7-calendar?code=${encodeURIComponent(normalized)}`
+  // Same project the app talks to; the literal is only a fallback for builds
+  // that do not define VITE_SUPABASE_URL.
+  const base =
+    String(import.meta.env?.VITE_SUPABASE_URL || 'https://fkkxcivxnwshahnbatnp.supabase.co').replace(/\/+$/, '')
+
+  return `${base}/functions/v1/room7-calendar?code=${encodeURIComponent(normalized)}`
 }
 
 // Same alphabet as room codes: no 0, 1, I or O, so nothing is misread on a phone.
@@ -349,7 +354,7 @@ export function outlookCalendarUrl(event: CalendarEvent): string {
 }
 
 const icsText = (value: string) =>
-  value.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+  value.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
 
 // Lines over 75 bytes must be folded; continuation lines start with one space.
 function fold(line: string): string {
