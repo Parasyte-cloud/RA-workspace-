@@ -173,28 +173,6 @@ export function WorkDesk(){
       return
     }
 
-    const canBrowseAssigneeDirectory=
-      current.role==='admin' ||
-      current.role==='manager' ||
-      current.role==='operations'
-
-    if(!canBrowseAssigneeDirectory){
-      const {data,error}=await supabase
-        .from('employee_profiles')
-        .select(
-          'id,full_name,email,department,job_title,role'
-        )
-        .eq('id',current.id)
-        .eq('active',true)
-
-      if(error){
-        throw error
-      }
-
-      setPeople((data || []) as Employee[])
-      return
-    }
-
     const {data,error}=await supabase
       .from('employee_profiles')
       .select(
@@ -427,11 +405,8 @@ export function WorkDesk(){
 
   const isDepartmentHead=headScope.length>0
 
-  const canDelegate=
-    canAssignCompanyWide ||
-    isDepartmentHead ||
-    profile?.role==='cto' ||
-    profile?.role==='operations'
+  // Every active member can assign work to every active member.
+  const canDelegate=Boolean(profile)
 
   const departmentIds=useMemo(
     ()=>headScope.map(member=>member.employee_id),

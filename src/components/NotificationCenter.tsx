@@ -4,6 +4,7 @@ import PhoneAlertsToggle from './PhoneAlertsToggle'
 import { OPEN_SECTION_EVENT, type OpenSectionDetail } from '../lib/desktopAlerts'
 import { pickFreshToast, rememberAll, type ToastMemory } from '../lib/toastPick'
 import { shouldChatSound } from '../lib/chatSound'
+import { setSearchFocus } from '../lib/searchFocus'
 
 import {
   Bell,
@@ -329,6 +330,18 @@ useEffect(
       }
       setOpen(false)
       onOpenSection('calendar')
+      return
+    }
+
+    if(
+      item.entity_type==='collaboration_space' &&
+      onOpenSection
+    ){
+      if(item.entity_id){
+        setSearchFocus('shared',item.entity_id)
+      }
+      setOpen(false)
+      onOpenSection('shared')
       return
     }
 

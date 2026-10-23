@@ -6,6 +6,8 @@ import {
   useState,
 } from 'react'
 
+import { useOperationsReadOnly } from '../lib/operationsAccess'
+
 import type {
   FormEvent,
   ReactNode,
@@ -116,6 +118,7 @@ export function DataWorkbench({
   const [editingId,setEditingId]=useState<string|null>(null)
   const [query,setQuery]=useState('')
   const [employees,setEmployees]=useState<EmployeeOption[]>([])
+  const readOnly=useOperationsReadOnly()
 
   const requestSequenceRef=useRef(0)
   const hasLoadedRef=useRef(false)
@@ -318,7 +321,7 @@ export function DataWorkbench({
           >
             <RefreshCw size={16}/>
           </button>
-          {open ? (
+          {readOnly ? null : open ? (
             <button
               className="glassButton"
               type="button"
@@ -448,7 +451,7 @@ export function DataWorkbench({
                   </td>
                 ))}
                 <td>
-                  <button
+                  {!readOnly&&<button
                     type="button"
                     className="workbenchEditButton"
                     onClick={()=>startEdit(row)}
@@ -456,7 +459,7 @@ export function DataWorkbench({
                   >
                     <Pencil size={13}/>
                     Edit
-                  </button>
+                  </button>}
                 </td>
               </tr>
             ))}

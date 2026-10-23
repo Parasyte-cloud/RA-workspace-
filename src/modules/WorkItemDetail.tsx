@@ -774,6 +774,19 @@ export function WorkItemDetail({
         `${Date.now()}-${safeName}`
       ].join('/')
 
+      // Some browsers send no type for .md, .json or phone photos; the
+      // bucket only accepts known types, so work it out from the extension.
+      const extension=file.name.split('.').pop()?.toLowerCase() || ''
+      const byExtension:Record<string,string>={
+        md:'text/markdown',json:'application/json',csv:'text/csv',
+        txt:'text/plain',pdf:'application/pdf',heic:'image/heic',
+        heif:'image/heif',mp4:'video/mp4',mov:'video/quicktime',
+        mp3:'audio/mpeg',m4a:'audio/mp4',wav:'audio/wav',
+        zip:'application/zip',rtf:'application/rtf'
+      }
+      const contentType=
+        file.type || byExtension[extension] || 'application/octet-stream'
+
       const {error:uploadError}=
         await supabase.storage
           .from('work-attachments')
@@ -782,13 +795,19 @@ export function WorkItemDetail({
             file,
             {
               upsert:false,
-              contentType:
-                file.type ||
-                'application/octet-stream'
+              contentType
             }
           )
 
       if(uploadError){
+        if(/mime type|not supported/i.test(uploadError.message)){
+          throw new Error(
+            `This file type (.${extension || 'unknown'}) cannot be attached. Use a document, image, PDF, spreadsheet, audio, video or zip file.`
+          )
+        }
+        if(/exceeded|too large|payload/i.test(uploadError.message)){
+          throw new Error('This file is larger than 15 MB. Compress it or share a link instead.')
+        }
         throw uploadError
       }
 
