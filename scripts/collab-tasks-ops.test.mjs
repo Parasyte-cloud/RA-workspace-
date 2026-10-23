@@ -62,3 +62,12 @@ test('support staff reach Live Dispatch, and supervisors skip the operations-onl
   assert.match(read('src/modules/OperationsControlPanel.tsx'), /accessMode === 'operations' && !readOnly/)
   assert.match(read('src/modules/DepartmentTeamWorkspace.tsx'), /name:'ArrivoOps Live Dispatch'[^}]*url:'https:\/\/admin\.ridearrivo\.com\/'/)
 })
+
+test('Support has an ArrivoOps area that opens the standard read-only console', () => {
+  const hub = read('src/modules/SupportWorkspaceHub.tsx')
+  assert.match(hub, /id: 'arrivoops'/)
+  assert.match(hub, /active === 'arrivoops' \? <SupportArrivoOps \/>/)
+  const panel = read('src/modules/SupportArrivoOps.tsx')
+  assert.match(panel, /CONSOLE_URL = 'https:\/\/admin\.ridearrivo\.com\/'/)
+  assert.doesNotMatch(panel, /surface=operations/)
+})

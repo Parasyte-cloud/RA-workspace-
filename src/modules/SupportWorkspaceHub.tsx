@@ -5,9 +5,11 @@ import {
   Inbox,
   MessageCircleMore,
   PlaneTakeoff,
+  Route,
   ReceiptText,
 } from 'lucide-react'
 import SupportCommandCentre from './SupportCommandCentre'
+import SupportArrivoOps from './SupportArrivoOps'
 import InvestorEnquiriesPanel from './InvestorEnquiriesPanel'
 import IntakeSubmissionInbox from './IntakeSubmissionInbox'
 import SupportWhatsAppPanel from './SupportWhatsAppPanel'
@@ -23,6 +25,7 @@ type SupportArea =
   | 'booking'
   | 'investors'
   | 'records'
+  | 'arrivoops'
 
 const AREAS: Array<{
   id: SupportArea
@@ -72,6 +75,13 @@ const AREAS: Array<{
     short: 'Records',
     description: 'Download governed operational records and evidence when needed.',
     icon: ReceiptText,
+  },
+  {
+    id: 'arrivoops',
+    label: 'ArrivoOps Live Dispatch',
+    short: 'ArrivoOps',
+    description: 'Live rides, riders, drivers and alerts from the ArrivoOps console, read only.',
+    icon: Route,
   },
 ]
 
@@ -137,6 +147,7 @@ export default function SupportWorkspaceHub() {
           {active === 'booking' ? <SupportAssistedBookingPanel /> : null}
           {active === 'investors' ? <InvestorEnquiriesPanel /> : null}
           {active === 'records' ? <OperationsExportsCard /> : null}
+          {active === 'arrivoops' ? <SupportArrivoOps /> : null}
         </div>
       </section>
     </div>
