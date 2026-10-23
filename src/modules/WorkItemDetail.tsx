@@ -162,6 +162,8 @@ export function WorkItemDetail({
   const [escalationReason,setEscalationReason]=useState('')
   const [selectedApprover,setSelectedApprover]=useState('')
   const [approvalNote,setApprovalNote]=useState('')
+  const [thumbs,setThumbs]=useState<Record<string,string>>({})
+  const [dragOver,setDragOver]=useState(false)
   const [decisionNotes,setDecisionNotes]=useState<Record<string,string>>({})
 
   const [loading,setLoading]=useState(true)
@@ -193,10 +195,58 @@ export function WorkItemDetail({
     )
   },[departmentScopeIds,item.created_by,assignees])
 
-  const canRequestApproval=
-    item.created_by===currentUserId ||
-    isManager ||
-    isDepartmentHead
+  // Anyone who can open the task can ask anyone for approval. The database
+  // enforces the same rule.
+  const canRequestApproval=true
+
+
+  // Small previews for image attachments (signed for an hour).
+  useEffect(()=>{
+    const client=supabase
+
+    if(!client){
+      return
+    }
+
+    const missing=attachments.filter(
+      file=>
+        !thumbs[file.id] &&
+        /^image\/(png|jpe?g|webp|gif)$/.test(file.mime_type || '')
+    )
+
+    if(!missing.length){
+      return
+    }
+
+    let cancelled=false
+
+    void client.storage
+      .from('work-attachments')
+      .createSignedUrls(missing.map(file=>file.storage_path),3600)
+      .then(({data})=>{
+        if(cancelled || !data){
+          return
+        }
+
+        setThumbs(current=>{
+          const next={...current}
+
+          for(const entry of data){
+            const owner=missing.find(file=>file.storage_path===entry.path)
+
+            if(owner && entry.signedUrl){
+              next[owner.id]=entry.signedUrl
+            }
+          }
+
+          return next
+        })
+      })
+
+    return()=>{
+      cancelled=true
+    }
+  },[attachments,thumbs])
 
 
   const availableAssignees=useMemo(()=>{
@@ -751,15 +801,13 @@ export function WorkItemDetail({
   }
 
 
-  const uploadFile=async(
+  // Uploads one file. Returns an error sentence, or null when it worked.
+  const uploadOne=async(
     file:File
-  )=>{
+  ):Promise<string|null>=>{
     if(!supabase){
-      return
+      return 'Not connected.'
     }
-
-    setBusy(true)
-    setMessage('')
 
     try{
       const safeName=file.name
@@ -832,14 +880,53 @@ export function WorkItemDetail({
         throw metadataError
       }
 
-      await loadDetail()
+      return null
 
     }catch(error:any){
-      setMessage(
-        error?.message ||
-        'Unable to upload attachment.'
-      )
+      return `${file.name}: ${error?.message || 'Unable to upload.'}`
     }
+  }
+
+  const MAX_ATTACHMENT_BYTES=15*1024*1024
+
+  // Several files at once, from the picker, a drop or a paste.
+  const uploadFiles=async(
+    files:File[]
+  )=>{
+    if(!files.length || busy){
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    const problems:string[]=[]
+    let sent=0
+
+    for(const file of files){
+      if(file.size>MAX_ATTACHMENT_BYTES){
+        problems.push(`${file.name}: larger than 15 MB. Compress it or share a link instead.`)
+        continue
+      }
+
+      const problem=await uploadOne(file)
+
+      if(problem){
+        problems.push(problem)
+      }else{
+        sent+=1
+      }
+    }
+
+    if(sent){
+      await loadDetail()
+    }
+
+    setMessage(
+      problems.length
+        ? problems.join(' ')
+        : `${sent} file${sent===1 ? '' : 's'} attached.`
+    )
 
     setBusy(false)
   }
@@ -1255,25 +1342,53 @@ export function WorkItemDetail({
               Attachments
             </h3>
 
-            <label className="workUploadButton">
-              <Paperclip size={16}/>
-              Attach file
+            <div
+              className={dragOver ? 'workDropZone over' : 'workDropZone'}
+              tabIndex={0}
+              onDragOver={event=>{
+                event.preventDefault()
+                setDragOver(true)
+              }}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={event=>{
+                event.preventDefault()
+                setDragOver(false)
+                void uploadFiles(Array.from(event.dataTransfer.files))
+              }}
+              onPaste={event=>{
+                const pasted=Array.from(event.clipboardData.files)
 
-              <input
-                type="file"
-                disabled={busy}
-                onChange={event=>{
-                  const file=
-                    event.target.files?.[0]
+                if(pasted.length){
+                  event.preventDefault()
+                  void uploadFiles(pasted)
+                }
+              }}
+            >
+              <label className="workUploadButton">
+                <Paperclip size={16}/>
+                Attach files or photos
 
-                  if(file){
-                    void uploadFile(file)
-                  }
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.md,.json,.rtf,.zip,.odt,.ods,.odp"
+                  disabled={busy}
+                  onChange={event=>{
+                    const picked=Array.from(event.target.files || [])
 
-                  event.currentTarget.value=''
-                }}
-              />
-            </label>
+                    if(picked.length){
+                      void uploadFiles(picked)
+                    }
+
+                    event.currentTarget.value=''
+                  }}
+                />
+              </label>
+
+              <small>
+                Drop files here, or click here and paste an image. Up to 15 MB each.
+              </small>
+            </div>
 
             <div className="workAttachmentList">
               {attachments.map(file=>
@@ -1287,7 +1402,15 @@ export function WorkItemDetail({
                       void downloadFile(file)
                     }
                   >
-                    <FileText size={17}/>
+                    {thumbs[file.id]
+                      ? <img
+                          className="workAttachmentThumb"
+                          src={thumbs[file.id]}
+                          alt=""
+                          loading="lazy"
+                        />
+                      : <FileText size={17}/>
+                    }
 
                     <span>
                       <strong>
