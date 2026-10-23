@@ -41,9 +41,37 @@ export async function currentUserId(): Promise<string> {
   return data.user.id
 }
 
+// Who is looking, and whether they are an administrator. Used to show the
+// Delete button only to people the server would let delete.
+export async function currentViewer(): Promise<{ id: string; isAdmin: boolean }> {
+  const id = await currentUserId()
+  const res = await need().from('employee_profiles').select('role').eq('id', id).maybeSingle()
+  const role = String((res.data as { role?: string } | null)?.role || '').toLowerCase()
+  return { id, isAdmin: role === 'admin' }
+}
+
+// Turns a raw database message into words a person can act on. A missing
+// grant or a migration that has not been applied yet is the usual cause when a
+// part of the vault fails to load, and "permission denied for table x" tells
+// nobody what to do.
+export function friendlySharingError(message: string, what: string): string {
+  const text = String(message || '')
+  if (/permission denied|does not exist|could not find the function|schema cache|not found/i.test(text)) {
+    return `${what} could not load because the latest vault database update has not been applied yet. Ask an administrator to run it.`
+  }
+  if (/jwt|not authenticated|sign in/i.test(text)) return 'Your session expired. Sign in again.'
+  return `${what} could not load: ${text}`
+}
+
+// The staff list is read straight from the directory. If that is refused, the
+// vault's own people function (security definer, active staff only) is used.
 export async function listPeople(): Promise<VaultPerson[]> {
-  const res = await need().from('employee_profiles').select('id,full_name,email').eq('active', true).order('full_name')
-  return (check(res) || []) as VaultPerson[]
+  const client = need()
+  const direct = await client.from('employee_profiles').select('id,full_name,email').eq('active', true).order('full_name')
+  if (!direct.error && direct.data) return direct.data as VaultPerson[]
+  const viaFunction = await client.rpc('vault_people')
+  if (!viaFunction.error && viaFunction.data) return viaFunction.data as VaultPerson[]
+  throw new Error(direct.error?.message || viaFunction.error?.message || 'Could not read the staff list')
 }
 export async function listRequests(): Promise<VaultRequest[]> {
   const res = await need().from('secret_vault_access_requests').select('*').order('created_at', { ascending: false }).limit(100)

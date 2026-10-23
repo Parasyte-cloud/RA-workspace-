@@ -4,6 +4,7 @@ import type { VaultItem } from '../lib/secretVault'
 import {
   closeRequest,
   currentUserId,
+  friendlySharingError,
   grantAccess,
   listItemShares,
   listMyShares,
@@ -46,6 +47,10 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
   const [mine, setMine] = useState<MyShare[]>([])
   const [shares, setShares] = useState<Record<string, VaultShare[]>>({})
   const [notice, setNotice] = useState('')
+  // What failed to load, by part. A failure in one part (say the requests list)
+  // must never empty the others, so each is loaded, kept and reported alone.
+  const [problems, setProblems] = useState<Record<string, string>>({})
+  const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const [askOwner, setAskOwner] = useState('')
@@ -57,24 +62,43 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
   const [unit, setUnit] = useState<ShareUnit>('hours')
 
   const [approveItem, setApproveItem] = useState<Record<string, string>>({})
+  const [approveAmount, setApproveAmount] = useState(1)
+  const [approveUnit, setApproveUnit] = useState<ShareUnit>('hours')
 
   const owned = useMemo(() => items.filter((i) => i.owner_id === me), [items, me])
   const nameOf = useCallback((id: string) => people.find((p) => p.id === id)?.full_name || people.find((p) => p.id === id)?.email || 'Someone', [people])
   const labelOf = useCallback((id: string | null) => items.find((i) => i.id === id)?.label || 'a protected item', [items])
 
   const refresh = useCallback(async () => {
-    try {
-      const [uid, ppl, reqs, my] = await Promise.all([currentUserId(), listPeople(), listRequests(), listMyShares()])
-      setMe(uid)
-      setPeople(ppl)
-      setRequests(reqs)
-      setMine(my)
-      const own = items.filter((i) => i.owner_id === uid)
-      const entries = await Promise.all(own.map(async (i) => [i.id, await listItemShares(i.id)] as const))
-      setShares(Object.fromEntries(entries))
-    } catch (e) {
-      setNotice(e instanceof Error ? e.message : 'Could not load sharing')
+    const [uid, ppl, reqs, my] = await Promise.allSettled([currentUserId(), listPeople(), listRequests(), listMyShares()])
+    const next: Record<string, string> = {}
+    const reason = (r: PromiseRejectedResult) => (r.reason instanceof Error ? r.reason.message : String(r.reason))
+
+    let who = ''
+    if (uid.status === 'fulfilled') {
+      who = uid.value
+      setMe(uid.value)
+    } else next.account = friendlySharingError(reason(uid), 'Your account')
+
+    if (ppl.status === 'fulfilled') setPeople(ppl.value)
+    else next.people = friendlySharingError(reason(ppl), 'The list of people')
+
+    if (reqs.status === 'fulfilled') setRequests(reqs.value)
+    else next.requests = friendlySharingError(reason(reqs), 'Requests')
+
+    if (my.status === 'fulfilled') setMine(my.value)
+    else next.mine = friendlySharingError(reason(my), 'Items shared with you')
+
+    if (who) {
+      const own = items.filter((i) => i.owner_id === who)
+      const entries = await Promise.allSettled(own.map(async (i) => [i.id, await listItemShares(i.id)] as const))
+      const good = entries.filter((e): e is PromiseFulfilledResult<readonly [string, VaultShare[]]> => e.status === 'fulfilled').map((e) => e.value)
+      setShares(Object.fromEntries(good))
+      if (good.length < entries.length) next.shares = 'Who you are sharing with could not load.'
     }
+
+    setProblems(next)
+    setLoaded(true)
   }, [items])
 
   useEffect(() => {
@@ -90,14 +114,19 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
       await refresh()
       onChanged()
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : 'That did not work')
+      const text = e instanceof Error ? e.message : ''
+      setNotice(
+        /permission denied|could not find the function|schema cache/i.test(text)
+          ? 'That needs the latest vault database update, which has not been applied yet. Ask an administrator to run it.'
+          : text || 'That did not work',
+      )
     } finally {
       setBusy(false)
     }
   }
 
-  const minutesOrNotice = () => {
-    const m = shareMinutes(amount, unit)
+  const minutesOrNotice = (n: number = amount, u: ShareUnit = unit) => {
+    const m = shareMinutes(n, u)
     if (!m) setNotice('Choose between 5 minutes and 7 days.')
     return m
   }
@@ -116,20 +145,26 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
         </div>
       </div>
       {notice && <p className="vaultSharingNotice" role="status">{notice}</p>}
+      {Object.keys(problems).length > 0 && (
+        <div className="vaultSharingProblems" role="alert">
+          {Object.values(problems).map((text) => <p key={text}>{text}</p>)}
+          <button type="button" disabled={busy} onClick={() => void refresh()}>Try again</button>
+        </div>
+      )}
 
       <div className="vaultSharingGrid">
         <div className="vaultSharingBox">
           <h4>Share an item you own</h4>
           <select value={shareItem} onChange={(e) => setShareItem(e.target.value)} aria-label="Item to share">
-            <option value="">Choose item</option>
+            <option value="">{owned.length || !loaded ? 'Choose item' : 'You have no items to share yet'}</option>
             {owned.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
           </select>
           <select value={sharePerson} onChange={(e) => setSharePerson(e.target.value)} aria-label="Share with">
-            <option value="">Share with</option>
+            <option value="">{others.length || !loaded ? 'Share with' : 'No other people found'}</option>
             {others.map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
           </select>
           <label>Access ends after <TimePicker amount={amount} unit={unit} setAmount={setAmount} setUnit={setUnit} /></label>
-          <button type="button" disabled={busy || !shareItem || !sharePerson} onClick={() => { const m = minutesOrNotice(); if (m) void run(() => grantAccess(shareItem, sharePerson, m), 'Shared. You can take it back any time.') }}>
+          <button type="button" disabled={busy || !shareItem || !sharePerson} onClick={() => { const m = minutesOrNotice(); if (m) void run(async () => { await grantAccess(shareItem, sharePerson, m); setShareItem(''); setSharePerson('') }, 'Shared. You can take it back any time.') }}>
             <UserCheck size={15} /> Share
           </button>
         </div>
@@ -137,7 +172,7 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
         <div className="vaultSharingBox">
           <h4>Ask someone for access</h4>
           <select value={askOwner} onChange={(e) => setAskOwner(e.target.value)} aria-label="Ask who">
-            <option value="">Ask who</option>
+            <option value="">{others.length || !loaded ? 'Ask who' : 'No other people found'}</option>
             {others.map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
           </select>
           <textarea value={askNote} maxLength={240} onChange={(e) => setAskNote(e.target.value)} placeholder="What you need and why" aria-label="What you need" />
@@ -154,11 +189,11 @@ export default function SecretVaultSharing({ items, onChanged }: { items: VaultI
             <div className="vaultSharingRow" key={r.id}>
               <div><strong>{nameOf(r.requester_id)}</strong><span>{r.note}</span><small>{when(r.created_at)}</small></div>
               <select value={approveItem[r.id] || ''} onChange={(e) => setApproveItem({ ...approveItem, [r.id]: e.target.value })} aria-label="Item to give">
-                <option value="">Item to give</option>
+                <option value="">{owned.length ? 'Item to give' : 'You have no items to give'}</option>
                 {owned.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
-              <TimePicker amount={amount} unit={unit} setAmount={setAmount} setUnit={setUnit} />
-              <button type="button" disabled={busy || !approveItem[r.id]} onClick={() => { const m = minutesOrNotice(); if (m) void run(() => grantAccess(approveItem[r.id], r.requester_id, m, r.id), 'Approved.') }}>Approve</button>
+              <TimePicker amount={approveAmount} unit={approveUnit} setAmount={setApproveAmount} setUnit={setApproveUnit} />
+              <button type="button" disabled={busy || !approveItem[r.id]} onClick={() => { const m = minutesOrNotice(approveAmount, approveUnit); if (m) void run(() => grantAccess(approveItem[r.id], r.requester_id, m, r.id), 'Approved.') }}>Approve</button>
               <button type="button" disabled={busy} onClick={() => void run(() => closeRequest(r.id, 'declined'), 'Declined.')}>Decline</button>
             </div>
           ))}

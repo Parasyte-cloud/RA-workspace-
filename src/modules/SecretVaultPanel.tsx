@@ -19,6 +19,7 @@ import {
 import {
   authorizeReveal,
   createDocumentSecret,
+  MAX_VAULT_FILE_BYTES,
   createTextSecret,
   decodeBase64,
   deleteVaultItem,
@@ -30,6 +31,7 @@ import {
 } from '../lib/secretVault'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SecretVaultSharing from './SecretVaultSharing'
+import { currentViewer } from '../lib/secretVaultSharing'
 import './secret-vault.css'
 
 type SecretKind = 'text' | 'number' | 'document'
@@ -90,6 +92,7 @@ const maskValue = (item: VaultItem) => {
 
 export default function SecretVaultPanel() {
   const [items, setItems] = useState<VaultItem[]>([])
+  const [viewer, setViewer] = useState<{ id: string; isAdmin: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
@@ -139,6 +142,16 @@ export default function SecretVaultPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Only used to hide Delete where the server would refuse it. If this cannot
+  // be read, Delete stays visible and the server still decides.
+  useEffect(() => {
+    let alive = true
+    currentViewer().then((v) => alive && setViewer(v)).catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const conceal = useCallback(async () => {
     const active = revealRef.current
@@ -260,6 +273,16 @@ export default function SecretVaultPanel() {
 
     if (kind === 'document' && !file) {
       setError('Select a document to protect.')
+      return
+    }
+
+    if (kind === 'document' && file && file.size === 0) {
+      setError('That file is empty. Choose a file with content.')
+      return
+    }
+
+    if (kind === 'document' && file && file.size > MAX_VAULT_FILE_BYTES) {
+      setError(`That file is ${formatBytes(file.size)}. The vault accepts files up to 15 MB.`)
       return
     }
 
@@ -621,14 +644,18 @@ export default function SecretVaultPanel() {
                       Reveal
                     </button>
 
-                    <button
-                      className="secretVaultDeleteButton"
-                      type="button"
-                      onClick={() => void deleteItem(item)}
-                      aria-label={`Delete ${item.label}`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {!viewer || viewer.isAdmin || item.owner_id === viewer.id ? (
+                      <button
+                        className="secretVaultDeleteButton"
+                        type="button"
+                        onClick={() => void deleteItem(item)}
+                        aria-label={`Delete ${item.label}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    ) : (
+                      <span className="secretVaultSharedTag">Shared with you</span>
+                    )}
                   </div>
                 </article>
               ))}
