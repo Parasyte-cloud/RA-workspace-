@@ -25,7 +25,7 @@
 .bdCard h2{margin:14px 0 0;font-size:34px;line-height:1.1;font-weight:800;letter-spacing:-.01em}
 .bdCard h1{margin:2px 0 0;font-size:46px;line-height:1.1;font-weight:900;color:#ff9900;letter-spacing:-.01em;word-break:break-word}
 .bdLead{margin:14px auto 0;max-width:400px;color:#3a4756;line-height:1.65;font-size:15px}
-.bdWishes{margin:18px 0 0;text-align:left;background:#fbf4ea;border-radius:16px;padding:12px 14px}
+.bdWishes{margin:18px 0 0;text-align:left;background:#fbf4ea;color:#3a2a14;border-radius:16px;padding:12px 14px}
 .bdWishes strong{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8a4b00}
 .bdWishes ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;max-height:150px;overflow:auto;font-size:14px}
 .bdWishes li span{display:block;font-weight:800;font-size:13px}
@@ -46,11 +46,29 @@
 .bdChips{display:flex;flex-wrap:wrap;gap:6px}
 .bdChips button{border:1px solid rgba(7,26,56,.14);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:#071a38;text-align:left}
 .bdChips button.on{background:#071a38;color:#fff;border-color:#071a38}
-.bdCompose textarea{border:1px solid rgba(7,26,56,.14);border-radius:12px;padding:9px;font:inherit;font-size:13px;width:100%;resize:vertical}
+.bdCompose textarea{box-sizing:border-box;border:1px solid rgba(7,26,56,.14);border-radius:12px;padding:9px;font:inherit;font-size:13px;width:100%;resize:vertical}
 .bdSend{justify-self:end;display:inline-flex;gap:6px;align-items:center;border:0;border-radius:999px;background:#071a38;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;cursor:pointer}
 .bdSend:disabled{opacity:.5;cursor:default}
 .bdError{color:#b32020}
-@media(max-width:520px){.bdCard h1{font-size:38px}.bdCard h2{font-size:28px}.bdToday{left:8px;right:8px;width:auto;bottom:8px}}
+@media(max-width:520px){.bdCard h1{font-size:38px}.bdCard h2{font-size:28px}}
+/* Phones: the floating bottom bar owns the bottom edge, so the card sits above it
+   instead of under it. The bar is 52px tall and 10px off the bottom (6px and 42px when
+   it shrinks), so the card is lifted by exactly that plus a gap. It scrolls inside
+   itself when a wish box opens, so it never runs into the top bar. */
+@media(max-width:599px){
+  .bdToday{
+    left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));
+    width:auto;max-width:480px;margin:0 auto;gap:8px;
+    bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 52px + 12px);
+    max-height:calc(100vh - 200px);max-height:calc(100dvh - 200px);
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  html[data-ra-island='compact'] .bdToday{bottom:calc(max(6px,env(safe-area-inset-bottom,0px)) + 42px + 10px)}
+  .bdTodayRow{padding:10px}
+  .bdChips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .bdChips::-webkit-scrollbar{display:none}
+  .bdChips button{flex:0 0 auto;white-space:nowrap}
+}
 @media(prefers-reduced-motion:reduce){.bdConfetti,.bdBands i,.bdAvatar,.bdAvatar>*,.bdCard,.bdBack{animation:none}.bdConfetti{display:none}}
 .birthdayEnhancedScene{position:relative;min-height:150px;overflow:hidden;border-radius:20px;background:radial-gradient(circle at 50% 30%,rgba(244,114,182,.14),transparent 48%)}.birthdayCornerBalloons i{position:absolute;bottom:-32px;width:42px;height:54px;border-radius:50%;background:linear-gradient(145deg,#ff9f1c,#f472b6);box-shadow:inset -8px -8px 14px rgba(0,0,0,.12);animation:birthdayBalloon 4.2s ease-in-out infinite}.birthdayCornerBalloons i:nth-child(1){left:4%}.birthdayCornerBalloons i:nth-child(2){left:14%;animation-delay:.7s;background:linear-gradient(145deg,#60a5fa,#a78bfa)}.birthdayCornerBalloons i:nth-child(3){right:4%;animation-delay:.4s}.birthdayCornerBalloons i:nth-child(4){right:14%;animation-delay:1s;background:linear-gradient(145deg,#facc15,#ff9f1c)}.birthdayCakeMotif{display:flex;justify-content:center;gap:10px;color:#ffd28a;padding:10px}@keyframes birthdayBalloon{0%,100%{transform:translateY(10px) rotate(-3deg)}50%{transform:translateY(-28px) rotate(3deg)}}@media(prefers-reduced-motion:reduce){.birthdayCornerBalloons{display:none}}
 
