@@ -57,3 +57,8 @@ test('the app wires notifications, nav, assigning and the read-only view', () =>
   assert.match(bench, /readOnly\s*\?\s*null/)
   assert.match(read('src/modules/OperationsControlPanel.tsx'), /OperationsReadOnlyContext\.Provider/)
 })
+
+test('support staff reach Live Dispatch, and supervisors skip the operations-only sign-in', () => {
+  assert.match(read('src/modules/OperationsControlPanel.tsx'), /accessMode === 'operations' && !readOnly/)
+  assert.match(read('src/modules/DepartmentTeamWorkspace.tsx'), /name:'ArrivoOps Live Dispatch'[^}]*url:'https:\/\/admin\.ridearrivo\.com\/'/)
+})
