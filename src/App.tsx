@@ -31,6 +31,7 @@ import {
   FileCheck2,
   FileText,
   FolderKanban,
+  UsersRound,
   Gauge,
   Headphones,
   Home,
@@ -391,6 +392,8 @@ const workstationForSection:Partial<Record<Section,string>>={
 
 const canAccess=(role:Role,section:Section,assignments:WorkstationAssignment[]=[])=>{
   if(sectionAccess[section]?.includes(role)===true) return true
+  // Supervisors without an operations role get the Operations centre read only.
+  if(section==='operations' && assignments.some(item=>item.active && item.workstation==='operations_readonly')) return true
   const workstation=workstationForSection[section]
   return Boolean(workstation && assignments.some(item=>item.active && item.workstation===workstation))
 }
@@ -836,16 +839,22 @@ function App(){
         .eq('is_head',true),
       // Individual blog permissions, never inferred from a department role.
       client.rpc('workspace_blog_identity'),
-    ]).then(([{data,error},grant,heads,blogIdentity])=>{
+      // Operations and support supervisors view Operations read only. A missing
+      // function (migration not run yet) just means no extra access.
+      client.rpc('operations_access_mode'),
+    ]).then(([{data,error},grant,heads,blogIdentity,opsMode])=>{
         if(cancelled) return
         const blogGrant:WorkstationAssignment[]=!blogIdentity.error && blogIdentity.data?.active===true && (['writer','editor','blog_admin'].includes(blogIdentity.data?.role) || blogIdentity.data?.can_manage_access===true)
           ? [{workstation:'blog',is_primary:false,active:true}] : []
+        const opsReadOnlyGrant:WorkstationAssignment[]=!opsMode.error && opsMode.data==='readonly'
+          ? [{workstation:'operations_readonly',is_primary:false,active:true}]
+          : []
         const letterheadGrant:WorkstationAssignment[]=grant.data
           ? [{workstation:'letterhead',is_primary:false,active:true}]
           : []
         if(error){
           console.error('[RideArrivo Workstation] assignment load failed',error)
-          setWorkstationAssignments([...letterheadGrant,...blogGrant])
+          setWorkstationAssignments([...letterheadGrant,...blogGrant,...opsReadOnlyGrant])
           setAssignmentsReady(true)
           return
         }
@@ -854,7 +863,7 @@ function App(){
         const headGrant:WorkstationAssignment[]=!heads.error && (heads.data || []).length>0
           ? [{workstation:'deptadmin',is_primary:false,active:true}]
           : []
-        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant,...headGrant,...blogGrant])
+        setWorkstationAssignments([...((data || []) as WorkstationAssignment[]),...letterheadGrant,...headGrant,...blogGrant,...opsReadOnlyGrant])
         setAssignmentsReady(true)
       })
 
@@ -1094,7 +1103,7 @@ function App(){
 
   const nav = useMemo(()=>{
     const items = [
-      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['notes','Notes',NotebookPen],['vault','Secret Vault',KeyRound],['projects','Projects',FolderKanban],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
+      ['overview','Dashboard',Home],['profile','My Profile',UserCog],['gallery','My Headshots',Images],['chat','Chat',MessagesSquare],['room','ROOM 7',Video],['social','Pulse',Bell],['mail','Mail',Mail],['calendar','Calendar',CalendarDays],['tasks','Tasks',ListChecks],['notes','Notes',NotebookPen],['vault','Secret Vault',KeyRound],['projects','Projects',FolderKanban],['shared','Collaboration',UsersRound],['announcements','Announcements',Bell],['files','Company Files',FileText],['archive','Archive',Archive],['brand','Brand Library',Images],['letterhead','Letterhead',FileSignature],['blog','Blog Studio',BookOpen],['knowledge','Knowledge Base',BookOpen],['crm','CRM',ContactRound],['executive','CEO / Management',Crown],['support','Support',Headphones],['operations','Operations',BriefcaseBusiness],['people','People & HR',Users],['engineering','Engineering',Code2],['linux','ParAsYtE Linux',TerminalSquare],['finance','Finance',CircleDollarSign],['vendors','Vendors',PackageCheck],['marketing','Marketing',BarChart3],['deptadmin','Department Admin',Users],['partnerships','Partnerships',Building2],['legal','Legal',Scale],['parasyte','PArAsYtE',Globe2],['apps','Applications',AppWindow],['settings','Settings',Settings],['admin','Administration',Settings]
     ] as const
     return items.filter(([id])=>canAccess(profile.role,id,workstationAssignments))
   },[profile.role,workstationAssignments])

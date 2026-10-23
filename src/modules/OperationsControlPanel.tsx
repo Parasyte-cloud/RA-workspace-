@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   CarFront,
@@ -14,6 +14,9 @@ import OperationsReceiptsPanel from './OperationsReceiptsPanel'
 import WorkstationWindow, {
   type WorkstationWindowMode,
 } from '../components/WorkstationWindow'
+
+import { OperationsReadOnlyContext } from '../lib/operationsAccess'
+import { supabase } from '../lib/supabase'
 
 import '../arrivoops.css'
 
@@ -60,6 +63,20 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
   const [view, setView] =
     useState<ArrivoOpsView>('overview')
 
+  // Operations and support supervisors without an operations role view
+  // everything here read only. The database enforces it; this hides the
+  // add and edit controls.
+  const [readOnly, setReadOnly] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!supabase) return
+    void supabase.rpc('operations_access_mode').then(({ data, error }) => {
+      if (!cancelled && !error) setReadOnly(data === 'readonly')
+    })
+    return () => { cancelled = true }
+  }, [])
+
   const [liveOperationsOpen, setLiveOperationsOpen] =
     useState(false)
 
@@ -67,7 +84,14 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
     useState<WorkstationWindowMode>('split')
 
   return (
+    <OperationsReadOnlyContext.Provider value={readOnly}>
     <div className="operationsControlPanel arrivoOps">
+      {readOnly && (
+        <div className="moduleNotice" role="status">
+          Read only view. You can see every detail here but cannot add or change records.
+        </div>
+      )}
+
       <section className="arrivoOpsHero glassCard">
         <div className="arrivoOpsHeroCopy">
           <span className="eyebrow">
@@ -744,5 +768,6 @@ export default function OperationsControlPanel({ accessMode = 'admin' }: { acces
       )}
 
     </div>
+    </OperationsReadOnlyContext.Provider>
   )
 }

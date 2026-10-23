@@ -174,7 +174,8 @@ const USER_SCOPED_DOMAINS: Domain[] = [
     key: "shared", table: "collaboration_spaces",
     select: "id,name,description,space_type,home_department,updated_at",
     columns: ["name", "description"], titleColumn: "name", sortKey: "updated_at", limit: 5,
-    filter: (query) => query.is("archived_at", null),
+    // Department spaces are opened from the department's own tab, not the hub.
+    filter: (query) => query.is("archived_at", null).neq("space_type", "department"),
   },
   {
     key: "brand", table: "brand_assets",

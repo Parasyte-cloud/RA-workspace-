@@ -20,6 +20,7 @@ export const PINNED_IDS = ['overview', 'tasks', 'chat', 'mail', 'calendar', 'not
 // Shared company services. One collapsed group.
 export const COMPANY_IDS = [
   'projects',
+  'shared',
   'announcements',
   'social',
   'room',
