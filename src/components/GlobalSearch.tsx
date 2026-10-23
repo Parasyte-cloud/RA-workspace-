@@ -83,6 +83,11 @@ function buildGroups(results: SearchResults | null, mail: MailRow[] | null): Res
     { label: 'Calendar', items: r('calendar').map(x => ({ key: `c${x.id}`, icon: CalendarDays, title: text(x.title), sub: join(x.event_type, x.location, text(x.starts_at).slice(0, 10)), section: 'calendar' })) },
     { label: 'Shared spaces', items: r('shared').map(x => ({ key: `s${x.id}`, icon: FolderKanban, title: text(x.name), sub: join(x.space_type, x.home_department), section: 'shared', focus: { kind: 'shared', id: x.id } })) },
     { label: 'Rooms', items: r('rooms').map(x => ({ key: `r${x.id}`, icon: Video, title: text(x.title || x.room_code), sub: text(x.room_code), meta: text(x.status), section: 'room' })) },
+    { label: 'Collaboration files', items: r('collaborationFiles').map(x => ({ key: `cf${x.id}`, icon: FileText, title: text(x.display_name), sub: join(x.classification, x.download_policy), meta: text(x.preview_policy), section: x.space_id ? 'shared' : x.room_id ? 'room' : 'chat', focus: x.space_id ? { kind: 'shared', id: x.space_id } : undefined })) },
+    { label: 'Shared notes', items: r('sharedNotes').map(x => ({ key: `sn${x.id}`, icon: FileText, title: text(x.title || 'Untitled note'), sub: 'Workspace note', section: 'notes' })) },
+    { label: 'Space discussions', items: r('spaceMessages').map(x => ({ key: `sm${x.id}`, icon: MessagesSquare, title: text(x.body).slice(0, 100), sub: 'Shared workspace discussion', section: 'shared', focus: { kind: 'shared', id: x.space_id } })) },
+    { label: 'Room7 messages', items: r('roomMessages').map(x => ({ key: `rm${x.id}`, icon: MessagesSquare, title: text(x.body).slice(0, 100), sub: 'Room7 meeting chat', section: 'room' })) },
+    { label: 'Meeting transcripts', items: r('meetingTranscripts').map(x => ({ key: `mt${x.id}`, icon: Video, title: text(x.text).slice(0, 100), sub: join('Transcript', x.speaker_key), section: 'room' })) },
     { label: 'Brand', items: r('brand').map(x => ({ key: `b${x.id}`, icon: Palette, title: text(x.name), sub: join(x.category, x.description), section: 'brand' })) },
     { label: 'CRM', items: [
       ...r('crmAccounts').map(x => ({ key: `ca${x.id}`, icon: Building2, title: text(x.name), sub: join(x.account_type, x.lifecycle_stage), meta: text(x.status), section: 'crm' })),

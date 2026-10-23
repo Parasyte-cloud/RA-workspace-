@@ -123,9 +123,17 @@ import {
 } from './messages/MentionSuggestions'
 import { enqueue, isNetworkError, loadOutbox, type OutboxItem } from '../lib/outbox'
 import { OUTBOX_FAILED, OUTBOX_SENT } from '../components/OutboxFlusher'
+import { copyGovernedChatAttachment, uploadGovernedChatFile } from '../lib/collaborationFiles'
+import {
+  listPendingFileRetries,
+  loadPendingFileRetry,
+  removePendingFileRetry,
+  savePendingFileRetry,
+} from '../lib/chatFileOutbox'
 import {
   registerMessageMentions as registerChatMessageMentions,
-  sendMessage as sendChatMessage
+  sendMessage as sendChatMessage,
+  sendAttachmentMessage as sendChatAttachmentMessage
 } from './api/chatApi'
 import {
   ackChatDelivered,
@@ -150,7 +158,6 @@ import {
 import {
   ACCEPT_ATTRIBUTE,
   MAX_FILES_PER_SEND,
-  attachmentPath,
   formatBytes,
   isAudioMime,
   isImageMime,
@@ -210,6 +217,7 @@ type Message = {
   attachment_size?:number|null
   attachment_duration_ms?:number|null
   confidential_id?:string|null
+  collaboration_file_id?:string|null
   localUrl?:string
   pending?:boolean
   failed?:boolean
@@ -224,10 +232,10 @@ type DirectRow = {
   unread:number
 }
 
-const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,deleted_at,created_at,reply_to_id,forwarded_from_user_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms'
+const MESSAGE_COLUMNS='id,conversation_id,sender_id,body,edited_at,deleted_at,created_at,reply_to_id,forwarded_from_user_id,attachment_path,attachment_name,attachment_mime,attachment_size,attachment_duration_ms,collaboration_file_id'
 const OPEN_KEY='ra.chat.open'
 const ATTACH_BUCKET='chat-attachments'
-const SIGNED_SECONDS=3600
+const SIGNED_SECONDS=600
 
 type Staged={id:string;file:File;mime:string;previewUrl:string|null}
 type Voice={status:'recording'|'ready';ms:number;blob?:Blob;mime:string;url?:string}
@@ -1614,9 +1622,8 @@ export function ChatShell(){
         }
         let copied:string|null=null
         if(source.attachment_path){
-          copied=attachmentPath(conversationId,userId,crypto.randomUUID(),source.attachment_name || 'file')
-          const {error:copyError}=await client.storage.from(ATTACH_BUCKET).copy(source.attachment_path,copied)
-          if(copyError)throw new Error('The file could not be copied.')
+          const governedCopy=await copyGovernedChatAttachment(source.id,conversationId)
+          copied=governedCopy.path
         }
         const {data,error}=await client.rpc('forward_chat_message',{
           p_source_id:source.id,
@@ -1737,70 +1744,30 @@ export function ChatShell(){
       return
     }
 
-    let uploadedPath:string|null=null
-    if(file){
-      const path=attachmentPath(conversationId,userId,crypto.randomUUID(),file.name)
-      const {error:uploadError}=await client.storage.from(ATTACH_BUCKET).upload(path,file,{
-        upsert:false,
-        contentType:opts.mime || file.type,
-        cacheControl:'3600'
-      })
-      if(uploadError){
-        retryFilesRef.current.set(id,file)
-        setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
-        setNotice(uploadError.message || 'Unable to upload the file.')
-        return
-      }
-      uploadedPath=path
-    }
-
-    const {data,error}=await client
-      .from('social_messages')
-      .insert({
-        conversation_id:conversationId,
-        sender_id:userId,
+    let row:Message|null=null
+    try{
+      const governed=await uploadGovernedChatFile(conversationId,file)
+      const saved=await sendChatAttachmentMessage({
+        conversationId,
+        fileId:governed.fileId,
         body,
-        // Lets a retry after a lost answer find the first copy instead of posting a second.
-        client_message_id:clientMessageId,
-        ...(replyId?{reply_to_id:replyId}:{}),
-        ...(file && uploadedPath?{
-          attachment_path:uploadedPath,
-          attachment_name:file.name,
-          attachment_mime:opts.mime || file.type,
-          attachment_size:file.size,
-          ...(opts.durationMs!=null?{attachment_duration_ms:Math.round(opts.durationMs)}:{})
-        }:{})
+        replyToId:replyId || null,
+        clientMessageId,
+        durationMs: opts.durationMs ?? null
       })
-      .select(MESSAGE_COLUMNS)
-      .single()
-
-    // If the first attempt did save but its answer never reached us, this is a
-    // retry of a message that already exists. Use that row and drop the copy of
-    // the file that was just uploaded.
-    let row=(data as Message|null)
-    if(!row && error && (error as {code?:string}).code==='23505'){
-      const existing=await client
-        .from('social_messages')
-        .select(MESSAGE_COLUMNS)
-        .eq('conversation_id',conversationId)
-        .eq('sender_id',userId)
-        .eq('client_message_id',clientMessageId)
-        .maybeSingle()
-      if(existing.data){
-        row=existing.data as unknown as Message
-        if(uploadedPath && row.attachment_path!==uploadedPath){
-          void client.storage.from(ATTACH_BUCKET).remove([uploadedPath])
-        }
-      }
-    }
-    if(!row){
-      if(file && uploadedPath){
-        // The file is unused now, so remove it. The retry uploads it again.
-        void client.storage.from(ATTACH_BUCKET).remove([uploadedPath])
-        retryFilesRef.current.set(id,file)
+      row=saved as Message
+    }catch(error){
+      retryFilesRef.current.set(id,file)
+      try{
+        await savePendingFileRetry({
+          tempId:id,userId,conversationId,body,replyId:replyId || null,clientMessageId,
+          mentionedUserIds,durationMs:opts.durationMs ?? null,queuedAt:Date.now(),file
+        })
+      }catch(outboxError){
+        console.error('Could not persist failed file send',outboxError)
       }
       setMessages(current=>current.map(m=>m.id===id ? {...m,pending:false,failed:true} : m))
-      setNotice(explainWriteError(error?.message || 'Unable to send message.'))
+      setNotice(explainWriteError(error instanceof Error ? error.message : 'Unable to securely send the file.'))
       return
     }
     if(mentionedUserIds.length){
@@ -1827,6 +1794,7 @@ export function ChatShell(){
     }
 
     retryFilesRef.current.delete(id)
+    void removePendingFileRetry(id).catch(()=>{})
     const saved={...row,localUrl:optimistic.localUrl}
     setNotice('')
     setMessages(current=>mergeMessages(current.filter(m=>m.id!==id),[saved]))
@@ -2175,19 +2143,26 @@ export function ChatShell(){
   }
 
   const retry=(message:Message)=>{
-    setMessages(current=>current.map(m=>m.id===message.id ? {...m,failed:false,pending:true} : m))
-    const file=retryFilesRef.current.get(message.id) || null
-    const verdict=file ? validateAttachment(file) : null
-    void sendMessage({
-      body:message.body,
-      file,
-      mime:verdict && verdict.ok ? verdict.mime : undefined,
-      durationMs:message.attachment_duration_ms ?? null,
-      tempId:message.id,
-      replyId:message.reply_to_id,
-      clientMessageId:message.client_message_id||undefined,
-      mentionedUserIds:message.mentionedUserIds || []
-    })
+    void (async()=>{
+      setMessages(current=>current.map(m=>m.id===message.id ? {...m,failed:false,pending:true} : m))
+      let file=retryFilesRef.current.get(message.id) || null
+      if(!file){
+        const persisted=await loadPendingFileRetry(message.id).catch(()=>null)
+        file=persisted?.file || null
+        if(file)retryFilesRef.current.set(message.id,file)
+      }
+      const verdict=file ? validateAttachment(file) : null
+      await sendMessage({
+        body:message.body,
+        file,
+        mime:verdict && verdict.ok ? verdict.mime : undefined,
+        durationMs:message.attachment_duration_ms ?? null,
+        tempId:message.id,
+        replyId:message.reply_to_id,
+        clientMessageId:message.client_message_id||undefined,
+        mentionedUserIds:message.mentionedUserIds || []
+      })
+    })()
   }
 
   // Saves the file from inside the workspace. It is fetched with the person's own
@@ -2207,6 +2182,24 @@ export function ChatShell(){
       setDownloading('')
     }
   }
+
+  useEffect(()=>{
+    if(!userId || !selectedId)return
+    let cancelled=false
+    void listPendingFileRetries(userId,selectedId).then(items=>{
+      if(cancelled || !items.length)return
+      for(const item of items)retryFilesRef.current.set(item.tempId,item.file)
+      const recovered:Message[]=items.map(item=>({
+        id:item.tempId,conversation_id:item.conversationId,sender_id:item.userId,body:item.body,
+        edited_at:null,created_at:new Date(item.queuedAt).toISOString(),reply_to_id:item.replyId,
+        client_message_id:item.clientMessageId,mentionedUserIds:item.mentionedUserIds,
+        attachment_name:item.file.name,attachment_mime:item.file.type,attachment_size:item.file.size,
+        attachment_duration_ms:item.durationMs,pending:false,failed:true
+      }))
+      setMessages(current=>mergeMessages(current,recovered))
+    }).catch(error=>console.error('Could not recover pending file sends',error))
+    return()=>{cancelled=true}
+  },[userId,selectedId])
 
   useEffect(()=>{
     const client=supabase

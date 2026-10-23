@@ -89,3 +89,28 @@ export async function registerMessageMentions(
     )
   }
 }
+
+export async function sendAttachmentMessage(input: {
+  conversationId: string
+  fileId: string
+  body: string
+  replyToId?: string | null
+  clientMessageId: string
+  durationMs?: number | null
+}): Promise<ChatMessage> {
+  const { data, error } = await client().rpc(
+    'send_chat_attachment_message',
+    {
+      p_conversation_id: input.conversationId,
+      p_file_id: input.fileId,
+      p_body: input.body,
+      p_reply_to_id: input.replyToId ?? null,
+      p_client_message_id: input.clientMessageId,
+      p_duration_ms: input.durationMs ?? null,
+    },
+  )
+
+  if (error) throw new Error(error.message || 'Unable to send file message')
+  if (!data) throw new Error('File message send returned no persisted message')
+  return data as ChatMessage
+}
