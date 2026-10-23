@@ -8,6 +8,7 @@ import SeasonalStaticFallback from './SeasonalStaticFallback'
 import type { CelebrationMotionProfile } from './useCelebrationMotionProfile'
 import type { CeremonyPresentation } from '../../celebrations/types'
 import '../../birthday.css'
+import '../../seasonal-celebrations.css'
 
 type Wish={from_name:string;message:string;created_at:string}
 const PALETTE=['#ff9f1c','#f472b6','#a78bfa','#60a5fa','#facc15','#f8fafc'] as const
