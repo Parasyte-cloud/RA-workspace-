@@ -64,13 +64,41 @@ export const documentStatuses =
     "archived",
   ])
 
+// Keep equal to src/lib/room7DocumentTypes.ts, the room7_event_documents_mime_check
+// constraint and the storage bucket (scripts/room7-documents-audit.test.mjs
+// compares them). Legacy .doc/.xls/.ppt and macro-enabled formats are left out
+// on purpose.
 export const allowedMimeTypes =
   new Set([
     "application/pdf",
     "image/jpeg",
     "image/png",
     "image/webp",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
   ])
+
+// Only these can be shown inside the ROOM 7 reader. Every other allowed type is
+// download only, so it is always published with downloading on.
+export const previewableMimeTypes =
+  new Set([
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ])
+
+export function isPreviewableMime(
+  mime: unknown,
+) {
+  return typeof mime === "string" &&
+    previewableMimeTypes.has(
+      mime.toLowerCase(),
+    )
+}
 
 export const privilegedRoles =
   new Set([
@@ -92,6 +120,21 @@ export const extensionByMime:
 
     "image/webp":
       "webp",
+
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      "docx",
+
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      "xlsx",
+
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      "pptx",
+
+    "text/plain":
+      "txt",
+
+    "text/csv":
+      "csv",
   }
 
 export function cleanText(

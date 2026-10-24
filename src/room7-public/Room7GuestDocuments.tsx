@@ -14,6 +14,10 @@ import {
   X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import {
+  isRoom7DocumentPreviewable,
+  room7DocumentLabel,
+} from '../lib/room7DocumentTypes'
 
 export type Room7GuestLocator = {
   slug?: string
@@ -615,13 +619,28 @@ export default function Room7GuestDocuments({
       documentRecord:
         GuestDocument,
     ) => {
+            // Word, Excel, PowerPoint, text and CSV cannot be shown in the reader.
+      // Select them and offer a download instead of asking for a preview that
+      // an iframe would only render as a blank page or force-download.
+      if (
+        !isRoom7DocumentPreviewable(
+          documentRecord
+            .mime_type,
+        )
+      ) {
+        setError('')
+        setSelected(
+          documentRecord,
+        )
+        setPreviewUrl('')
+        setPreviewExpiresAt(0)
+        return
+      }
       setPreviewing(true)
       setError('')
-
       try {
         const access =
           guestAccessBody()
-
         const data =
           await request<{
             signed_path:
@@ -1358,8 +1377,58 @@ export default function Room7GuestDocuments({
                       </div>
                     )}
 
+                                        {selected &&
+                     !isRoom7DocumentPreviewable(
+                       selected.mime_type,
+                     ) && (
+                      <div className="room7GuestDocumentReaderEmpty room7GuestDocumentDownloadOnly">
+                        <FileText
+                          size={36}
+                        />
+                        <strong>
+                          {selected.title}
+                        </strong>
+                        <span>
+                          {room7DocumentLabel(
+                            selected.mime_type,
+                          )}
+                          {' · '}
+                          {formatBytes(
+                            selected.file_size_bytes,
+                          )}
+                        </span>
+                        <span>
+                          This file type cannot be previewed here. Download it to open it on your device.
+                        </span>
+                        {selected.allow_download && (
+                          <button
+                            type="button"
+                            className="room7GuestDocumentDownloadButton"
+                            disabled={
+                              downloading
+                            }
+                            onClick={() =>
+                              void downloadDocument(
+                                selected,
+                              )
+                            }
+                          >
+                            <Download
+                              size={16}
+                            />
+                            {downloading
+                              ? 'Preparing download'
+                              : 'Download'}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {!previewUrl &&
-                     !previewing && (
+                     !previewing &&
+                     (!selected ||
+                       isRoom7DocumentPreviewable(
+                         selected.mime_type,
+                       )) && (
                       <div className="room7GuestDocumentReaderEmpty">
                         <FileText
                           size={32}
