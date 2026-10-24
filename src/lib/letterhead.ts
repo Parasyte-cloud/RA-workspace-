@@ -132,7 +132,7 @@ async function fetchBytes(url: string): Promise<Uint8Array> {
   return new Uint8Array(await response.arrayBuffer())
 }
 
-function loadAssets(): Promise<Assets> {
+export function loadAssets(): Promise<Assets> {
   if (!assetsPromise) {
     const base = import.meta.env.BASE_URL || '/'
     assetsPromise = Promise.all([
@@ -302,7 +302,7 @@ function segmentsWidth(segments: Segment[], size: number): number {
 
 const TOP_CONTENT = 161.5
 
-function drawTracked(page: PDFPage, text: string, font: PDFFont, size: number, spacing: number, tint: RGB, x: number, y: number, align: 'left' | 'right' = 'left') {
+export function drawTracked(page: PDFPage, text: string, font: PDFFont, size: number, spacing: number, tint: RGB, x: number, y: number, align: 'left' | 'right' = 'left') {
   const chars = [...text]
   const widths = chars.map(c => font.widthOfTextAtSize(c, size))
   const total = widths.reduce((a, b) => a + b, 0) + spacing * Math.max(chars.length - 1, 0)

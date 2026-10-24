@@ -1,0 +1,33 @@
+/* Invoice studio. Builds on letterhead.css (same card, field and preview classes). */
+.invKinds{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--lh-soft)}
+.invKinds button{border:0;background:transparent;color:var(--lh-text);padding:9px 6px;border-radius:10px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.invKinds button.active{background:var(--lh-card);box-shadow:inset 0 -3px var(--lh-amber),0 4px 14px rgba(13,35,60,.1)}
+.invKinds button:focus-visible{outline:2px solid var(--lh-amber);outline-offset:2px}
+
+.invGroup{margin:10px 0 0;padding-top:12px;border-top:1px solid var(--lh-line);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--lh-muted)}
+
+.invItems{display:grid;gap:8px}
+.invItemsHead,.invItem{display:grid;grid-template-columns:minmax(0,1fr) 64px 110px 118px 40px;gap:8px;align-items:center}
+.invItemsHead{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--lh-muted);padding:0 2px}
+.invOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.invAmount{font-weight:700;font-size:13px;text-align:right;color:var(--lh-text);overflow-wrap:anywhere}
+.invAdd{justify-self:start}
+.invAdd.lhGhost{border-color:var(--lh-line);color:var(--lh-text);padding:9px 14px}
+.invItem .lhIcon:disabled{opacity:.4;cursor:not-allowed}
+
+.invSummary{display:grid;gap:6px;padding:14px;border-radius:14px;background:var(--lh-soft);border:1px solid var(--lh-line)}
+.invSummary div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.invSummary span{color:var(--lh-muted)}
+.invDue{padding-top:8px;margin-top:2px;border-top:1px solid var(--lh-line)}
+.invDue span{color:var(--lh-text);font-weight:800}
+.invDue strong{font-size:18px}
+
+@media (max-width:760px){
+  .invItemsHead{display:none}
+  .invItem{grid-template-columns:1fr 1fr 40px;padding:10px;border:1px solid var(--lh-line);border-radius:12px}
+  .invItem .invDesc{grid-column:1/-1}
+  .invItem .invOnly{position:static;width:auto;height:auto;clip:auto}
+  .invAmount{text-align:left;grid-column:1 / 3}
+  .invKinds{grid-template-columns:repeat(2,1fr)}
+}
+@media print{.invoiceStudio{display:none}}
