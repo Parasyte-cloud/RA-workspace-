@@ -752,3 +752,112 @@ export async function loadStaffContacts(): Promise<Array<{ employee_id: string; 
   if (error) fail(error, 'Unable to load contacts')
   return data || []
 }
+
+// ---------------------------------------------------------------------------
+// Complaints, approvals and complaint reports (migration 20261024140000)
+// ---------------------------------------------------------------------------
+
+export type SupportParty = 'rider' | 'driver' | 'other'
+export const PARTIES: SupportParty[] = ['rider', 'driver', 'other']
+export const COMPLAINT_TYPES = ['safety', 'driver_behaviour', 'rider_behaviour', 'payment', 'refund', 'fare_dispute', 'lateness', 'no_show', 'vehicle', 'app_issue', 'service_quality', 'other']
+export const SEVERITIES = ['low', 'medium', 'high', 'critical'] as const
+
+export type ComplaintRow = {
+  ticket_id: string; public_id: string; subject: string; status: SupportTicketStatus; priority: SupportPriority; channel: SupportChannel
+  created_at: string; party_type: SupportParty | null; complaint_type: string; severity: string; ride_ref: string | null; booking_ref: string | null
+  against_name: string | null; compensation_status: string; compensation_minor: number | null; compensation_currency: string | null
+  customer_name: string | null; agent_name: string | null
+}
+
+export type ComplaintRecord = {
+  ticket_id: string; party_type: SupportParty; complaint_type: string; severity: string; ride_ref: string | null; booking_ref: string | null
+  against_name: string | null; against_ref: string | null; description: string | null; root_cause: string | null; resolution: string | null
+  compensation_minor: number | null; compensation_currency: string | null; compensation_status: string
+}
+
+export type ComplaintDetail = {
+  complaint: ComplaintRecord | null
+  critical: boolean
+  approvals: Array<{ id: string; action: string; status: string; level: string; amount_minor: number | null; created_at: string }>
+  party_type: SupportParty | null
+  customer_id: string | null
+}
+
+export type ApprovalRow = {
+  id: string; action: string; level: 'supervisor' | 'manager'; status: 'pending' | 'approved' | 'denied' | 'cancelled'
+  ticket_id: string | null; public_id: string | null; subject: string | null; customer_id: string | null; customer_name: string | null
+  amount_minor: number | null; currency: string | null; reason: string | null; payload: Record<string, unknown> | null
+  decision_note: string | null; created_at: string; decided_at: string | null; requested_by_name: string | null; decided_by_name: string | null
+  can_decide: boolean; mine: boolean
+}
+
+export type DuplicateCustomer = { id: string; name: string | null; primary_phone: string | null; primary_email: string | null; party_type: string | null; tickets: number }
+
+export type ComplaintReport = {
+  range: { from: string; to: string }
+  totals: { tickets: number; complaints: number; open: number; resolved: number; reopened: number }
+  sla: { first_response_met: number; first_response_missed: number; resolution_met: number; resolution_missed: number; avg_first_response_minutes: number | null; avg_resolution_minutes: number | null }
+  by_day: Array<{ day: string; tickets: number; complaints: number }>
+  by_party: Array<{ party: string; tickets: number; complaints: number; open: number }>
+  by_category: Array<{ category: string | null; tickets: number; open: number }>
+  by_channel: Array<{ channel: string; tickets: number }>
+  complaints_by_type: Array<{ type: string; count: number }>
+  complaints_by_severity: Array<{ severity: string; count: number }>
+  by_agent: Array<{ name: string; handled: number; resolved: number; avg_resolution_minutes: number | null }>
+  calls: { total: number; inbound: number; outbound: number; answered: number; abandoned: number; with_ticket: number; avg_duration_seconds: number | null; avg_wait_seconds: number | null }
+  repeat_complainants: Array<{ customer_id: string; name: string | null; party: string | null; complaints: number }>
+  most_complained_about: Array<{ name: string; complaints: number }>
+  compensation: { approved_minor: number; paid_minor: number; requested_minor: number }
+  approvals: { requested: number; pending: number; approved: number; denied: number; avg_decision_minutes: number | null }
+}
+
+async function rpcJson<T>(fn: string, args: Record<string, unknown>, fallback: string, empty: T): Promise<T> {
+  const { data, error } = await client().rpc(fn, args)
+  if (error) fail(error, fallback)
+  return (data as T | null) ?? empty
+}
+
+export const listComplaints = (f: { party?: string; status?: string; from?: string; to?: string }) =>
+  rpcJson<ComplaintRow[]>('support_complaints_list', { p_party: f.party || null, p_status: f.status || null, p_from: f.from || null, p_to: f.to || null }, 'Unable to load complaints', [])
+
+export async function raiseComplaint(f: {
+  party: SupportParty; description: string; ticketId?: string | null; customerName?: string; phone?: string; email?: string; subject?: string
+  complaintType: string; severity: string; rideRef?: string; bookingRef?: string; againstName?: string; againstRef?: string; channel?: string
+}): Promise<{ ticket_id: string; public_id: string }> {
+  const { data, error } = await client().rpc('support_raise_complaint', {
+    p_party: f.party, p_description: f.description, p_ticket: f.ticketId || null, p_customer_name: f.customerName || null, p_phone: f.phone || null,
+    p_email: f.email || null, p_subject: f.subject || null, p_complaint_type: f.complaintType, p_severity: f.severity, p_ride_ref: f.rideRef || null,
+    p_booking_ref: f.bookingRef || null, p_against_name: f.againstName || null, p_against_ref: f.againstRef || null, p_channel: f.channel || 'form',
+  })
+  if (error) fail(error, 'Could not raise the complaint')
+  const row = (Array.isArray(data) ? data[0] : data) as { ticket_id: string; public_id: string } | undefined
+  if (!row) throw new Error('Could not raise the complaint')
+  return row
+}
+
+export const complaintDetail = (ticketId: string) => rpcJson<ComplaintDetail | null>('support_complaint_detail', { p_ticket: ticketId }, 'Unable to load complaint details', null)
+export const updateComplaint = (ticketId: string, f: { rootCause?: string; resolution?: string }) =>
+  rpcVoid('support_update_complaint', { p_ticket: ticketId, p_root_cause: f.rootCause ?? null, p_resolution: f.resolution ?? null }, 'Could not save')
+export const listApprovals = (status: 'pending' | 'approved' | 'denied' | 'cancelled' | 'all') => rpcJson<ApprovalRow[]>('support_approvals_list', { p_status: status }, 'Unable to load approvals', [])
+export const requestApproval = async (f: { action: string; ticketId?: string | null; customerId?: string | null; amountMinor?: number | null; reason?: string; payload?: Record<string, unknown> }) => {
+  const { error } = await client().rpc('support_request_approval', { p_action: f.action, p_ticket: f.ticketId || null, p_customer: f.customerId || null, p_amount_minor: f.amountMinor ?? null, p_reason: f.reason || null, p_payload: f.payload || {} })
+  if (error) fail(error, 'Could not send the request')
+}
+export const decideApproval = (id: string, approve: boolean, note?: string) => rpcVoid('support_decide_approval', { p_id: id, p_approve: approve, p_note: note || null }, 'Could not record the decision')
+export const cancelApproval = (id: string) => rpcVoid('support_cancel_approval', { p_id: id }, 'Could not cancel the request')
+export const markCompensationPaid = (ticketId: string) => rpcVoid('support_mark_compensation_paid', { p_ticket: ticketId }, 'Could not mark as paid')
+export const requestMerge = (from: string, into: string, reason: string) => rpcVoid('support_request_merge', { p_from: from, p_into: into, p_reason: reason }, 'Could not request the merge')
+export const customerDuplicates = (id: string) => rpcJson<DuplicateCustomer[]>('support_customer_duplicates', { p_customer: id }, 'Unable to look for duplicates', [])
+export const editCustomer = async (id: string, f: { displayName?: string; phone?: string; email?: string; partyType?: string; driverRef?: string; reason?: string }): Promise<{ status?: string } | null> => {
+  const { data, error } = await client().rpc('support_edit_customer', { p_customer: id, p_display_name: f.displayName || null, p_phone: f.phone || null, p_email: f.email || null, p_party_type: f.partyType || null, p_driver_ref: f.driverRef || null, p_reason: f.reason || null })
+  if (error) fail(error, 'Could not update the customer')
+  return (data as { status?: string } | null) ?? null
+}
+export const loadComplaintReport = (f: { from?: string; to?: string; party?: string }) =>
+  rpcJson<ComplaintReport | null>('support_report_complaints', { p_from: f.from || null, p_to: f.to || null, p_party: f.party || null }, 'Unable to build the report', null)
+
+export const APPROVAL_LABEL: Record<string, string> = {
+  close_critical_ticket: 'Close a critical ticket', reopen_ticket: 'Reopen a ticket', edit_customer: 'Edit a customer record',
+  merge_customers: 'Merge customer records', compensation: 'Compensation', refund: 'Refund',
+}
+export const naira = (minor: number | null | undefined) => (minor == null ? '-' : `₦${(minor / 100).toLocaleString('en-NG', { maximumFractionDigits: 2 })}`)

@@ -93,3 +93,22 @@
 .sccCar span.stale{background:#9ca3af;border-style:dashed}
 .sccCar i{display:block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:13px solid #fff}
 .sccCar span:empty::after{content:'';width:10px;height:10px;border-radius:50%;background:#fff}
+
+/* Complaints, approvals and complaint reports */
+.sccComplaintPanel{display:grid;gap:10px;padding:12px;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:14px}
+.sccComplaintBox{display:grid;gap:6px}.sccComplaintBox label,.sccComplaintForm label{display:grid;gap:4px;font-size:.78rem;font-weight:700}
+.sccComplaintBox textarea,.sccComplaintForm textarea,.sccComplaintForm input,.sccComplaintForm select,.sccApproval input,.sccComplaintPanel .sccNoteForm input,.sccComplaintPanel .sccNoteForm select{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:10px;background:color-mix(in srgb,currentColor 6%,transparent);color:inherit;font:inherit}
+.sccComplaintPanel button,.sccComplaintForm button,.sccApproval button{border:1px solid color-mix(in srgb,currentColor 18%,transparent);background:transparent;color:inherit;border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit}
+.sccComplaintPanel button:disabled,.sccComplaintForm button:disabled,.sccApproval button:disabled{opacity:.45;cursor:not-allowed}
+.sccFormGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.sccWide{margin-top:10px}
+.sccFormActions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sccFormActions input{flex:1 1 200px;width:auto}
+.sccApprovalNote{padding:8px 10px;border-radius:10px;border:1px solid rgba(213,138,42,.55);background:rgba(213,138,42,.14);font-size:.85rem}
+.sccApproval{display:grid;gap:6px;padding:12px;margin-top:10px;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:14px;background:color-mix(in srgb,currentColor 4%,transparent)}
+.sccApproval header{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}.sccApproval p{margin:0}.sccApproval small{opacity:.75}
+.sccBadge{padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid color-mix(in srgb,currentColor 25%,transparent)}.sccBadge.pending{border-color:rgba(213,138,42,.7)}.sccBadge.approved{border-color:rgba(34,160,94,.7)}.sccBadge.denied{border-color:rgba(239,68,68,.7)}
+.sccSev{font-weight:700}.sccSev.critical{color:#b91c1c}.sccSev.high{color:#b45309}
+:root[data-ra-theme='dark'] .sccSev.critical,html[data-ra-theme='dark'] .sccSev.critical{color:#ff9b9b}html[data-ra-theme='dark'] .sccSev.high{color:#ffc27a}
+.sccTableWrap{overflow-x:auto;margin-top:10px}.sccTable{width:100%;border-collapse:collapse;font-size:.84rem}.sccTable th,.sccTable td{text-align:left;padding:8px 10px;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}.sccTable th{font-size:.72rem;opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+.sccBarRow{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:10px;align-items:center;padding:4px 0;font-size:.84rem}.sccBarRow i{display:block;height:10px;border-radius:99px;background:rgba(213,138,42,.75)}
+.sccBarRow:not(:has(i)){grid-template-columns:1fr auto}
+@media(max-width:640px){.sccBarRow{grid-template-columns:90px 1fr auto}.sccTable th,.sccTable td{white-space:normal}}
