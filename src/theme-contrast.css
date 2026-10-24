@@ -1,0 +1,18 @@
+/* PArAsYtE: contrast fixes found by rendering every workspace section in light
+   and dark and measuring text against its real background (WCAG AA, 4.5:1 for
+   body text). Loaded last so it wins over the older per-module patches. Only
+   colours change here, never layout. */
+
+/* ---- Light ---- */
+/* Hint text that was pale grey on white (about 3:1). */
+html[data-ra-theme='light'] main small { color: #55657c; opacity: 1; }
+html[data-ra-theme='light'] main p:not([class]) { color: #4f5f76; opacity: 1; }
+
+/* Bright orange small-caps labels on light surfaces (about 2:1). */
+html[data-ra-theme='light'] .eyebrow { color: #9a5800; }
+
+/* ---- Dark ---- */
+/* My Profile form labels were slate on navy (about 2.7:1). */
+html[data-ra-theme='dark'] main label { color: #b4c0d2; }
+html[data-ra-theme='dark'] .myAwardsCount { color: #ffd394; }
+html[data-ra-theme='dark'] .mailSecurity { color: #8fd8b6; }

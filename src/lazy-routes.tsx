@@ -32,6 +32,10 @@ export const LetterheadStudio = lazy(
   () => import('./modules/LetterheadStudio')
 )
 
+export const InvoiceStudio = lazy(
+  () => import('./modules/InvoiceStudio')
+)
+
 export const BrandLibrary = lazy(
   () => import('./modules/BrandLibrary')
 )
