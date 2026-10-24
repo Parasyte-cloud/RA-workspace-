@@ -16,6 +16,13 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import '../room-event-documents.css'
+import {
+  ROOM7_DOCUMENT_ACCEPT,
+  ROOM7_DOCUMENT_HINT,
+  inferRoom7DocumentMime,
+  isRoom7DocumentPreviewable,
+  room7DocumentLabel,
+} from '../lib/room7DocumentTypes'
 
 const BUCKET =
   'room7-event-documents'
@@ -129,67 +136,14 @@ function formatBytes(
   } MB`
 }
 
+// The shared list lives in src/lib/room7DocumentTypes.ts so the picker, this
+// check, the guest reader and the server all agree on what is allowed.
 function inferMimeType(
   file: File,
 ) {
-  const supplied =
-    file.type
-      .trim()
-      .toLowerCase()
-
-  if (
-    supplied ===
-      'application/pdf' ||
-    supplied ===
-      'image/jpeg' ||
-    supplied ===
-      'image/png' ||
-    supplied ===
-      'image/webp'
-  ) {
-    return supplied
-  }
-
-  const lower =
-    file.name
-      .toLowerCase()
-
-  if (
-    lower.endsWith(
-      '.pdf',
-    )
-  ) {
-    return 'application/pdf'
-  }
-
-  if (
-    lower.endsWith(
-      '.jpg',
-    ) ||
-    lower.endsWith(
-      '.jpeg',
-    )
-  ) {
-    return 'image/jpeg'
-  }
-
-  if (
-    lower.endsWith(
-      '.png',
-    )
-  ) {
-    return 'image/png'
-  }
-
-  if (
-    lower.endsWith(
-      '.webp',
-    )
-  ) {
-    return 'image/webp'
-  }
-
-  return ''
+  return inferRoom7DocumentMime(
+    file,
+  ) || ''
 }
 
 function titleFromFile(
@@ -520,7 +474,7 @@ export default function RoomEventDocumentsManager({
 
         if (!mimeType) {
           setNotice(
-            `${file.name}: use PDF, JPEG, PNG or WebP.`,
+            `${file.name}: this file type is not supported. Use PDF, images, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), text or CSV. Save older .doc, .xls and .ppt files as PDF or the newer format first.`,
           )
           return
         }
@@ -610,7 +564,9 @@ export default function RoomEventDocumentsManager({
                 true,
 
               allow_download:
-                false,
+                !isRoom7DocumentPreviewable(
+                  mimeType,
+                ),
             })
 
           const documentId =
@@ -1005,7 +961,7 @@ export default function RoomEventDocumentsManager({
                   hidden
                   type="file"
                   multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                  accept={ROOM7_DOCUMENT_ACCEPT}
                   onChange={event =>
                     void uploadFiles(
                       event,
@@ -1053,10 +1009,12 @@ export default function RoomEventDocumentsManager({
                 </strong>
 
                 <span>
-                  PDFs and images are stored in ROOM 7 private storage.
-                  Guests receive short-lived previews only after event
-                  access is verified. Downloads are off unless you
-                  explicitly enable them.
+                  {ROOM7_DOCUMENT_HINT} Files are stored in ROOM 7
+                  private storage. PDFs and images open in a short-lived
+                  preview after event access is verified, and downloads
+                  are off unless you enable them. Word, Excel, PowerPoint,
+                  text and CSV files cannot be previewed, so guests
+                  download those.
                 </span>
               </div>
             </div>
@@ -1164,10 +1122,10 @@ export default function RoomEventDocumentsManager({
                               .file_size_bytes,
                           )}
                           {' · '}
-                          {
+                          {room7DocumentLabel(
                             document
-                              .mime_type
-                          }
+                              .mime_type,
+                          )}
                         </span>
                       </div>
 
@@ -1427,9 +1385,27 @@ export default function RoomEventDocumentsManager({
                       <label className="roomDocumentDownloadToggle">
                         <input
                           type="checkbox"
+                          disabled={
+                            !isRoom7DocumentPreviewable(
+                              document
+                                .mime_type,
+                            )
+                          }
+                          title={
+                            isRoom7DocumentPreviewable(
+                              document
+                                .mime_type,
+                            )
+                              ? undefined
+                              : 'This file type cannot be previewed, so guests can only download it.'
+                          }
                           checked={
                             document
-                              .allow_download
+                              .allow_download ||
+                            !isRoom7DocumentPreviewable(
+                              document
+                                .mime_type,
+                            )
                           }
                           onChange={
                             event =>

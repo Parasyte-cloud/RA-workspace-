@@ -1,4 +1,4 @@
-import { HttpError, MAX_FILE_BYTES, documentCategories, allowedMimeTypes, cleanText, cleanNullableText, booleanField, integerField } from "./lib.ts"
+import { HttpError, MAX_FILE_BYTES, documentCategories, allowedMimeTypes, isPreviewableMime, cleanText, cleanNullableText, booleanField, integerField } from "./lib.ts"
 import type { JsonObject } from "./lib.ts"
 
 export function validateDocumentInput(
@@ -79,7 +79,7 @@ export function validateDocumentInput(
   ) {
     throw new HttpError(
       415,
-      "ROOM 7 supports PDF, JPEG, PNG and WebP documents.",
+      "ROOM 7 supports PDF, JPEG, PNG, WebP, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), text and CSV documents. Convert older .doc, .xls and .ppt files to PDF or the newer format first.",
     )
   }
 
@@ -157,7 +157,12 @@ export function validateDocumentInput(
     availableDuring,
     availableAfter,
 
+    // Word, Excel, PowerPoint, text and CSV cannot be shown in the reader, so
+    // downloading is the only way to open them and is always on.
     allowDownload:
+      !isPreviewableMime(
+        mimeType,
+      ) ||
       booleanField(
         body.allow_download,
         false,

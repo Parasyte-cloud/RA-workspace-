@@ -1,7 +1,7 @@
 import {
   createClient,
 } from "https://esm.sh/@supabase/supabase-js@2.57.4"
-import { HttpError, BUCKET, MAX_FILE_BYTES, SIGNED_PREVIEW_SECONDS, documentCategories, documentStatuses, privilegedRoles, extensionByMime, cleanText, cleanNullableText, isUuid, corsHeaders, json, readBody, sha256Hex, integerField, publicDocument, visibilityColumn } from "./lib.ts"
+import { HttpError, BUCKET, MAX_FILE_BYTES, SIGNED_PREVIEW_SECONDS, documentCategories, documentStatuses, privilegedRoles, extensionByMime, isPreviewableMime, cleanText, cleanNullableText, isUuid, corsHeaders, json, readBody, sha256Hex, integerField, publicDocument, visibilityColumn } from "./lib.ts"
 import type { JsonObject, EmployeeProfile, ResolvedRoom, InvitationAccess } from "./lib.ts"
 import { documentGuestEmail, documentHmacSha256Hex, documentConstantTimeEqual } from "./guest.ts"
 import { guardPasscodeAttempt } from "../_shared/room7Limit.ts"
@@ -1196,9 +1196,14 @@ async function finalizeUpload(
     )
   }
 
+  // Storage may report text types with a charset ("text/plain;charset=UTF-8").
+  const actualBaseMimeType =
+    actualMimeType
+      .split(";")[0]
+      .trim()
   if (
-    actualMimeType &&
-    actualMimeType !==
+    actualBaseMimeType &&
+    actualBaseMimeType !==
       document.mime_type
   ) {
     throw new HttpError(
@@ -1369,6 +1374,44 @@ async function updateDocument(
 
   const update:
     Record<string, unknown> = {}
+  if (body.allow_download === false) {
+    const {
+      data:
+        current,
+      error:
+        currentError,
+    } =
+      await admin
+        .from(
+          "room7_event_documents",
+        )
+        .select(
+          "mime_type",
+        )
+        .eq(
+          "id",
+          documentId,
+        )
+        .eq(
+          "room_id",
+          roomId,
+        )
+        .maybeSingle()
+    if (currentError) {
+      throw currentError
+    }
+    if (
+      current &&
+      !isPreviewableMime(
+        current.mime_type,
+      )
+    ) {
+      throw new HttpError(
+        400,
+        "This file type cannot be previewed, so downloading must stay on.",
+      )
+    }
+  }
 
   if (
     Object.prototype.hasOwnProperty.call(
@@ -1804,7 +1847,10 @@ async function publicDocumentPreview(
 
   const wantsDownload =
     body.download ===
-      true
+      true ||
+    !isPreviewableMime(
+      document.mime_type,
+    )
 
   if (
     wantsDownload &&
@@ -2073,7 +2119,10 @@ async function adminPreview(
 
   const download =
     body.download ===
-      true
+      true ||
+    !isPreviewableMime(
+      document.mime_type,
+    )
 
   const signedUrl =
     await createDocumentUrl(
