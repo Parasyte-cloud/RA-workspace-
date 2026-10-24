@@ -5,8 +5,10 @@ import {
   type AuditRow, type PendingLocation, type SafetySettings, type SupportAgentPresence, type SupportReport,
 } from '../lib/supportCommandCentre'
 
+import { ComplaintReports } from './SupportComplaints'
+
 // Supervisor-only: reports, audit log, and the safety settings with location approvals.
-type Part = 'reports' | 'audit' | 'safety'
+type Part = 'reports' | 'complaints' | 'audit' | 'safety'
 
 const isoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 const pct = (n: number | null | undefined) => (n == null ? '-' : `${n}%`)
@@ -188,8 +190,9 @@ export default function SupportInsights({ agents }: { agents: SupportAgentPresen
   const [part, setPart] = useState<Part>('reports')
   const names = useMemo(() => new Map(agents.map((a) => [a.employee_id, a.display_name])), [agents])
   return <section aria-label="Insights">
-    <nav className="sccTabs sub">{([['reports', 'Reports'], ['audit', 'Audit log'], ['safety', 'Safety and approvals']] as Array<[Part, string]>).map(([id, text]) => <button key={id} type="button" className={part === id ? 'active' : ''} onClick={() => setPart(id)}>{text}</button>)}</nav>
+    <nav className="sccTabs sub">{([['reports', 'Reports'], ['complaints', 'Complaint reports'], ['audit', 'Audit log'], ['safety', 'Safety and approvals']] as Array<[Part, string]>).map(([id, text]) => <button key={id} type="button" className={part === id ? 'active' : ''} onClick={() => setPart(id)}>{text}</button>)}</nav>
     {part === 'reports' ? <Reports agents={agents} /> : null}
+    {part === 'complaints' ? <ComplaintReports /> : null}
     {part === 'audit' ? <Audit agents={agents} /> : null}
     {part === 'safety' ? <Safety names={names} /> : null}
   </section>

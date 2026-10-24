@@ -18,9 +18,10 @@ import { useSupportNotifications } from '../support/useSupportNotifications'
 import { ensureManifest, onWorkerOpen, registerWorker } from '../support/pwa'
 import SupportNotificationCentre from './SupportNotificationCentre'
 import type { NotificationRow } from '../lib/supportCommandCentre'
+import { ComplaintsTab as SupportComplaintsTab, ApprovalsTab as SupportApprovalsTab } from './SupportComplaints'
 import '../support-command-centre.css'
 
-type Tab = 'mine' | 'queue' | 'calls' | 'callbacks' | 'outreach' | 'emergency' | 'lookup' | 'tower' | 'insights'
+type Tab = 'mine' | 'queue' | 'calls' | 'callbacks' | 'outreach' | 'emergency' | 'lookup' | 'tower' | 'insights' | 'complaints' | 'approvals'
 const CHANNELS: Array<'all' | SupportChannel> = ['all', 'voice', 'whatsapp', 'web_chat', 'email', 'sms', 'form']
 
 function TicketCard({ t, onOpen }: { t: SupportTicketSummary; onOpen: (id: string) => void }) {
@@ -35,6 +36,7 @@ function TicketCard({ t, onOpen }: { t: SupportTicketSummary; onOpen: (id: strin
 export default function SupportCommandCentre() {
   const { snapshot, me, meId, loading, error, reload, changeState, setError } = useSupportCentre()
   const [tab, setTab] = useState<Tab>('mine')
+  const [approvalCount, setApprovalCount] = useState(0)
   const [channel, setChannel] = useState<'all' | SupportChannel>('all')
   const [openId, setOpenId] = useState<string | null>(null)
   const [dial, setDial] = useState<DialRequest | null>(null)
@@ -47,7 +49,7 @@ export default function SupportCommandCentre() {
   // Alerts outside the screen: installable app, service worker, notification centre.
   const jumpTo = useCallback((t: { tab: string | null; entityId?: string | null; entityType?: string | null }) => {
     const wanted = t.tab as Tab | null
-    if (wanted && ['mine', 'queue', 'calls', 'callbacks', 'outreach', 'emergency', 'lookup', 'tower', 'insights'].includes(wanted)) setTab(wanted)
+    if (wanted && ['mine', 'queue', 'calls', 'callbacks', 'outreach', 'emergency', 'lookup', 'tower', 'insights', 'complaints', 'approvals'].includes(wanted)) setTab(wanted)
     if (t.entityType === 'incident' && t.entityId) { setFocusIncident(t.entityId); setTab('emergency') }
     else if (t.entityType === 'ticket' && t.entityId) setOpenId(t.entityId)
   }, [])
@@ -146,8 +148,9 @@ export default function SupportCommandCentre() {
     </div>
 
     <nav className="sccTabs" aria-label="Views">
-      {([['mine', `My work (${mine.length})`], ['queue', `Queue (${queue.length})`], ['calls', 'Calls'], ['callbacks', 'Callbacks'], ['outreach', 'Driver outreach']] as Array<[Tab, string]>).map(([id, text]) => <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{text}</button>)}
+      {([['mine', `My work (${mine.length})`], ['queue', `Queue (${queue.length})`], ['calls', 'Calls'], ['callbacks', 'Callbacks'], ['outreach', 'Driver outreach'], ['complaints', 'Complaints']] as Array<[Tab, string]>).map(([id, text]) => <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{text}</button>)}
       <button type="button" className={`${tab === 'emergency' ? 'active' : ''} ${incidents.open.length ? 'alert' : ''}`} onClick={() => setTab('emergency')}>Emergency{incidents.open.length ? ` (${incidents.open.length})` : ''}</button>
+      <button type="button" className={`${tab === 'approvals' ? 'active' : ''} ${approvalCount ? 'alert' : ''}`} onClick={() => setTab('approvals')}>Approvals{approvalCount ? ` (${approvalCount})` : ''}</button>
       {incidents.sensitive ? <button type="button" className={tab === 'lookup' ? 'active' : ''} onClick={() => setTab('lookup')}>Lookup</button> : null}
       {isSupervisor ? <button type="button" className={tab === 'tower' ? 'active' : ''} onClick={() => setTab('tower')}>Control tower</button> : null}
       {isSupervisor ? <button type="button" className={tab === 'insights' ? 'active' : ''} onClick={() => setTab('insights')}>Insights</button> : null}
@@ -171,6 +174,8 @@ export default function SupportCommandCentre() {
 
     {tab === 'emergency' ? <SupportEmergencyConsole incidents={incidents.incidents} canAct={incidents.sensitive} isSupervisor={isSupervisor} meId={meId}
       agents={snapshot.agents} focusId={focusIncident} onChanged={incidents.reload} /> : null}
+    {tab === 'complaints' ? <SupportComplaintsTab onOpenTicket={setOpenId} /> : null}
+    {tab === 'approvals' ? <SupportApprovalsTab onOpenTicket={setOpenId} onCount={setApprovalCount} /> : null}
     {tab === 'lookup' && incidents.sensitive ? <SupportLookup onOpenTicket={setOpenId} /> : null}
     {tab === 'insights' && isSupervisor ? <SupportInsights agents={snapshot.agents} /> : null}
 

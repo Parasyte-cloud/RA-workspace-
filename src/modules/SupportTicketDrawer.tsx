@@ -5,6 +5,7 @@ import {
   addNote, assignTicket, claimTicket, control, dueLabel, fetchRecordingUrl, formatDuration, getTicketDetail, label, loadTicketCalls, loadWatchers, queueCallback, timeAgo, unwatchTicket, updateTicket, watchTicket,
   type SupportAgentPresence, type TicketCall, type SupportPriority, type SupportTicketDetail, type SupportTicketStatus,
 } from '../lib/supportCommandCentre'
+import SupportComplaintPanel from './SupportComplaintPanel'
 
 type Props = {
   ticketId: string
@@ -129,6 +130,8 @@ export default function SupportTicketDrawer({ ticketId, meId, isSupervisor, canS
           </div>
           {t.channel === 'whatsapp' || t.channel === 'sms' ? <p className="sccMuted"><MessageSquare size={13} /> Reply to {label(t.channel)} customers from the {t.channel === 'whatsapp' ? 'WhatsApp panel' : 'messaging tools'} below; the thread appears here automatically.</p> : null}
         </section>
+
+        <SupportComplaintPanel ticketId={t.id} status={t.status} isSupervisor={isSupervisor} customer={{ id: detail?.customer?.id ?? t.customer_id ?? null, name: detail?.customer?.display_name || t.customer_name || null, phone, email }} onChanged={() => { void load(); onChanged() }} />
 
         {canSeeSensitive && !closed && (mine || isSupervisor) ? <SupportLocationPanel ticketId={t.id} meId={meId} /> : null}
 
